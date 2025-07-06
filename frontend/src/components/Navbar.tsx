@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/NextAuthContext";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -59,17 +59,22 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="flex items-center text-sm rounded-full text-gray-700 hover:text-blue-600 focus:outline-none"
                 >
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-medium">
-                      {user.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="ml-2 text-gray-700">{user.name}</span>
-                  <span className="ml-1 text-xs text-gray-500">
-                    ({user.role})
-                  </span>
+                  <span className="mr-2">{user.name}</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
 
                 {showUserMenu && (
@@ -81,6 +86,15 @@ export default function Navbar() {
                     >
                       โปรไฟล์
                     </Link>
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        จัดการผู้ใช้
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -91,7 +105,7 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="flex space-x-4">
                 <Link
                   href="/auth/login"
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"

@@ -5,6 +5,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+// import { authenticate } from "ldap-authentication"; // Not used with user bind approach
 
 dotenv.config();
 
@@ -18,9 +19,32 @@ const REFRESH_TOKEN_SECRET =
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || "7d"; // 7 days
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "30d"; // 30 days
 
+// NextAuth secret (should match frontend)
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "your-nextauth-secret";
+
+// LDAP Configuration (kept for reference, using direct env vars in user bind approach)
+// const LDAP_CONFIG = {
+//   ldapOpts: {
+//     url: process.env.LDAP_URL || "ldap://localhost:389",
+//   },
+//   adminDn: process.env.LDAP_ADMIN_DN || "cn=admin,dc=example,dc=com",
+//   adminPassword: process.env.LDAP_ADMIN_PASSWORD || "admin",
+//   userSearchBase: process.env.LDAP_USER_SEARCH_BASE || "ou=users,dc=example,dc=com",
+//   usernameAttribute: process.env.LDAP_USERNAME_ATTRIBUTE || "uid",
+// };
+
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // Next.js frontend
+      "http://localhost:3001", // API Gateway
+      process.env.FRONTEND_URL || "http://localhost:3000",
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("combined"));
@@ -34,6 +58,15 @@ interface User {
   role: string;
   createdAt: Date;
   refreshToken?: string;
+}
+
+// Interface for authenticated user (both local and LDAP)
+interface AuthenticatedUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  ldapUser?: boolean;
 }
 
 const users: User[] = [
@@ -64,7 +97,7 @@ const users: User[] = [
 ];
 
 // Helper function to generate tokens
-const generateTokens = (user: User) => {
+const generateTokens = (user: User | AuthenticatedUser) => {
   const accessToken = jwt.sign(
     { userId: user.id, email: user.email, role: user.role },
     JWT_SECRET,
@@ -82,11 +115,164 @@ const generateTokens = (user: User) => {
   return { accessToken, refreshToken };
 };
 
+// Helper function to verify NextAuth JWT token
+const verifyNextAuthToken = (token: string) => {
+  try {
+    // This is a simplified version - in production, you'd want to properly verify NextAuth JWT
+    const decoded = jwt.verify(token, NEXTAUTH_SECRET) as any;
+    return decoded;
+  } catch {
+    return null;
+  }
+};
+
+// LDAP Authentication function for Windows LDAP/Active Directory
+const authenticateWithLDAP = async (username: string, password: string) => {
+  try {
+    // Validate input
+    if (!username || !password) {
+      console.error("LDAP authentication: Username or password is empty");
+      return null;
+    }
+
+    // Get LDAP configuration from environment variables
+    const ldapUrl = process.env.LDAP_URL || "ldap://localhost:389";
+    const userSearchBase =
+      process.env.LDAP_USER_SEARCH_BASE || "cn=Users,dc=domain,dc=local";
+    const usernameAttribute =
+      process.env.LDAP_USERNAME_ATTRIBUTE || "sAMAccountName";
+
+    console.log(`Attempting Windows LDAP authentication for: ${username}`);
+    console.log(`LDAP URL: ${ldapUrl}`);
+    console.log(`User Search Base: ${userSearchBase}`);
+    console.log(`Username Attribute: ${usernameAttribute}`);
+
+    // Extract username from email if needed
+    let actualUsername = username;
+    let userEmail = username;
+
+    if (username.includes("@")) {
+      actualUsername = username.split("@")[0];
+      userEmail = username;
+    } else {
+      // If no @ symbol, assume it's just username and create email
+      userEmail = `${username}@rpphosp.local`;
+    }
+
+    try {
+      const { Client } = require("ldapts");
+      const client = new Client({
+        url: ldapUrl,
+        timeout: 15000,
+        connectTimeout: 15000,
+      });
+
+      console.log(`Trying to authenticate user: ${actualUsername}`);
+
+      // Try different username formats for Windows LDAP
+      const bindFormats = [
+        actualUsername, // Direct username
+        `${actualUsername}@rpphosp.local`, // UPN format
+        `RPPHOSP\\${actualUsername}`, // DOMAIN\username format
+        `${actualUsername}@RPPHOSP.LOCAL`, // UPN uppercase
+        `rpphosp\\${actualUsername}`, // domain\username lowercase
+      ];
+
+      let bindSuccessful = false;
+
+      for (const bindFormat of bindFormats) {
+        try {
+          console.log(`Trying LDAP bind with format: ${bindFormat}`);
+          await client.bind(bindFormat, password);
+          console.log(`LDAP bind successful with format: ${bindFormat}`);
+          bindSuccessful = true;
+          break;
+        } catch (bindErr: any) {
+          console.log(`LDAP bind failed for ${bindFormat}: ${bindErr.message}`);
+          continue;
+        }
+      }
+
+      if (!bindSuccessful) {
+        console.log("All LDAP bind attempts failed");
+        await client.unbind();
+        return null;
+      }
+
+      console.log(`Successfully authenticated user: ${actualUsername}`);
+
+      // Try to search for additional user information
+      let displayName = actualUsername;
+      let email = userEmail;
+
+      try {
+        // Search for user details using simple username search
+        const searchResult = await client.search(userSearchBase, {
+          scope: "sub",
+          filter: `(|(${usernameAttribute}=${actualUsername})(mail=${userEmail})(cn=${actualUsername}))`,
+          attributes: ["displayName", "mail", "cn", "memberOf"],
+        });
+
+        if (searchResult.searchEntries.length > 0) {
+          const userEntry = searchResult.searchEntries[0];
+          displayName = userEntry.displayName || userEntry.cn || actualUsername;
+          email = userEntry.mail || userEmail;
+
+          console.log(`Found user details: ${displayName}, ${email}`);
+        }
+      } catch (searchErr) {
+        console.warn("Could not search for user details:", searchErr);
+        // Continue with basic info
+      }
+
+      // Create user object
+      const user: AuthenticatedUser = {
+        id: actualUsername,
+        email: email,
+        name: displayName,
+        role: "user", // Default role, can be enhanced with group membership check
+        ldapUser: true,
+      };
+
+      await client.unbind();
+      return user;
+    } catch (err: any) {
+      console.error(`Windows LDAP authentication failed:`, err.message);
+      console.error(`Error code: ${err.code}`);
+      console.error(`Error name: ${err.name}`);
+      console.error(`Full error:`, err);
+
+      // Handle specific LDAP errors
+      if (err.code === "ECONNREFUSED") {
+        console.error(
+          "LDAP server connection refused. Check if Windows LDAP server is running and accessible.",
+        );
+      } else if (err.code === "ENOTFOUND") {
+        console.error("LDAP server not found. Check LDAP_URL configuration.");
+      } else if (err.code === "EHOSTUNREACH") {
+        console.error(
+          "LDAP server host unreachable. Check network connectivity.",
+        );
+      } else if (err.message?.includes("Invalid credentials")) {
+        console.error("Invalid LDAP credentials provided.");
+      } else if (err.message?.includes("timeout")) {
+        console.error(
+          "LDAP connection timeout. Windows LDAP server may be slow or unreachable.",
+        );
+      }
+      return null;
+    }
+  } catch (error) {
+    console.error("Windows LDAP Authentication error:", error);
+    return null;
+  }
+};
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
     status: "OK",
-    service: "Auth Service",
+    service: "Auth Service with NextAuth Support",
     timestamp: new Date().toISOString(),
   });
 });
@@ -152,45 +338,96 @@ app.post(
   },
 );
 
-// Login endpoint
+// Login endpoint (compatible with NextAuth) - supports both local and LDAP authentication
 app.post(
   "/login",
   async (req: express.Request, res: express.Response): Promise<void> => {
     try {
-      const { email, password } = req.body;
+      const { email, password, authType } = req.body;
 
       if (!email || !password) {
         res.status(400).json({ error: "Email and password are required" });
         return;
       }
 
-      // Find user
-      const user = users.find((u) => u.email === email);
-      if (!user) {
-        res.status(401).json({ error: "Invalid credentials" });
-        return;
+      let authenticatedUser = null;
+
+      // Try LDAP authentication first if specified or if local user not found
+      if (authType === "ldap" || authType === "auto" || authType === "manual") {
+        console.log(
+          `Attempting LDAP authentication for ${email} with authType: ${authType}`,
+        );
+        console.log(`LDAP_URL from env: ${process.env.LDAP_URL}`);
+        try {
+          authenticatedUser = await authenticateWithLDAP(email, password);
+          if (authenticatedUser) {
+            console.log("LDAP authentication successful for:", email);
+          } else {
+            console.log("LDAP authentication returned null for:", email);
+          }
+        } catch (ldapError) {
+          console.error(
+            "LDAP authentication failed with exception:",
+            ldapError,
+          );
+        }
       }
 
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
+      // If LDAP failed or not requested, try local authentication
+      if (
+        !authenticatedUser &&
+        (authType === "local" ||
+          authType === "auto" ||
+          authType === "manual" ||
+          !authType)
+      ) {
+        console.log(
+          `Attempting local authentication for ${email} with authType: ${authType}`,
+        );
+        const user = users.find((u) => u.email === email);
+        if (user) {
+          const isValidPassword = await bcrypt.compare(password, user.password);
+          if (isValidPassword) {
+            authenticatedUser = {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              ldapUser: false,
+            };
+            console.log("Local authentication successful for:", email);
+          } else {
+            console.log("Local authentication password mismatch for:", email);
+          }
+        } else {
+          console.log("Local user not found for:", email);
+        }
+      }
+
+      if (!authenticatedUser) {
         res.status(401).json({ error: "Invalid credentials" });
         return;
       }
 
       // Generate tokens
-      const { accessToken, refreshToken } = generateTokens(user);
+      const { accessToken, refreshToken } = generateTokens(authenticatedUser);
 
-      // Store refresh token
-      user.refreshToken = refreshToken;
+      // Store refresh token for local users
+      if (!authenticatedUser.ldapUser) {
+        const user = users.find((u) => u.id === authenticatedUser.id);
+        if (user) {
+          user.refreshToken = refreshToken;
+        }
+      }
 
       res.json({
         message: "Login successful",
         user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
+          id: authenticatedUser.id,
+          email: authenticatedUser.email,
+          name: authenticatedUser.name,
+          role: authenticatedUser.role,
+          authType: authenticatedUser.ldapUser ? "ldap" : "local",
         },
         token: accessToken,
         refreshToken: refreshToken,
@@ -202,6 +439,62 @@ app.post(
     }
   },
 );
+
+// NextAuth session verification endpoint
+app.post("/session", (req: express.Request, res: express.Response): void => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      res.status(401).json({ error: "Token required" });
+      return;
+    }
+
+    // Try to decode the token
+    let decoded = verifyNextAuthToken(token);
+
+    if (!decoded) {
+      // Try JWT verification as fallback
+      try {
+        decoded = jwt.verify(token, JWT_SECRET) as any;
+      } catch {
+        res.status(401).json({ error: "Invalid token" });
+        return;
+      }
+    }
+
+    // Find user
+    const user = users.find(
+      (u) => u.id === decoded.userId || u.id === decoded.sub,
+    );
+    if (!user) {
+      res.status(401).json({ error: "User not found" });
+      return;
+    }
+
+    res.json({
+      valid: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      session: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+      },
+    });
+  } catch (error) {
+    console.error("Session verification error:", error);
+    res.status(401).json({ error: "Invalid session" });
+  }
+});
 
 // Token refresh endpoint
 app.post("/refresh", (req: express.Request, res: express.Response): void => {
@@ -248,6 +541,48 @@ app.post("/refresh", (req: express.Request, res: express.Response): void => {
   }
 });
 
+// LDAP authentication endpoint
+app.post(
+  "/ldap",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        res.status(400).json({ error: "Username and password are required" });
+        return;
+      }
+
+      const ldapUser = await authenticateWithLDAP(username, password);
+
+      if (!ldapUser) {
+        res.status(401).json({ error: "Invalid LDAP credentials" });
+        return;
+      }
+
+      // Generate tokens
+      const { accessToken, refreshToken } = generateTokens(ldapUser);
+
+      res.json({
+        message: "LDAP authentication successful",
+        user: {
+          id: ldapUser.id,
+          email: ldapUser.email,
+          name: ldapUser.name,
+          role: ldapUser.role,
+          authType: "ldap",
+        },
+        token: accessToken,
+        refreshToken: refreshToken,
+        expiresIn: ACCESS_TOKEN_EXPIRY,
+      });
+    } catch (error) {
+      console.error("LDAP authentication error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
 // Token verification endpoint
 app.post("/verify", (req: express.Request, res: express.Response): void => {
   try {
@@ -258,8 +593,22 @@ app.post("/verify", (req: express.Request, res: express.Response): void => {
       return;
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = users.find((u) => u.id === decoded.userId);
+    // Try NextAuth token first
+    let decoded = verifyNextAuthToken(token);
+
+    if (!decoded) {
+      // Try JWT verification as fallback
+      try {
+        decoded = jwt.verify(token, JWT_SECRET) as any;
+      } catch {
+        res.status(401).json({ error: "Invalid token" });
+        return;
+      }
+    }
+
+    const user = users.find(
+      (u) => u.id === decoded.userId || u.id === decoded.sub,
+    );
 
     if (!user) {
       res.status(401).json({ error: "Invalid token" });
@@ -304,13 +653,21 @@ app.post("/logout", (req: express.Request, res: express.Response): void => {
 // Default route
 app.get("/", (req, res) => {
   res.json({
-    message: "RPP Portal Auth Service",
-    version: "2.0.0",
-    endpoints: ["/register", "/login", "/verify", "/refresh", "/logout"],
+    message: "RPP Portal Auth Service with NextAuth Support",
+    version: "2.1.0",
+    endpoints: [
+      "/register",
+      "/login",
+      "/verify",
+      "/refresh",
+      "/logout",
+      "/session",
+    ],
     tokenConfig: {
       accessTokenExpiry: ACCESS_TOKEN_EXPIRY,
       refreshTokenExpiry: REFRESH_TOKEN_EXPIRY,
     },
+    nextAuthSupport: true,
   });
 });
 
@@ -334,8 +691,9 @@ app.use("*", (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🔐 Auth Service running on port ${PORT}`);
+  console.log(`🔐 Auth Service with NextAuth Support running on port ${PORT}`);
   console.log(`📋 Token Configuration:`);
   console.log(`   - Access Token Expiry: ${ACCESS_TOKEN_EXPIRY}`);
   console.log(`   - Refresh Token Expiry: ${REFRESH_TOKEN_EXPIRY}`);
+  console.log(`   - NextAuth Support: Enabled`);
 });
