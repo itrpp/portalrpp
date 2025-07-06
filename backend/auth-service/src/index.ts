@@ -18,9 +18,21 @@ const REFRESH_TOKEN_SECRET =
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || "7d"; // 7 days
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "30d"; // 30 days
 
+// NextAuth secret (should match frontend)
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "your-nextauth-secret";
+
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // Next.js frontend
+      "http://localhost:3001", // API Gateway
+      process.env.FRONTEND_URL || "http://localhost:3000",
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("combined"));
@@ -82,11 +94,22 @@ const generateTokens = (user: User) => {
   return { accessToken, refreshToken };
 };
 
+// Helper function to verify NextAuth JWT token
+const verifyNextAuthToken = (token: string) => {
+  try {
+    // This is a simplified version - in production, you'd want to properly verify NextAuth JWT
+    const decoded = jwt.verify(token, NEXTAUTH_SECRET) as any;
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+};
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
     status: "OK",
-    service: "Auth Service",
+    service: "Auth Service with NextAuth Support",
     timestamp: new Date().toISOString(),
   });
 });
@@ -152,7 +175,7 @@ app.post(
   },
 );
 
-// Login endpoint
+// Login endpoint (compatible with NextAuth)
 app.post(
   "/login",
   async (req: express.Request, res: express.Response): Promise<void> => {
@@ -202,6 +225,62 @@ app.post(
     }
   },
 );
+
+// NextAuth session verification endpoint
+app.post("/session", (req: express.Request, res: express.Response): void => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      res.status(401).json({ error: "Token required" });
+      return;
+    }
+
+    // Try to decode the token
+    let decoded = verifyNextAuthToken(token);
+
+    if (!decoded) {
+      // Try JWT verification as fallback
+      try {
+        decoded = jwt.verify(token, JWT_SECRET) as any;
+      } catch (err) {
+        res.status(401).json({ error: "Invalid token" });
+        return;
+      }
+    }
+
+    // Find user
+    const user = users.find(
+      (u) => u.id === decoded.userId || u.id === decoded.sub,
+    );
+    if (!user) {
+      res.status(401).json({ error: "User not found" });
+      return;
+    }
+
+    res.json({
+      valid: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      session: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+      },
+    });
+  } catch (error) {
+    console.error("Session verification error:", error);
+    res.status(401).json({ error: "Invalid session" });
+  }
+});
 
 // Token refresh endpoint
 app.post("/refresh", (req: express.Request, res: express.Response): void => {
@@ -258,8 +337,22 @@ app.post("/verify", (req: express.Request, res: express.Response): void => {
       return;
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = users.find((u) => u.id === decoded.userId);
+    // Try NextAuth token first
+    let decoded = verifyNextAuthToken(token);
+
+    if (!decoded) {
+      // Try JWT verification as fallback
+      try {
+        decoded = jwt.verify(token, JWT_SECRET) as any;
+      } catch (err) {
+        res.status(401).json({ error: "Invalid token" });
+        return;
+      }
+    }
+
+    const user = users.find(
+      (u) => u.id === decoded.userId || u.id === decoded.sub,
+    );
 
     if (!user) {
       res.status(401).json({ error: "Invalid token" });
@@ -304,13 +397,21 @@ app.post("/logout", (req: express.Request, res: express.Response): void => {
 // Default route
 app.get("/", (req, res) => {
   res.json({
-    message: "RPP Portal Auth Service",
-    version: "2.0.0",
-    endpoints: ["/register", "/login", "/verify", "/refresh", "/logout"],
+    message: "RPP Portal Auth Service with NextAuth Support",
+    version: "2.1.0",
+    endpoints: [
+      "/register",
+      "/login",
+      "/verify",
+      "/refresh",
+      "/logout",
+      "/session",
+    ],
     tokenConfig: {
       accessTokenExpiry: ACCESS_TOKEN_EXPIRY,
       refreshTokenExpiry: REFRESH_TOKEN_EXPIRY,
     },
+    nextAuthSupport: true,
   });
 });
 
@@ -334,8 +435,9 @@ app.use("*", (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🔐 Auth Service running on port ${PORT}`);
+  console.log(`🔐 Auth Service with NextAuth Support running on port ${PORT}`);
   console.log(`📋 Token Configuration:`);
   console.log(`   - Access Token Expiry: ${ACCESS_TOKEN_EXPIRY}`);
   console.log(`   - Refresh Token Expiry: ${REFRESH_TOKEN_EXPIRY}`);
+  console.log(`   - NextAuth Support: Enabled`);
 });
