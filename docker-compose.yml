@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # API Gateway
   api-gateway:
@@ -29,6 +27,14 @@ services:
       - ACCESS_TOKEN_EXPIRY=7d
       - REFRESH_TOKEN_EXPIRY=30d
       - NODE_ENV=production
+      # Windows LDAP Configuration
+      - LDAP_URL=ldap://192.168.238.8:389
+      # - LDAP_ADMIN_DN=cn=Administrator,cn=Users,dc=domain,dc=local
+      # - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_USER_SEARCH_BASE=cn=Users,dc=domain,dc=local
+      - LDAP_USERNAME_ATTRIBUTE=sAMAccountName
+      - LDAP_USERNAME=arin
+      - LDAP_USER_PASSWORD=o6Udojkiydot
     networks:
       - rpp-network
 
@@ -51,6 +57,9 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - INTERNAL_API_URL=http://api-gateway:3001
+      - NEXTAUTH_SECRET=dTkUXwnR6inBmrDiUekjD0Kq+TYp94FXRyZIG7CKMaA=
+      - NEXTAUTH_URL=http://localhost:3000
       - NODE_ENV=production
     depends_on:
       - api-gateway

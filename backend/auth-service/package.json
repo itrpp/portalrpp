@@ -28,6 +28,8 @@
     "express": "^4.19.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "ldap-authentication": "^3.3.4",
+    "ldapts": "^8.0.4",
     "morgan": "^1.10.0",
     "next-auth": "^4.24.11"
   },
