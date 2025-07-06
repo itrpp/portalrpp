@@ -78,7 +78,7 @@ npm run format
 
 ### Backend (Node.js + TypeScript)
 
-- ใช้ `eslint:recommended` 
+- ใช้ `eslint:recommended`
 - รองรับ TypeScript parsing
 - อนุญาต `console.log` ใน backend services
 - ตรวจสอบ unused variables (ยกเว้นที่ขึ้นต้นด้วย `_`)
@@ -104,7 +104,7 @@ npm run format
 เมื่อทำการ commit ระบบจะรันการตรวจสอบต่อไปนี้อัตโนมัติ:
 
 1. **Frontend Linting**: ตรวจสอบและแก้ไข React/TypeScript code
-2. **Backend Linting**: ตรวจสอบและแก้ไข Node.js/TypeScript code  
+2. **Backend Linting**: ตรวจสอบและแก้ไข Node.js/TypeScript code
 3. **Code Formatting**: ตรวจสอบการ format ด้วย Prettier
 
 หาก commit ไม่ผ่านการตรวจสอบ จะไม่สามารถ commit ได้
@@ -151,7 +151,7 @@ cd frontend && npm update eslint prettier
 
 # อัปเดตใน backend services
 cd backend/api-gateway && npm update eslint prettier
-cd ../auth-service && npm update eslint prettier  
+cd ../auth-service && npm update eslint prettier
 cd ../user-service && npm update eslint prettier
 ```
 
@@ -166,7 +166,7 @@ cd ../user-service && npm update eslint prettier
 ## 🎯 เป้าหมาย
 
 - ✅ Code quality ที่สม่ำเสมอ
-- ✅ รูปแบบการเขียนที่เป็นมาตรฐาน  
+- ✅ รูปแบบการเขียนที่เป็นมาตรฐาน
 - ✅ ลดข้อผิดพลาดในโค้ด
 - ✅ เพิ่มความสามารถในการ maintain โค้ด
 - ✅ ทำงานร่วมกันในทีมได้ดีขึ้น
@@ -174,6 +174,7 @@ cd ../user-service && npm update eslint prettier
 ---
 
 สำหรับข้อมูลเพิ่มเติม กรุณาดูที่:
+
 - [ESLint Documentation](https://eslint.org/docs/)
 - [Prettier Documentation](https://prettier.io/docs/)
-- [Next.js ESLint](https://nextjs.org/docs/app/api-reference/config/eslint) 
+- [Next.js ESLint](https://nextjs.org/docs/app/api-reference/config/eslint)
