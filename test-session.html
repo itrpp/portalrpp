@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทดสอบ Session Persistence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .token-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .refresh-btn {
+            background-color: #28a745;
+        }
+        .refresh-btn:hover {
+            background-color: #218838;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 ทดสอบ Session Persistence</h1>
+        <p>ทดสอบการเก็บ authentication state หลังจาก page refresh</p>
+        
+        <div id="status" class="status info">
+            📋 กำลังตรวจสอบ authentication status...
+        </div>
+        
+        <div id="userInfo" style="display: none;">
+            <h3>ข้อมูลผู้ใช้:</h3>
+            <div id="userDetails"></div>
+        </div>
+        
+        <div id="tokenInfo" style="display: none;">
+            <h3>Token Information:</h3>
+            <div id="tokenDetails" class="token-info"></div>
+        </div>
+        
+        <div id="loginForm" style="display: none;">
+            <h3>เข้าสู่ระบบ:</h3>
+            <input type="email" id="email" placeholder="Email" value="admin@rpp.com">
+            <input type="password" id="password" placeholder="Password" value="password">
+            <button onclick="login()">เข้าสู่ระบบ</button>
+        </div>
+        
+        <div id="actions" style="display: none;">
+            <button onclick="checkAuth()">ตรวจสอบ Auth Status</button>
+            <button onclick="refreshToken()" class="refresh-btn">Refresh Token</button>
+            <button onclick="logout()" class="logout-btn">ออกจากระบบ</button>
+            <button onclick="location.reload()">🔄 Refresh หน้า</button>
+        </div>
+        
+        <div id="instructions" class="info">
+            <h3>วิธีทดสอบ:</h3>
+            <ol>
+                <li>เข้าสู่ระบบด้วยข้อมูลที่ให้มา</li>
+                <li>กด "🔄 Refresh หน้า" เพื่อทดสอบ session persistence</li>
+                <li>ตรวจสอบว่าผู้ใช้ยังคง login อยู่หรือไม่</li>
+                <li>ทดสอบ refresh token โดยกด "Refresh Token"</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3001';
+        
+        // ตรวจสอบ auth status เมื่อโหลดหน้า
+        window.addEventListener('load', checkAuth);
+        
+        async function checkAuth() {
+            console.log('🔍 Checking auth status...');
+            updateStatus('📋 กำลังตรวจสอบ authentication status...', 'info');
+            
+            try {
+                const storedToken = localStorage.getItem('authToken');
+                const storedRefreshToken = localStorage.getItem('refreshToken');
+                
+                console.log('📦 Stored tokens:', { 
+                    hasAccessToken: !!storedToken, 
+                    hasRefreshToken: !!storedRefreshToken 
+                });
+                
+                if (storedToken) {
+                    console.log('🔑 Verifying access token...');
+                    const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${storedToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('✅ Access token valid:', data.user);
+                        showUserInfo(data.user, storedToken);
+                        updateStatus('✅ เข้าสู่ระบบแล้ว - Access token ยังใช้ได้', 'success');
+                    } else {
+                        console.log('❌ Access token expired, trying refresh...');
+                        await tryRefreshToken();
+                    }
+                } else if (storedRefreshToken) {
+                    console.log('🔄 No access token, trying refresh...');
+                    await tryRefreshToken();
+                } else {
+                    console.log('❌ No tokens found');
+                    showLoginForm();
+                    updateStatus('❌ ไม่พบ token - กรุณาเข้าสู่ระบบ', 'error');
+                }
+            } catch (error) {
+                console.error('Error checking auth:', error);
+                showLoginForm();
+                updateStatus('❌ เกิดข้อผิดพลาดในการตรวจสอบ auth status', 'error');
+            }
+        }
+        
+        async function tryRefreshToken() {
+            try {
+                const storedRefreshToken = localStorage.getItem('refreshToken');
+                if (!storedRefreshToken) {
+                    showLoginForm();
+                    updateStatus('❌ ไม่พบ refresh token - กรุณาเข้าสู่ระบบใหม่', 'error');
+                    return;
+                }
+                
+                console.log('🔄 Refreshing token...');
+                const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refreshToken: storedRefreshToken }),
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Token refreshed successfully:', data.user);
+                    
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    
+                    showUserInfo(data.user, data.token);
+                    updateStatus('✅ Token ถูกต่ออายุเรียบร้อยแล้ว', 'success');
+                } else {
+                    console.log('❌ Refresh token failed');
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('refreshToken');
+                    showLoginForm();
+                    updateStatus('❌ Refresh token หมดอายุ - กรุณาเข้าสู่ระบบใหม่', 'error');
+                }
+            } catch (error) {
+                console.error('Refresh token error:', error);
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('refreshToken');
+                showLoginForm();
+                updateStatus('❌ เกิดข้อผิดพลาดในการต่ออายุ token', 'error');
+            }
+        }
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            updateStatus('📋 กำลังเข้าสู่ระบบ...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Login successful:', data.user);
+                    
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    
+                    showUserInfo(data.user, data.token);
+                    updateStatus('✅ เข้าสู่ระบบสำเร็จ', 'success');
+                } else {
+                    const errorData = await response.json();
+                    updateStatus(`❌ เข้าสู่ระบบไม่สำเร็จ: ${errorData.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                updateStatus('❌ เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'error');
+            }
+        }
+        
+        async function refreshToken() {
+            updateStatus('📋 กำลังต่ออายุ token...', 'info');
+            await tryRefreshToken();
+        }
+        
+        async function logout() {
+            try {
+                const storedRefreshToken = localStorage.getItem('refreshToken');
+                if (storedRefreshToken) {
+                    await fetch(`${API_BASE_URL}/api/auth/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ refreshToken: storedRefreshToken }),
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            
+            showLoginForm();
+            updateStatus('✅ ออกจากระบบเรียบร้อยแล้ว', 'success');
+        }
+        
+        function showUserInfo(user, token) {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('tokenInfo').style.display = 'block';
+            document.getElementById('actions').style.display = 'block';
+            
+            document.getElementById('userDetails').innerHTML = `
+                <p><strong>ID:</strong> ${user.id}</p>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Name:</strong> ${user.name}</p>
+                <p><strong>Role:</strong> ${user.role}</p>
+            `;
+            
+            document.getElementById('tokenDetails').innerHTML = `
+                <p><strong>Access Token:</strong> ${token.substring(0, 50)}...</p>
+                <p><strong>Refresh Token:</strong> ${localStorage.getItem('refreshToken')?.substring(0, 50)}...</p>
+                <p><strong>Expires In:</strong> 7 วัน</p>
+            `;
+        }
+        
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('tokenInfo').style.display = 'none';
+            document.getElementById('actions').style.display = 'none';
+        }
+        
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+    </script>
+</body>
+</html> 

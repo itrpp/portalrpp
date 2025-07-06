@@ -13,9 +13,14 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  register: (email: string, password: string, name: string) => Promise<{ success: boolean; message: string }>;
+  register: (
+    email: string,
+    password: string,
+    name: string
+  ) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   isLoading: boolean;
+  refreshToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,16 +44,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+  // Auto refresh token function
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      if (!storedRefreshToken) {
+        return false;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setToken(data.token);
+        setUser(data.user); // ใช้ user data จาก refresh response
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        return true;
+      } else {
+        // Refresh token expired, clear all tokens
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        setUser(null);
+        setToken(null);
+        return false;
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+      setToken(null);
+      return false;
+    }
+  };
+
   // ตรวจสอบ token ที่เก็บไว้ใน localStorage เมื่อเริ่มต้น
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         const storedToken = localStorage.getItem('authToken');
+        const storedRefreshToken = localStorage.getItem('refreshToken');
+
         if (storedToken) {
           const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${storedToken}`,
+              Authorization: `Bearer ${storedToken}`,
               'Content-Type': 'application/json',
             },
           });
@@ -58,13 +106,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(data.user);
             setToken(storedToken);
           } else {
-            // Token ไม่ถูกต้อง ลบออก
+            // Token หมดอายุ, ลองใช้ refresh token
+            const refreshSuccess = await refreshToken();
+            if (!refreshSuccess) {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('refreshToken');
+            }
+          }
+        } else if (storedRefreshToken) {
+          const refreshSuccess = await refreshToken();
+          if (!refreshSuccess) {
             localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
           }
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
-        localStorage.removeItem('authToken');
+        // ลอง refresh token ก่อนที่จะล้างข้อมูล
+        const refreshSuccess = await refreshToken();
+        if (!refreshSuccess) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -73,7 +136,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthStatus();
   }, [API_BASE_URL]);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; message: string }> => {
+  // Auto refresh token every 6 days (before 7 days expiry)
+  useEffect(() => {
+    if (token) {
+      const refreshInterval = setInterval(
+        async () => {
+          await refreshToken();
+        },
+        6 * 24 * 60 * 60 * 1000
+      ); // 6 days in milliseconds
+
+      return () => clearInterval(refreshInterval);
+    }
+  }, [token]);
+
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; message: string }> => {
     try {
       // สร้าง AbortController สำหรับ timeout
       const controller = new AbortController();
@@ -92,9 +172,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        return { 
-          success: false, 
-          message: errorData.error || `HTTP ${response.status}: ${response.statusText}` 
+        return {
+          success: false,
+          message: errorData.error || `HTTP ${response.status}: ${response.statusText}`,
         };
       }
 
@@ -102,11 +182,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('authToken', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
       return { success: true, message: 'เข้าสู่ระบบสำเร็จ' };
-
     } catch (error) {
       console.error('Login error:', error);
-      
+
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           return { success: false, message: 'การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง' };
@@ -115,51 +195,97 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return { success: false, message: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้' };
         }
       }
-      
+
       return { success: false, message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ' };
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<{ success: boolean; message: string }> => {
+  const register = async (
+    email: string,
+    password: string,
+    name: string
+  ): Promise<{ success: boolean; message: string }> => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, name }),
+        signal: controller.signal,
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
 
-      if (response.ok) {
-        setUser(data.user);
-        setToken(data.token);
-        localStorage.setItem('authToken', data.token);
-        return { success: true, message: 'สมัครสมาชิกสำเร็จ' };
-      } else {
-        return { success: false, message: data.error || 'สมัครสมาชิกไม่สำเร็จ' };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          message: errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        };
       }
+
+      const data = await response.json();
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      return { success: true, message: 'สมัครสมาชิกสำเร็จ' };
     } catch (error) {
-      console.error('Register error:', error);
+      console.error('Registration error:', error);
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return { success: false, message: 'การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง' };
+        }
+        if (error.message.includes('fetch')) {
+          return { success: false, message: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้' };
+        }
+      }
+
       return { success: false, message: 'เกิดข้อผิดพลาดในการสมัครสมาชิก' };
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('authToken');
+  const logout = async () => {
+    try {
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      if (storedRefreshToken) {
+        // แจ้งเซิร์ฟเวอร์ว่าต้องการ logout
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refreshToken: storedRefreshToken }),
+        }).catch(console.error);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+    }
   };
 
-  const value: AuthContextType = {
-    user,
-    token,
-    login,
-    register,
-    logout,
-    isLoading,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}; 
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        register,
+        logout,
+        isLoading,
+        refreshToken,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};

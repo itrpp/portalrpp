@@ -16,29 +16,31 @@
 
 ### ข้อกำหนดเบื้องต้น
 
-- Node.js 18+ 
+- Node.js 18+
 - Docker และ Docker Compose
 - npm หรือ yarn
 
 ### การติดตั้ง
 
 1. **Clone repository**
+
    ```bash
    git clone <repository-url>
    cd portalrpp
    ```
 
 2. **ติดตั้ง dependencies สำหรับแต่ละ service**
+
    ```bash
    # Frontend
    cd frontend && npm install
-   
+
    # API Gateway
    cd ../backend/api-gateway && npm install
-   
+
    # Auth Service
    cd ../auth-service && npm install
-   
+
    # User Service
    cd ../user-service && npm install
    ```
@@ -48,15 +50,16 @@
 #### แบบ Manual (แต่ละ service แยกกัน)
 
 1. **เริ่ม Backend Services**
+
    ```bash
    # Terminal 1 - API Gateway
    cd backend/api-gateway
    npm run dev
-   
+
    # Terminal 2 - Auth Service
    cd backend/auth-service
    npm run dev
-   
+
    # Terminal 3 - User Service
    cd backend/user-service
    npm run dev
@@ -85,15 +88,18 @@ docker-compose down
 ## 🔗 API Endpoints
 
 ### API Gateway (Port 3001)
+
 - `GET /` - ข้อมูลเบื้องต้นของ API Gateway
 - `GET /health` - Health check
 
 ### Authentication Service (ผ่าน API Gateway)
+
 - `POST /api/auth/register` - ลงทะเบียนผู้ใช้ใหม่
 - `POST /api/auth/login` - เข้าสู่ระบบ
 - `POST /api/auth/verify` - ตรวจสอบ JWT token
 
 ### User Service (ผ่าน API Gateway)
+
 - `GET /api/users` - ดึงข้อมูลผู้ใช้ทั้งหมด
 - `GET /api/users/:id` - ดึงข้อมูลผู้ใช้ตาม ID
 - `PUT /api/users/:id` - อัพเดทข้อมูลผู้ใช้
@@ -176,6 +182,7 @@ curl http://localhost:3003/health
 ## 📊 Monitoring และ Health Checks
 
 แต่ละ service มี health check endpoint:
+
 - API Gateway: `/health`
 - Auth Service: `/health`
 - User Service: `/health`
@@ -198,6 +205,7 @@ docker-compose -f docker-compose.yml up -d
 สร้าง `.env` files สำหรับแต่ละ service:
 
 **API Gateway (.env)**
+
 ```env
 PORT=3001
 AUTH_SERVICE_URL=http://auth-service:3002
@@ -206,6 +214,7 @@ NODE_ENV=production
 ```
 
 **Auth Service (.env)**
+
 ```env
 PORT=3002
 JWT_SECRET=your-super-secret-jwt-key
@@ -213,6 +222,7 @@ NODE_ENV=production
 ```
 
 **User Service (.env)**
+
 ```env
 PORT=3003
 NODE_ENV=production

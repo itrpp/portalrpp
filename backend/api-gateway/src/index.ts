@@ -35,7 +35,9 @@ app.get('/test-auth', async (req, res) => {
     const data = await response.json();
     res.json({ success: true, authService: data });
   } catch (error) {
-    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+    res
+      .status(500)
+      .json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -50,7 +52,7 @@ app.use('/api/auth', async (req, res) => {
   try {
     const targetUrl = `${services.auth}${req.url}`;
     console.log(`Proxying ${req.method} ${req.url} to ${targetUrl}`);
-    
+
     const response = await fetch(targetUrl, {
       method: req.method,
       headers: {
@@ -63,7 +65,9 @@ app.use('/api/auth', async (req, res) => {
     res.status(response.status).json(data);
   } catch (error) {
     console.error('Proxy error:', error);
-    res.status(500).json({ error: 'Proxy error: ' + (error instanceof Error ? error.message : 'Unknown error') });
+    res.status(500).json({
+      error: 'Proxy error: ' + (error instanceof Error ? error.message : 'Unknown error'),
+    });
   }
 });
 
@@ -72,16 +76,16 @@ app.get('/api/users', async (req, res) => {
   try {
     const targetUrl = `${services.user}/users`;
     console.log(`Proxying GET ${req.originalUrl} to ${targetUrl}`);
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     // Forward authorization header
     if (req.headers.authorization) {
       headers['Authorization'] = req.headers.authorization;
     }
-    
+
     const response = await fetch(targetUrl, {
       method: 'GET',
       headers,
@@ -91,30 +95,35 @@ app.get('/api/users', async (req, res) => {
     res.status(response.status).json(data);
   } catch (error) {
     console.error('Proxy error:', error);
-    res.status(500).json({ error: 'Proxy error: ' + (error instanceof Error ? error.message : 'Unknown error') });
+    res.status(500).json({
+      error: 'Proxy error: ' + (error instanceof Error ? error.message : 'Unknown error'),
+    });
   }
 });
 
 // User service proxy for specific user operations
-app.use('/api/user', createProxyMiddleware({
-  target: services.user,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/user': '/user',
-  },
-}));
+app.use(
+  '/api/user',
+  createProxyMiddleware({
+    target: services.user,
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/user': '/user',
+    },
+  })
+);
 
 // Default route
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'RPP Portal API Gateway',
     version: '1.0.0',
-    services: Object.keys(services)
+    services: Object.keys(services),
   });
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
@@ -127,4 +136,4 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 API Gateway running on port ${PORT}`);
   console.log(`📍 Services: ${JSON.stringify(services, null, 2)}`);
-}); 
+});

@@ -19,7 +19,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Authentication middleware
-const authenticateToken = (req: express.Request, res: express.Response, next: express.NextFunction): void => {
+const authenticateToken = (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+): void => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -68,10 +72,10 @@ const userProfiles: UserProfile[] = [
       phone: '0812345678',
       address: 'Bangkok, Thailand',
       department: 'IT',
-      position: 'System Administrator'
+      position: 'System Administrator',
     },
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     id: '2',
@@ -84,10 +88,10 @@ const userProfiles: UserProfile[] = [
       phone: '0823456789',
       address: 'Chiang Mai, Thailand',
       department: 'Marketing',
-      position: 'Marketing Specialist'
+      position: 'Marketing Specialist',
     },
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     id: '3',
@@ -100,11 +104,11 @@ const userProfiles: UserProfile[] = [
       phone: '0834567890',
       address: 'Phuket, Thailand',
       department: 'Sales',
-      position: 'Sales Representative'
+      position: 'Sales Representative',
     },
     createdAt: new Date(),
-    updatedAt: new Date()
-  }
+    updatedAt: new Date(),
+  },
 ];
 
 // Health check endpoint
@@ -119,7 +123,7 @@ app.get('/users', authenticateToken, (req: express.Request, res: express.Respons
     email: user.email,
     name: user.name,
     role: user.role,
-    createdAt: user.createdAt
+    createdAt: user.createdAt,
   }));
   res.json({ users, total: users.length });
 });
@@ -128,12 +132,12 @@ app.get('/users', authenticateToken, (req: express.Request, res: express.Respons
 app.get('/user/:id', (req: express.Request, res: express.Response): void => {
   const { id } = req.params;
   const user = userProfiles.find(u => u.id === id);
-  
+
   if (!user) {
     res.status(404).json({ error: 'User not found' });
     return;
   }
-  
+
   res.json({
     id: user.id,
     email: user.email,
@@ -141,7 +145,7 @@ app.get('/user/:id', (req: express.Request, res: express.Response): void => {
     role: user.role,
     profile: user.profile,
     createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    updatedAt: user.updatedAt,
   });
 });
 
@@ -150,19 +154,19 @@ app.put('/user/:id', authenticateToken, (req: express.Request, res: express.Resp
   const { id } = req.params;
   const { name, profile, role } = req.body;
   const currentUser = (req as any).user;
-  
+
   const userIndex = userProfiles.findIndex(u => u.id === id);
   if (userIndex === -1) {
     res.status(404).json({ error: 'User not found' });
     return;
   }
-  
+
   // Check if user is trying to update role and if they have admin privileges
   if (role && currentUser.role !== 'admin') {
     res.status(403).json({ error: 'Only admin can update user roles' });
     return;
   }
-  
+
   // Update user data
   if (name) userProfiles[userIndex].name = name;
   if (profile) {
@@ -172,7 +176,7 @@ app.put('/user/:id', authenticateToken, (req: express.Request, res: express.Resp
     userProfiles[userIndex].role = role;
   }
   userProfiles[userIndex].updatedAt = new Date();
-  
+
   res.json({
     message: 'User updated successfully',
     user: {
@@ -182,26 +186,26 @@ app.put('/user/:id', authenticateToken, (req: express.Request, res: express.Resp
       role: userProfiles[userIndex].role,
       profile: userProfiles[userIndex].profile,
       createdAt: userProfiles[userIndex].createdAt,
-      updatedAt: userProfiles[userIndex].updatedAt
-    }
+      updatedAt: userProfiles[userIndex].updatedAt,
+    },
   });
 });
 
 // Create user profile (called from auth service)
 app.post('/users', (req: express.Request, res: express.Response): void => {
   const { id, email, name, role } = req.body;
-  
+
   if (!id || !email || !name || !role) {
     res.status(400).json({ error: 'ID, email, name, and role are required' });
     return;
   }
-  
+
   const existingUser = userProfiles.find(u => u.id === id);
   if (existingUser) {
     res.status(409).json({ error: 'User already exists' });
     return;
   }
-  
+
   const newUser: UserProfile = {
     id,
     email,
@@ -212,11 +216,11 @@ app.post('/users', (req: express.Request, res: express.Response): void => {
       lastName: name.split(' ').slice(1).join(' ') || '',
     },
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
+
   userProfiles.push(newUser);
-  
+
   res.status(201).json({
     message: 'User profile created successfully',
     user: {
@@ -226,21 +230,21 @@ app.post('/users', (req: express.Request, res: express.Response): void => {
       role: newUser.role,
       profile: newUser.profile,
       createdAt: newUser.createdAt,
-      updatedAt: newUser.updatedAt
-    }
+      updatedAt: newUser.updatedAt,
+    },
   });
 });
 
 // Delete user
 app.delete('/user/:id', (req: express.Request, res: express.Response): void => {
   const { id } = req.params;
-  
+
   const userIndex = userProfiles.findIndex(u => u.id === id);
   if (userIndex === -1) {
     res.status(404).json({ error: 'User not found' });
     return;
   }
-  
+
   userProfiles.splice(userIndex, 1);
   res.json({ message: 'User deleted successfully' });
 });
@@ -249,29 +253,30 @@ app.delete('/user/:id', (req: express.Request, res: express.Response): void => {
 app.get('/search/:query', (req: express.Request, res: express.Response): void => {
   const { query } = req.params;
   const searchTerm = query.toLowerCase();
-  
-  const filteredUsers = userProfiles.filter(user =>
-    user.name.toLowerCase().includes(searchTerm) ||
-    user.email.toLowerCase().includes(searchTerm) ||
-    user.role.toLowerCase().includes(searchTerm) ||
-    user.profile.firstName.toLowerCase().includes(searchTerm) ||
-    user.profile.lastName.toLowerCase().includes(searchTerm)
+
+  const filteredUsers = userProfiles.filter(
+    user =>
+      user.name.toLowerCase().includes(searchTerm) ||
+      user.email.toLowerCase().includes(searchTerm) ||
+      user.role.toLowerCase().includes(searchTerm) ||
+      user.profile.firstName.toLowerCase().includes(searchTerm) ||
+      user.profile.lastName.toLowerCase().includes(searchTerm)
   );
-  
+
   res.json({ users: filteredUsers, total: filteredUsers.length });
 });
 
 // Default route (service info)
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'RPP Portal User Service',
     version: '1.0.0',
-    endpoints: ['/users', '/user/:id', '/search/:query']
+    endpoints: ['/users', '/user/:id', '/search/:query'],
   });
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
@@ -283,4 +288,4 @@ app.use('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`👤 User Service running on port ${PORT}`);
-}); 
+});

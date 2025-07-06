@@ -11,13 +11,18 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-key';
+
+// Token expiry configuration
+const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '7d'; // 7 days
+const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '30d'; // 30 days
 
 // Middleware
 app.use(helmet());
 app.use(cors());
-app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(morgan('combined'));
 
 // In-memory user store (replace with database in production)
 interface User {
@@ -27,6 +32,7 @@ interface User {
   name: string;
   role: string;
   createdAt: Date;
+  refreshToken?: string;
 }
 
 const users: User[] = [
@@ -36,7 +42,7 @@ const users: User[] = [
     password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
     name: 'Admin User',
     role: 'admin',
-    createdAt: new Date()
+    createdAt: new Date(),
   },
   {
     id: '2',
@@ -44,7 +50,7 @@ const users: User[] = [
     password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
     name: 'Regular User',
     role: 'user',
-    createdAt: new Date()
+    createdAt: new Date(),
   },
   {
     id: '3',
@@ -52,9 +58,24 @@ const users: User[] = [
     password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
     name: 'John Doe',
     role: 'user',
-    createdAt: new Date()
-  }
+    createdAt: new Date(),
+  },
 ];
+
+// Helper function to generate tokens
+const generateTokens = (user: User) => {
+  const accessToken = jwt.sign(
+    { userId: user.id, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: ACCESS_TOKEN_EXPIRY } as jwt.SignOptions
+  );
+
+  const refreshToken = jwt.sign({ userId: user.id, email: user.email }, REFRESH_TOKEN_SECRET, {
+    expiresIn: REFRESH_TOKEN_EXPIRY,
+  } as jwt.SignOptions);
+
+  return { accessToken, refreshToken };
+};
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -88,17 +109,16 @@ app.post('/register', async (req: express.Request, res: express.Response): Promi
       password: hashedPassword,
       name,
       role: 'user',
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     users.push(newUser);
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: newUser.id, email: newUser.email, role: newUser.role },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(newUser);
+
+    // Store refresh token
+    newUser.refreshToken = refreshToken;
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -106,9 +126,11 @@ app.post('/register', async (req: express.Request, res: express.Response): Promi
         id: newUser.id,
         email: newUser.email,
         name: newUser.name,
-        role: newUser.role
+        role: newUser.role,
       },
-      token
+      token: accessToken,
+      refreshToken: refreshToken,
+      expiresIn: ACCESS_TOKEN_EXPIRY,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -140,12 +162,11 @@ app.post('/login', async (req: express.Request, res: express.Response): Promise<
       return;
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    // Store refresh token
+    user.refreshToken = refreshToken;
 
     res.json({
       message: 'Login successful',
@@ -153,13 +174,58 @@ app.post('/login', async (req: express.Request, res: express.Response): Promise<
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
       },
-      token
+      token: accessToken,
+      refreshToken: refreshToken,
+      expiresIn: ACCESS_TOKEN_EXPIRY,
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Token refresh endpoint
+app.post('/refresh', (req: express.Request, res: express.Response): void => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(401).json({ error: 'Refresh token required' });
+      return;
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+    const user = users.find(u => u.id === decoded.userId && u.refreshToken === refreshToken);
+
+    if (!user) {
+      res.status(403).json({ error: 'Invalid refresh token' });
+      return;
+    }
+
+    // Generate new tokens
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+
+    // Update stored refresh token
+    user.refreshToken = newRefreshToken;
+
+    res.json({
+      message: 'Token refreshed successfully',
+      token: accessToken,
+      refreshToken: newRefreshToken,
+      expiresIn: ACCESS_TOKEN_EXPIRY,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(403).json({ error: 'Invalid refresh token' });
   }
 });
 
@@ -187,8 +253,8 @@ app.post('/verify', (req: express.Request, res: express.Response): void => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error('Token verification error:', error);
@@ -196,17 +262,41 @@ app.post('/verify', (req: express.Request, res: express.Response): void => {
   }
 });
 
+// Logout endpoint
+app.post('/logout', (req: express.Request, res: express.Response): void => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (refreshToken) {
+      // Find user and remove refresh token
+      const user = users.find(u => u.refreshToken === refreshToken);
+      if (user) {
+        user.refreshToken = undefined;
+      }
+    }
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Default route
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'RPP Portal Auth Service',
-    version: '1.0.0',
-    endpoints: ['/register', '/login', '/verify']
+    version: '2.0.0',
+    endpoints: ['/register', '/login', '/verify', '/refresh', '/logout'],
+    tokenConfig: {
+      accessTokenExpiry: ACCESS_TOKEN_EXPIRY,
+      refreshTokenExpiry: REFRESH_TOKEN_EXPIRY,
+    },
   });
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
@@ -216,6 +306,10 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`🔐 Auth Service running on port ${PORT}`);
-}); 
+  console.log(`📋 Token Configuration:`);
+  console.log(`   - Access Token Expiry: ${ACCESS_TOKEN_EXPIRY}`);
+  console.log(`   - Refresh Token Expiry: ${REFRESH_TOKEN_EXPIRY}`);
+});
