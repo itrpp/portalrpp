@@ -9,15 +9,21 @@
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["user", "microservices", "rpp-portal"],
+  "keywords": [
+    "user",
+    "microservices",
+    "rpp-portal"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "cors": "^2.8.5",
     "dotenv": "^17.0.1",
     "express": "^4.19.2",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0"
   },
   "devDependencies": {

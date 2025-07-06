@@ -37,6 +37,22 @@ const users: User[] = [
     name: 'Admin User',
     role: 'admin',
     createdAt: new Date()
+  },
+  {
+    id: '2',
+    email: 'user@rpp.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+    name: 'Regular User',
+    role: 'user',
+    createdAt: new Date()
+  },
+  {
+    id: '3',
+    email: 'john@rpp.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+    name: 'John Doe',
+    role: 'user',
+    createdAt: new Date()
   }
 ];
 

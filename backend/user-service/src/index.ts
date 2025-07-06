@@ -3,11 +3,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3003;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Middleware
 app.use(helmet());
@@ -15,6 +17,26 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Authentication middleware
+const authenticateToken = (req: express.Request, res: express.Response, next: express.NextFunction): void => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    res.status(401).json({ error: 'Access token required' });
+    return;
+  }
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) {
+      res.status(403).json({ error: 'Invalid or expired token' });
+      return;
+    }
+    (req as any).user = user;
+    next();
+  });
+};
 
 // In-memory user store (replace with database in production)
 interface UserProfile {
@@ -50,6 +72,38 @@ const userProfiles: UserProfile[] = [
     },
     createdAt: new Date(),
     updatedAt: new Date()
+  },
+  {
+    id: '2',
+    email: 'user@rpp.com',
+    name: 'Regular User',
+    role: 'user',
+    profile: {
+      firstName: 'Regular',
+      lastName: 'User',
+      phone: '0823456789',
+      address: 'Chiang Mai, Thailand',
+      department: 'Marketing',
+      position: 'Marketing Specialist'
+    },
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    id: '3',
+    email: 'john@rpp.com',
+    name: 'John Doe',
+    role: 'user',
+    profile: {
+      firstName: 'John',
+      lastName: 'Doe',
+      phone: '0834567890',
+      address: 'Phuket, Thailand',
+      department: 'Sales',
+      position: 'Sales Representative'
+    },
+    createdAt: new Date(),
+    updatedAt: new Date()
   }
 ];
 
@@ -58,16 +112,14 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'User Service', timestamp: new Date().toISOString() });
 });
 
-// Get all users
-app.get('/users', (req: express.Request, res: express.Response): void => {
+// Get all users (requires authentication)
+app.get('/users', authenticateToken, (req: express.Request, res: express.Response): void => {
   const users = userProfiles.map(user => ({
     id: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
-    profile: user.profile,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    createdAt: user.createdAt
   }));
   res.json({ users, total: users.length });
 });
@@ -93,10 +145,11 @@ app.get('/user/:id', (req: express.Request, res: express.Response): void => {
   });
 });
 
-// Update user profile
-app.put('/user/:id', (req: express.Request, res: express.Response): void => {
+// Update user profile (requires authentication)
+app.put('/user/:id', authenticateToken, (req: express.Request, res: express.Response): void => {
   const { id } = req.params;
-  const { name, profile } = req.body;
+  const { name, profile, role } = req.body;
+  const currentUser = (req as any).user;
   
   const userIndex = userProfiles.findIndex(u => u.id === id);
   if (userIndex === -1) {
@@ -104,10 +157,19 @@ app.put('/user/:id', (req: express.Request, res: express.Response): void => {
     return;
   }
   
+  // Check if user is trying to update role and if they have admin privileges
+  if (role && currentUser.role !== 'admin') {
+    res.status(403).json({ error: 'Only admin can update user roles' });
+    return;
+  }
+  
   // Update user data
   if (name) userProfiles[userIndex].name = name;
   if (profile) {
     userProfiles[userIndex].profile = { ...userProfiles[userIndex].profile, ...profile };
+  }
+  if (role && currentUser.role === 'admin') {
+    userProfiles[userIndex].role = role;
   }
   userProfiles[userIndex].updatedAt = new Date();
   
