@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: ./backend/api-gateway
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - AUTH_SERVICE_URL=http://auth-service:3002
+      - USER_SERVICE_URL=http://user-service:3003
+      - NODE_ENV=production
+    depends_on:
+      - auth-service
+      - user-service
+    networks:
+      - rpp-network
+
+  # Auth Service
+  auth-service:
+    build: ./backend/auth-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - NODE_ENV=production
+    networks:
+      - rpp-network
+
+  # User Service
+  user-service:
+    build: ./backend/user-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - NODE_ENV=production
+    networks:
+      - rpp-network
+
+  # Frontend (Next.js)
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NODE_ENV=production
+    depends_on:
+      - api-gateway
+    networks:
+      - rpp-network
+
+networks:
+  rpp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

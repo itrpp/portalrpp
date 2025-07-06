@@ -1,0 +1,42 @@
+{
+  "name": "rpp-portal",
+  "version": "1.0.0",
+  "description": "RPP Portal - ระบบจัดการพอร์ทัลแบบ Microservices",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:user\" \"npm run dev:frontend\"",
+    "dev:gateway": "cd backend/api-gateway && npm run dev",
+    "dev:auth": "cd backend/auth-service && npm run dev",
+    "dev:user": "cd backend/user-service && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:gateway && npm run build:auth && npm run build:user && npm run build:frontend",
+    "build:gateway": "cd backend/api-gateway && npm run build",
+    "build:auth": "cd backend/auth-service && npm run build",
+    "build:user": "cd backend/user-service && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend/api-gateway && npm install && cd ../auth-service && npm install && cd ../user-service && npm install",
+    "clean": "docker-compose down --volumes --remove-orphans && docker system prune -f"
+  },
+  "keywords": [
+    "microservices",
+    "nextjs",
+    "nodejs",
+    "express",
+    "docker",
+    "jwt",
+    "authentication",
+    "user-management",
+    "api-gateway"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+} 
