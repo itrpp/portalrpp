@@ -3,9 +3,100 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/NextAuthContext";
 import Navbar from "@/components/Navbar";
+import { useState, useEffect, useCallback } from "react";
+
+interface ServiceStatus {
+  name: string;
+  port: number;
+  status: "online" | "offline" | "checking";
+  lastChecked?: Date;
+}
 
 export default function Home() {
   const { user } = useAuth();
+  const [services, setServices] = useState<ServiceStatus[]>([
+    { name: "API Gateway", port: 3001, status: "checking" },
+    { name: "Auth Service", port: 3002, status: "checking" },
+    { name: "User Service", port: 3003, status: "checking" },
+    { name: "Frontend", port: 3000, status: "online" }, // Frontend is always online if we can see this page
+  ]);
+
+  const checkServiceHealth = async (port: number): Promise<boolean> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(`http://localhost:${port}/health`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const checkAllServices = useCallback(async () => {
+    const updatedServices = await Promise.all(
+      services.map(async (service) => {
+        if (service.port === 3000) {
+          // Frontend is always online if we can see this page
+          return {
+            ...service,
+            status: "online" as const,
+            lastChecked: new Date(),
+          };
+        }
+
+        const isOnline = await checkServiceHealth(service.port);
+        return {
+          ...service,
+          status: isOnline ? ("online" as const) : ("offline" as const),
+          lastChecked: new Date(),
+        };
+      }),
+    );
+    setServices(updatedServices);
+  }, [services]);
+
+  useEffect(() => {
+    // Check immediately on mount
+    checkAllServices();
+
+    // Set up interval to check every 5 seconds
+    const interval = setInterval(checkAllServices, 5000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, [checkAllServices]);
+
+  const getStatusColor = (status: ServiceStatus["status"]) => {
+    switch (status) {
+      case "online":
+        return "text-green-500";
+      case "offline":
+        return "text-red-500";
+      case "checking":
+        return "text-yellow-500";
+      default:
+        return "text-gray-500";
+    }
+  };
+
+  const getStatusText = (status: ServiceStatus["status"]) => {
+    switch (status) {
+      case "online":
+        return "ออนไลน์";
+      case "offline":
+        return "ออฟไลน์";
+      case "checking":
+        return "กำลังตรวจสอบ...";
+      default:
+        return "ไม่ทราบสถานะ";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -98,28 +189,41 @@ export default function Home() {
           </div>
 
           <div className="mt-16 bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-2xl font-bold mb-4">สถานะระบบ</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">สถานะระบบ</h2>
+              <div className="text-sm text-gray-500">
+                อัพเดทล่าสุด:{" "}
+                {services[0]?.lastChecked?.toLocaleTimeString("th-TH") ||
+                  "กำลังตรวจสอบ..."}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-green-500 text-2xl mb-2">●</div>
-                <div className="font-medium">API Gateway</div>
-                <div className="text-sm text-gray-600">Port 3001</div>
-              </div>
-              <div className="text-center">
-                <div className="text-green-500 text-2xl mb-2">●</div>
-                <div className="font-medium">Auth Service</div>
-                <div className="text-sm text-gray-600">Port 3002</div>
-              </div>
-              <div className="text-center">
-                <div className="text-green-500 text-2xl mb-2">●</div>
-                <div className="font-medium">User Service</div>
-                <div className="text-sm text-gray-600">Port 3003</div>
-              </div>
-              <div className="text-center">
-                <div className="text-green-500 text-2xl mb-2">●</div>
-                <div className="font-medium">Frontend</div>
-                <div className="text-sm text-gray-600">Port 3000</div>
-              </div>
+              {services.map((service, index) => (
+                <div key={index} className="text-center">
+                  <div
+                    className={`text-2xl mb-2 ${getStatusColor(service.status)}`}
+                  >
+                    {service.status === "checking" ? "◐" : "●"}
+                  </div>
+                  <div className="font-medium">{service.name}</div>
+                  <div className="text-sm text-gray-600">
+                    Port {service.port}
+                  </div>
+                  <div
+                    className={`text-xs mt-1 ${getStatusColor(service.status)}`}
+                  >
+                    {getStatusText(service.status)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 text-center">
+              <button
+                onClick={checkAllServices}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+              >
+                ตรวจสอบสถานะทันที
+              </button>
             </div>
           </div>
 
