@@ -86,6 +86,7 @@ export default function Home() {
   };
 
   const checkAllServices = useCallback(async () => {
+    // First, set all services to checking status
     setServices((prevServices) =>
       prevServices.map((service) => ({
         ...service,
@@ -94,8 +95,37 @@ export default function Home() {
       })),
     );
 
+    // Use a fixed list of services to avoid dependency issues
+    const servicesToCheck = [
+      {
+        name: "API Gateway",
+        port: 3001,
+        status: "checking" as const,
+        description: "ประตูเข้าสู่ระบบ API",
+      },
+      {
+        name: "Auth Service",
+        port: 3002,
+        status: "checking" as const,
+        description: "บริการยืนยันตัวตน",
+      },
+      {
+        name: "User Service",
+        port: 3003,
+        status: "checking" as const,
+        description: "บริการจัดการผู้ใช้",
+      },
+      {
+        name: "Frontend",
+        port: 3000,
+        status: "online" as const,
+        description: "หน้าเว็บไซต์",
+      },
+    ];
+
+    // Then check each service and update
     const serviceChecks = await Promise.all(
-      services.map(async (service) => {
+      servicesToCheck.map(async (service) => {
         if (service.port === 3000) {
           return {
             ...service,
@@ -121,7 +151,7 @@ export default function Home() {
     ).length;
     const totalServices = serviceChecks.length;
     setHealthScore(Math.round((onlineServices / totalServices) * 100));
-  }, [services]);
+  }, []); // Empty dependency array
 
   useEffect(() => {
     // Initialize client-side only state
