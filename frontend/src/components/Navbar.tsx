@@ -341,7 +341,7 @@ export default function CustomNavbar() {
                 เข้าสู่ระบบ
               </Button>
             </NavbarItem>
-            <NavbarItem>
+            {/* <NavbarItem>
               <Button
                 as={Link}
                 href="/auth/register"
@@ -350,7 +350,7 @@ export default function CustomNavbar() {
               >
                 สมัครสมาชิก
               </Button>
-            </NavbarItem>
+            </NavbarItem> */}
           </div>
         )}
       </NavbarContent>

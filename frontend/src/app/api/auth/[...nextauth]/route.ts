@@ -6,14 +6,16 @@ const authOptions: NextAuthOptions = {
   providers: [
     // Local Credentials Provider
     CredentialsProvider({
-      id: "credentials",
+      id: "local",
       name: "Local Account",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log("=== LOCAL PROVIDER AUTHORIZE CALLED ===");
         if (!credentials?.email || !credentials?.password) {
+          console.log("Local auth: Missing credentials");
           return null;
         }
 
@@ -22,6 +24,11 @@ const authOptions: NextAuthOptions = {
             process.env.INTERNAL_API_URL ||
             process.env.NEXT_PUBLIC_API_URL ||
             "http://localhost:3001";
+
+          console.log("Local auth: Attempting login with", {
+            email: credentials.email,
+            API_BASE_URL,
+          });
 
           const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: "POST",
@@ -35,20 +42,23 @@ const authOptions: NextAuthOptions = {
             }),
           });
 
+          console.log("Local auth: Response status", response.status);
+
           if (!response.ok) {
-            // eslint-disable-next-line no-console
-            console.error(
-              "Local login failed:",
-              response.status,
-              response.statusText,
-            );
+            const errorText = await response.text();
+            console.error("Local login failed:", {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorText,
+            });
             return null;
           }
 
           const data = await response.json();
+          console.log("Local auth: Response data", data);
 
           if (data.user && data.token) {
-            return {
+            const user = {
               id: data.user.id,
               email: data.user.email,
               name: data.user.name,
@@ -57,8 +67,11 @@ const authOptions: NextAuthOptions = {
               accessToken: data.token,
               refreshToken: data.refreshToken,
             };
+            console.log("Local auth: Returning user", user);
+            return user;
           }
 
+          console.log("Local auth: No user or token in response");
           return null;
         } catch (error) {
           // eslint-disable-next-line no-console
@@ -194,13 +207,19 @@ const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.accessToken = (user as any).accessToken;
         token.refreshToken = (user as any).refreshToken;
         token.role = (user as any).role;
         token.authType = (user as any).authType;
       }
+
+      // Log for debugging
+      if (trigger === "signIn") {
+        console.log("JWT callback - signIn:", { token, user });
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -211,7 +230,42 @@ const authOptions: NextAuthOptions = {
         (session.user as any).authType = token.authType;
         (session.user as any).id = token.sub;
       }
+
+      // Log for debugging
+      console.log("Session callback:", session);
+
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      console.log("Redirect callback:", { url, baseUrl });
+
+      // ป้องกัน infinite redirect loop
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+
+      // ถ้า url มี callbackUrl ที่ซ้ำกัน ให้ redirect ไปยัง dashboard
+      if (url.includes("callbackUrl") && url.includes("/auth/login")) {
+        console.log("Preventing infinite redirect, going to dashboard");
+        return `${baseUrl}/dashboard`;
+      }
+
+      // ถ้า url เป็น baseUrl หรือ login page ให้ redirect ไปยัง dashboard
+      if (url === baseUrl || url === `${baseUrl}/auth/login`) {
+        return `${baseUrl}/dashboard`;
+      }
+
+      // สำหรับ external URLs ที่ไม่ปลอดภัย
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.origin === baseUrl) {
+          return url;
+        }
+      } catch (error) {
+        console.error("Invalid URL in redirect:", url, error);
+      }
+
+      return `${baseUrl}/dashboard`;
     },
   },
   pages: {

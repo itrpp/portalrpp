@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/NextAuthContext";
 import CustomNavbar from "@/components/Navbar";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Card,
   CardBody,
@@ -85,7 +85,7 @@ export default function Home() {
     }
   };
 
-  const checkAllServices = async () => {
+  const checkAllServices = useCallback(async () => {
     setServices((prevServices) =>
       prevServices.map((service) => ({
         ...service,
@@ -121,7 +121,7 @@ export default function Home() {
     ).length;
     const totalServices = serviceChecks.length;
     setHealthScore(Math.round((onlineServices / totalServices) * 100));
-  };
+  }, [services]);
 
   useEffect(() => {
     // Initialize client-side only state
@@ -144,7 +144,7 @@ export default function Home() {
         clearInterval(intervalRef.current);
       }
     };
-  }, []);
+  }, [checkAllServices]);
 
   const getStatusColor = (status: ServiceStatus["status"]) => {
     switch (status) {
@@ -227,7 +227,7 @@ export default function Home() {
               </span>
             </div>
 
-            {!user && (
+            {/* {!user && (
               <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
                 <Button
                   as={Link}
@@ -251,7 +251,7 @@ export default function Home() {
                   สมัครสมาชิก
                 </Button>
               </div>
-            )}
+            )} */}
 
             {user && (
               <div className="bg-white rounded-xl shadow-lg p-6 mb-12 max-w-md mx-auto">
@@ -310,14 +310,7 @@ export default function Home() {
                     แดชบอร์ด →
                   </HeroLink>
                 ) : (
-                  <HeroLink
-                    as={Link}
-                    href="/auth/login"
-                    color="primary"
-                    className="font-medium"
-                  >
-                    เข้าสู่ระบบ →
-                  </HeroLink>
+                  <span className="text-gray-400">ต้องเข้าสู่ระบบ</span>
                 )}
               </CardBody>
             </Card>
@@ -343,14 +336,7 @@ export default function Home() {
                     โปรไฟล์ →
                   </HeroLink>
                 ) : (
-                  <HeroLink
-                    as={Link}
-                    href="/auth/register"
-                    color="success"
-                    className="font-medium"
-                  >
-                    สมัครสมาชิก →
-                  </HeroLink>
+                  <span className="text-gray-400">ต้องเข้าสู่ระบบ</span>
                 )}
               </CardBody>
             </Card>
