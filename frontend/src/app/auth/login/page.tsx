@@ -1,24 +1,69 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useAuth } from "@/contexts/NextAuthContext";
-
-type ProviderType = "credentials" | "ldap" | "auto";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Input,
+  Button,
+  Divider,
+  Link as HeroLink,
+  Chip,
+  Spinner,
+} from "@heroui/react";
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  ShieldCheckIcon,
+  UserIcon,
+  KeyIcon,
+  HomeIcon,
+  HeartIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/outline";
+import Image from "next/image";
+import { siteConfig } from "@/config/site";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [loginType, setLoginType] = useState("auto"); // auto, local, ldap
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedProvider, setSelectedProvider] =
-    useState<ProviderType>("ldap");
   const { user } = useAuth();
   const router = useRouter();
 
-  // หากเข้าสู่ระบบแล้ว ไปหน้าแดชบอร์ด
+  const togglePasswordVisibility = () =>
+    setIsPasswordVisible(!isPasswordVisible);
+
+  // Helper functions for dynamic content
+  const getUsernameConfig = useMemo(() => {
+    const configs = {
+      auto: {
+        label: "Username หรือ Email",
+        placeholder: "กรุณากรอก username หรือ email",
+        ariaLabel: "Username หรือ Email field",
+      },
+      local: {
+        label: "Username",
+        placeholder: "กรุณากรอก username",
+        ariaLabel: "Username field",
+      },
+      ldap: {
+        label: "Username (LDAP)",
+        placeholder: "กรุณากรอก username LDAP",
+        ariaLabel: "LDAP Username field",
+      },
+    };
+    return configs[loginType as keyof typeof configs] || configs.auto;
+  }, [loginType]);
+
   useEffect(() => {
     if (user) {
       router.push("/dashboard");
@@ -31,257 +76,276 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const result = await signIn(selectedProvider, {
-        email: email,
-        username: email, // For LDAP
+      const result = await signIn(loginType, {
+        email: username,
+        username: username,
         password: password,
         redirect: false,
       });
 
       if (result?.error) {
         setError("เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
-        alert(`เข้าสู่ระบบไม่สำเร็จ: ${result.error}`);
       } else {
-        alert("เข้าสู่ระบบสำเร็จ!");
         router.push("/dashboard");
       }
     } catch (error) {
       let errorMessage = "เกิดข้อผิดพลาดที่ไม่คาดคิด";
-
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-
       setError(errorMessage);
-      alert(`เกิดข้อผิดพลาด: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getProviderInfo = (provider: ProviderType) => {
-    switch (provider) {
-      case "credentials":
-        return {
-          name: "บัญชีท้องถิ่น",
-          description: "เข้าสู่ระบบด้วยบัญชีท้องถิ่นเท่านั้น",
-          inputType: "email",
-          inputPlaceholder: "อีเมล",
-          inputAutoComplete: "email",
-        };
-      case "ldap":
-        return {
-          name: "LDAP",
-          description: "เข้าสู่ระบบด้วย LDAP server",
-          inputType: "text",
-          inputPlaceholder: "ชื่อผู้ใช้",
-          inputAutoComplete: "username",
-        };
-      case "auto":
-        return {
-          name: "ลองทั้งสอง",
-          description:
-            "ระบบจะลองเข้าสู่ระบบผ่าน LDAP ก่อน หากไม่สำเร็จจะลองบัญชีท้องถิ่น",
-          inputType: "text",
-          inputPlaceholder: "อีเมล/ชื่อผู้ใช้",
-          inputAutoComplete: "username",
-        };
-      default:
-        return {
-          name: "ไม่ทราบ",
-          description: "",
-          inputType: "text",
-          inputPlaceholder: "อีเมล/ชื่อผู้ใช้",
-          inputAutoComplete: "username",
-        };
-    }
-  };
-
-  const currentProviderInfo = getProviderInfo(selectedProvider);
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            เข้าสู่ระบบ
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            RPP Portal - ระบบจัดการพอร์ทัลแบบ Microservices
-          </p>
-          <p className="mt-1 text-center text-xs text-indigo-600 font-medium">
-            ปัจจุบันเลือก: {currentProviderInfo.name}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      <div className="min-h-screen flex">
+        {/* Left Side - Login Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8">
+          <Card className="w-full max-w-md shadow-2xl border-0">
+            <CardHeader className="pb-0 pt-6 px-6 flex-col items-center">
+              {/* Logo */}
+              <div className="w-20 h-20 mb-4">
+                <Image
+                  src="/images/logo.png"
+                  alt={siteConfig.hospitalName}
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-contain rounded-full shadow-lg transition-transform hover:scale-105"
+                  priority
+                />
+              </div>
+
+              {/* Title */}
+              <div className="text-center mb-4">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  เข้าสู่ระบบ
+                </h1>
+                <p className="text-gray-600">{siteConfig.projectName}</p>
+                <p className="text-sm text-gray-500">
+                  {siteConfig.hospitalName}
+                </p>
+              </div>
+            </CardHeader>
+
+            <CardBody className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Login Type Selection */}
+                <div className="flex gap-2 mb-4 justify-center">
+                  <Chip
+                    variant={loginType === "auto" ? "solid" : "bordered"}
+                    color={loginType === "auto" ? "primary" : "default"}
+                    className="cursor-pointer transition-all hover:scale-105"
+                    onClick={() => setLoginType("auto")}
+                  >
+                    Auto
+                  </Chip>
+                  <Chip
+                    variant={loginType === "local" ? "solid" : "bordered"}
+                    color={loginType === "local" ? "secondary" : "default"}
+                    className="cursor-pointer transition-all hover:scale-105"
+                    onClick={() => setLoginType("local")}
+                  >
+                    Local
+                  </Chip>
+                  <Chip
+                    variant={loginType === "ldap" ? "solid" : "bordered"}
+                    color={loginType === "ldap" ? "success" : "default"}
+                    className="cursor-pointer transition-all hover:scale-105"
+                    onClick={() => setLoginType("ldap")}
+                  >
+                    LDAP
+                  </Chip>
+                </div>
+
+                {/* Username/Email Field */}
+                <Input
+                  type="text"
+                  variant="bordered"
+                  size="lg"
+                  label={getUsernameConfig.label}
+                  placeholder={getUsernameConfig.placeholder}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  isRequired
+                  aria-label={getUsernameConfig.ariaLabel}
+                  startContent={
+                    <UserIcon className="w-5 h-5 text-default-400 pointer-events-none flex-shrink-0" />
+                  }
+                  className="transition-all duration-200"
+                  classNames={{
+                    input: "text-sm",
+                    inputWrapper:
+                      "hover:border-primary-400 focus-within:border-primary-500",
+                  }}
+                />
+
+                {/* Password Field */}
+                <Input
+                  type={isPasswordVisible ? "text" : "password"}
+                  variant="bordered"
+                  size="lg"
+                  label="รหัสผ่าน"
+                  placeholder="กรุณากรอกรหัสผ่าน"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  isRequired
+                  aria-label="Password field"
+                  startContent={
+                    <KeyIcon className="w-5 h-5 text-default-400 pointer-events-none flex-shrink-0" />
+                  }
+                  endContent={
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      aria-label={
+                        isPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
+                      }
+                      className="focus:outline-none transition-colors hover:text-primary-500"
+                    >
+                      {isPasswordVisible ? (
+                        <EyeSlashIcon className="w-5 h-5 text-default-400" />
+                      ) : (
+                        <EyeIcon className="w-5 h-5 text-default-400" />
+                      )}
+                    </button>
+                  }
+                  className="transition-all duration-200"
+                  classNames={{
+                    input: "text-sm",
+                    inputWrapper:
+                      "hover:border-primary-400 focus-within:border-primary-500",
+                  }}
+                />
+
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-2">
+                      <ExclamationTriangleIcon className="w-4 h-4 text-red-600 flex-shrink-0" />
+                      <p className="text-red-600 text-sm">{error}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Login Button */}
+                <Button
+                  type="submit"
+                  color="primary"
+                  className="w-full font-medium py-6 text-lg transition-all duration-200 hover:scale-[1.02]"
+                  isLoading={isLoading}
+                  disabled={isLoading || !username.trim() || !password.trim()}
+                  startContent={
+                    !isLoading && <ShieldCheckIcon className="w-5 h-5" />
+                  }
+                  spinner={<Spinner color="white" size="sm" />}
+                >
+                  {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+                </Button>
+
+                {/* Divider */}
+                <div className="flex items-center my-6">
+                  <Divider className="flex-1" />
+                  <span className="px-3 text-gray-400 text-sm">หรือ</span>
+                  <Divider className="flex-1" />
+                </div>
+
+                {/* Register Link */}
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">
+                    ยังไม่มีบัญชี?{" "}
+                    <HeroLink
+                      as={Link}
+                      href="/auth/register"
+                      color="primary"
+                      className="font-medium transition-all hover:underline"
+                    >
+                      สมัครสมาชิก
+                    </HeroLink>
+                  </p>
+                </div>
+
+                {/* Home Link */}
+                <div className="text-center">
+                  <HeroLink
+                    as={Link}
+                    href="/"
+                    color="foreground"
+                    className="text-sm font-medium flex items-center justify-center gap-2 transition-all hover:text-primary-600"
+                  >
+                    <HomeIcon className="w-4 h-4" />
+                    กลับหน้าหลัก
+                  </HeroLink>
+                </div>
+              </form>
+
+              {/* Privacy Policy */}
+              <div className="mt-6 text-center text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                เมื่อเข้าสู่ระบบจะถือว่าท่านยอมรับใน{" "}
+                <HeroLink
+                  as={Link}
+                  href="/policy"
+                  target="_blank"
+                  color="primary"
+                  className="text-xs transition-all hover:underline"
+                >
+                  นโยบายข้อมูลส่วนบุคคล
+                </HeroLink>{" "}
+                ของเรา
+              </div>
+            </CardBody>
+          </Card>
         </div>
 
-        {/* Provider Selector */}
-        <div className="space-y-4">
-          <div className="text-center">
-            <label className="block text-sm font-medium text-gray-700 mb-4">
-              เลือกวิธีการเข้าสู่ระบบ
-            </label>
-            <div className="flex justify-center mb-4">
-              <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setSelectedProvider("auto")}
-                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors min-w-[100px] ${
-                    selectedProvider === "auto"
-                      ? "bg-white text-indigo-600 shadow-sm border border-indigo-200"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  ลองทั้งสอง
-                  {selectedProvider === "auto" && " ✓"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedProvider("credentials")}
-                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors min-w-[100px] ${
-                    selectedProvider === "credentials"
-                      ? "bg-white text-indigo-600 shadow-sm border border-indigo-200"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  บัญชีท้องถิ่น
-                  {selectedProvider === "credentials" && " ✓"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedProvider("ldap")}
-                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors min-w-[100px] ${
-                    selectedProvider === "ldap"
-                      ? "bg-white text-indigo-600 shadow-sm border border-indigo-200"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  LDAP
-                  {selectedProvider === "ldap" && " ✓"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Provider Description */}
-          <div className="text-center text-sm text-gray-600 bg-blue-50 p-4 rounded-md border border-blue-200">
-            <p className="font-medium text-blue-800 text-base">
-              {currentProviderInfo.name}
-            </p>
-            <p className="text-blue-600 mt-2">
-              {currentProviderInfo.description}
-            </p>
-          </div>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                {currentProviderInfo.inputPlaceholder}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type={currentProviderInfo.inputType}
-                autoComplete={currentProviderInfo.inputAutoComplete}
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder={currentProviderInfo.inputPlaceholder}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                รหัสผ่าน
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="รหัสผ่าน"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {isLoading
-                ? "กำลังเข้าสู่ระบบ..."
-                : `เข้าสู่ระบบด้วย ${currentProviderInfo.name}`}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <Link
-              href="/auth/register"
-              className="text-indigo-600 hover:text-indigo-500"
-            >
-              ยังไม่มีบัญชี? สมัครสมาชิก
-            </Link>
-          </div>
-        </form>
-
-        {/* Provider Information */}
-        <div className="mt-8 space-y-4">
-          <div className="text-center">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
-              ข้อมูลเกี่ยวกับ Providers
-            </h3>
-            <div className="grid gap-3 text-xs text-gray-600">
-              <div className="bg-gray-50 p-3 rounded-md">
-                <p className="font-medium text-gray-800">
-                  🔐 บัญชีท้องถิ่น (credentials)
-                </p>
-                <p>ใช้บัญชีที่สร้างในระบบ RPP Portal</p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded-md">
-                <p className="font-medium text-gray-800">
-                  🏢 Windows LDAP (ldap)
-                </p>
-                <p>ใช้บัญชีจาก Windows LDAP Server</p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded-md">
-                <p className="font-medium text-gray-800">
-                  🔄 ลองทั้งสอง (auto)
-                </p>
-                <p>ลอง LDAP ก่อน หากไม่สำเร็จจะลองบัญชีท้องถิ่น</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center">
-          <div className="text-sm text-gray-600">
-            <p className="font-medium mb-2">บัญชีทดสอบ:</p>
-            <div className="space-y-1">
-              <p>
-                <strong>บัญชีท้องถิ่น:</strong>
+        {/* Right Side - Hospital Info */}
+        <div className="hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden">
+          {/* Background Image */}
+          <div
+            className="absolute inset-0 transition-all duration-300"
+            style={{
+              backgroundImage: `url('/images/login-bg.png')`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 to-indigo-700/80" />
+          <div className="relative z-10 p-12 text-white text-center">
+            <div className="mb-8">
+              <HeartIcon className="w-16 h-16 mx-auto mb-4 text-white animate-pulse" />
+              <h1 className="text-4xl font-bold mb-4 animate-in fade-in-50 duration-1000">
+                {siteConfig.hospitalName}
+              </h1>
+              <p className="text-xl mb-6 opacity-90 animate-in fade-in-50 duration-1000 delay-300">
+                {siteConfig.projectName}
               </p>
-              <p>Admin: admin@rpp.com / password</p>
-              <p>User: user@rpp.com / password</p>
-              <p className="mt-2">
-                <strong>Windows LDAP:</strong>
+              <p className="text-lg opacity-75 max-w-md mx-auto animate-in fade-in-50 duration-1000 delay-500">
+                ระบบจัดการข้อมูลแบบ Digital Transformation
+                สำหรับการให้บริการที่มีคุณภาพและประสิทธิภาพ
               </p>
-              <p>ใช้บัญชี Windows Domain ของคุณ</p>
-              <p className="text-xs text-gray-500 mt-1">
-                ตัวอย่าง: username หรือ username@domain.local
-              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
+              <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm transition-all hover:bg-white/20 hover:scale-105">
+                <div className="text-3xl font-bold mb-2">24/7</div>
+                <div className="text-sm opacity-75">บริการตลอดเวลา</div>
+              </div>
+              <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm transition-all hover:bg-white/20 hover:scale-105">
+                <div className="text-3xl font-bold mb-2">100%</div>
+                <div className="text-sm opacity-75">ความปลอดภัย</div>
+              </div>
+              <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm transition-all hover:bg-white/20 hover:scale-105">
+                <div className="text-3xl font-bold mb-2">99.9%</div>
+                <div className="text-sm opacity-75">ความเสถียร</div>
+              </div>
+              <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm transition-all hover:bg-white/20 hover:scale-105">
+                <div className="text-3xl font-bold mb-2">
+                  v{siteConfig.version}
+                </div>
+                <div className="text-sm opacity-75">เวอร์ชันล่าสุด</div>
+              </div>
             </div>
           </div>
         </div>

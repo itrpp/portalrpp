@@ -2,6 +2,7 @@
 
 import { NextAuthProvider } from "@/contexts/NextAuthContext";
 import { SessionProvider } from "next-auth/react";
+import { HeroUIProvider } from "@heroui/react";
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -10,7 +11,9 @@ interface ClientLayoutProps {
 export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <SessionProvider>
-      <NextAuthProvider>{children}</NextAuthProvider>
+      <NextAuthProvider>
+        <HeroUIProvider>{children}</HeroUIProvider>
+      </NextAuthProvider>
     </SessionProvider>
   );
 }
