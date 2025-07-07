@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/NextAuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Navbar from "@/components/Navbar";
+import CustomNavbar from "@/components/Navbar";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -10,7 +10,7 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <CustomNavbar />
 
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">

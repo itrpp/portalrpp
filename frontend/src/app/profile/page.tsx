@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/NextAuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Navbar from "@/components/Navbar";
+import CustomNavbar from "@/components/Navbar";
 
 interface UserProfile {
   id: string;
@@ -103,7 +103,7 @@ export default function ProfilePage() {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-gray-50">
-          <Navbar />
+          <CustomNavbar />
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
           </div>
@@ -115,7 +115,7 @@ export default function ProfilePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <CustomNavbar />
 
         <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
