@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/NextAuthContext";
 import Navbar from "@/components/Navbar";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface ServiceStatus {
   name: string;
@@ -20,6 +20,7 @@ export default function Home() {
     { name: "User Service", port: 3003, status: "checking" },
     { name: "Frontend", port: 3000, status: "online" }, // Frontend is always online if we can see this page
   ]);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkServiceHealth = async (port: number): Promise<boolean> => {
     try {
@@ -38,8 +39,16 @@ export default function Home() {
     }
   };
 
-  const checkAllServices = useCallback(async () => {
-    const updatedServices = await Promise.all(
+  const checkAllServices = async () => {
+    setServices((prevServices) =>
+      prevServices.map((service) => ({
+        ...service,
+        status:
+          service.port === 3000 ? ("online" as const) : ("checking" as const),
+      })),
+    );
+
+    const serviceChecks = await Promise.all(
       services.map(async (service) => {
         if (service.port === 3000) {
           // Frontend is always online if we can see this page
@@ -58,19 +67,24 @@ export default function Home() {
         };
       }),
     );
-    setServices(updatedServices);
-  }, [services]);
+
+    setServices(serviceChecks);
+  };
 
   useEffect(() => {
     // Check immediately on mount
     checkAllServices();
 
-    // Set up interval to check every 5 seconds
-    const interval = setInterval(checkAllServices, 5000);
+    // Set up interval to check every 1 second
+    intervalRef.current = setInterval(checkAllServices, 1000);
 
     // Cleanup interval on unmount
-    return () => clearInterval(interval);
-  }, [checkAllServices]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []); // ไม่มี dependencies เลย
 
   const getStatusColor = (status: ServiceStatus["status"]) => {
     switch (status) {
