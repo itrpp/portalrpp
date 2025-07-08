@@ -327,7 +327,7 @@ export default function Home() {
                   ระบบจัดการข้อมูลผู้ใช้และสิทธิ์การเข้าถึง
                 </p>
                 {user ? (
-                  <HeroLink 
+                  <HeroLink
                     as={Link}
                     href="/profile"
                     color="success"
