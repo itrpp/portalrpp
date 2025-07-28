@@ -61,11 +61,12 @@ const nextConfig = {
   // Redirects
   async redirects() {
     return [
-      {
-        source: '/',
-        destination: '/dashboard',
-        permanent: false,
-      },
+      // ลบ redirect นี้เพื่อให้หน้า home ไม่ถูก redirect ไป dashboard
+      // {
+      //   source: '/',
+      //   destination: '/dashboard',
+      //   permanent: false,
+      // },
     ];
   },
   

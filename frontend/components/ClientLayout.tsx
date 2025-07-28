@@ -8,17 +8,5 @@ export default function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <Providers
-      themeProps={{
-        attribute: "class",
-        defaultTheme: "light",
-        enableSystem: false,
-        disableTransitionOnChange: true,
-        storageKey: "rpp-theme",
-      }}
-    >
-      {children}
-    </Providers>
-  );
+  return <Providers>{children}</Providers>;
 }

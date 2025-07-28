@@ -31,7 +31,9 @@ import {
   UsersIcon,
   Cog6ToothIcon,
   HeartIcon,
+  PaintBrushIcon,
 } from "@/components/icons";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { siteConfig } from "@/config/site";
 
@@ -98,6 +100,12 @@ export default function CustomNavbar() {
       show: isAuthenticated,
     },
     {
+      label: "ธีมและสี",
+      href: "/theme",
+      icon: PaintBrushIcon,
+      show: true,
+    },
+    {
       label: "ตั้งค่าระบบ",
       href: "/settings",
       icon: Cog6ToothIcon,
@@ -107,7 +115,7 @@ export default function CustomNavbar() {
 
   return (
     <Navbar
-      className="bg-white shadow-lg border-b-2 border-blue-100"
+      className="bg-background border-b border-divider"
       height="72px"
       maxWidth="full"
       onMenuOpenChange={setIsMenuOpen}
@@ -130,10 +138,10 @@ export default function CustomNavbar() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold text-blue-700">
+              <span className="text-lg font-bold text-primary">
                 {siteConfig.projectName}
               </span>
-              <span className="text-xs text-gray-500 hidden sm:block">
+              <span className="text-xs text-default-500 hidden sm:block">
                 {siteConfig.hospitalName}
               </span>
             </div>
@@ -149,7 +157,7 @@ export default function CustomNavbar() {
               <NavbarItem key={item.href}>
                 <Link
                   aria-label={`ไปยังหน้า ${item.label}`}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors px-3 py-2 rounded-md hover:bg-blue-50"
+                  className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors px-3 py-2 rounded-md hover:bg-content2"
                   href={item.href}
                 >
                   <item.icon className="w-4 h-4" />
@@ -161,6 +169,11 @@ export default function CustomNavbar() {
       )}
 
       <NavbarContent justify="end">
+        {/* Theme Toggle */}
+        <NavbarItem>
+          <ThemeToggle />
+        </NavbarItem>
+
         {isAuthenticated && user ? (
           <div className="flex items-center space-x-4">
             {/* Notification Badge */}
@@ -172,7 +185,7 @@ export default function CustomNavbar() {
               size="sm"
               onClick={handleNotificationsClick}
             >
-              <BellIcon className="w-6 h-6 text-gray-600 hover:text-blue-600 transition-colors" />
+              <BellIcon className="w-6 h-6 text-foreground hover:text-primary transition-colors" />
             </Badge>
 
             {/* User Dropdown */}
@@ -204,11 +217,11 @@ export default function CustomNavbar() {
                 aria-label="Profile Actions"
                 className="w-80 p-0"
                 topContent={
-                  <div className="flex flex-col items-center py-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                  <div className="flex flex-col items-center py-6 bg-gradient-to-br from-content2 to-content3">
                     {/* Profile Image */}
                     <div className="relative mb-4">
                       <Avatar
-                        className="w-20 h-20 text-2xl shadow-lg border-4 border-white"
+                        className="w-20 h-20 text-2xl shadow-lg border-4 border-background"
                         name={user.name?.charAt(0) || "U"}
                         size="lg"
                         style={{
@@ -230,14 +243,14 @@ export default function CustomNavbar() {
 
                     {/* Profile Name */}
                     <div className="text-center mb-2">
-                      <div className="font-bold text-gray-800 text-lg">
+                      <div className="font-bold text-foreground text-lg">
                         {user.name}
                       </div>
                     </div>
 
                     {/* Profile Position */}
                     <div className="text-center mb-4">
-                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary-100 text-primary-800 text-sm font-medium">
                         {user.role === "admin"
                           ? "👑 ผู้ดูแลระบบ"
                           : "👤 เจ้าหน้าที่"}
@@ -247,7 +260,7 @@ export default function CustomNavbar() {
                     {/* Detail Toggle Button */}
                     <button
                       aria-label={isDetailExpanded ? "ซ่อนข้อมูลเพิ่มเติม" : "แสดงข้อมูลเพิ่มเติม"}
-                      className="text-sm text-gray-600 hover:text-blue-600 mb-4 bg-white border border-gray-200 rounded-md px-3 py-1 transition-colors"
+                      className="text-sm text-foreground hover:text-primary mb-4 bg-background border border-divider rounded-md px-3 py-1 transition-colors"
                       onClick={toggleDetail}
                     >
                       ข้อมูลเพิ่มเติม {isDetailExpanded ? "▲" : "▼"}
@@ -256,34 +269,34 @@ export default function CustomNavbar() {
                     {/* Profile Details */}
                     {isDetailExpanded && (
                       <div className="w-full px-4 mb-4">
-                        <div className="border border-gray-200 rounded-lg p-4 text-sm bg-white shadow-sm">
+                        <div className="border border-divider rounded-lg p-4 text-sm bg-background shadow-sm">
                           <div className="mb-3">
-                            <span className="font-semibold text-gray-700 block mb-1">
+                            <span className="font-semibold text-foreground block mb-1">
                               หน่วยงาน
                             </span>
-                            <span className="text-gray-600">
+                            <span className="text-default-500">
                               {siteConfig.hospitalName}
                             </span>
                           </div>
                           <div className="mb-3">
-                            <span className="font-semibold text-gray-700 block mb-1">
+                            <span className="font-semibold text-foreground block mb-1">
                               ฝ่าย
                             </span>
-                            <span className="text-gray-600">
+                            <span className="text-default-500">
                               ฝ่ายเทคโนโลยีสารสนเทศ
                             </span>
                           </div>
                           <div className="mb-3">
-                            <span className="font-semibold text-gray-700 block mb-1">
+                            <span className="font-semibold text-foreground block mb-1">
                               อีเมล
                             </span>
-                            <span className="text-gray-600">{user.email}</span>
+                            <span className="text-default-500">{user.email}</span>
                           </div>
                           <div>
-                            <span className="font-semibold text-gray-700 block mb-1">
+                            <span className="font-semibold text-foreground block mb-1">
                               สถานะ
                             </span>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full bg-success-100 text-success-800 text-xs">
                               🟢 ออนไลน์
                             </span>
                           </div>
@@ -296,34 +309,34 @@ export default function CustomNavbar() {
                 <DropdownItem
                   key="profile"
                   className="py-3 px-4"
-                  startContent={<UserIcon className="w-5 h-5 text-gray-600" />}
+                  startContent={<UserIcon className="w-5 h-5 text-default-500" />}
                   onClick={handleProfileClick}
                 >
-                  <span className="text-gray-700 font-medium">
+                  <span className="text-foreground font-medium">
                     ข้อมูลส่วนตัว
                   </span>
                 </DropdownItem>
                 <DropdownItem
                   key="password"
                   className="py-3 px-4"
-                  startContent={<KeyIcon className="w-5 h-5 text-gray-600" />}
+                  startContent={<KeyIcon className="w-5 h-5 text-default-500" />}
                   onClick={handlePasswordClick}
                 >
-                  <span className="text-gray-700 font-medium">
+                  <span className="text-foreground font-medium">
                     แก้ไขรหัสผ่าน
                   </span>
                 </DropdownItem>
                 <DropdownItem
                   key="notifications"
                   className="py-3 px-4"
-                  startContent={<BellIcon className="w-5 h-5 text-gray-600" />}
+                  startContent={<BellIcon className="w-5 h-5 text-default-500" />}
                   onClick={handleNotificationsClick}
                 >
-                  <span className="text-gray-700 font-medium">แจ้งเตือน</span>
+                  <span className="text-foreground font-medium">แจ้งเตือน</span>
                 </DropdownItem>
                 <DropdownItem
                   key="logout"
-                  className="py-3 px-4 text-red-600"
+                  className="py-3 px-4 text-danger"
                   color="danger"
                   startContent={
                     <ArrowRightOnRectangleIcon className="w-5 h-5" />
@@ -361,7 +374,7 @@ export default function CustomNavbar() {
             <NavbarItem key={item.href}>
               <Link
                 aria-label={`ไปยังหน้า ${item.label}`}
-                className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors py-3 px-4 rounded-lg hover:bg-blue-50 w-full"
+                className="flex items-center space-x-3 text-foreground hover:text-primary transition-colors py-3 px-4 rounded-lg hover:bg-content2 w-full"
                 href={item.href}
                 onClick={() => setIsMenuOpen(false)}
               >

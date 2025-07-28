@@ -157,28 +157,21 @@ export const HeartFilledIcon = ({
 };
 
 // Search Icon
-export const SearchIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M11.5 11.5L14 14"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+export const SearchIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon 
+      icon="heroicons:magnifying-glass" 
+      className={className}
+      {...iconProps}
+      {...props}
     />
-    <path
-      d="M7 13A6 6 0 1 0 7 1A6 6 0 0 0 7 13Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-    />
-  </svg>
-);
+  );
+};
 
 // Export iconify icons สำหรับใช้ในโปรเจกต์
 export const ShieldCheckIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
@@ -577,6 +570,39 @@ export const ExclamationTriangleIcon = ({ size, width, height, className, ...pro
   return (
     <Icon 
       icon="heroicons:exclamation-triangle" 
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+export const ArrowRightIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon 
+      icon="heroicons:arrow-right" 
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// เพิ่ม icon สำหรับ Theme page
+export const PaintBrushIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon 
+      icon="heroicons:paint-brush" 
       className={className}
       {...iconProps}
       {...props}

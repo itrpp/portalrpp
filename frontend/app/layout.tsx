@@ -38,6 +38,18 @@ export const metadata: Metadata = {
     apple: "/images/logo.png",
   },
   manifest: "/manifest.json",
+  applicationName: siteConfig.projectName,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: siteConfig.projectName,
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "msapplication-config": "/browserconfig.xml",
+    "msapplication-TileColor": "#3b82f6",
+    "msapplication-tap-highlight": "no",
+  },
   openGraph: {
     title: siteConfig.projectName,
     description: `ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`,
@@ -71,7 +83,7 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)",
 color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)",
-color: "#000000" },
+color: "#2a2a2a" },
   ],
 };
 
@@ -86,22 +98,9 @@ export default function RootLayout({
       className={`${fontPrompt.variable} ${fontSans.variable}`}
       lang="th"
     >
-      <head>
-        <meta content={siteConfig.projectName} name="application-name" />
-        <meta content="yes" name="apple-mobile-web-app-capable" />
-        <meta content="default" name="apple-mobile-web-app-status-bar-style" />
-        <meta
-          content={siteConfig.projectName}
-          name="apple-mobile-web-app-title"
-        />
-        <meta content="yes" name="mobile-web-app-capable" />
-        <meta content="/browserconfig.xml" name="msapplication-config" />
-        <meta content="#2563eb" name="msapplication-TileColor" />
-        <meta content="no" name="msapplication-tap-highlight" />
-      </head>
       <body
         suppressHydrationWarning
-        className={`${fontPrompt.className} bg-gray-50`}
+        className={`${fontPrompt.className} bg-background text-foreground`}
       >
         <ClientLayout>{children}</ClientLayout>
       </body>

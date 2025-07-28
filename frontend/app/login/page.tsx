@@ -14,6 +14,7 @@ import {
 } from "@heroui/react";
 import { siteConfig } from "@/config/site";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   UserIcon,
   LockClosedIcon,
@@ -22,6 +23,7 @@ import {
   EyeSlashIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
+  ArrowRightOnRectangleIcon,
 } from "@/components/icons";
 
 export default function LoginPage() {
@@ -38,7 +40,8 @@ export default function LoginPage() {
   // ตรวจสอบ authentication state เมื่อ component mount
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push("/dashboard");
+      // ให้ผู้ใช้ไปหน้า home หลังจาก login
+      router.push("/");
     }
   }, [isAuthenticated, authLoading, router]);
 
@@ -63,7 +66,7 @@ export default function LoginPage() {
         setSuccessMessage("เข้าสู่ระบบสำเร็จ! กำลังเปลี่ยนหน้า...");
         // รอให้ AuthContext อัปเดต state ก่อน redirect
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/");
         }, 1000);
       } else {
         setError("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
@@ -97,10 +100,10 @@ export default function LoginPage() {
   // แสดง loading spinner ขณะตรวจสอบ authentication
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3 transition-colors duration-500">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-default-600 dark:text-default-400">
             กำลังตรวจสอบการเข้าสู่ระบบ...
           </p>
         </div>
@@ -114,9 +117,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 transition-colors duration-500">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3 transition-colors duration-500">
+      {/* Theme Toggle Button - Top Right */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-md p-6 sm:p-8">
-        <Card className="rounded-3xl shadow-2xl border-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg">
+        <Card className="rounded-3xl shadow-2xl border-0 bg-background/90 backdrop-blur-lg">
           <CardBody className="p-8">
             <div className="flex flex-col items-center mb-8">
               <Image
@@ -124,21 +132,21 @@ export default function LoginPage() {
                 alt="โรงพยาบาลราชพิพัฒน์"
                 width={90}
                 height={90}
-                className="rounded-full shadow-lg border-4 border-blue-200 dark:border-blue-700 bg-white"
+                className="rounded-full shadow-lg border-4 border-primary/20 bg-background"
                 priority
               />
-              <h1 className="mt-6 text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+              <h1 className="mt-6 text-2xl font-extrabold text-foreground tracking-tight">
                 เข้าสู่ระบบ
               </h1>
-              <p className="text-gray-500 dark:text-gray-300 text-sm mt-1">
+              <p className="text-default-600 dark:text-default-400 text-sm mt-1">
                 ระบบ {siteConfig.projectName}
               </p>
             </div>
 
             {/* Authentication Method Toggle */}
-            <div className="flex items-center justify-between mb-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-between mb-6 p-3 bg-content2 dark:bg-content3 rounded-lg">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-foreground">
                   วิธีการเข้าสู่ระบบ:
                 </span>
               </div>
@@ -148,7 +156,7 @@ export default function LoginPage() {
                 size="sm"
                 color="primary"
               />
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-default-600 dark:text-default-400">
                 {useLDAP ? "LDAP" : "Local"}
               </span>
             </div>
@@ -164,11 +172,11 @@ export default function LoginPage() {
                     setUsername(e.target.value);
                     handleInputChange();
                   }}
-                  startContent={<UserIcon className="w-5 h-5 text-blue-400" />}
+                  startContent={<UserIcon className="w-5 h-5 text-primary" />}
                   variant="bordered"
                   size="lg"
                   required
-                  className="focus-within:ring-2 focus-within:ring-blue-400"
+                  className="focus-within:ring-2 focus-within:ring-primary"
                   isInvalid={!!error}
                 />
               </div>
@@ -182,7 +190,7 @@ export default function LoginPage() {
                     setPassword(e.target.value);
                     handleInputChange();
                   }}
-                  startContent={<LockClosedIcon className="w-5 h-5 text-blue-400" />}
+                  startContent={<LockClosedIcon className="w-5 h-5 text-primary" />}
                   endContent={
                     <button
                       type="button"
@@ -191,23 +199,23 @@ export default function LoginPage() {
                       onClick={() => setShowPassword((v) => !v)}
                     >
                       {showPassword ? (
-                        <EyeSlashIcon className="w-5 h-5 text-gray-400" />
+                        <EyeSlashIcon className="w-5 h-5 text-default-400" />
                       ) : (
-                        <EyeIcon className="w-5 h-5 text-gray-400" />
+                        <EyeIcon className="w-5 h-5 text-default-400" />
                       )}
                     </button>
                   }
                   variant="bordered"
                   size="lg"
                   required
-                  className="focus-within:ring-2 focus-within:ring-blue-400"
+                  className="focus-within:ring-2 focus-within:ring-primary"
                   isInvalid={!!error}
                 />
               </div>
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 text-red-600 text-sm animate-pulse bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-danger text-sm animate-pulse bg-danger-50 dark:bg-danger-900/20 p-3 rounded-lg">
                   <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -215,7 +223,7 @@ export default function LoginPage() {
 
               {/* Success Message */}
               {successMessage && (
-                <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-success text-sm bg-success-50 dark:bg-success-900/20 p-3 rounded-lg">
                   <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
                   <span>{successMessage}</span>
                 </div>
@@ -225,26 +233,26 @@ export default function LoginPage() {
                 type="submit"
                 color="primary"
                 size="lg"
-                className="w-full font-semibold shadow-md hover:scale-[1.03] transition-transform"
+                className="w-full font-semibold shadow-md hover:scale-[1.03] hover:bg-primary-600 text-white border-0 transition-transform"
                 isLoading={isLoading}
-                startContent={<LockClosedIcon className="w-5 h-5" />}
+                startContent={<ArrowRightOnRectangleIcon className="w-5 h-5" />}
                 disabled={!username || !password}
               >
                 {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </Button>
             </form>
 
-            <div className="flex justify-between items-center mt-4 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex justify-between items-center mt-4 text-xs text-default-600 dark:text-default-400">
               <button
                 type="button"
-                className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-1 hover:text-primary hover:bg-content2 px-2 py-1 rounded transition-colors"
                 onClick={() => router.push("/")}
               >
                 <ArrowLeftIcon className="w-4 h-4" /> กลับหน้าหลัก
               </button>
               <Link
                 href="#"
-                className="hover:text-blue-600 transition-colors"
+                className="hover:text-primary hover:bg-content2 px-2 py-1 rounded transition-colors"
                 tabIndex={-1}
               >
                 ลืมรหัสผ่าน?
@@ -253,7 +261,7 @@ export default function LoginPage() {
 
             <Divider className="my-6" />
 
-            <div className="text-center text-xs text-gray-400 dark:text-gray-500">
+            <div className="text-center text-xs text-default-500 dark:text-default-400">
               <span>
                 © {new Date().getFullYear()} {siteConfig.hospitalName}
                 <br />

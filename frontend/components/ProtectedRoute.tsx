@@ -15,10 +15,13 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const router = useRouter();
 
   useEffect(() => {
-    // ตรวจสอบว่ากำลังอยู่ในหน้า login หรือไม่
-    const isLoginPage = window.location.pathname === '/login';
+    // ตรวจสอบว่ากำลังอยู่ในหน้าสาธารณะหรือไม่
+    const publicPages = ['/', '/login'];
+    const currentPath = window.location.pathname;
+    const isPublicPage = publicPages.includes(currentPath);
     
-    if (!isLoading && !isAuthenticated && !isLoginPage) {
+    // ถ้าไม่ได้ login และไม่ได้อยู่ในหน้าสาธารณะ ให้ redirect ไป login
+    if (!isLoading && !isAuthenticated && !isPublicPage) {
       router.push("/login");
     }
   }, [isAuthenticated, isLoading, router]);
