@@ -69,7 +69,7 @@ export interface MonitoringConfig {
   enabled: boolean;
   metricsPath: string;
   healthCheckPath: string;
-  statusMonitorPath: string;
+      // Removed statusMonitorPath due to security vulnerabilities
 }
 
 export interface ApiGatewayConfig {

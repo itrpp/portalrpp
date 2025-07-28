@@ -95,7 +95,7 @@ const monitoring: MonitoringConfig = {
   enabled: process.env.MONITORING_ENABLED !== 'false',
   metricsPath: process.env.METRICS_PATH || '/metrics',
   healthCheckPath: process.env.HEALTH_CHECK_PATH || '/health',
-  statusMonitorPath: process.env.STATUS_MONITOR_PATH || '/status',
+      // Removed statusMonitorPath due to security vulnerabilities
 };
 
 // ========================================

@@ -9,8 +9,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { v4 as uuidv4 } from 'uuid';
-// @ts-ignore - express-status-monitor ไม่มี type definitions
-import statusMonitor from 'express-status-monitor';
+// Removed express-status-monitor due to security vulnerabilities
 // Swagger imports
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -342,23 +341,8 @@ app.use(sanitizeInput);
 // MONITORING MIDDLEWARE
 // ========================================
 
-if (config.monitoring.enabled) {
-  // Status monitor
-  app.use(statusMonitor({
-    title: 'API Gateway Status',
-    path: config.monitoring.statusMonitorPath,
-    spans: [{
-      interval: 1,
-      retention: 60,
-    }, {
-      interval: 5,
-      retention: 60,
-    }, {
-      interval: 15,
-      retention: 60,
-    }],
-  }));
-}
+// Removed express-status-monitor due to security vulnerabilities
+// Using built-in performance monitoring instead
 
 // ========================================
 // REQUEST LOGGING MIDDLEWARE
