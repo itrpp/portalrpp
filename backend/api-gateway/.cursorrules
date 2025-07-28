@@ -1,0 +1,318 @@
+# ========================================
+# Cursor Rules สำหรับ API Gateway Service
+# ========================================
+
+## 🎯 เป้าหมายหลัก
+API Gateway เป็นจุดเข้าใช้งานหลักของระบบ microservices ต้องมีความเสถียร ปลอดภัย และมีประสิทธิภาพสูง
+
+## 🏗️ สถาปัตยกรรม API Gateway
+
+### หลักการออกแบบ
+- **Single Entry Point**: ทุก request ต้องผ่าน API Gateway เท่านั้น
+- **Service Discovery**: จัดการ routing ไปยัง services ต่างๆ
+- **Load Balancing**: กระจายโหลดไปยัง instances หลายตัว
+- **Circuit Breaker**: ป้องกัน cascade failure
+- **Rate Limiting**: จำกัดจำนวน requests
+- **Authentication/Authorization**: ตรวจสอบสิทธิ์ก่อนส่งต่อ
+
+### โครงสร้างการทำงาน
+```
+Client Request → API Gateway → Service Proxy → Microservice
+                ↓
+            Middleware Stack:
+            - CORS
+            - Security Headers
+            - Rate Limiting
+            - Authentication
+            - Request Logging
+            - Error Handling
+```
+
+## 🔐 ความปลอดภัย (Security)
+
+### Security Headers
+- ใช้ `helmet` middleware เสมอ
+- ตั้งค่า CORS ให้เหมาะสม
+- ใช้ HTTPS ใน production
+- ตั้งค่า Content Security Policy
+
+### Authentication & Authorization
+- ตรวจสอบ JWT token ก่อนส่งต่อ
+- ใช้ middleware สำหรับตรวจสอบสิทธิ์
+- ส่งต่อ authorization headers ไปยัง services
+- จัดการ session และ token refresh
+
+### Rate Limiting
+- จำกัด requests ต่อ IP address
+- จำกัด requests ต่อ user
+- ใช้ sliding window algorithm
+- แยก rate limit สำหรับ endpoints ต่างๆ
+
+## 📊 การ Monitor และ Logging
+
+### Request Logging
+- Log ทุก incoming request
+- เก็บข้อมูล: method, path, IP, user agent, response time
+- ใช้ structured logging format
+- เก็บ request ID สำหรับ tracing
+
+### Error Handling
+- จัดการ error จาก services ต่างๆ
+- ส่ง error response ที่เหมาะสม
+- Log errors พร้อม context
+- ใช้ circuit breaker pattern
+
+### Health Checks
+- ตรวจสอบสถานะของ services ต่างๆ
+- ส่งต่อ health check requests
+- แสดงสถานะของ API Gateway
+- Alert เมื่อ service ไม่พร้อมใช้งาน
+
+## 🚀 Performance Optimization
+
+### Caching
+- Cache responses ที่เหมาะสม
+- ใช้ Redis สำหรับ distributed caching
+- Cache authentication results
+- ตั้งค่า cache headers
+
+### Compression
+- ใช้ gzip compression
+- บีบอัด responses ที่เหมาะสม
+- ตั้งค่า compression level
+
+### Connection Pooling
+- ใช้ connection pool สำหรับ database
+- ตั้งค่า timeout ที่เหมาะสม
+- จัดการ connection lifecycle
+
+## 🔄 Service Proxy Configuration
+
+### Proxy Rules
+- ใช้ `http-proxy-middleware` หรือ `http-proxy`
+- ตั้งค่า timeout ที่เหมาะสม
+- จัดการ retry logic
+- ใช้ load balancing
+
+### Path Rewriting
+- แปลง paths ให้เหมาะสม
+- จัดการ versioning
+- ส่งต่อ query parameters
+- จัดการ request body
+
+### Headers Management
+- ส่งต่อ headers ที่จำเป็น
+- เพิ่ม headers สำหรับ tracing
+- จัดการ CORS headers
+- ส่งต่อ authentication headers
+
+## 📝 Code Quality
+
+### TypeScript Best Practices
+- ใช้ strict mode
+- กำหนด types ให้ชัดเจน
+- ใช้ interfaces สำหรับ configurations
+- ใช้ enums สำหรับ constants
+
+### Error Handling
+- ใช้ custom error classes
+- จัดการ async errors
+- ใช้ try-catch blocks
+- ส่ง error messages ที่ชัดเจน
+
+### Code Organization
+- แยก middleware ออกจากกัน
+- ใช้ dependency injection
+- ใช้ configuration files
+- แยก business logic
+
+## 🧪 Testing Strategy
+
+### Unit Tests
+- ทดสอบ middleware functions
+- ทดสอบ proxy configurations
+- ทดสอบ error handling
+- ทดสอบ security features
+
+### Integration Tests
+- ทดสอบการเชื่อมต่อกับ services
+- ทดสอบ authentication flow
+- ทดสอบ rate limiting
+- ทดสอบ health checks
+
+### Load Tests
+- ทดสอบ performance ภายใต้โหลดสูง
+- ทดสอบ circuit breaker
+- ทดสอบ rate limiting
+- ทดสอบ memory usage
+
+## 🔧 Configuration Management
+
+### Environment Variables
+- ใช้ `.env` files
+- แยก config สำหรับ environments ต่างๆ
+- ใช้ validation สำหรับ config
+- ใช้ default values ที่เหมาะสม
+
+### Service URLs
+- ใช้ environment variables สำหรับ service URLs
+- รองรับ service discovery
+- ใช้ health checks สำหรับ service availability
+- จัดการ service fallbacks
+
+## 📈 Monitoring และ Alerting
+
+### Metrics
+- Request count และ response time
+- Error rate และ status codes
+- Memory และ CPU usage
+- Network I/O
+
+### Alerts
+- Alert เมื่อ service ไม่พร้อมใช้งาน
+- Alert เมื่อ error rate สูง
+- Alert เมื่อ response time ช้า
+- Alert เมื่อ memory usage สูง
+
+## 🚨 Circuit Breaker Pattern
+
+### Implementation
+- ใช้ library เช่น `opossum` หรือ `circuit-breaker-js`
+- ตั้งค่า threshold ที่เหมาะสม
+- จัดการ fallback responses
+- Monitor circuit breaker status
+
+### Configuration
+- Failure threshold: 5 failures
+- Timeout: 10 seconds
+- Reset timeout: 60 seconds
+- Monitor: 10 requests
+
+## 🔄 Rate Limiting Strategy
+
+### Implementation
+- ใช้ `express-rate-limit` หรือ `rate-limiter-flexible`
+- แยก rate limits สำหรับ endpoints ต่างๆ
+- ใช้ Redis สำหรับ distributed rate limiting
+- จัดการ rate limit headers
+
+### Configuration
+- General: 100 requests/minute
+- Auth endpoints: 5 requests/minute
+- Admin endpoints: 10 requests/minute
+- File upload: 10 requests/minute
+
+## 📋 API Documentation
+
+### OpenAPI/Swagger
+- สร้าง OpenAPI specification
+- ใช้ Swagger UI สำหรับ documentation
+- อัปเดต documentation อัตโนมัติ
+- รวม examples และ schemas
+
+### API Versioning
+- รองรับ multiple API versions
+- ใช้ URL versioning หรือ header versioning
+- จัดการ backward compatibility
+- แยก documentation สำหรับแต่ละ version
+
+## 🛠️ Development Workflow
+
+### Local Development
+- ใช้ local development servers
+- ใช้ hot reload สำหรับ development
+- ใช้ debug mode สำหรับ troubleshooting
+- ใช้ local environment variables
+- ใช้ **Windows Command Prompt (cmd)** เป็นมาตรฐาน
+
+### Windows Development Commands
+- **ใช้คำสั่ง cmd เป็นมาตรฐาน** สำหรับการพัฒนาใน Windows
+- ใช้ `cmd` แทน `bash` หรือ `powershell` สำหรับคำสั่ง terminal
+- ใช้ `dir` แทน `ls` สำหรับการแสดงรายการไฟล์
+- ใช้ `copy` แทน `cp` สำหรับการคัดลอกไฟล์
+- ใช้ `move` แทน `mv` สำหรับการย้ายไฟล์
+- ใช้ `del` แทน `rm` สำหรับการลบไฟล์
+- ใช้ `mkdir` สำหรับการสร้างโฟลเดอร์
+- ใช้ `cd` สำหรับการเปลี่ยนไดเรกทอรี
+- ใช้ `netstat -ano | findstr :PORT` สำหรับการตรวจสอบ port ที่ใช้งาน
+- ใช้ `taskkill /PID <PID>` สำหรับการหยุด process
+- ใช้ `tasklist` สำหรับการแสดงรายการ processes
+- ใช้ `ipconfig` สำหรับการตรวจสอบ network configuration
+- ใช้ `ping` สำหรับการทดสอบการเชื่อมต่อ
+- ใช้ `nslookup` สำหรับการตรวจสอบ DNS
+- ใช้ `tracert` แทน `traceroute` สำหรับการติดตามเส้นทาง
+- ใช้ `systeminfo` สำหรับข้อมูลระบบ
+- ใช้ `ver` สำหรับเวอร์ชันของ Windows
+- ใช้ `echo %PATH%` สำหรับการแสดง PATH environment variable
+- ใช้ `set` สำหรับการแสดง environment variables
+- ใช้ `set VARIABLE=value` สำหรับการตั้งค่า environment variable
+- ใช้ `cls` สำหรับการล้างหน้าจอ
+- ใช้ `help` สำหรับการแสดงคำสั่งที่ใช้ได้
+- ใช้ `/?` หลังคำสั่งเพื่อดู help (เช่น `dir /?`)
+
+### Code Quality Tools
+- ใช้ ESLint สำหรับ code linting
+- ใช้ Prettier สำหรับ code formatting
+- ใช้ Husky สำหรับ pre-commit hooks
+- ใช้ TypeScript strict mode
+
+## 🔍 Debugging และ Troubleshooting
+
+### Logging Strategy
+- ใช้ structured logging
+- เก็บ request IDs
+- Log performance metrics
+- เก็บ error stack traces
+
+### Debug Tools
+- ใช้ debug middleware
+- ใช้ request/response logging
+- ใช้ performance profiling
+- ใช้ memory profiling
+
+## 📚 Best Practices Summary
+
+### Do's ✅
+- ใช้ security headers เสมอ
+- จัดการ CORS อย่างเหมาะสม
+- ใช้ rate limiting
+- จัดการ error handling
+- ใช้ circuit breaker pattern
+- ใช้ structured logging
+- ใช้ TypeScript strict mode
+- ใช้ environment variables
+- ใช้ health checks
+- ใช้ monitoring และ alerting
+
+### Don'ts ❌
+- อย่า hardcode service URLs
+- อย่าลืม security headers
+- อย่าลืม error handling
+- อย่าลืม rate limiting
+- อย่าลืม CORS configuration
+- อย่าลืม health checks
+- อย่าลืม logging
+- อย่าลืม monitoring
+- อย่าลืม testing
+- อย่าลืม documentation
+- อย่าใช้คำสั่ง bash ใน Windows development
+- อย่าลืมใช้คำสั่ง cmd เป็นมาตรฐาน
+
+## 🎯 Performance Targets
+
+### Response Time
+- P50: < 100ms
+- P95: < 500ms
+- P99: < 1000ms
+
+### Throughput
+- Requests/second: > 1000
+- Concurrent connections: > 1000
+- Memory usage: < 512MB
+- CPU usage: < 80%
+
+### Availability
+- Uptime: > 99.9%
+- Error rate: < 0.1%
+- Circuit breaker trips: < 1%
+- Rate limit hits: < 5% 

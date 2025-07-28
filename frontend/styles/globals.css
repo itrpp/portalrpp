@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@config "../tailwind.config.js";
+
+:root {
+  /* Font Prompt สำหรับภาษาไทย */
+  --font-prompt: "Prompt", "Prompt-Regular", "Prompt-Medium", "Prompt-Bold", ui-sans-serif, system-ui;
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+body {
+  font-family: var(--font-prompt);
+}

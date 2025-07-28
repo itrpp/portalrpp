@@ -1,0 +1,431 @@
+# ========================================
+# Cursor Rules สำหรับ Auth Service
+# ========================================
+
+## 🎯 เป้าหมายหลัก
+Auth Service เป็น service หลักสำหรับจัดการ authentication และ authorization ต้องมีความปลอดภัยสูง ตรวจสอบได้ และรองรับ multiple authentication methods
+
+## 🔐 Authentication & Authorization
+
+### หลักการออกแบบ
+- **Multi-Method Authentication**: รองรับ Local, LDAP, OAuth
+- **JWT Token Management**: Access Token และ Refresh Token
+- **Session Management**: จัดการ session lifecycle
+- **Role-Based Access Control (RBAC)**: ตรวจสอบสิทธิ์ตาม role
+- **Rate Limiting**: ป้องกัน brute force attacks
+- **Password Security**: เข้ารหัสและตรวจสอบความแข็งแกร่ง
+
+### Authentication Flow
+```
+Client Request → Auth Service → Validation → Authentication → Token Generation → Response
+                ↓
+            Security Checks:
+            - Rate Limiting
+            - Input Validation
+            - Password Verification
+            - LDAP Authentication
+            - Session Creation
+```
+
+## 🛡️ Security Best Practices
+
+### Password Security
+- ใช้ `bcryptjs` สำหรับ password hashing
+- ตั้งค่า salt rounds ที่เหมาะสม (12+)
+- ตรวจสอบ password strength
+- ใช้ secure password policies
+- เก็บ password history
+
+### JWT Token Management
+- ใช้ strong secret key
+- ตั้งค่า expiration time ที่เหมาะสม
+- ใช้ refresh token mechanism
+- ตรวจสอบ token signature
+- จัดการ token revocation
+
+### Session Security
+- ใช้ secure session tokens
+- เก็บ session metadata (IP, User Agent)
+- จัดการ session expiration
+- ตรวจสอบ session validity
+- ลบ expired sessions
+
+### LDAP Integration
+- ใช้ secure LDAP connection
+- จัดการ LDAP connection pooling
+- ตรวจสอบ LDAP user attributes
+- Map LDAP groups to roles
+- Handle LDAP connection errors
+
+## 📊 Database Management
+
+### Prisma ORM Best Practices
+- ใช้ Prisma Client สำหรับ database operations
+- ตั้งค่า connection pooling
+- ใช้ transactions สำหรับ operations ที่ซับซ้อน
+- จัดการ database migrations
+- ใช้ Prisma Studio สำหรับ development
+
+### Database Schema
+- ใช้ proper relationships
+- ตั้งค่า foreign key constraints
+- ใช้ indexes สำหรับ performance
+- จัดการ data integrity
+- ใช้ soft deletes เมื่อเหมาะสม
+
+### Data Validation
+- ตรวจสอบ input data
+- ใช้ Prisma validation
+- จัดการ unique constraints
+- ตรวจสอบ data types
+- Sanitize user inputs
+
+## 🔄 API Design
+
+### RESTful Endpoints
+- ใช้ HTTP methods ที่เหมาะสม
+- ตั้งค่า proper status codes
+- ใช้ consistent response format
+- จัดการ error responses
+- ใช้ proper URL structure
+
+### Request/Response Format
+```typescript
+// Request Format
+{
+  "email": "user@example.com",
+  "password": "securePassword123",
+  "authMethod": "local"
+}
+
+// Response Format
+{
+  "success": true,
+  "message": "Login successful",
+  "user": { /* user data */ },
+  "accessToken": "jwt_token",
+  "refreshToken": "refresh_token",
+  "expiresIn": 3600
+}
+```
+
+### Error Handling
+- ใช้ consistent error format
+- จัดการ different error types
+- ใช้ proper HTTP status codes
+- Log errors appropriately
+- ไม่ expose sensitive information
+
+## 🧪 Testing Strategy
+
+### Unit Tests
+- ทดสอบ authentication functions
+- ทดสอบ password hashing
+- ทดสอบ JWT operations
+- ทดสอบ LDAP integration
+- ทดสอบ validation functions
+
+### Integration Tests
+- ทดสอบ API endpoints
+- ทดสอบ database operations
+- ทดสอบ session management
+- ทดสอบ rate limiting
+- ทดสอบ error scenarios
+
+### Security Tests
+- ทดสอบ password security
+- ทดสอบ token validation
+- ทดสอบ session security
+- ทดสอบ LDAP security
+- ทดสอบ brute force protection
+
+## 📝 Code Quality
+
+### TypeScript Best Practices
+- ใช้ strict mode
+- กำหนด interfaces ให้ชัดเจน
+- ใช้ proper type annotations
+- ใช้ enums สำหรับ constants
+- ใช้ generics เมื่อเหมาะสม
+
+### Error Handling
+- ใช้ custom error classes
+- จัดการ async errors
+- ใช้ try-catch blocks
+- Log errors with context
+- ใช้ error boundaries
+
+### Code Organization
+- แยก business logic
+- ใช้ dependency injection
+- แยก concerns
+- ใช้ proper naming conventions
+- ใช้ consistent formatting
+
+## 🔧 Configuration Management
+
+### Environment Variables
+- ใช้ `.env` files
+- แยก config สำหรับ environments
+- ใช้ validation สำหรับ config
+- ใช้ default values
+- ใช้ secure secrets management
+
+### Database Configuration
+- ใช้ connection pooling
+- ตั้งค่า timeout ที่เหมาะสม
+- ใช้ SSL ใน production
+- จัดการ database migrations
+- ใช้ database monitoring
+
+### LDAP Configuration
+- ใช้ secure LDAP URL
+- ตั้งค่า timeout ที่เหมาะสม
+- ใช้ proper bind DN
+- จัดการ LDAP attributes
+- ใช้ LDAP connection pooling
+
+## 📈 Monitoring และ Logging
+
+### Logging Strategy
+- ใช้ structured logging
+- Log authentication events
+- Log security events
+- Log performance metrics
+- ใช้ log levels ที่เหมาะสม
+
+### Metrics
+- Authentication success/failure rates
+- Session creation/deletion rates
+- Token generation/validation rates
+- LDAP connection status
+- Database performance metrics
+
+### Alerts
+- Alert เมื่อ authentication failures สูง
+- Alert เมื่อ LDAP connection ล้มเหลว
+- Alert เมื่อ database errors
+- Alert เมื่อ rate limiting ทำงาน
+- Alert เมื่อ session anomalies
+
+## 🚨 Security Monitoring
+
+### Authentication Monitoring
+- Monitor login attempts
+- Track failed authentications
+- Monitor session creation
+- Track token usage
+- Monitor LDAP connections
+
+### Security Events
+- Log security violations
+- Track suspicious activities
+- Monitor IP address changes
+- Track user agent changes
+- Monitor session hijacking attempts
+
+### Rate Limiting
+- Monitor rate limit hits
+- Track IP-based limits
+- Monitor user-based limits
+- Track endpoint usage
+- Monitor brute force attempts
+
+## 🔄 Session Management
+
+### Session Lifecycle
+- สร้าง session ใหม่เมื่อ login
+- ตรวจสอบ session validity
+- อัปเดต session metadata
+- ลบ expired sessions
+- จัดการ session conflicts
+
+### Session Security
+- ใช้ secure session tokens
+- เก็บ session metadata
+- ตรวจสอบ session ownership
+- จัดการ concurrent sessions
+- ลบ sessions เมื่อ logout
+
+### Session Storage
+- ใช้ database storage
+- จัดการ session cleanup
+- ใช้ proper indexing
+- จัดการ session size
+- ใช้ session compression
+
+## 🔐 LDAP Integration
+
+### LDAP Connection
+- ใช้ secure LDAP connection
+- จัดการ connection pooling
+- ใช้ proper timeout settings
+- จัดการ connection errors
+- ใช้ LDAP health checks
+
+### LDAP Authentication
+- ใช้ proper bind DN
+- ตรวจสอบ user attributes
+- Map LDAP groups to roles
+- จัดการ LDAP errors
+- ใช้ LDAP caching
+
+### LDAP User Management
+- Sync LDAP users
+- Update user attributes
+- จัดการ user roles
+- Handle user deactivation
+- จัดการ group membership
+
+## 📋 API Documentation
+
+### OpenAPI/Swagger
+- สร้าง OpenAPI specification
+- ใช้ Swagger UI
+- อัปเดต documentation
+- รวม examples
+- ใช้ proper schemas
+
+### API Versioning
+- รองรับ API versions
+- ใช้ URL versioning
+- จัดการ backward compatibility
+- แยก documentation
+- ใช้ version headers
+
+## 🛠️ Development Workflow
+
+### Local Development
+- ใช้ SQLite สำหรับ development
+- ใช้ Prisma Studio
+- ใช้ hot reload
+- ใช้ debug mode
+- ใช้ local environment
+- ใช้ **Windows Command Prompt (cmd)** เป็นมาตรฐาน
+
+### Windows Development Commands
+- **ใช้คำสั่ง cmd เป็นมาตรฐาน** สำหรับการพัฒนาใน Windows
+- ใช้ `cmd` แทน `bash` หรือ `powershell` สำหรับคำสั่ง terminal
+- ใช้ `dir` แทน `ls` สำหรับการแสดงรายการไฟล์
+- ใช้ `copy` แทน `cp` สำหรับการคัดลอกไฟล์
+- ใช้ `move` แทน `mv` สำหรับการย้ายไฟล์
+- ใช้ `del` แทน `rm` สำหรับการลบไฟล์
+- ใช้ `mkdir` สำหรับการสร้างโฟลเดอร์
+- ใช้ `cd` สำหรับการเปลี่ยนไดเรกทอรี
+- ใช้ `netstat -ano | findstr :PORT` สำหรับการตรวจสอบ port ที่ใช้งาน
+- ใช้ `taskkill /PID <PID>` สำหรับการหยุด process
+- ใช้ `tasklist` สำหรับการแสดงรายการ processes
+- ใช้ `ipconfig` สำหรับการตรวจสอบ network configuration
+- ใช้ `ping` สำหรับการทดสอบการเชื่อมต่อ
+- ใช้ `nslookup` สำหรับการตรวจสอบ DNS
+- ใช้ `tracert` แทน `traceroute` สำหรับการติดตามเส้นทาง
+- ใช้ `systeminfo` สำหรับข้อมูลระบบ
+- ใช้ `ver` สำหรับเวอร์ชันของ Windows
+- ใช้ `echo %PATH%` สำหรับการแสดง PATH environment variable
+- ใช้ `set` สำหรับการแสดง environment variables
+- ใช้ `set VARIABLE=value` สำหรับการตั้งค่า environment variable
+- ใช้ `cls` สำหรับการล้างหน้าจอ
+- ใช้ `help` สำหรับการแสดงคำสั่งที่ใช้ได้
+- ใช้ `/?` หลังคำสั่งเพื่อดู help (เช่น `dir /?`)
+
+### Code Quality Tools
+- ใช้ ESLint
+- ใช้ Prettier
+- ใช้ TypeScript strict mode
+- ใช้ Husky hooks
+- ใช้ commitlint
+
+## 🔍 Debugging และ Troubleshooting
+
+### Authentication Debugging
+- Debug login failures
+- Debug token issues
+- Debug session problems
+- Debug LDAP issues
+- Debug rate limiting
+
+### Database Debugging
+- Debug Prisma queries
+- Debug connection issues
+- Debug migration problems
+- Debug data integrity
+- Debug performance issues
+
+### Security Debugging
+- Debug security violations
+- Debug authentication bypass
+- Debug session hijacking
+- Debug token tampering
+- Debug LDAP security
+
+## 📚 Best Practices Summary
+
+### Do's ✅
+- ใช้ bcryptjs สำหรับ password hashing
+- ใช้ JWT สำหรับ token management
+- ใช้ Prisma ORM
+- ใช้ structured logging
+- ใช้ rate limiting
+- ใช้ input validation
+- ใช้ error handling
+- ใช้ TypeScript strict mode
+- ใช้ environment variables
+- ใช้ security headers
+
+### Don'ts ❌
+- อย่าเก็บ plain text passwords
+- อย่าใช้ weak JWT secrets
+- อย่าลืม input validation
+- อย่าลืม error handling
+- อย่าลืม rate limiting
+- อย่าลืม logging
+- อย่าลืม security headers
+- อย่าลืม LDAP error handling
+- อย่าลืม session cleanup
+- อย่าลืม database migrations
+
+## 🎯 Performance Targets
+
+### Response Time
+- Authentication: < 500ms
+- Token validation: < 100ms
+- Session creation: < 200ms
+- LDAP authentication: < 2000ms
+- Database queries: < 100ms
+
+### Throughput
+- Login requests: > 100/second
+- Token validations: > 1000/second
+- Session operations: > 500/second
+- LDAP operations: > 50/second
+- Database operations: > 1000/second
+
+### Availability
+- Uptime: > 99.9%
+- Authentication success rate: > 99%
+- Token validation success rate: > 99.9%
+- Session creation success rate: > 99%
+- LDAP connection success rate: > 95%
+
+## 🔐 Security Requirements
+
+### Password Requirements
+- ความยาวขั้นต่ำ: 8 ตัวอักษร
+- ต้องมีตัวพิมพ์ใหญ่และตัวพิมพ์เล็ก
+- ต้องมีตัวเลข
+- ต้องมีอักขระพิเศษ
+- ไม่ซ้ำกับรหัสผ่านเก่า
+
+### Token Requirements
+- Access Token: 15 นาที
+- Refresh Token: 7 วัน
+- Session Token: 24 ชั่วโมง
+- ใช้ strong secret key
+- ตรวจสอบ token signature
+
+### Rate Limiting
+- Login attempts: 5 ครั้ง/15 นาที
+- Registration: 3 ครั้ง/ชั่วโมง
+- Token refresh: 10 ครั้ง/ชั่วโมง
+- Password reset: 3 ครั้ง/ชั่วโมง
+- LDAP authentication: 10 ครั้ง/นาที 
