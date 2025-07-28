@@ -1,18 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable experimental features
-  experimental: {
-    // Enable App Router features
-    appDir: true,
-    // Enable server components
-    serverComponentsExternalPackages: ['@prisma/client'],
-    // Enable turbo
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  // Server external packages (moved from experimental)
+  serverExternalPackages: ['@prisma/client'],
+  
+  // Turbopack configuration (moved from experimental)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },

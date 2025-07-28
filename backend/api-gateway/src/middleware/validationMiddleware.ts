@@ -65,7 +65,7 @@ export const validateServiceName = (req: Request, res: Response, next: NextFunct
   const serviceName = req.params.serviceName;
   const validServices = ['auth', 'admin'];
   
-  if (!validServices.includes(serviceName)) {
+  if (serviceName && !validServices.includes(serviceName)) {
     return res.status(400).json({
       success: false,
       message: 'Invalid service name',

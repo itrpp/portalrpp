@@ -1590,10 +1590,10 @@ async function checkServicesHealth() {
 
 // สร้าง proxy สำหรับ Auth Service
 const authServiceProxy = createProxyMiddleware({
-  target: config.services.auth.url,
+  target: config.services.auth?.url || 'http://localhost:3002',
   changeOrigin: true,
-  timeout: config.services.auth.timeout,
-  proxyTimeout: config.services.auth.timeout,
+  timeout: config.services.auth?.timeout || 30000,
+  proxyTimeout: config.services.auth?.timeout || 30000,
   pathRewrite: {
     '^/api/auth': '/auth',
     '^/api/admin': '/admin',
@@ -1718,7 +1718,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     environment: config.environment,
     services: {
-      auth: config.services.auth.url,
+      auth: config.services.auth?.url || 'http://localhost:3002',
     },
     endpoints: {
       health: 'GET /health',
