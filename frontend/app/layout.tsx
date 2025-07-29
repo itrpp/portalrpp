@@ -1,108 +1,61 @@
+"use client";
+
 import React from "react";
-import type { Metadata, Viewport } from "next";
-
-import "@/styles/globals.css";
-import ClientLayout from "../components/ClientLayout";
-
-import { fontPrompt, fontSans } from "@/config/fonts";
+import { usePathname } from "next/navigation";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: {
-    default: siteConfig.projectName,
-    template: `%s - ${siteConfig.projectName}`,
-  },
-  description: `ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`,
-  keywords: [
-    "โรงพยาบาล",
-    "ราชพิพัฒน์",
-    "ระบบจัดการข้อมูล",
-    "Digital Transformation",
-    "Healthcare Management",
-  ],
-  authors: [
-    {
-      name: siteConfig.hospitalName,
-      url: siteConfig.links.rpp,
-    },
-  ],
-  creator: siteConfig.hospitalName,
-  publisher: siteConfig.hospitalName,
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  icons: {
-    icon: "/images/logo.png",
-    apple: "/images/logo.png",
-  },
-  manifest: "/manifest.json",
-  applicationName: siteConfig.projectName,
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: siteConfig.projectName,
-  },
-  other: {
-    "mobile-web-app-capable": "yes",
-    "msapplication-config": "/browserconfig.xml",
-    "msapplication-TileColor": "#3b82f6",
-    "msapplication-tap-highlight": "no",
-  },
-  openGraph: {
-    title: siteConfig.projectName,
-    description: `ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`,
-    url: siteConfig.links.rpp,
-    siteName: siteConfig.projectName,
-    images: [
-      {
-        url: "/images/logo.png",
-        width: 400,
-        height: 400,
-        alt: siteConfig.hospitalName,
-      },
-    ],
-    locale: "th_TH",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: siteConfig.projectName,
-    description: `ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`,
-    images: ["/images/logo.png"],
-  },
-};
+import "@/styles/globals.css";
+import { Providers } from "./providers";
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)",
-color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)",
-color: "#2a2a2a" },
-  ],
-};
+import { fontPrompt, fontSans } from "@/config/fonts";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  // ตรวจสอบว่าเป็นหน้า home หรือ login หรือไม่
+  const isLoginPage = pathname === "/login";
+
   return (
     <html
       suppressHydrationWarning
       className={`${fontPrompt.variable} ${fontSans.variable}`}
       lang="th"
     >
+      <head>
+        <title>{siteConfig.projectName}</title>
+        <meta name="description" content={`ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`} />
+        <meta name="keywords" content="โรงพยาบาล,ราชพิพัฒน์,ระบบจัดการข้อมูล,Digital Transformation,Healthcare Management" />
+        <meta name="author" content={siteConfig.hospitalName} />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <link rel="icon" href="/images/logo.png" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <meta name="theme-color" content="#3b82f6" />
+        <meta property="og:title" content={siteConfig.projectName} />
+        <meta property="og:description" content={`ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`} />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/images/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={siteConfig.projectName} />
+        <meta name="twitter:description" content={`ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`} />
+        <meta name="twitter:image" content="/images/logo.png" />
+      </head>
       <body
         suppressHydrationWarning
         className={`${fontPrompt.className} bg-background text-foreground`}
       >
-        <ClientLayout>{children}</ClientLayout>
+        <Providers>
+          <div className="min-h-screen bg-gradient-to-br from-background via-content2/20 to-content3/20 transition-all duration-500">
+            <main className="flex-1 transition-all duration-300 ease-in-out">
+              <div className="p-4 sm:p-6 lg:p-8">                  
+                {children}
+              </div>
+            </main>
+          </div>
+        </Providers>
       </body>
     </html>
   );

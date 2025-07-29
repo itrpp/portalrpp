@@ -10,7 +10,7 @@ import {
   Divider,
   Card,
   CardBody,
-  Switch,
+  ButtonGroup,
 } from "@heroui/react";
 import { siteConfig } from "@/config/site";
 import { useAuth } from "@/contexts/AuthContext";
@@ -132,33 +132,48 @@ export default function LoginPage() {
                 alt="โรงพยาบาลราชพิพัฒน์"
                 width={90}
                 height={90}
-                className="rounded-full shadow-lg border-4 border-primary/20 bg-background"
+                className="rounded-full bg-background"
                 priority
               />
               <h1 className="mt-6 text-2xl font-extrabold text-foreground tracking-tight">
                 เข้าสู่ระบบ
               </h1>
               <p className="text-default-600 dark:text-default-400 text-sm mt-1">
-                ระบบ {siteConfig.projectName}
+                {siteConfig.projectName}
               </p>
             </div>
 
             {/* Authentication Method Toggle */}
-            <div className="flex items-center justify-between mb-6 p-3 bg-content2 dark:bg-content3 rounded-lg">
-              <div className="flex items-center gap-2">
+            <div className="mb-6">
+              <div className="flex items-center justify-center mb-3">
                 <span className="text-sm font-medium text-foreground">
-                  วิธีการเข้าสู่ระบบ:
+                  เลือกวิธีการเข้าสู่ระบบ:
                 </span>
               </div>
-              <Switch
-                isSelected={useLDAP}
-                onValueChange={setUseLDAP}
-                size="sm"
-                color="primary"
-              />
-              <span className="text-xs text-default-600 dark:text-default-400">
-                {useLDAP ? "LDAP" : "Local"}
-              </span>
+              <ButtonGroup 
+                variant="bordered" 
+                size="sm" 
+                className="w-full"
+              >
+                <Button
+                  variant={!useLDAP ? "solid" : "bordered"}
+                  color={!useLDAP ? "primary" : "default"}
+                  className="flex-1"
+                  onClick={() => setUseLDAP(false)}
+                >
+                  <UserIcon className="w-4 h-4 mr-2" />
+                  Local
+                </Button>
+                <Button
+                  variant={useLDAP ? "solid" : "bordered"}
+                  color={useLDAP ? "primary" : "default"}
+                  className="flex-1"
+                  onClick={() => setUseLDAP(true)}
+                >
+                  <LockClosedIcon className="w-4 h-4 mr-2" />
+                  LDAP
+                </Button>
+              </ButtonGroup>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
@@ -233,7 +248,7 @@ export default function LoginPage() {
                 type="submit"
                 color="primary"
                 size="lg"
-                className="w-full font-semibold shadow-md hover:scale-[1.03] hover:bg-primary-600 text-white border-0 transition-transform"
+                className="w-full font-semibold shadow-md hover:scale-[1.02] transition-all duration-200"
                 isLoading={isLoading}
                 startContent={<ArrowRightOnRectangleIcon className="w-5 h-5" />}
                 disabled={!username || !password}

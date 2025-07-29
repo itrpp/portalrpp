@@ -609,3 +609,53 @@ export const PaintBrushIcon = ({ size, width, height, className, ...props }: Ico
     />
   );
 };
+
+// เพิ่ม icons สำหรับ error page
+export const ArrowPathIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon 
+      icon="heroicons:arrow-path" 
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+export const RefreshIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:arrow-path"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Bars3Icon สำหรับ Sidebar toggle
+export const Bars3Icon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:bars-3"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
