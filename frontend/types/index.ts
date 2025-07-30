@@ -9,8 +9,11 @@ export interface User {
   department?: string;
   avatar?: string;
   isActive?: boolean;
+  authMethod?: string;
+  displayName?: string;
   createdAt?: string;
   updatedAt?: string;
+  lastLoginAt?: string;
 }
 
 export interface NavItem {

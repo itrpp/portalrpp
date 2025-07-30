@@ -533,12 +533,24 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
       return ErrorHandler.createAuthError(res, 'ไม่พบข้อมูลผู้ใช้ในระบบ');
     }
 
-    // ลบ password ออกจาก response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
-    const { password: _unused, ...userWithoutPassword } = user;
+    // สร้าง user object ในรูปแบบเดียวกับ login response
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      username: user.email,
+      name: user.name ?? user.email,
+      role: user.role ?? 'user',
+      isActive: user.isActive !== undefined ? user.isActive : true,
+      authMethod: user.authMethod ?? 'local',
+      department: '',
+      displayName: user.name ?? user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      lastLoginAt: user.lastLoginAt ?? new Date(),
+    };
 
     logger.auth('User info retrieved successfully', user.id);
-    return ErrorHandler.createSuccessResponse(res, userWithoutPassword, 'ข้อมูลผู้ใช้');
+    return ErrorHandler.createSuccessResponse(res, userResponse, 'ข้อมูลผู้ใช้');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Get user info error', { error: errorMessage, userId: req.user?.id });

@@ -116,16 +116,17 @@ export default function NavigationBar() {
                   <Avatar
                     isBordered
                     color="primary"
-                    name={user.name || "ผู้ใช้"}
+                    name={user.displayName || user.name || user.email || "ผู้ใช้"}
                     size="sm"
                     {...(user.avatar && { src: user.avatar })}
                   />
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium text-foreground">
-                      {user.name || "ผู้ใช้"}
+                      {user.displayName || user.name || user.email || "ผู้ใช้"}
                     </p>
                     <p className="text-xs text-foreground-400">
-                      {user.role === "admin" ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน"}
+                      {user.role?.toLowerCase() === "admin" ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน"}
+                      {user.department && user.department !== "-" && ` • ${user.department}`}
                     </p>
                   </div>
                 </div>

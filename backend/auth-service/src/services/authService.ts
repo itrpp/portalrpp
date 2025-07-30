@@ -658,11 +658,7 @@ export class AuthService {
    */
   static async verifyAccessToken(token: string): Promise<AuthResponse> {
     try {
-      console.log('🔍 Verifying access token...');
-
       const decoded = jwt.verify(token, this.JWT_SECRET) as JwtPayload;
-
-      console.log('🔍 Token decoded for user ID:', decoded.userId);
 
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
@@ -673,7 +669,6 @@ export class AuthService {
       });
 
       if (!user) {
-        console.log('🔴 Token verification failed: User not found in database');
         return {
           success: false,
           message: 'ไม่พบข้อมูลผู้ใช้ในระบบ',
@@ -682,14 +677,12 @@ export class AuthService {
 
       // ตรวจสอบว่า user ยังคง active อยู่หรือไม่
       if (!user.isActive) {
-        console.log('🔴 Token verification failed: User account is inactive');
         return {
           success: false,
           message: 'บัญชีผู้ใช้ถูกระงับการใช้งาน',
         };
       }
 
-      console.log('✅ Token verification successful for user:', user.email);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const { password: _unused, ...userWithoutPassword } = user;
 
@@ -699,10 +692,7 @@ export class AuthService {
         user: userWithoutPassword,
       };
     } catch (error) {
-      console.error('🔴 Token verification error:', error);
-
       if (error instanceof jwt.TokenExpiredError) {
-        console.log('🔴 Token verification failed: Token expired');
         return {
           success: false,
           message: 'Token หมดอายุแล้ว',
@@ -710,7 +700,6 @@ export class AuthService {
       }
 
       if (error instanceof jwt.JsonWebTokenError) {
-        console.log('🔴 Token verification failed: Invalid token');
         return {
           success: false,
           message: 'Token ไม่ถูกต้อง',
@@ -787,8 +776,6 @@ export class AuthService {
    */
   static async validateSession(sessionToken: string): Promise<AuthResponse> {
     try {
-      console.log('🔍 Validating session:', sessionToken.substring(0, 8) + '...');
-
       const session = await prisma.session.findUnique({
         where: { sessionToken },
         include: {
@@ -802,7 +789,6 @@ export class AuthService {
       });
 
       if (!session) {
-        console.log('🔴 Session validation failed: Session not found');
         return {
           success: false,
           message: 'ไม่พบ Session นี้',
@@ -810,7 +796,6 @@ export class AuthService {
       }
 
       if (session.expires < new Date()) {
-        console.log('🔴 Session validation failed: Session expired at', session.expires);
         return {
           success: false,
           message: 'Session หมดอายุแล้ว',
@@ -819,14 +804,12 @@ export class AuthService {
 
       // ตรวจสอบว่าผู้ใช้ยังคงมีอยู่ในระบบหรือไม่
       if (!session.user) {
-        console.log('🔴 Session validation failed: User not found');
         return {
           success: false,
           message: 'ไม่พบข้อมูลผู้ใช้ในระบบ',
         };
       }
 
-      console.log('✅ Session validation successful for user:', session.user.email);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const { password: _unused, ...userWithoutPassword } = session.user;
 

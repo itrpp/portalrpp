@@ -96,8 +96,23 @@ authMethod });
         const refreshToken = response.data?.refreshToken || response.refreshToken;
 
         if (userData && token && refreshToken) {
-          setUser(userData);
-          sessionStorage.setItem('user', JSON.stringify(userData));
+          // อัปเดตข้อมูลผู้ใช้จาก getUserInfo เพื่อให้ข้อมูลตรงกับ backend
+          try {
+            const currentUserResult = await apiClient.getCurrentUser();
+            if (currentUserResult.success && currentUserResult.data) {
+              setUser(currentUserResult.data);
+              sessionStorage.setItem('user', JSON.stringify(currentUserResult.data));
+            } else {
+              // ใช้ข้อมูลจาก login response ถ้า getUserInfo ไม่สำเร็จ
+              setUser(userData);
+              sessionStorage.setItem('user', JSON.stringify(userData));
+            }
+          } catch (error) {
+            // ใช้ข้อมูลจาก login response ถ้า getUserInfo ไม่สำเร็จ
+            setUser(userData);
+            sessionStorage.setItem('user', JSON.stringify(userData));
+          }
+
           sessionStorage.setItem('auth_token', token);
           sessionStorage.setItem('refresh_token', refreshToken);
 
@@ -144,8 +159,23 @@ authMethod });
         const refreshToken = response.data?.refreshToken || response.refreshToken;
 
         if (userData && token && refreshToken) {
-          setUser(userData);
-          sessionStorage.setItem('user', JSON.stringify(userData));
+          // อัปเดตข้อมูลผู้ใช้จาก getUserInfo เพื่อให้ข้อมูลตรงกับ backend
+          try {
+            const currentUserResult = await apiClient.getCurrentUser();
+            if (currentUserResult.success && currentUserResult.data) {
+              setUser(currentUserResult.data);
+              sessionStorage.setItem('user', JSON.stringify(currentUserResult.data));
+            } else {
+              // ใช้ข้อมูลจาก refresh response ถ้า getUserInfo ไม่สำเร็จ
+              setUser(userData);
+              sessionStorage.setItem('user', JSON.stringify(userData));
+            }
+          } catch {
+            // ใช้ข้อมูลจาก refresh response ถ้า getUserInfo ไม่สำเร็จ
+            setUser(userData);
+            sessionStorage.setItem('user', JSON.stringify(userData));
+          }
+
           sessionStorage.setItem('auth_token', token);
           sessionStorage.setItem('refresh_token', refreshToken);
 
