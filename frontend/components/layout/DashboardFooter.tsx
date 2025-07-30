@@ -8,7 +8,7 @@ import {
     EnvelopeIcon,
     MapPinIcon,
     GlobeAltIcon
-} from "./icons";
+} from "../icons";
 
 export default function DashboardFooter() {
     const currentYear = new Date().getFullYear();

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button, Switch } from '@heroui/react';
-import { SunIcon, MoonIcon } from './icons';
+import { SunIcon, MoonIcon } from '../icons';
 
 // Theme Provider Component - ใช้ HeroUI theme system
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -14,7 +14,7 @@ import {
 } from "@heroui/react";
 import { siteConfig } from "@/config/site";
 import { useAuth } from "@/contexts/AuthContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/ui";
 import {
   UserIcon,
   LockClosedIcon,

@@ -29,8 +29,8 @@ import {
   XMarkIcon,
   SunIcon,
   MoonIcon
-} from "./icons";
-import { ThemeToggle } from "./ThemeToggle";
+} from "../icons";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function NavigationBar() {

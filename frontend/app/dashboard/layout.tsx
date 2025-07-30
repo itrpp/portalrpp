@@ -2,12 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
-import DashboardFooter from "@/components/DashboardFooter";
+import { Sidebar } from "@/components/navigation";
+import { DashboardFooter } from "@/components/layout";
 import { Breadcrumbs, BreadcrumbItem, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Avatar } from "@heroui/react";
 import { usePathname } from "next/navigation";
 import { ChevronRightIcon, HomeIcon, UserIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from "@/components/icons";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface BreadcrumbItemType {

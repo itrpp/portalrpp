@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardBody, CardHeader } from '@heroui/react';
-import ThemeToggle from '@/components/ThemeToggle';
+import { ThemeToggle } from '@/components/ui';
 
 
 

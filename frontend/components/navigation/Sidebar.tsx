@@ -20,7 +20,7 @@ import {
   UserIcon,
   Bars3Icon,
   XMarkIcon,
-} from './icons';
+} from '../icons';
 
 interface SidebarItem {
   name: string;
@@ -45,62 +45,88 @@ export default function Sidebar() {
     {
       title: "ภาพรวม",
       items: [
-        { name: "หน้าแรก",
-href: "/",
-icon: HomeIcon },
-        { name: "โครงการ",
-href: "/projects",
-icon: Squares2X2Icon,
-badge: "+" },
-        { name: "งาน",
-href: "/tasks",
-icon: ClipboardDocumentListIcon,
-badge: "+" },
-        { name: "ทีม",
-href: "/team",
-icon: UserGroupIcon },
-        { name: "ติดตาม",
-href: "/tracker",
-icon: ChartBarIcon,
-isNew: true },
+        {
+          name: "หน้าแรก",
+          href: "/",
+          icon: HomeIcon
+        },
+        {
+          name: "โครงการ",
+          href: "/projects",
+          icon: Squares2X2Icon,
+          badge: "+"
+        },
+        {
+          name: "งาน",
+          href: "/tasks",
+          icon: ClipboardDocumentListIcon,
+          badge: "+"
+        },
+        {
+          name: "ทีม",
+          href: "/team",
+          icon: UserGroupIcon
+        },
+        {
+          name: "ติดตาม",
+          href: "/tracker",
+          icon: ChartBarIcon,
+          isNew: true
+        },
       ],
     },
     {
       title: "องค์กร",
       items: [
-        { name: "ตารางทุน",
-href: "/cap-table",
-icon: ChartBarIcon },
-        { name: "การวิเคราะห์",
-href: "/analytics",
-icon: ChartBarIcon },
-        { name: "สิทธิประโยชน์",
-href: "/perks",
-icon: GiftIcon,
-count: 3 },
-        { name: "ค่าใช้จ่าย",
-href: "/expenses",
-icon: DocumentTextIcon },
-        { name: "ตั้งค่า",
-href: "/settings",
-icon: Cog6ToothIcon },
+        {
+          name: "ตารางทุน",
+          href: "/cap-table",
+          icon: ChartBarIcon
+        },
+        {
+          name: "การวิเคราะห์",
+          href: "/analytics",
+          icon: ChartBarIcon
+        },
+        {
+          name: "สิทธิประโยชน์",
+          href: "/perks",
+          icon: GiftIcon,
+          count: 3
+        },
+        {
+          name: "ค่าใช้จ่าย",
+          href: "/expenses",
+          icon: DocumentTextIcon
+        },
+        {
+          name: "ตั้งค่า",
+          href: "/settings",
+          icon: Cog6ToothIcon
+        },
       ],
     },
     {
       title: "ทีมของคุณ",
       items: [
-        { name: "HU HeroUI",
-href: "/teams/hu",
-icon: UserIcon,
-badge: "HU" },
-        { name: "TV Tailwind Variants",
-href: "/teams/tv",
-icon: UserIcon,
-badge: "TV" },
-        { name: "HP HeroUI Pro",
-href: "/teams/hp",
-icon: UserIcon,
-badge: "HP" },
+        {
+          name: "HU HeroUI",
+          href: "/teams/hu",
+          icon: UserIcon,
+          badge: "HU"
+        },
+        {
+          name: "TV Tailwind Variants",
+          href: "/teams/tv",
+          icon: UserIcon,
+          badge: "TV"
+        },
+        {
+          name: "HP HeroUI Pro",
+          href: "/teams/hp",
+          icon: UserIcon,
+          badge: "HP"
+        },
       ],
     },
   ];
@@ -133,7 +159,7 @@ badge: "HP" },
 
       {/* Mobile Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 backdrop-blur-sm bg-background/80 z-40"
           onClick={handleMobileClose}
         />
@@ -165,7 +191,7 @@ badge: "HP" },
                 </span>
               )}
             </div>
-            
+
             {/* Mobile Close Button */}
             <div className="lg:hidden">
               <Button
@@ -190,18 +216,17 @@ badge: "HP" },
                     </h3>
                   </div>
                 )}
-                
+
                 <div className="space-y-1">
                   {section.items.map((item) => (
                     <div key={item.href} className="px-2">
                       {item.href === "#" ? (
                         <Button
                           variant="light"
-                          className={`w-full justify-start h-10 ${
-                            isActive(item.href)
+                          className={`w-full justify-start h-10 ${isActive(item.href)
                               ? "bg-primary text-primary-foreground"
                               : "text-foreground hover:bg-content2"
-                          }`}
+                            }`}
                           startContent={<item.icon className="w-4 h-4" />}
                           endContent={
                             item.badge && (
@@ -237,11 +262,10 @@ badge: "HP" },
                         <Link href={item.href} onClick={handleMobileClose}>
                           <Button
                             variant="light"
-                            className={`w-full justify-start h-10 ${
-                              isActive(item.href)
+                            className={`w-full justify-start h-10 ${isActive(item.href)
                                 ? "bg-primary text-primary-foreground"
                                 : "text-foreground hover:bg-content2"
-                            }`}
+                              }`}
                             startContent={<item.icon className="w-4 h-4" />}
                             endContent={
                               item.badge && (

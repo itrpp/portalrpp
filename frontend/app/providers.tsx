@@ -5,7 +5,7 @@ import { HeroUIProvider } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ThemeProvider } from "@/components/ThemeToggle";
+import { ThemeProvider } from "@/components/ui";
 
 export interface ProvidersProps {
   children: React.ReactNode;
