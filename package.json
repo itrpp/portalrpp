@@ -11,10 +11,6 @@
     "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend/api-gateway && npm run build && cd ../auth-service && npm run build",
-    "start": "npm run start:frontend && npm run start:api-gateway && npm run start:auth",
-    "start:frontend": "cd frontend && npm run start",
-    "start:api-gateway": "cd backend/api-gateway && npm run start",
-    "start:auth": "cd backend/auth-service && npm run start",
     "lint": "npm run lint:frontend && npm run lint:api-gateway && npm run lint:auth",
     "lint:check": "npm run lint:check:frontend && npm run lint:check:api-gateway && npm run lint:check:auth",
     "lint:fix": "npm run lint:fix:frontend && npm run lint:fix:api-gateway && npm run lint:fix:auth",
@@ -45,19 +41,7 @@
     "db:migrate": "cd backend/auth-service && npm run db:migrate",
     "db:studio": "cd backend/auth-service && npm run db:studio",
     "db:reset": "cd backend/auth-service && npm run db:reset",
-    "db:seed": "cd backend/auth-service && npm run db:seed",
-    "test": "npm run test:frontend && npm run test:api-gateway && npm run test:auth",
-    "test:frontend": "cd frontend && npm run test",
-    "test:api-gateway": "cd backend/api-gateway && npm run test",
-    "test:auth": "cd backend/auth-service && npm run test",
-    "health-check": "npm run health-check:frontend && npm run health-check:api-gateway && npm run health-check:auth",
-    "health-check:frontend": "curl -f http://localhost:3000/api/health || echo \"Frontend not running\"",
-    "health-check:api-gateway": "curl -f http://localhost:3001/health || echo \"API Gateway not running\"",
-    "health-check:auth": "curl -f http://localhost:3002/health || echo \"Auth Service not running\"",
-    "ports-check": "netstat -ano | findstr :3000 && netstat -ano | findstr :3001 && netstat -ano | findstr :3002",
-    "kill-ports": "taskkill /F /IM node.exe",
-    "setup": "npm run install:all && npm run db:generate && npm run db:push",
-    "reset": "npm run clean && npm run install:all && npm run db:reset"
+    "db:seed": "cd backend/auth-service && npm run db:seed"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
@@ -70,23 +54,12 @@
     "prisma",
     "sqlite",
     "heroui",
-    "tailwindcss",
-    "jwt",
-    "ldap",
-    "api-gateway"
+    "tailwindcss"
   ],
   "author": "RPP Team",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/rpp-team/portalrpp.git"
-  },
-  "bugs": {
-    "url": "https://github.com/rpp-team/portalrpp/issues"
-  },
-  "homepage": "https://github.com/rpp-team/portalrpp#readme"
+  }
 } 
