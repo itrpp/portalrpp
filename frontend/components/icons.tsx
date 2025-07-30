@@ -914,3 +914,71 @@ export const ArrowUpTrayIcon = ({ size, width, height, className, ...props }: Ic
     />
   );
 };
+
+// Calendar Icon สำหรับ date picker
+export const CalendarIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:calendar"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Filter Icon สำหรับตัวกรอง
+export const FilterIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:funnel"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Trending Up Icon สำหรับสถิติที่เพิ่มขึ้น
+export const TrendingUpIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:arrow-trending-up"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Currency Dollar Icon สำหรับเงิน
+export const CurrencyDollarIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:currency-dollar"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};

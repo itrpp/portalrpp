@@ -1657,6 +1657,75 @@ const authServiceProxy = createProxyMiddleware({
   },
 });
 
+// สร้าง proxy สำหรับ Revenue Service
+const revenueServiceProxy = createProxyMiddleware({
+  target: config.services.revenue?.url || 'http://localhost:3005',
+  changeOrigin: true,
+  timeout: config.services.revenue?.timeout || 30000,
+  proxyTimeout: config.services.revenue?.timeout || 30000,
+  pathRewrite: {
+    '^/api/revenue': '/api/revenue',
+    '^/api/reports': '/api/reports',
+  },
+  onProxyReq: (proxyReq, req) => {
+    // เพิ่ม service name สำหรับ monitoring
+    (req as any).serviceName = 'revenue-service';
+    
+    // Log การส่งต่อ request
+    if (isDev()) {
+      logger.debug(`🔄 ส่งต่อ ${req.method} ${req.path} -> Revenue Service`);
+    }
+    
+    // ส่งต่อ headers ที่สำคัญ
+    if (req.headers['authorization']) {
+      proxyReq.setHeader('Authorization', req.headers['authorization']);
+    }
+    if (req.headers['content-type']) {
+      proxyReq.setHeader('Content-Type', req.headers['content-type']);
+    }
+    
+    // เพิ่ม tracing headers
+    proxyReq.setHeader('X-Request-ID', (req as any).requestId);
+    proxyReq.setHeader('X-Forwarded-For', req.ip || req.connection.remoteAddress || 'unknown');
+    proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+    
+    // สำหรับ POST request ให้ส่งต่อ body
+    if (req.method === 'POST' && req.body) {
+      const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
+    }
+  },
+  onProxyRes: (proxyRes, req) => {
+    // Log การตอบกลับจาก Revenue Service
+    if (isDev()) {
+      logger.debug(`✅ Revenue Service ตอบกลับด้วย ${proxyRes.statusCode} สำหรับ ${req.method} ${req.path}`);
+    }
+    
+    // Add response headers for monitoring
+    proxyRes.headers['X-Proxy-By'] = 'API-Gateway';
+    proxyRes.headers['X-Service'] = 'revenue-service';
+  },
+  onError: (err, req, res) => {
+    // จัดการ error เมื่อ Revenue Service ไม่พร้อมใช้งาน
+    logger.error(`❌ Proxy error สำหรับ ${req.method} ${req.path}:`, err.message);
+    
+    // Track error metrics
+    metrics.errors.total++;
+    const errorType = (err as any).code || 'PROXY_ERROR';
+    metrics.errors.byType[errorType] = (metrics.errors.byType[errorType] || 0) + 1;
+    
+    res.status(503).json({
+      success: false,
+      message: 'Revenue Service ไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง',
+      code: 'REVENUE_SERVICE_UNAVAILABLE',
+      timestamp: new Date().toISOString(),
+      requestId: (req as any).requestId,
+      retryAfter: 30, // Suggest retry after 30 seconds
+    });
+  },
+});
+
 // ========================================
 // ROUTE CONFIGURATION
 // ========================================
@@ -1667,6 +1736,10 @@ app.use('/api/admin', adminRateLimiter, circuitBreakerMiddleware('auth-service')
 
 // Special rate limiting for validate-session endpoint
 app.post('/api/auth/validate-session', validateSessionRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
+
+// Revenue Service routes (with rate limiting)
+app.use('/api/revenue', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
+app.use('/api/reports', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
 
 // Backward compatibility routes
 app.use('/auth', authRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
@@ -1719,6 +1792,7 @@ app.get('/', (req, res) => {
     environment: config.environment,
     services: {
       auth: config.services.auth?.url || 'http://localhost:3002',
+      revenue: config.services.revenue?.url || 'http://localhost:3005',
     },
     endpoints: {
       health: 'GET /health',
@@ -1726,6 +1800,8 @@ app.get('/', (req, res) => {
       swagger: 'GET /api-docs',
       auth: '/api/auth/*',
       admin: '/api/admin/*',
+      revenue: '/api/revenue/*',
+      reports: '/api/reports/*',
     },
     cors: {
       enabled: true,
@@ -1756,13 +1832,15 @@ app.use('*', (req, res) => {
     code: 'ENDPOINT_NOT_FOUND',
     timestamp: new Date().toISOString(),
     requestId: (req as any).requestId,
-    availableEndpoints: {
-      health: 'GET /health',
-      metrics: 'GET /metrics',
-      swagger: 'GET /api-docs',
-      auth: '/api/auth/*',
-      admin: '/api/admin/*',
-    },
+          availableEndpoints: {
+        health: 'GET /health',
+        metrics: 'GET /metrics',
+        swagger: 'GET /api-docs',
+        auth: '/api/auth/*',
+        admin: '/api/admin/*',
+        revenue: '/api/revenue/*',
+        reports: '/api/reports/*',
+      },
   });
 });
 
@@ -1782,6 +1860,8 @@ const server = app.listen(config.port, () => {
   console.log(`📖 Swagger UI: http://localhost:${config.port}/api-docs`);
   console.log(`🔐 Auth Service Proxy: http://localhost:${config.port}/api/auth/*`);
   console.log(`👨‍💼 Admin Service Proxy: http://localhost:${config.port}/api/admin/*`);
+  console.log(`💰 Revenue Service Proxy: http://localhost:${config.port}/api/revenue/*`);
+  console.log(`📊 Reports Service Proxy: http://localhost:${config.port}/api/reports/*`);
   console.log(`🌍 CORS Origins: ${config.security.corsOrigins.join(', ')}`);
   console.log(`⚡ Rate Limiting: ${config.security.rateLimitEnabled ? 'Enabled' : 'Disabled'}`);
   console.log(`🛡️ Security Headers: ${config.security.helmetEnabled ? 'Enabled' : 'Disabled'}`);
