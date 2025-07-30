@@ -1,23 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   Button,
   Chip,
+  Link as HeroUILink,
 } from '@heroui/react';
 import {
   HomeIcon,
-  Cog6ToothIcon,
   ChartBarIcon,
-  GiftIcon,
   DocumentTextIcon,
   Squares2X2Icon,
   UserIcon,
   Bars3Icon,
   XMarkIcon,
+  ArrowDownTrayIcon,
+  ChevronRightIcon,
+  ArrowUpTrayIcon,
 } from '../icons';
 
 interface SidebarItem {
@@ -27,6 +28,7 @@ interface SidebarItem {
   badge?: string;
   count?: number;
   isNew?: boolean;
+  subItems?: SidebarItem[];
 }
 
 interface SidebarSection {
@@ -39,6 +41,7 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // ตรวจสอบ theme เมื่อ component mount
   useEffect(() => {
@@ -85,32 +88,39 @@ export default function Sidebar() {
       ],
     },
     {
-      title: "องค์กร",
+      title: "ระบบงานจัดเก็บรายได้",
       items: [
         {
-          name: "ตารางทุน",
-          href: "/cap-table",
+          name: "สถิติการดำเนินการ",
+          href: "#",
           icon: ChartBarIcon
         },
         {
-          name: "การวิเคราะห์",
-          href: "/analytics",
-          icon: ChartBarIcon
+          name: "นำเข้าไฟล์",
+          href: "#",
+          icon: ArrowDownTrayIcon ,
+          subItems: [
+            {
+              name: "DBF",
+              href: "/import/dbf",
+              icon: DocumentTextIcon
+            },
+            {
+              name: "REP",
+              href: "/import/rep",
+              icon: DocumentTextIcon
+            },
+            {
+              name: "Statement",
+              href: "/import/statement",
+              icon: DocumentTextIcon
+            }
+          ]
         },
         {
-          name: "สิทธิประโยชน์",
-          href: "/perks",
-          icon: GiftIcon,
-        },
-        {
-          name: "ค่าใช้จ่าย",
-          href: "/expenses",
-          icon: DocumentTextIcon
-        },
-        {
-          name: "ตั้งค่า",
-          href: "/settings",
-          icon: Cog6ToothIcon
+          name: "ส่งออกข้อมูล",
+          href: "#",
+          icon: ArrowUpTrayIcon,
         },
       ],
     },
@@ -121,7 +131,7 @@ export default function Sidebar() {
           name: "รายชื่อผู้ใช้งาน",
           href: "#",
           icon: UserIcon,
-        },       
+        },
       ],
     },
   ];
@@ -135,6 +145,170 @@ export default function Sidebar() {
 
   const handleMobileClose = () => {
     setIsMobileOpen(false);
+  };
+
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemName)) {
+        newSet.delete(itemName);
+      } else {
+        newSet.add(itemName);
+      }
+      return newSet;
+    });
+  };
+
+  const renderSidebarItem = (item: SidebarItem, isSubItem = false) => {
+    const hasSubItems = item.subItems && item.subItems.length > 0;
+    const isExpanded = expandedItems.has(item.name);
+    const isItemActive = isActive(item.href);
+
+    return (
+      <div key={item.name} className={`px-2 ${isSubItem ? 'ml-4' : ''}`}>
+        {item.href === "#" ? (
+          <Button
+            variant="light"
+            className={`sidebar-item w-full justify-start h-10 group ${
+              isItemActive ? "active" : ""
+            }`}
+            startContent={
+              <item.icon className={`w-4 h-4 transition-colors ${
+                isItemActive 
+                  ? "text-white" 
+                  : "text-default-600 group-hover:text-primary-500"
+              }`} />
+            }
+            endContent={
+              <div className="flex items-center gap-1">
+                {item.badge && (
+                  <Chip 
+                    size="sm" 
+                    variant="flat" 
+                    color="primary"
+                    className="sidebar-chip-primary"
+                  >
+                    {item.badge}
+                  </Chip>
+                )}
+                {hasSubItems && (
+                  <ChevronRightIcon 
+                    className={`w-3 h-3 transition-transform ${
+                      isExpanded ? 'rotate-90' : ''
+                    }`} 
+                  />
+                )}
+              </div>
+            }
+            onPress={() => {
+              if (hasSubItems) {
+                toggleExpanded(item.name);
+              } else if (item.name === "ออกจากระบบ") {
+                // handleLogout();
+              }
+              handleMobileClose();
+            }}
+          >
+            {!isCollapsed && (
+              <div className="flex items-center justify-between w-full">
+                <span>{item.name}</span>
+                {item.count && (
+                  <Chip 
+                    size="sm" 
+                    variant="flat" 
+                    color="primary"
+                    className="sidebar-chip-primary"
+                  >
+                    {item.count}
+                  </Chip>
+                )}
+                {item.isNew && (
+                  <Chip 
+                    size="sm" 
+                    variant="flat" 
+                    color="success"
+                    className="sidebar-chip-secondary"
+                  >
+                    ใหม่
+                  </Chip>
+                )}
+              </div>
+            )}
+          </Button>
+        ) : (
+          <Button
+            as={HeroUILink}
+            href={item.href}
+            variant="light"
+            className={`sidebar-item w-full justify-start h-10 group ${
+              isItemActive ? "active" : ""
+            }`}
+            startContent={
+              <item.icon className={`w-4 h-4 transition-colors ${
+                isItemActive 
+                  ? "text-white" 
+                  : "text-default-600 group-hover:text-primary-500"
+              }`} />
+            }
+            endContent={
+              <div className="flex items-center gap-1">
+                {item.badge && (
+                  <Chip 
+                    size="sm" 
+                    variant="flat" 
+                    color="primary"
+                    className="sidebar-chip-primary"
+                  >
+                    {item.badge}
+                  </Chip>
+                )}
+                {hasSubItems && (
+                  <ChevronRightIcon 
+                    className={`w-3 h-3 transition-transform ${
+                      isExpanded ? 'rotate-90' : ''
+                    }`} 
+                  />
+                )}
+              </div>
+            }
+            onPress={handleMobileClose}
+          >
+            {!isCollapsed && (
+              <div className="flex items-center justify-between w-full">
+                <span>{item.name}</span>
+                {item.count && (
+                  <Chip 
+                    size="sm" 
+                    variant="flat" 
+                    color="primary"
+                    className="sidebar-chip-primary"
+                  >
+                    {item.count}
+                  </Chip>
+                )}
+                {item.isNew && (
+                  <Chip 
+                    size="sm" 
+                    variant="flat" 
+                    color="success"
+                    className="sidebar-chip-secondary"
+                  >
+                    ใหม่
+                  </Chip>
+                )}
+              </div>
+            )}
+          </Button>
+        )}
+
+        {/* Render sub-items */}
+        {hasSubItems && isExpanded && !isCollapsed && (
+          <div className="mt-1 space-y-1">
+            {item.subItems!.map((subItem) => renderSidebarItem(subItem, true))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -216,127 +390,7 @@ export default function Sidebar() {
                 )}
 
                 <div className="space-y-1">
-                  {section.items.map((item) => (
-                    <div key={item.href} className="px-2">
-                      {item.href === "#" ? (
-                        <Button
-                          variant="light"
-                          className={`sidebar-item w-full justify-start h-10 group ${
-                            isActive(item.href)
-                              ? "active"
-                              : ""
-                          }`}
-                          startContent={
-                            <item.icon className={`w-4 h-4 transition-colors ${
-                              isActive(item.href) 
-                                ? "text-white" 
-                                : "text-default-600 group-hover:text-primary-500"
-                            }`} />
-                          }
-                          endContent={
-                            item.badge && (
-                              <Chip 
-                                size="sm" 
-                                variant="flat" 
-                                color="primary"
-                                className="sidebar-chip-primary"
-                              >
-                                {item.badge}
-                              </Chip>
-                            )
-                          }
-                          onPress={() => {
-                            if (item.name === "ออกจากระบบ") {
-                              // handleLogout();
-                            }
-                            handleMobileClose();
-                          }}
-                        >
-                          {!isCollapsed && (
-                            <div className="flex items-center justify-between w-full">
-                              <span>{item.name}</span>
-                              {item.count && (
-                                <Chip 
-                                  size="sm" 
-                                  variant="flat" 
-                                  color="primary"
-                                  className="sidebar-chip-primary"
-                                >
-                                  {item.count}
-                                </Chip>
-                              )}
-                              {item.isNew && (
-                                <Chip 
-                                  size="sm" 
-                                  variant="flat" 
-                                  color="success"
-                                  className="sidebar-chip-secondary"
-                                >
-                                  ใหม่
-                                </Chip>
-                              )}
-                            </div>
-                          )}
-                        </Button>
-                      ) : (
-                        <Link href={item.href} onClick={handleMobileClose}>
-                          <Button
-                            variant="light"
-                            className={`sidebar-item w-full justify-start h-10 group ${
-                              isActive(item.href)
-                                ? "active"
-                                : ""
-                            }`}
-                            startContent={
-                              <item.icon className={`w-4 h-4 transition-colors ${
-                                isActive(item.href) 
-                                  ? "text-white" 
-                                  : "text-default-600 group-hover:text-primary-500"
-                              }`} />
-                            }
-                            endContent={
-                              item.badge && (
-                                <Chip 
-                                  size="sm" 
-                                  variant="flat" 
-                                  color="primary"
-                                  className="sidebar-chip-primary"
-                                >
-                                  {item.badge}
-                                </Chip>
-                              )
-                            }
-                          >
-                            {!isCollapsed && (
-                              <div className="flex items-center justify-between w-full">
-                                <span>{item.name}</span>
-                                {item.count && (
-                                  <Chip 
-                                    size="sm" 
-                                    variant="flat" 
-                                    color="primary"
-                                    className="sidebar-chip-primary"
-                                  >
-                                    {item.count}
-                                  </Chip>
-                                )}
-                                {item.isNew && (
-                                  <Chip 
-                                    size="sm" 
-                                    variant="flat" 
-                                    color="success"
-                                    className="sidebar-chip-secondary"
-                                  >
-                                    ใหม่
-                                  </Chip>
-                                )}
-                              </div>
-                            )}
-                          </Button>
-                        </Link>
-                      )}
-                    </div>
-                  ))}
+                  {section.items.map((item) => renderSidebarItem(item))}
                 </div>
               </div>
             ))}

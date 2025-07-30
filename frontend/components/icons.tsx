@@ -880,3 +880,37 @@ export const ChevronRightIcon = ({ size, width, height, className, ...props }: I
     />
   );
 };
+
+// Arrow Down Tray Icon สำหรับ export/download
+export const ArrowDownTrayIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:arrow-down-tray"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Arrow Up Tray Icon สำหรับ import/upload
+export const ArrowUpTrayIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:arrow-up-tray"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
