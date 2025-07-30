@@ -80,6 +80,12 @@ npm run dev:frontend          # รัน frontend เท่านั้น
 npm run dev:api-gateway       # รัน api-gateway เท่านั้น
 npm run dev:auth              # รัน auth-service เท่านั้น
 
+# Production
+npm run start                 # รัน production servers ทั้งหมด
+npm run start:frontend        # รัน frontend production
+npm run start:api-gateway     # รัน api-gateway production
+npm run start:auth            # รัน auth-service production
+
 # Build
 npm run build                 # Build ทั้งหมด
 npm run build:frontend        # Build frontend
@@ -91,6 +97,26 @@ npm run lint:fix             # แก้ไข code style อัตโนมั�
 npm run format               # จัดรูปแบบโค้ด
 npm run type-check           # ตรวจสอบ TypeScript types
 npm run quality-check        # ตรวจสอบคุณภาพโค้ดทั้งหมด
+
+# Testing
+npm run test                 # รัน tests ทั้งหมด
+npm run test:frontend        # รัน frontend tests
+npm run test:api-gateway     # รัน api-gateway tests
+npm run test:auth            # รัน auth-service tests
+
+# Health Checks
+npm run health-check         # ตรวจสอบ health ทั้งหมด
+npm run health-check:frontend # ตรวจสอบ frontend health
+npm run health-check:api-gateway # ตรวจสอบ api-gateway health
+npm run health-check:auth    # ตรวจสอบ auth-service health
+
+# Port Management
+npm run ports-check          # ตรวจสอบ ports ที่ใช้งาน
+npm run kill-ports           # หยุด Node.js processes ทั้งหมด
+
+# Setup & Reset
+npm run setup                # ติดตั้งและ setup ทั้งหมด
+npm run reset                # reset และติดตั้งใหม่
 
 # Database (Auth Service)
 npm run db:generate          # Generate Prisma client
@@ -162,8 +188,6 @@ npm run db:studio
 # Seed database
 npm run db:seed
 ```
-
-
 
 ## 📊 Monitoring & Health Checks
 
@@ -247,12 +271,29 @@ npm run db:seed
 
 ```cmd
 # ตรวจสอบ port ที่ใช้งาน
+npm run ports-check
+
+# หรือตรวจสอบทีละ port
 netstat -ano | findstr :3000
 netstat -ano | findstr :3001
 netstat -ano | findstr :3002
 
 # หยุด process ที่ใช้ port
+npm run kill-ports
+# หรือ
 taskkill /PID <PID>
+```
+
+### Health Checks
+
+```cmd
+# ตรวจสอบ health ของ services
+npm run health-check
+
+# ตรวจสอบทีละ service
+npm run health-check:frontend
+npm run health-check:api-gateway
+npm run health-check:auth
 ```
 
 ### Database Issues
@@ -274,8 +315,7 @@ npm run db:generate
 npm run clean
 
 # Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
+npm run reset
 ```
 
 ## 📚 Technology Stack
