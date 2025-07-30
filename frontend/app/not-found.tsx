@@ -6,7 +6,7 @@ import { HomeIcon, ArrowLeftIcon } from "@/components/icons";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3 transition-colors duration-500">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
       <div className="w-full max-w-md p-6">
         <Card className="rounded-3xl shadow-2xl border-0 bg-background/90 backdrop-blur-lg">
           <CardBody className="p-8 text-center">

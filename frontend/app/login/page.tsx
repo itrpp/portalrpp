@@ -100,9 +100,9 @@ export default function LoginPage() {
   // แสดง loading spinner ขณะตรวจสอบ authentication
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3 transition-colors duration-500">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                          <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-default-600 dark:text-default-400">
             กำลังตรวจสอบการเข้าสู่ระบบ...
           </p>
@@ -117,7 +117,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3 transition-colors duration-500">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
       {/* Theme Toggle Button - Top Right */}
       <div className="absolute top-4 right-4">
         <ThemeToggle />
@@ -230,7 +230,7 @@ export default function LoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 text-danger text-sm animate-pulse bg-danger-50 dark:bg-danger-900/20 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-danger text-sm bg-danger-50 dark:bg-danger-900/20 p-3 rounded-lg">
                   <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -248,7 +248,7 @@ export default function LoginPage() {
                 type="submit"
                 color="primary"
                 size="lg"
-                className="w-full font-semibold shadow-md hover:scale-[1.02] transition-all duration-200"
+                className="w-full font-semibold shadow-md"
                 isLoading={isLoading}
                 startContent={<ArrowRightOnRectangleIcon className="w-5 h-5" />}
                 disabled={!username || !password}
@@ -260,14 +260,14 @@ export default function LoginPage() {
             <div className="flex justify-between items-center mt-4 text-xs text-default-600 dark:text-default-400">
               <button
                 type="button"
-                className="flex items-center gap-1 hover:text-primary hover:bg-content2 px-2 py-1 rounded transition-colors"
+                className="flex items-center gap-1 hover:text-primary hover:bg-content2 px-2 py-1 rounded"
                 onClick={() => router.push("/")}
               >
                 <ArrowLeftIcon className="w-4 h-4" /> กลับหน้าหลัก
               </button>
               <Link
                 href="#"
-                className="hover:text-primary hover:bg-content2 px-2 py-1 rounded transition-colors"
+                className="hover:text-primary hover:bg-content2 px-2 py-1 rounded"
                 tabIndex={-1}
               >
                 ลืมรหัสผ่าน?

@@ -90,14 +90,14 @@ export default function DashboardLayout({
               {breadcrumbs.map((item, index) => (
                 <BreadcrumbItem key={index}>
                   {index === 0 ? (
-                    <Link href={item.href} className="flex items-center space-x-1 hover:text-primary transition-colors">
+                    <Link href={item.href} className="flex items-center space-x-1 hover:text-primary">
                       <HomeIcon className="w-4 h-4" />
                       <span>{item.name}</span>
                     </Link>
                   ) : index === breadcrumbs.length - 1 ? (
                     <span className="text-foreground font-medium">{item.name}</span>
                   ) : (
-                    <Link href={item.href} className="hover:text-primary transition-colors">
+                    <Link href={item.href} className="hover:text-primary">
                       {item.name}
                     </Link>
                   )}
@@ -114,7 +114,7 @@ export default function DashboardLayout({
             {user && (
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
-                  <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2 transition-colors">
+                  <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2">
                     <Avatar
                       isBordered
                       color="primary"
@@ -155,7 +155,7 @@ export default function DashboardLayout({
         </div>
         
         {/* Content Area */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-default-50">
           {children}
         </div>
         

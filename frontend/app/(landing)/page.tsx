@@ -75,7 +75,7 @@ function HomeContent() {
                 <Button
                   color="secondary"
                   size="lg"
-                  className="font-semibold shadow-lg hover:scale-105 transition-transform"
+                  className="font-semibold shadow-lg"
                   startContent={<ChartBarIcon className="w-5 h-5" />}
                   endContent={<ArrowRightIcon className="w-5 h-5" />}
                   variant="solid"
@@ -89,7 +89,7 @@ function HomeContent() {
                 <Button
                   color="primary"
                   size="lg"
-                  className="font-semibold shadow-lg hover:scale-105 transition-transform"
+                  className="font-semibold shadow-lg"
                   startContent={<UserIcon className="w-5 h-5" />}
                   endContent={<ArrowRightIcon className="w-5 h-5" />}
                   variant="solid"

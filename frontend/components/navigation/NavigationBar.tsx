@@ -91,7 +91,7 @@ export default function NavigationBar() {
           <NavbarItem key={item.href} isActive={isActive(item.href)}>
             <Link
               href={item.href}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive(item.href)
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${isActive(item.href)
                 ? "bg-primary text-primary-foreground"
                 : "text-foreground hover:text-primary"
                 }`}
@@ -112,7 +112,7 @@ export default function NavigationBar() {
           <NavbarItem>
             <Dropdown placement="bottom-end">
               <DropdownTrigger>
-                <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2 transition-colors">
+                <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2">
                   <Avatar
                     isBordered
                     color="primary"
@@ -168,7 +168,7 @@ export default function NavigationBar() {
           <NavbarMenuItem key={item.href}>
             <Link
               href={item.href}
-              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-lg transition-colors ${isActive(item.href)
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-lg ${isActive(item.href)
                 ? "bg-primary text-primary-foreground"
                 : "text-foreground hover:text-primary"
                 }`}

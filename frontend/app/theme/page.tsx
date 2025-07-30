@@ -325,16 +325,16 @@ export default function ThemePage() {
           <div>
             <h4 className="text-sm font-medium mb-2">Buttons</h4>
             <div className="flex flex-wrap gap-2">
-              <button className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors">
+              <button className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">
                 Primary Button
               </button>
-              <button className="px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-secondary-600 transition-colors">
+              <button className="px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-secondary-600">
                 Secondary Button
               </button>
-              <button className="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors">
+              <button className="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200">
                 Light Primary
               </button>
-              <button className="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors">
+              <button className="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200">
                 Light Secondary
               </button>
             </div>

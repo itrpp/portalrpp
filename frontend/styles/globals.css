@@ -2,66 +2,66 @@
 
 @config "../tailwind.config.js";
 
-:root {
-  /* Font Prompt สำหรับภาษาไทย */
-  --font-prompt: "Prompt", "Prompt-Regular", "Prompt-Medium", "Prompt-Bold", ui-sans-serif, system-ui;
-  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+/* Sidebar Specific Styles - ใช้ Tailwind classes แทน CSS variables */
+.sidebar {
+  @apply bg-background border-r border-divider;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Dark theme CSS variables */
-.dark {
-  color-scheme: dark;
+.sidebar-header {
+  @apply bg-content1 border-b border-divider;
 }
 
-/* Light theme CSS variables */
-.light {
-  color-scheme: light;
+.sidebar-navigation {
+  @apply bg-background;
 }
 
-body {
-  font-family: var(--font-prompt);
-  transition: background-color 0.3s ease, color 0.3s ease;
+.sidebar-item {
+  @apply transition-all duration-200 ease-in-out;
 }
 
-/* Smooth transitions for theme changes */
-* {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+.sidebar-item:hover {
+  @apply bg-content2 text-primary-500;
 }
 
-/* Custom scrollbar for dark theme */
-.dark ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.sidebar-item.active {
+  @apply bg-primary-500 text-white;
+  box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
 }
 
-.dark ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+.sidebar-item.active:hover {
+  @apply bg-primary-600;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
-  border-radius: 4px;
+.sidebar-chip-primary {
+  @apply bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
+.sidebar-chip-secondary {
+  @apply bg-secondary-100 text-secondary-700 dark:bg-secondary-900 dark:text-secondary-300;
 }
 
-/* Custom scrollbar for light theme */
-.light ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Custom scrollbar for sidebar */
+.sidebar-navigation::-webkit-scrollbar {
+  width: 6px;
 }
 
-.light ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+.sidebar-navigation::-webkit-scrollbar-track {
+  @apply bg-content2;
 }
 
-.light ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+.sidebar-navigation::-webkit-scrollbar-thumb {
+  @apply bg-default-300 rounded;
 }
 
-.light ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.sidebar-navigation::-webkit-scrollbar-thumb:hover {
+  @apply bg-default-400;
+}
+
+[data-theme="dark"] .sidebar-navigation::-webkit-scrollbar-thumb {
+  @apply bg-default-600;
+}
+
+[data-theme="dark"] .sidebar-navigation::-webkit-scrollbar-thumb:hover {
+  @apply bg-default-500;
 }

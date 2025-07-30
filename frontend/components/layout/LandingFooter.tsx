@@ -95,7 +95,7 @@ export default function LandingFooter() {
             </p>
             <div className="flex space-x-4">
               <span 
-                className="text-foreground-400 hover:text-primary transition-colors cursor-pointer"
+                className="text-foreground-400 hover:text-primary cursor-pointer"
               >
                 <GlobeAltIcon className="w-5 h-5" />
               </span>
@@ -112,7 +112,7 @@ export default function LandingFooter() {
                 <Link 
                   key={`quick-${index}`} 
                   href={link.href}
-                  className="text-foreground-400 hover:text-primary transition-colors"
+                  className="text-foreground-400 hover:text-primary"
                 >
                   {link.name}
                 </Link>
@@ -130,7 +130,7 @@ export default function LandingFooter() {
                 <Link 
                   key={`support-${index}`} 
                   href={link.href}
-                  className="text-foreground-400 hover:text-primary transition-colors"
+                  className="text-foreground-400 hover:text-primary"
                 >
                   {link.name}
                 </Link>
@@ -166,19 +166,19 @@ export default function LandingFooter() {
           <div className="flex space-x-6 text-sm">
             <span 
               key="privacy"
-              className="text-foreground-400 hover:text-primary transition-colors cursor-pointer"
+              className="text-foreground-400 hover:text-primary cursor-pointer"
             >
               นโยบายความเป็นส่วนตัว
             </span>
             <span 
               key="terms"
-              className="text-foreground-400 hover:text-primary transition-colors cursor-pointer"
+              className="text-foreground-400 hover:text-primary cursor-pointer"
             >
               เงื่อนไขการใช้งาน
             </span>
             <span 
               key="sitemap"
-              className="text-foreground-400 hover:text-primary transition-colors cursor-pointer"
+              className="text-foreground-400 hover:text-primary cursor-pointer"
             >
               แผนผังเว็บไซต์
             </span>

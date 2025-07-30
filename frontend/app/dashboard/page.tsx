@@ -137,7 +137,7 @@ function DashboardContent() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat) => (
-            <Card key={stat.id} className="hover:shadow-lg transition-shadow bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700">
+            <Card key={stat.id} className="hover:shadow-lg bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700">
               <CardBody className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -179,7 +179,7 @@ function DashboardContent() {
             {quickActions.map((action) => (
               <Card
                 key={action.id}
-                className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700"
+                className="hover:shadow-xl cursor-pointer bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700"
                 isPressable
                 onPress={() => router.push(action.href)}
               >

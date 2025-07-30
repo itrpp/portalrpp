@@ -25,19 +25,19 @@ export default function DashboardFooter() {
                     <div className="flex space-x-4 text-sm">
                         <span
                             key="privacy"
-                            className="text-foreground-400 hover:text-primary transition-colors cursor-pointer"
+                            className="text-foreground-400 hover:text-primary cursor-pointer"
                         >
                             นโยบายความเป็นส่วนตัว
                         </span>
                         <span
                             key="terms"
-                            className="text-foreground-400 hover:text-primary transition-colors cursor-pointer"
+                            className="text-foreground-400 hover:text-primary cursor-pointer"
                         >
                             เงื่อนไขการใช้งาน
                         </span>
                         <span
                             key="sitemap"
-                            className="text-foreground-400 hover:text-primary transition-colors cursor-pointer"
+                            className="text-foreground-400 hover:text-primary cursor-pointer"
                         >
                             แผนผังเว็บไซต์
                         </span>

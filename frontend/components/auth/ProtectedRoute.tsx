@@ -37,7 +37,7 @@ export function ProtectedRoute({ children, fallback, requiredRole }: ProtectedRo
   // แสดง loading spinner ขณะตรวจสอบ authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3 transition-colors duration-500">
+              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
         <div className="text-center">
           <Spinner size="lg" color="primary" />
           <p className="mt-4 text-default-600 dark:text-default-400">

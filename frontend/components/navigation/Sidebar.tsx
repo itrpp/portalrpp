@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -10,8 +10,6 @@ import {
 } from '@heroui/react';
 import {
   HomeIcon,
-  UserGroupIcon,
-  ClipboardDocumentListIcon,
   Cog6ToothIcon,
   ChartBarIcon,
   GiftIcon,
@@ -40,6 +38,35 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
+
+  // ตรวจสอบ theme เมื่อ component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('portalrpp-theme') as 'light' | 'dark' || 'light';
+    setCurrentTheme(savedTheme);
+
+    // ฟังก์ชันสำหรับติดตามการเปลี่ยนแปลง theme
+    const handleThemeChange = () => {
+      const theme = document.documentElement.getAttribute('data-theme') as 'light' | 'dark' || 'light';
+      setCurrentTheme(theme);
+    };
+
+    // ใช้ MutationObserver เพื่อติดตามการเปลี่ยนแปลง data-theme
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          handleThemeChange();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const navigationSections: SidebarSection[] = [
     {
@@ -51,28 +78,10 @@ export default function Sidebar() {
           icon: HomeIcon
         },
         {
-          name: "โครงการ",
-          href: "/projects",
+          name: "Dashboard",
+          href: "/dashboard",
           icon: Squares2X2Icon,
-          badge: "+"
-        },
-        {
-          name: "งาน",
-          href: "/tasks",
-          icon: ClipboardDocumentListIcon,
-          badge: "+"
-        },
-        {
-          name: "ทีม",
-          href: "/team",
-          icon: UserGroupIcon
-        },
-        {
-          name: "ติดตาม",
-          href: "/tracker",
-          icon: ChartBarIcon,
-          isNew: true
-        },
+        },        
       ],
     },
     {
@@ -92,7 +101,6 @@ export default function Sidebar() {
           name: "สิทธิประโยชน์",
           href: "/perks",
           icon: GiftIcon,
-          count: 3
         },
         {
           name: "ค่าใช้จ่าย",
@@ -107,26 +115,13 @@ export default function Sidebar() {
       ],
     },
     {
-      title: "ทีมของคุณ",
+      title: "ผู้ดูแลระบบ",
       items: [
         {
-          name: "HU HeroUI",
-          href: "/teams/hu",
+          name: "รายชื่อผู้ใช้งาน",
+          href: "#",
           icon: UserIcon,
-          badge: "HU"
-        },
-        {
-          name: "TV Tailwind Variants",
-          href: "/teams/tv",
-          icon: UserIcon,
-          badge: "TV"
-        },
-        {
-          name: "HP HeroUI Pro",
-          href: "/teams/hp",
-          icon: UserIcon,
-          badge: "HP"
-        },
+        },       
       ],
     },
   ];
@@ -150,10 +145,10 @@ export default function Sidebar() {
           isIconOnly
           variant="light"
           onPress={() => setIsMobileOpen(true)}
-          className="bg-background border border-divider shadow-lg"
+          className="bg-background border border-divider shadow-lg hover:bg-content2 transition-colors"
           size="sm"
         >
-          <Bars3Icon className="w-4 h-4" />
+          <Bars3Icon className="w-4 h-4 text-foreground" />
         </Button>
       </div>
 
@@ -165,17 +160,19 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - รองรับ Light/Dark Theme */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        h-screen bg-background border-r border-divider 
-        transition-all duration-300
+        sidebar fixed lg:static inset-y-0 left-0 z-50
+        h-screen
+
         ${isCollapsed ? 'w-16' : 'w-64'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        
+        transition-all duration-300 ease-in-out
       `}>
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="h-16 px-6 border-b border-divider flex items-center justify-between">
+          {/* Header - พื้นหลังสีฟ้าอ่อน */}
+          <div className="sidebar-header h-16 px-6 flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Image
                 src="/images/logo.png"
@@ -199,19 +196,20 @@ export default function Sidebar() {
                 variant="light"
                 onPress={handleMobileClose}
                 size="sm"
+                className="text-foreground hover:bg-content2 transition-colors"
               >
                 <XMarkIcon className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          {/* Navigation */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Navigation - รองรับการ scroll และ theme */}
+          <div className="sidebar-navigation flex-1 overflow-y-auto">
             {navigationSections.map((section, sectionIndex) => (
               <div key={section.title} className="py-2">
                 {!isCollapsed && (
                   <div className="px-4 py-2">
-                    <h3 className="text-xs font-semibold text-foreground-500 uppercase tracking-wider">
+                    <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider">
                       {section.title}
                     </h3>
                   </div>
@@ -223,14 +221,26 @@ export default function Sidebar() {
                       {item.href === "#" ? (
                         <Button
                           variant="light"
-                          className={`w-full justify-start h-10 ${isActive(item.href)
-                              ? "bg-primary text-primary-foreground"
-                              : "text-foreground hover:bg-content2"
-                            }`}
-                          startContent={<item.icon className="w-4 h-4" />}
+                          className={`sidebar-item w-full justify-start h-10 group ${
+                            isActive(item.href)
+                              ? "active"
+                              : ""
+                          }`}
+                          startContent={
+                            <item.icon className={`w-4 h-4 transition-colors ${
+                              isActive(item.href) 
+                                ? "text-white" 
+                                : "text-default-600 group-hover:text-primary-500"
+                            }`} />
+                          }
                           endContent={
                             item.badge && (
-                              <Chip size="sm" variant="flat" color="primary">
+                              <Chip 
+                                size="sm" 
+                                variant="flat" 
+                                color="primary"
+                                className="sidebar-chip-primary"
+                              >
                                 {item.badge}
                               </Chip>
                             )
@@ -246,12 +256,22 @@ export default function Sidebar() {
                             <div className="flex items-center justify-between w-full">
                               <span>{item.name}</span>
                               {item.count && (
-                                <Chip size="sm" variant="flat" color="primary">
+                                <Chip 
+                                  size="sm" 
+                                  variant="flat" 
+                                  color="primary"
+                                  className="sidebar-chip-primary"
+                                >
                                   {item.count}
                                 </Chip>
                               )}
                               {item.isNew && (
-                                <Chip size="sm" variant="flat" color="success">
+                                <Chip 
+                                  size="sm" 
+                                  variant="flat" 
+                                  color="success"
+                                  className="sidebar-chip-secondary"
+                                >
                                   ใหม่
                                 </Chip>
                               )}
@@ -262,14 +282,26 @@ export default function Sidebar() {
                         <Link href={item.href} onClick={handleMobileClose}>
                           <Button
                             variant="light"
-                            className={`w-full justify-start h-10 ${isActive(item.href)
-                                ? "bg-primary text-primary-foreground"
-                                : "text-foreground hover:bg-content2"
-                              }`}
-                            startContent={<item.icon className="w-4 h-4" />}
+                            className={`sidebar-item w-full justify-start h-10 group ${
+                              isActive(item.href)
+                                ? "active"
+                                : ""
+                            }`}
+                            startContent={
+                              <item.icon className={`w-4 h-4 transition-colors ${
+                                isActive(item.href) 
+                                  ? "text-white" 
+                                  : "text-default-600 group-hover:text-primary-500"
+                              }`} />
+                            }
                             endContent={
                               item.badge && (
-                                <Chip size="sm" variant="flat" color="primary">
+                                <Chip 
+                                  size="sm" 
+                                  variant="flat" 
+                                  color="primary"
+                                  className="sidebar-chip-primary"
+                                >
                                   {item.badge}
                                 </Chip>
                               )
@@ -279,12 +311,22 @@ export default function Sidebar() {
                               <div className="flex items-center justify-between w-full">
                                 <span>{item.name}</span>
                                 {item.count && (
-                                  <Chip size="sm" variant="flat" color="primary">
+                                  <Chip 
+                                    size="sm" 
+                                    variant="flat" 
+                                    color="primary"
+                                    className="sidebar-chip-primary"
+                                  >
                                     {item.count}
                                   </Chip>
                                 )}
                                 {item.isNew && (
-                                  <Chip size="sm" variant="flat" color="success">
+                                  <Chip 
+                                    size="sm" 
+                                    variant="flat" 
+                                    color="success"
+                                    className="sidebar-chip-secondary"
+                                  >
                                     ใหม่
                                   </Chip>
                                 )}
