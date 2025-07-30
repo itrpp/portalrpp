@@ -6,6 +6,8 @@ import { siteConfig } from "@/config/site";
 
 import "@/styles/globals.css";
 import { Providers } from "./providers";
+import NavigationBar from "@/components/navbar";
+import FooterComponent from "@/components/footer";
 
 import { fontPrompt, fontSans } from "@/config/fonts";
 
@@ -16,8 +18,9 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
 
-  // ตรวจสอบว่าเป็นหน้า home หรือ login หรือไม่
+  // ตรวจสอบว่าเป็นหน้า login หรือ dashboard หรือไม่ (ไม่แสดง navbar และ footer)
   const isLoginPage = pathname === "/login";
+  const isDashboardPage = pathname.startsWith("/dashboard");
 
   return (
     <html
@@ -48,12 +51,23 @@ export default function RootLayout({
         className={`${fontPrompt.className} bg-background text-foreground`}
       >
         <Providers>
-          <div className="min-h-screen bg-gradient-to-br from-background via-content2/20 to-content3/20 transition-all duration-500">
+          <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-content2/20 to-content3/20 transition-all duration-500">
+            {/* Navbar - ไม่แสดงในหน้า login และ dashboard */}
+            {!isLoginPage && !isDashboardPage && <NavigationBar />}
+            
+            {/* Main Content */}
             <main className="flex-1 transition-all duration-300 ease-in-out">
-              <div className="p-4 sm:p-6 lg:p-8">                  
-                {children}
-              </div>
+              {isDashboardPage ? (
+                children
+              ) : (
+                <div className="p-4 sm:p-6 lg:p-8">                  
+                  {children}
+                </div>
+              )}
             </main>
+            
+            {/* Footer - ไม่แสดงในหน้า login และ dashboard */}
+            {!isLoginPage && !isDashboardPage && <FooterComponent />}
           </div>
         </Providers>
       </body>

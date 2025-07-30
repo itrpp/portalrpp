@@ -1,37 +1,85 @@
 "use client";
 
-import React, { useCallback, useMemo } from 'react';
-import { Button } from '@heroui/react';
+import React from 'react';
+import { Button, Switch } from '@heroui/react';
 import { SunIcon, MoonIcon } from './icons';
 
-// ใช้ React Context เพื่อจัดการ theme state แบบ global
-const ThemeContext = React.createContext<{
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
-} | null>(null);
+// Theme Provider Component - ใช้ HeroUI theme system
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [mounted, setMounted] = React.useState(false);
 
-// Custom hook สำหรับใช้ theme
-export const useTheme = () => {
-  const context = React.useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
+  React.useEffect(() => {
+    setMounted(true);
+    // Sync กับ localStorage และ set initial theme
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('portalrpp-theme') as 'light' | 'dark' || 'light';
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  }, []);
+
+  // ไม่ render จนกว่า component จะ mount แล้ว
+  if (!mounted) {
+    return <>{children}</>;
   }
-  return context;
+
+  return <>{children}</>;
 };
 
-// Theme Provider Component
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Optimized Theme Toggle Component using HeroUI theme system
+export function ThemeToggle() {
+  const [isSelected, setIsSelected] = React.useState(false);
+
+  // ใช้ useEffect เพื่อตรวจสอบ theme เมื่อ component mount
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('portalrpp-theme') as 'light' | 'dark' || 'light';
+      setIsSelected(savedTheme === 'dark');
+    }
+  }, []);
+
+  const onValueChange = (value: boolean) => {
+    setIsSelected(value);
+    const newTheme = value ? 'dark' : 'light';
+    
+    // อัปเดต class บน document
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(newTheme);
+    
+    // อัปเดต data-theme attribute สำหรับ HeroUI
+    document.documentElement.setAttribute('data-theme', newTheme);
+    
+    // บันทึกลง localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('portalrpp-theme', newTheme);
+    }
+  };
+
+  return (
+    <Switch
+      defaultSelected={isSelected}
+      size="md"
+      color="primary"
+      onValueChange={onValueChange}
+      startContent={<SunIcon className="h-4 w-4" />}
+      endContent={<MoonIcon className="h-4 w-4" />}
+      aria-label="สลับธีม"
+    />
+  );
+}
+
+// Custom hook สำหรับใช้ theme (สำหรับ backward compatibility)
+export const useCustomTheme = () => {
   const [theme, setTheme] = React.useState<'light' | 'dark'>(() => {
-    // ใช้ lazy initialization เพื่อลดการอ่าน localStorage ทุกครั้ง
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('portalrpp-theme') as 'light' | 'dark') || 'light';
     }
     return 'light';
   });
 
-  // ใช้ useCallback เพื่อป้องกัน re-creation ของ function
-  const toggleTheme = useCallback(() => {
-    setTheme(prevTheme => {
+  const toggleTheme = React.useCallback(() => {
+    setTheme((prevTheme) => {
       const newTheme = prevTheme === 'dark' ? 'light' : 'dark';
       
       // บันทึกลง localStorage
@@ -42,50 +90,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // อัปเดต class บน document
       document.documentElement.classList.remove('light', 'dark');
       document.documentElement.classList.add(newTheme);
+      document.documentElement.setAttribute('data-theme', newTheme);
       
       return newTheme;
     });
   }, []);
 
-  // ใช้ useMemo เพื่อ cache context value
-  const contextValue = useMemo(() => ({
-    theme,
-    toggleTheme
-  }), [theme, toggleTheme]);
-
-  // ใช้ useEffect เพื่อ sync theme เมื่อ component mount
-  React.useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
-  }, [theme]);
-
-  return (
-    <ThemeContext.Provider value={contextValue}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return { 
+    theme, 
+    toggleTheme 
+  };
 };
-
-// Optimized Theme Toggle Component
-export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-
-  // ใช้ useMemo เพื่อ cache icon component
-  const ThemeIcon = useMemo(() => {
-    return theme === 'light' ? MoonIcon : SunIcon;
-  }, [theme]);
-
-  return (
-    <Button
-      isIconOnly
-      variant="ghost"
-      onPress={toggleTheme}
-      className="text-foreground hover:bg-content2 hover:text-primary transition-colors"
-      aria-label="สลับธีม"
-    >
-      <ThemeIcon className="h-4 w-4" />
-    </Button>
-  );
-}
 
 export default ThemeToggle; 

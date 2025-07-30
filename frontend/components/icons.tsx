@@ -659,3 +659,224 @@ export const Bars3Icon = ({ size, width, height, className, ...props }: IconSvgP
     />
   );
 };
+
+// XMarkIcon สำหรับปิด modal หรือ menu
+export const XMarkIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:x-mark"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// BuildingOffice2Icon สำหรับ footer
+export const BuildingOffice2Icon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:building-office-2"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// PhoneIcon สำหรับ footer
+export const PhoneIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:phone"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// EnvelopeIcon สำหรับ footer
+export const EnvelopeIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:envelope"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// MapPinIcon สำหรับ footer
+export const MapPinIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:map-pin"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// GlobeAltIcon สำหรับ footer
+export const GlobeAltIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:globe-alt"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Clipboard Document List Icon สำหรับ sidebar
+export const ClipboardDocumentListIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:clipboard-document-list"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Gift Icon สำหรับ sidebar
+export const GiftIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:gift"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Document Text Icon สำหรับ sidebar
+export const DocumentTextIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:document-text"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Information Circle Icon สำหรับ sidebar
+export const InformationCircleIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:information-circle"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Plus Icon สำหรับ sidebar
+export const PlusIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:plus"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Squares 2X2 Icon สำหรับ sidebar
+export const Squares2X2Icon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:squares-2x2"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Chevron Right Icon สำหรับ breadcrumbs
+export const ChevronRightIcon = ({ size, width, height, className, ...props }: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon="heroicons:chevron-right"
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};

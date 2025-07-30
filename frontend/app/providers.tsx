@@ -9,13 +9,6 @@ import { ThemeProvider } from "@/components/ThemeToggle";
 
 export interface ProvidersProps {
   children: React.ReactNode;
-  themeProps?: {
-    attribute?: string;
-    defaultTheme?: 'dark' | 'light' | 'system';
-    enableSystem?: boolean;
-    disableTransitionOnChange?: boolean;
-    storageKey?: string;
-  };
 }
 
 declare module "@react-types/shared" {
@@ -26,7 +19,7 @@ declare module "@react-types/shared" {
   }
 }
 
-export function Providers({ children, themeProps }: ProvidersProps) {
+export function Providers({ children }: ProvidersProps) {
   const router = useRouter();
 
   return (

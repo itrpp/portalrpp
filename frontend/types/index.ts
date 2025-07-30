@@ -7,6 +7,7 @@ export interface User {
   name?: string;
   role?: string;
   department?: string;
+  avatar?: string;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
