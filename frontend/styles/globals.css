@@ -1,15 +1,17 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @config "../tailwind.config.js";
 
 /* Sidebar Specific Styles - ใช้ Tailwind classes แทน CSS variables */
 .sidebar {
   @apply bg-background border-r border-divider;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .sidebar-header {
-  @apply bg-content1 border-b border-divider;
+  @apply border-b border-divider;
 }
 
 .sidebar-navigation {
@@ -58,10 +60,10 @@
   @apply bg-default-400;
 }
 
-[data-theme="dark"] .sidebar-navigation::-webkit-scrollbar-thumb {
+[data-theme='dark'] .sidebar-navigation::-webkit-scrollbar-thumb {
   @apply bg-default-600;
 }
 
-[data-theme="dark"] .sidebar-navigation::-webkit-scrollbar-thumb:hover {
+[data-theme='dark'] .sidebar-navigation::-webkit-scrollbar-thumb:hover {
   @apply bg-default-500;
 }

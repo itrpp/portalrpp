@@ -14,18 +14,18 @@ export default [
       'node_modules/**/*',
       '.pnp',
       '.pnp.js',
-      
+
       // Production builds
       '.next/**/*',
       'out/**/*',
       'dist/**/*',
       'build/**/*',
-      
+
       // Coverage directory
       'coverage/**/*',
       '*.lcov',
       '.nyc_output',
-      
+
       // Cache directories
       '.eslintcache',
       '.cache/**/*',
@@ -34,20 +34,20 @@ export default [
       '.rts2_cache_cjs/**/*',
       '.rts2_cache_es/**/*',
       '.rts2_cache_umd/**/*',
-      
+
       // Environment files
       '.env*',
-      
+
       // Logs
       'logs/**/*',
       '*.log',
       'npm-debug.log*',
       'yarn-debug.log*',
       'yarn-error.log*',
-      
+
       // TypeScript cache
       '*.tsbuildinfo',
-      
+
       // Config files (to avoid circular dependencies)
       '*.config.js',
       '*.config.mjs',
@@ -55,14 +55,14 @@ export default [
       '**/*.config.js',
       '**/*.config.mjs',
       '**/*.config.ts',
-      
+
       // Editor files
       '.vscode/**/*',
       '.idea/**/*',
       '*.swp',
       '*.swo',
       '*~',
-      
+
       // OS generated files
       '.DS_Store',
       '.DS_Store?',
@@ -71,10 +71,10 @@ export default [
       '.Trashes',
       'ehthumbs.db',
       'Thumbs.db',
-      
+
       // Temporary folders
       'tmp/**/*',
-      'temp/**/*'
+      'temp/**/*',
     ],
   },
   {
@@ -84,18 +84,18 @@ export default [
       'node_modules/**/*',
       '.pnp',
       '.pnp.js',
-      
+
       // Production builds
       '.next/**/*',
       'out/**/*',
       'dist/**/*',
       'build/**/*',
-      
+
       // Coverage directory
       'coverage/**/*',
       '*.lcov',
       '.nyc_output',
-      
+
       // Cache directories
       '.eslintcache',
       '.cache/**/*',
@@ -104,20 +104,20 @@ export default [
       '.rts2_cache_cjs/**/*',
       '.rts2_cache_es/**/*',
       '.rts2_cache_umd/**/*',
-      
+
       // Environment files
       '.env*',
-      
+
       // Logs
       'logs/**/*',
       '*.log',
       'npm-debug.log*',
       'yarn-debug.log*',
       'yarn-error.log*',
-      
+
       // TypeScript cache
       '*.tsbuildinfo',
-      
+
       // Config files (to avoid circular dependencies)
       '*.config.js',
       '*.config.mjs',
@@ -125,14 +125,14 @@ export default [
       '**/*.config.js',
       '**/*.config.mjs',
       '**/*.config.ts',
-      
+
       // Editor files
       '.vscode/**/*',
       '.idea/**/*',
       '*.swp',
       '*.swo',
       '*~',
-      
+
       // OS generated files
       '.DS_Store',
       '.DS_Store?',
@@ -141,10 +141,10 @@ export default [
       '.Trashes',
       'ehthumbs.db',
       'Thumbs.db',
-      
+
       // Temporary folders
       'tmp/**/*',
-      'temp/**/*'
+      'temp/**/*',
     ],
     languageOptions: {
       ecmaVersion: 2022,
@@ -168,7 +168,7 @@ export default [
     rules: {
       // Base rules
       ...js.configs.recommended.rules,
-      
+
       // Next.js specific rules
       '@next/next/no-html-link-for-pages': 'error',
       '@next/next/no-img-element': 'warn',
@@ -183,11 +183,11 @@ export default [
       '@next/next/no-duplicate-head': 'error',
       '@next/next/no-script-component-in-head': 'error',
       '@next/next/no-styled-jsx-in-document': 'error',
-      
+
       // React Hooks rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      
+
       // Accessibility rules
       'jsx-a11y/alt-text': 'error',
       'jsx-a11y/anchor-has-content': 'error',
@@ -197,7 +197,7 @@ export default [
       'jsx-a11y/aria-unsupported-elements': 'error',
       'jsx-a11y/role-has-required-aria-props': 'error',
       'jsx-a11y/role-supports-aria-props': 'error',
-      
+
       // General rules
       'no-console': 'warn',
       'no-debugger': 'error',
@@ -226,18 +226,18 @@ export default [
       'node_modules/**/*',
       '.pnp',
       '.pnp.js',
-      
+
       // Production builds
       '.next/**/*',
       'out/**/*',
       'dist/**/*',
       'build/**/*',
-      
+
       // Coverage directory
       'coverage/**/*',
       '*.lcov',
       '.nyc_output',
-      
+
       // Cache directories
       '.eslintcache',
       '.cache/**/*',
@@ -246,20 +246,20 @@ export default [
       '.rts2_cache_cjs/**/*',
       '.rts2_cache_es/**/*',
       '.rts2_cache_umd/**/*',
-      
+
       // Environment files
       '.env*',
-      
+
       // Logs
       'logs/**/*',
       '*.log',
       'npm-debug.log*',
       'yarn-debug.log*',
       'yarn-error.log*',
-      
+
       // TypeScript cache
       '*.tsbuildinfo',
-      
+
       // Config files (to avoid circular dependencies)
       '*.config.js',
       '*.config.mjs',
@@ -267,14 +267,14 @@ export default [
       '**/*.config.js',
       '**/*.config.mjs',
       '**/*.config.ts',
-      
+
       // Editor files
       '.vscode/**/*',
       '.idea/**/*',
       '*.swp',
       '*.swo',
       '*~',
-      
+
       // OS generated files
       '.DS_Store',
       '.DS_Store?',
@@ -283,10 +283,10 @@ export default [
       '.Trashes',
       'ehthumbs.db',
       'Thumbs.db',
-      
+
       // Temporary folders
       'tmp/**/*',
-      'temp/**/*'
+      'temp/**/*',
     ],
     languageOptions: {
       parser: tsparser,

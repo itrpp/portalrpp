@@ -95,7 +95,7 @@ class ApiClient {
     options: globalThis.RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config: globalThis.RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -115,10 +115,10 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
+
         throw new ApiError(
           errorData.message || `HTTP error! status: ${response.status}`,
           response.status,
@@ -176,7 +176,7 @@ class ApiClient {
       const userData = response.data?.user || response.user;
       const token = response.data?.token || response.accessToken;
       const refreshToken = response.data?.refreshToken || response.refreshToken;
-      
+
       if (userData && token && refreshToken) {
         this.setToken(token);
         sessionStorage.setItem('refresh_token', refreshToken);
@@ -205,7 +205,7 @@ class ApiClient {
       const userData = response.data?.user || response.user;
       const token = response.data?.token || response.accessToken;
       const refreshToken = response.data?.refreshToken || response.refreshToken;
-      
+
       if (userData && token && refreshToken) {
         this.setToken(token);
         sessionStorage.setItem('refresh_token', refreshToken);
@@ -225,7 +225,7 @@ class ApiClient {
    */
   async logout(): Promise<{ success: boolean; message: string }> {
     const sessionToken = sessionStorage.getItem('session_token');
-    
+
     if (sessionToken) {
       try {
         await this.request('/api/auth/logout', {
@@ -247,7 +247,7 @@ message: 'ออกจากระบบสำเร็จ' };
    */
   async refreshToken(): Promise<LoginResponse> {
     const refreshToken = sessionStorage.getItem('refresh_token');
-    
+
     if (!refreshToken) {
       throw new ApiError('No refresh token available', 401, {});
     }
@@ -262,7 +262,7 @@ message: 'ออกจากระบบสำเร็จ' };
       const userData = response.data?.user || response.user;
       const token = response.data?.token || response.accessToken;
       const refreshToken = response.data?.refreshToken || response.refreshToken;
-      
+
       if (userData && token && refreshToken) {
         this.setToken(token);
         sessionStorage.setItem('refresh_token', refreshToken);
@@ -279,26 +279,30 @@ message: 'ออกจากระบบสำเร็จ' };
   /**
    * ตรวจสอบ Session
    */
-  async validateSession(): Promise<{ success: boolean; data?: { user: User }; user?: User }> {
+  async validateSession(): Promise<{
+    success: boolean;
+    data?: { user: User };
+    user?: User;
+  }> {
     const sessionToken = sessionStorage.getItem('session_token');
-    
+
     if (!sessionToken) {
       return { success: false };
     }
 
     try {
-      const response = await this.request<{ success: boolean; data?: { user: User } }>(
-        '/api/auth/validate-session',
-        {
-          method: 'POST',
-          body: JSON.stringify({ sessionToken }),
-        }
-      );
+      const response = await this.request<{
+        success: boolean;
+        data?: { user: User };
+      }>('/api/auth/validate-session', {
+        method: 'POST',
+        body: JSON.stringify({ sessionToken }),
+      });
 
       return response;
     } catch {
       // console.log("❌ validateSession - Request failed:", error);
-      
+
       // ไม่ log error สำหรับ session validation ที่ล้มเหลว เพราะเป็นเรื่องปกติ
       // console.warn('Session validation failed:', error);
       return { success: false };
@@ -308,21 +312,24 @@ message: 'ออกจากระบบสำเร็จ' };
   /**
    * ตรวจสอบสถานะ Session แบบละเอียด
    */
-  async checkSessionStatus(): Promise<{ success: boolean; data?: { user: User; details: unknown } }> {
+  async checkSessionStatus(): Promise<{
+    success: boolean;
+    data?: { user: User; details: unknown };
+  }> {
     const sessionToken = sessionStorage.getItem('session_token');
-    
+
     if (!sessionToken) {
       return { success: false };
     }
 
     try {
-      const response = await this.request<{ success: boolean; data?: { user: User; details: unknown } }>(
-        '/api/auth/check-session-status',
-        {
-          method: 'POST',
-          body: JSON.stringify({ sessionToken }),
-        }
-      );
+      const response = await this.request<{
+        success: boolean;
+        data?: { user: User; details: unknown };
+      }>('/api/auth/check-session-status', {
+        method: 'POST',
+        body: JSON.stringify({ sessionToken }),
+      });
 
       return response;
     } catch {
@@ -339,7 +346,9 @@ message: 'ออกจากระบบสำเร็จ' };
    */
   async getCurrentUser(): Promise<{ success: boolean; data?: User }> {
     try {
-      const response = await this.request<{ success: boolean; data?: User }>('/api/auth/me');
+      const response = await this.request<{ success: boolean; data?: User }>(
+        '/api/auth/me'
+      );
       return response;
     } catch {
       return { success: false };
@@ -351,7 +360,9 @@ message: 'ออกจากระบบสำเร็จ' };
    */
   async getProfile(): Promise<{ success: boolean; data?: unknown }> {
     try {
-      const response = await this.request<{ success: boolean; data?: unknown }>('/api/auth/profile');
+      const response = await this.request<{ success: boolean; data?: unknown }>(
+        '/api/auth/profile'
+      );
       return response;
     } catch {
       return { success: false };
@@ -361,7 +372,9 @@ message: 'ออกจากระบบสำเร็จ' };
   /**
    * อัปเดต Profile
    */
-  async updateProfile(data: ProfileUpdateRequest): Promise<{ success: boolean; message: string }> {
+  async updateProfile(
+    data: ProfileUpdateRequest
+  ): Promise<{ success: boolean; message: string }> {
     const response = await this.request<{ success: boolean; message: string }>(
       '/api/auth/profile',
       {
@@ -376,7 +389,9 @@ message: 'ออกจากระบบสำเร็จ' };
   /**
    * เปลี่ยนรหัสผ่าน
    */
-  async changePassword(data: ChangePasswordRequest): Promise<{ success: boolean; message: string }> {
+  async changePassword(
+    data: ChangePasswordRequest
+  ): Promise<{ success: boolean; message: string }> {
     const response = await this.request<{ success: boolean; message: string }>(
       '/api/auth/change-password',
       {
@@ -404,7 +419,7 @@ message: 'ออกจากระบบสำเร็จ' };
    */
   getStoredUser(): User | null {
     if (typeof window === 'undefined') return null;
-    
+
     const userStr = sessionStorage.getItem('user');
     if (!userStr) return null;
 

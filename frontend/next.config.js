@@ -2,7 +2,7 @@
 const nextConfig = {
   // Server external packages (moved from experimental)
   serverExternalPackages: ['@prisma/client'],
-  
+
   // Turbopack configuration (moved from experimental)
   turbopack: {
     rules: {
@@ -12,14 +12,14 @@ const nextConfig = {
       },
     },
   },
-  
+
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  
+
   // Webpack configuration
   webpack: (config, { isServer }) => {
     // Optimize bundle size
@@ -31,10 +31,10 @@ const nextConfig = {
         tls: false,
       };
     }
-    
+
     return config;
   },
-  
+
   // Headers for security
   async headers() {
     return [
@@ -57,7 +57,7 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Redirects
   async redirects() {
     return [
@@ -69,21 +69,21 @@ const nextConfig = {
       // },
     ];
   },
-  
+
   // Environment variables
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
-  
+
   // Compiler options
   compiler: {
     // Remove console.log in production
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  
+
   // Output configuration
   output: 'standalone',
-  
+
   // Powered by header
   poweredByHeader: false,
 };

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api as apiClient } from '@/utils/api';
 import type { User } from '@/types';
 
@@ -13,9 +13,12 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
-   
-    // eslint-disable-next-line no-unused-vars
-  login: (email: string, password: string, authMethod?: 'local' | 'ldap') => Promise<boolean>;
+
+  login: (
+    email: string,
+    password: string,
+    authMethod?: 'local' | 'ldap'
+  ) => Promise<boolean>;
   // eslint-disable-next-line no-unused-vars
   loginLDAP: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -46,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ตรวจสอบข้อมูลผู้ใช้จาก sessionStorage ก่อน
       const storedUser = apiClient.getStoredUser();
       const hasToken = apiClient.isAuthenticated();
-      
+
       if (storedUser && hasToken) {
         setUser(storedUser);
         setLoading(false);
@@ -80,20 +83,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // AUTHENTICATION METHODS
   // ========================================
 
-  const login = async (email: string, password: string, authMethod: 'local' | 'ldap' = 'local'): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string,
+    authMethod: 'local' | 'ldap' = 'local'
+  ): Promise<boolean> => {
     setLoading(true);
     try {
-      const response = authMethod === 'ldap' 
-        ? await apiClient.loginLDAP({ username: email,
+      const response =
+        authMethod === 'ldap'
+          ? await apiClient.loginLDAP({ username: email,
 password })
-        : await apiClient.login({ email,
+          : await apiClient.login({ email,
 password,
 authMethod });
 
       if (response.success) {
         const userData = response.data?.user || response.user;
         const token = response.data?.token || response.accessToken;
-        const refreshToken = response.data?.refreshToken || response.refreshToken;
+        const refreshToken =
+          response.data?.refreshToken || response.refreshToken;
 
         if (userData && token && refreshToken) {
           // อัปเดตข้อมูลผู้ใช้จาก getUserInfo เพื่อให้ข้อมูลตรงกับ backend
@@ -101,7 +110,10 @@ authMethod });
             const currentUserResult = await apiClient.getCurrentUser();
             if (currentUserResult.success && currentUserResult.data) {
               setUser(currentUserResult.data);
-              sessionStorage.setItem('user', JSON.stringify(currentUserResult.data));
+              sessionStorage.setItem(
+                'user',
+                JSON.stringify(currentUserResult.data)
+              );
             } else {
               // ใช้ข้อมูลจาก login response ถ้า getUserInfo ไม่สำเร็จ
               setUser(userData);
@@ -132,7 +144,10 @@ authMethod });
     }
   };
 
-  const loginLDAP = async (username: string, password: string): Promise<boolean> => {
+  const loginLDAP = async (
+    username: string,
+    password: string
+  ): Promise<boolean> => {
     return login(username, password, 'ldap');
   };
 
@@ -152,11 +167,12 @@ authMethod });
   const refreshToken = async (): Promise<boolean> => {
     try {
       const response = await apiClient.refreshToken();
-      
+
       if (response.success) {
         const userData = response.data?.user || response.user;
         const token = response.data?.token || response.accessToken;
-        const refreshToken = response.data?.refreshToken || response.refreshToken;
+        const refreshToken =
+          response.data?.refreshToken || response.refreshToken;
 
         if (userData && token && refreshToken) {
           // อัปเดตข้อมูลผู้ใช้จาก getUserInfo เพื่อให้ข้อมูลตรงกับ backend
@@ -164,7 +180,10 @@ authMethod });
             const currentUserResult = await apiClient.getCurrentUser();
             if (currentUserResult.success && currentUserResult.data) {
               setUser(currentUserResult.data);
-              sessionStorage.setItem('user', JSON.stringify(currentUserResult.data));
+              sessionStorage.setItem(
+                'user',
+                JSON.stringify(currentUserResult.data)
+              );
             } else {
               // ใช้ข้อมูลจาก refresh response ถ้า getUserInfo ไม่สำเร็จ
               setUser(userData);
@@ -196,7 +215,7 @@ authMethod });
   const validateSession = async (): Promise<boolean> => {
     try {
       const response = await apiClient.validateSession();
-      
+
       if (response.success) {
         // รองรับทั้งรูปแบบเก่าและใหม่
         const userData = response.data?.user || response.user;
@@ -230,11 +249,7 @@ authMethod });
     validateSession,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // ========================================
@@ -244,7 +259,7 @@ authMethod });
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
