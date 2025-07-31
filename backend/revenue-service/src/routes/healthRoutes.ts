@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../utils/errorHandler';
 import { HealthService } from '../services/healthService';
 import { logger } from '../utils/logger';
@@ -8,7 +8,7 @@ const healthService = new HealthService();
 
 // GET /health - Health check endpoint
 router.get('/', 
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const startTime = Date.now();
     
     logger.info('Health check requested', { ip: req.ip });
@@ -20,12 +20,12 @@ router.get('/',
 
     const statusCode = healthStatus.status === 'healthy' ? 200 : 503;
     res.status(statusCode).json(healthStatus);
-  })
+  }),
 );
 
 // GET /health/ready - Readiness check
 router.get('/ready',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const startTime = Date.now();
     
     logger.info('Readiness check requested', { ip: req.ip });
@@ -37,12 +37,12 @@ router.get('/ready',
 
     const statusCode = readinessStatus.ready ? 200 : 503;
     res.status(statusCode).json(readinessStatus);
-  })
+  }),
 );
 
 // GET /health/live - Liveness check
 router.get('/live',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const startTime = Date.now();
     
     logger.info('Liveness check requested', { ip: req.ip });
@@ -53,12 +53,12 @@ router.get('/live',
     logger.api('GET', '/health/live', 200, duration);
 
     res.json(livenessStatus);
-  })
+  }),
 );
 
 // GET /health/detailed - Detailed health information
 router.get('/detailed',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const startTime = Date.now();
     
     logger.info('Detailed health check requested', { ip: req.ip });
@@ -69,7 +69,7 @@ router.get('/detailed',
     logger.api('GET', '/health/detailed', 200, duration);
 
     res.json(detailedHealth);
-  })
+  }),
 );
 
 export default router; 

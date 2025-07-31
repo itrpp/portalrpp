@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
 // Validation middleware สำหรับตรวจสอบ Content-Type
-export const validationMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+export const validationMiddleware = (req: Request, res: Response, next: NextFunction): void | Response => {
   // ตรวจสอบ Content-Type สำหรับ POST และ PUT requests
   if ((req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') && req.body) {
     const contentType = req.get('Content-Type');
@@ -68,7 +68,7 @@ export const validationMiddleware = (req: Request, res: Response, next: NextFunc
 };
 
 // Middleware สำหรับตรวจสอบ query parameters
-export const validateQueryParams = (req: Request, res: Response, next: NextFunction): void => {
+export const validateQueryParams = (req: Request, res: Response, next: NextFunction): void | Response => {
   const { page, limit, sortOrder } = req.query;
 
   // ตรวจสอบ page parameter
@@ -99,7 +99,7 @@ export const validateQueryParams = (req: Request, res: Response, next: NextFunct
   if (sortOrder !== undefined && !['asc', 'desc'].includes(sortOrder as string)) {
     return res.status(400).json({
       success: false,
-      error: 'ลำดับการเรียงต้องเป็น asc หรือ desc',
+      error: 'ลำดับการเรียงลำดับต้องเป็น asc หรือ desc',
       timestamp: new Date().toISOString(),
     });
   }
@@ -108,7 +108,7 @@ export const validateQueryParams = (req: Request, res: Response, next: NextFunct
 };
 
 // Middleware สำหรับตรวจสอบ date parameters
-export const validateDateParams = (req: Request, res: Response, next: NextFunction): void => {
+export const validateDateParams = (req: Request, res: Response, next: NextFunction): void | Response => {
   const { dateFrom, dateTo } = req.query;
 
   // ตรวจสอบ dateFrom
@@ -163,7 +163,7 @@ export const validateDateParams = (req: Request, res: Response, next: NextFuncti
 };
 
 // Middleware สำหรับตรวจสอบ amount parameters
-export const validateAmountParams = (req: Request, res: Response, next: NextFunction): void => {
+export const validateAmountParams = (req: Request, res: Response, next: NextFunction): void | Response => {
   const { minAmount, maxAmount } = req.query;
 
   // ตรวจสอบ minAmount
@@ -208,7 +208,7 @@ export const validateAmountParams = (req: Request, res: Response, next: NextFunc
 };
 
 // Middleware สำหรับตรวจสอบ search parameter
-export const validateSearchParam = (req: Request, res: Response, next: NextFunction): void => {
+export const validateSearchParam = (req: Request, res: Response, next: NextFunction): void | Response => {
   const { search } = req.query;
 
   if (search !== undefined) {
@@ -238,7 +238,7 @@ export const validateSearchParam = (req: Request, res: Response, next: NextFunct
 };
 
 // Middleware สำหรับตรวจสอบ ID parameter
-export const validateIdParam = (req: Request, res: Response, next: NextFunction): void => {
+export const validateIdParam = (req: Request, res: Response, next: NextFunction): void | Response => {
   const { id } = req.params;
 
   if (!id) {

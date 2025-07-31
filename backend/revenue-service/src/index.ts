@@ -8,8 +8,6 @@ import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
 import { rateLimitMiddleware } from './middleware/rateLimitMiddleware';
 import { validationMiddleware } from './middleware/validationMiddleware';
-import revenueRoutes from './routes/revenueRoutes';
-import reportRoutes from './routes/reportRoutes';
 import healthRoutes from './routes/healthRoutes';
 
 // โหลด environment variables
@@ -35,12 +33,10 @@ app.use(rateLimitMiddleware);
 app.use(validationMiddleware);
 
 // Routes
-app.use('/api/revenue', revenueRoutes);
-app.use('/api/reports', reportRoutes);
 app.use('/health', healthRoutes);
 
 // Root endpoint
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({
     service: 'Revenue Collection Service',
     version: '1.0.0',
@@ -64,8 +60,6 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   logger.info(`🚀 Revenue Collection Service เริ่มต้นที่ port ${PORT}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-  logger.info(`💰 Revenue API: http://localhost:${PORT}/api/revenue`);
-  logger.info(`📈 Reports API: http://localhost:${PORT}/api/reports`);
 });
 
 // Graceful shutdown

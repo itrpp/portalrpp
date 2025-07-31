@@ -79,8 +79,8 @@ PORT=3005
 # API Gateway URL (สำหรับการเรียกใช้ API Gateway)
 API_GATEWAY_URL=http://localhost:3001
 
-# Database Service URL (สำหรับการเรียกใช้ Database Service ผ่าน API Gateway)
-DATABASE_SERVICE_URL=http://localhost:3001/api/db
+# Database URL (สำหรับการเรียกใช้ Database ผ่าน API Gateway)
+DATABASE_URL=http://localhost:3001/api/db
 
 # Authentication Service URL (สำหรับการตรวจสอบ token)
 AUTH_SERVICE_URL=http://localhost:3001/api/auth
@@ -309,7 +309,7 @@ npm run format              # จัดรูปแบบโค้ดด้ว�
 - ส่งต่อ requests ไปยัง Database Service
 - ตรวจสอบ authentication ผ่าน Auth Service
 
-### Database Service
+### Database
 - เรียกใช้ผ่าน API Gateway
 - CRUD operations สำหรับ revenue collections
 - Report generation และ storage
@@ -355,9 +355,9 @@ npm run test:e2e
 
 ### Common Issues
 
-#### Service ไม่สามารถเชื่อมต่อกับ Database Service
+#### Service ไม่สามารถเชื่อมต่อกับ Database
 ```cmd
-# ตรวจสอบ Database Service
+# ตรวจสอบ Database
 curl http://localhost:3001/api/db/health
 
 # ตรวจสอบ logs

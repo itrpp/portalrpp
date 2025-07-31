@@ -31,7 +31,7 @@ frontend/
 - **เรียก API ผ่าน API Gateway เท่านั้น** - ห้ามเรียก service โดยตรง
 - ใช้ URL: `http://localhost:3001` สำหรับทุก API calls
 - ตัวอย่าง: `/api/auth/login` → `http://localhost:3001/api/auth/login`
-- **ห้ามเรียก**: `http://localhost:3002`, `http://localhost:3003`, `http://localhost:3004` โดยตรง
+- **ห้ามเรียก**: `http://localhost:3002`, `http://localhost:3003` โดยตรง
 
 ## 🎨 UI/UX Guidelines
 
@@ -279,7 +279,6 @@ npm run test:coverage   # รัน tests พร้อม coverage report
 - **API Gateway**: http://localhost:3001
 - **Auth Service**: http://localhost:3002
 - **User Service**: http://localhost:3003
-- **Database Service**: http://localhost:3004
 
 ---
 

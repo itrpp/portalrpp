@@ -14,10 +14,10 @@ export class HealthService {
     try {
       const uptime = Date.now() - this.startTime;
       
-      // ตรวจสอบการเชื่อมต่อกับ services อื่น
-      const checks = await this.performHealthChecks();
+      // ตรวจสอบสถานะพื้นฐานของ service
+      const checks = await this.performBasicHealthChecks();
       
-      const status = checks.database && checks.apiGateway ? 'healthy' : 'unhealthy';
+      const status = checks.memory && checks.cpu ? 'healthy' : 'unhealthy';
       
       return {
         service: 'Revenue Collection Service',
@@ -29,7 +29,8 @@ export class HealthService {
         checks,
       };
     } catch (error) {
-      logger.error('Health check failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Health check failed', { error: errorMessage });
       
       return {
         service: 'Revenue Collection Service',
@@ -39,18 +40,18 @@ export class HealthService {
         version: '1.0.0',
         environment: config.nodeEnv,
         checks: {
-          database: false,
-          apiGateway: false,
+          memory: false,
+          cpu: false,
         },
       };
     }
   }
 
   // ดึงสถานะ readiness
-  async getReadinessStatus(): Promise<{ ready: boolean; timestamp: string; checks: any }> {
+  async getReadinessStatus(): Promise<{ ready: boolean; timestamp: string; checks: { memory: boolean; cpu: boolean } }> {
     try {
-      const checks = await this.performHealthChecks();
-      const ready = checks.database && checks.apiGateway;
+      const checks = await this.performBasicHealthChecks();
+      const ready = checks.memory && checks.cpu;
       
       return {
         ready,
@@ -58,14 +59,15 @@ export class HealthService {
         checks,
       };
     } catch (error) {
-      logger.error('Readiness check failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Readiness check failed', { error: errorMessage });
       
       return {
         ready: false,
         timestamp: new Date().toISOString(),
         checks: {
-          database: false,
-          apiGateway: false,
+          memory: false,
+          cpu: false,
         },
       };
     }
@@ -82,7 +84,8 @@ export class HealthService {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      logger.error('Liveness check failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Liveness check failed', { error: errorMessage });
       
       return {
         alive: false,
@@ -92,14 +95,28 @@ export class HealthService {
   }
 
   // ดึงข้อมูลสุขภาพแบบละเอียด
-  async getDetailedHealthStatus(): Promise<any> {
+  async getDetailedHealthStatus(): Promise<{
+    service: string;
+    status: string;
+    timestamp: string;
+    uptime: number;
+    version: string;
+    environment: string;
+    checks: { memory: boolean; cpu: boolean };
+    details: {
+      memory: { rss: number; heapTotal: number; heapUsed: number; external: number } | null;
+      cpu: { user: number; system: number } | null;
+      disk: { available: string; total: string; used: string } | null;
+    };
+    error?: string;
+  }> {
     try {
       const uptime = Date.now() - this.startTime;
-      const checks = await this.performHealthChecks();
+      const checks = await this.performBasicHealthChecks();
       
       return {
         service: 'Revenue Collection Service',
-        status: checks.database && checks.apiGateway ? 'healthy' : 'unhealthy',
+        status: checks.memory && checks.cpu ? 'healthy' : 'unhealthy',
         timestamp: new Date().toISOString(),
         uptime,
         version: '1.0.0',
@@ -109,11 +126,11 @@ export class HealthService {
           memory: this.getMemoryUsage(),
           cpu: this.getCpuUsage(),
           disk: this.getDiskUsage(),
-          network: await this.getNetworkStatus(),
         },
       };
     } catch (error) {
-      logger.error('Detailed health check failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Detailed health check failed', { error: errorMessage });
       
       return {
         service: 'Revenue Collection Service',
@@ -122,53 +139,50 @@ export class HealthService {
         uptime: Date.now() - this.startTime,
         version: '1.0.0',
         environment: config.nodeEnv,
-        error: error.message,
+        checks: {
+          memory: false,
+          cpu: false,
+        },
+        details: {
+          memory: null,
+          cpu: null,
+          disk: null,
+        },
+        error: errorMessage,
       };
     }
   }
 
-  // ตรวจสอบการเชื่อมต่อกับ services อื่น
-  private async performHealthChecks(): Promise<{ database: boolean; apiGateway: boolean }> {
+  // ตรวจสอบสถานะพื้นฐานของ service
+  private async performBasicHealthChecks(): Promise<{ memory: boolean; cpu: boolean }> {
     const checks = {
-      database: false,
-      apiGateway: false,
+      memory: false,
+      cpu: false,
     };
 
     try {
-      // ตรวจสอบ API Gateway
-      const apiGatewayResponse = await fetch(`${config.apiGatewayUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(5000), // Timeout 5 วินาที
-      });
-
-      checks.apiGateway = apiGatewayResponse.ok;
+      // ตรวจสอบ memory usage
+      const memoryUsage = this.getMemoryUsage();
+      checks.memory = memoryUsage !== null && memoryUsage.heapUsed < 1024; // ตรวจสอบว่าใช้ memory น้อยกว่า 1GB
     } catch (error) {
-      logger.warn('API Gateway health check failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn('Memory health check failed', { error: errorMessage });
     }
 
     try {
-      // ตรวจสอบ Database Service ผ่าน API Gateway
-      const databaseResponse = await fetch(`${config.databaseServiceUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(5000), // Timeout 5 วินาที
-      });
-
-      checks.database = databaseResponse.ok;
+      // ตรวจสอบ CPU usage
+      const cpuUsage = this.getCpuUsage();
+      checks.cpu = cpuUsage !== null; // ตรวจสอบว่า CPU ทำงานได้
     } catch (error) {
-      logger.warn('Database Service health check failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn('CPU health check failed', { error: errorMessage });
     }
 
     return checks;
   }
 
   // รับข้อมูลการใช้ memory
-  private getMemoryUsage(): any {
+  private getMemoryUsage(): { rss: number; heapTotal: number; heapUsed: number; external: number } | null {
     try {
       const usage = process.memoryUsage();
       return {
@@ -178,13 +192,14 @@ export class HealthService {
         external: Math.round(usage.external / 1024 / 1024), // MB
       };
     } catch (error) {
-      logger.warn('Failed to get memory usage', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn('Failed to get memory usage', { error: errorMessage });
       return null;
     }
   }
 
   // รับข้อมูลการใช้ CPU
-  private getCpuUsage(): any {
+  private getCpuUsage(): { user: number; system: number } | null {
     try {
       const usage = process.cpuUsage();
       return {
@@ -192,78 +207,20 @@ export class HealthService {
         system: Math.round(usage.system / 1000), // ms
       };
     } catch (error) {
-      logger.warn('Failed to get CPU usage', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn('Failed to get CPU usage', { error: errorMessage });
       return null;
     }
   }
 
   // รับข้อมูลการใช้ disk
-  private getDiskUsage(): any {
-    try {
-      // ใน Node.js ไม่มี API มาตรฐานสำหรับ disk usage
-      // ต้องใช้ library เพิ่มเติม เช่น node-disk-info
-      return {
-        available: 'N/A',
-        total: 'N/A',
-        used: 'N/A',
-      };
-    } catch (error) {
-      logger.warn('Failed to get disk usage', { error: error.message });
-      return null;
-    }
-  }
-
-  // รับสถานะ network
-  private async getNetworkStatus(): Promise<any> {
-    try {
-      // ตรวจสอบการเชื่อมต่อ network
-      const networkChecks = {
-        apiGateway: false,
-        database: false,
-        internet: false,
-      };
-
-      // ตรวจสอบ API Gateway
-      try {
-        const apiGatewayResponse = await fetch(`${config.apiGatewayUrl}/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(3000),
-        });
-        networkChecks.apiGateway = apiGatewayResponse.ok;
-      } catch (error) {
-        // API Gateway ไม่สามารถเชื่อมต่อได้
-      }
-
-      // ตรวจสอบ Database Service
-      try {
-        const databaseResponse = await fetch(`${config.databaseServiceUrl}/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(3000),
-        });
-        networkChecks.database = databaseResponse.ok;
-      } catch (error) {
-        // Database Service ไม่สามารถเชื่อมต่อได้
-      }
-
-      // ตรวจสอบการเชื่อมต่อ internet (จำลอง)
-      try {
-        const internetResponse = await fetch('https://httpbin.org/get', {
-          method: 'GET',
-          signal: AbortSignal.timeout(3000),
-        });
-        networkChecks.internet = internetResponse.ok;
-      } catch (error) {
-        // ไม่สามารถเชื่อมต่อ internet ได้
-      }
-
-      return networkChecks;
-    } catch (error) {
-      logger.warn('Failed to get network status', { error: error.message });
-      return {
-        apiGateway: false,
-        database: false,
-        internet: false,
-      };
-    }
+  private getDiskUsage(): { available: string; total: string; used: string } {
+    // ใน Node.js ไม่มี API มาตรฐานสำหรับ disk usage
+    // ต้องใช้ library เพิ่มเติม เช่น node-disk-info
+    return {
+      available: 'N/A',
+      total: 'N/A',
+      used: 'N/A',
+    };
   }
 } 

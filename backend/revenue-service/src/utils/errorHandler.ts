@@ -57,7 +57,6 @@ export const errorHandler = (
   error: Error | RevenueError,
   req: Request,
   res: Response,
-  next: NextFunction
 ): void => {
   let statusCode = 500;
   let message = 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์';
@@ -93,7 +92,7 @@ export const errorHandler = (
     method: req.method,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
-    userId: (req as any).user?.id,
+    userId: (req as Request & { user?: { id: string } }).user?.id,
   };
 
   if (isOperational) {
@@ -110,8 +109,8 @@ export const errorHandler = (
   };
 
   // Include stack trace in development
-  if (process.env.NODE_ENV === 'development') {
-    (response as any).stack = error.stack;
+  if (process.env['NODE_ENV'] === 'development') {
+    (response as ApiResponse & { stack?: string | undefined }).stack = error.stack || undefined;
   }
 
   res.status(statusCode).json(response);
@@ -130,7 +129,7 @@ export const createValidationError = (field: string, message: string): Validatio
 };
 
 // Database error helper
-export const createDatabaseError = (operation: string, error: any): DatabaseError => {
+export const createDatabaseError = (operation: string, error: Error): DatabaseError => {
   const message = `Database ${operation} failed: ${error.message}`;
   return new DatabaseError(message);
 };

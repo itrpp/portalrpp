@@ -39,7 +39,7 @@ const writeLog = (level: LogLevel, message: string, meta?: any) => {
   const formattedMessage = formatMessage(level, message, meta);
   
   // Write to console
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env['NODE_ENV'] !== 'test') {
     console.log(formattedMessage);
   }
   
