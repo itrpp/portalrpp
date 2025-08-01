@@ -8,7 +8,7 @@ import {
   EnvelopeIcon,
   MapPinIcon,
   GlobeAltIcon,
-} from '../icons';
+} from '../ui/Icons';
 
 export default function LandingFooter() {
   const currentYear = new Date().getFullYear();

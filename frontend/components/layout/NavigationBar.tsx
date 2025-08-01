@@ -29,7 +29,7 @@ import {
   XMarkIcon,
   SunIcon,
   MoonIcon,
-} from '../icons';
+} from '../ui/Icons';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -91,11 +91,10 @@ export default function NavigationBar() {
           <NavbarItem key={item.href} isActive={isActive(item.href)}>
             <Link
               href={item.href}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-                isActive(item.href)
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${isActive(item.href)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-foreground hover:text-primary'
-              }`}
+                }`}
             >
               <item.icon className='w-5 h-5' />
               <span>{item.name}</span>
@@ -178,11 +177,10 @@ export default function NavigationBar() {
           <NavbarMenuItem key={item.href}>
             <Link
               href={item.href}
-              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-lg ${
-                isActive(item.href)
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-lg ${isActive(item.href)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-foreground hover:text-primary'
-              }`}
+                }`}
               onClick={() => setIsMenuOpen(false)}
             >
               <item.icon className='w-5 h-5' />

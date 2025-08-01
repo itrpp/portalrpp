@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { Button, Card, CardBody } from '@heroui/react';
-import { ExclamationTriangleIcon, ArrowPathIcon } from '@/components/icons';
+import { ExclamationTriangleIcon, ArrowPathIcon } from '@/components/ui/Icons';
 
 export default function Error({
   error,

@@ -11,7 +11,7 @@ import {
   ServerIcon,
   ArrowRightIcon,
   UserIcon,
-} from '@/components/icons';
+} from '@/components/ui/Icons';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -117,14 +117,14 @@ function HomeContent() {
               >
                 {isClient && currentTime
                   ? currentTime.toLocaleString('th-TH', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })
                   : 'กำลังโหลด...'}
               </span>
             </div>

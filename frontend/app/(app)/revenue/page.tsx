@@ -42,7 +42,7 @@ import {
   CurrencyDollarIcon,
   UsersIcon,
   CalendarIcon,
-} from '@/components/icons';
+} from '@/components/ui/Icons';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { CalendarDate } from '@internationalized/date';
@@ -90,86 +90,85 @@ export default function RevenuePage() {
     notes: '',
   });
 
-  // ข้อมูลจำลอง
-  const mockRevenues: RevenueCollection[] = [
-    {
-      id: '1',
-      referenceNumber: 'REV-20241201-00001',
-      category: 'TAX',
-      amount: 5000,
-      currency: 'THB',
-      paymentMethod: 'CASH',
-      payerName: 'บริษัท เอ จำกัด',
-      payerType: 'COMPANY',
-      description: 'ภาษีมูลค่าเพิ่ม',
-      collectionDate: '2024-12-01',
-      status: 'COLLECTED',
-      receiptNumber: 'R001',
-    },
-    {
-      id: '2',
-      referenceNumber: 'REV-20241201-00002',
-      category: 'FEE',
-      amount: 2000,
-      currency: 'THB',
-      paymentMethod: 'TRANSFER',
-      payerName: 'นายสมชาย ใจดี',
-      payerType: 'INDIVIDUAL',
-      description: 'ค่าธรรมเนียมการบริการ',
-      collectionDate: '2024-12-01',
-      status: 'PENDING',
-    },
-    {
-      id: '3',
-      referenceNumber: 'REV-20241201-00003',
-      category: 'FINE',
-      amount: 1500,
-      currency: 'THB',
-      paymentMethod: 'CREDIT_CARD',
-      payerName: 'บริษัท บี จำกัด',
-      payerType: 'COMPANY',
-      description: 'ค่าปรับการละเมิด',
-      collectionDate: '2024-12-01',
-      status: 'COLLECTED',
-      receiptNumber: 'R002',
-    },
-  ];
-
-  const mockSummary: RevenueSummary = {
-    totalAmount: 8500,
-    totalCount: 3,
-    byCategory: {
-      TAX: {
-        amount: 5000,
-        count: 1,
-      },
-      FEE: {
-        amount: 2000,
-        count: 1,
-      },
-      FINE: {
-        amount: 1500,
-        count: 1,
-      },
-    },
-    byPaymentMethod: {
-      CASH: {
-        amount: 5000,
-        count: 1,
-      },
-      TRANSFER: {
-        amount: 2000,
-        count: 1,
-      },
-      CREDIT_CARD: {
-        amount: 1500,
-        count: 1,
-      },
-    },
-  };
-
   useEffect(() => {
     // จำลองการโหลดข้อมูล
+    const mockRevenues: RevenueCollection[] = [
+      {
+        id: '1',
+        referenceNumber: 'REV-20241201-00001',
+        category: 'TAX',
+        amount: 5000,
+        currency: 'THB',
+        paymentMethod: 'CASH',
+        payerName: 'บริษัท เอ จำกัด',
+        payerType: 'COMPANY',
+        description: 'ภาษีมูลค่าเพิ่ม',
+        collectionDate: '2024-12-01',
+        status: 'COLLECTED',
+        receiptNumber: 'R001',
+      },
+      {
+        id: '2',
+        referenceNumber: 'REV-20241201-00002',
+        category: 'FEE',
+        amount: 2000,
+        currency: 'THB',
+        paymentMethod: 'TRANSFER',
+        payerName: 'นายสมชาย ใจดี',
+        payerType: 'INDIVIDUAL',
+        description: 'ค่าธรรมเนียมการบริการ',
+        collectionDate: '2024-12-01',
+        status: 'PENDING',
+      },
+      {
+        id: '3',
+        referenceNumber: 'REV-20241201-00003',
+        category: 'FINE',
+        amount: 1500,
+        currency: 'THB',
+        paymentMethod: 'CREDIT_CARD',
+        payerName: 'บริษัท บี จำกัด',
+        payerType: 'COMPANY',
+        description: 'ค่าปรับการละเมิด',
+        collectionDate: '2024-12-01',
+        status: 'COLLECTED',
+        receiptNumber: 'R002',
+      },
+    ];
+
+    const mockSummary: RevenueSummary = {
+      totalAmount: 8500,
+      totalCount: 3,
+      byCategory: {
+        TAX: {
+          amount: 5000,
+          count: 1,
+        },
+        FEE: {
+          amount: 2000,
+          count: 1,
+        },
+        FINE: {
+          amount: 1500,
+          count: 1,
+        },
+      },
+      byPaymentMethod: {
+        CASH: {
+          amount: 5000,
+          count: 1,
+        },
+        TRANSFER: {
+          amount: 2000,
+          count: 1,
+        },
+        CREDIT_CARD: {
+          amount: 1500,
+          count: 1,
+        },
+      },
+    };
+
     setTimeout(() => {
       setRevenues(mockRevenues);
       setSummary(mockSummary);
@@ -231,7 +230,7 @@ export default function RevenuePage() {
     };
     const config =
       statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
-    return <Chip color={config.color as any}>{config.text}</Chip>;
+    return <Chip color={config.color as 'warning' | 'success' | 'danger' | 'default'}>{config.text}</Chip>;
   };
 
   const getCategoryName = (category: string) => {
@@ -800,20 +799,20 @@ export default function RevenuePage() {
                     >
                       {newRevenue.collectionDate
                         ? format(newRevenue.collectionDate.toDate('Asia/Bangkok'), 'PPP', {
-                            locale: th,
-                          })
+                          locale: th,
+                        })
                         : 'เลือกวันที่'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent>
                     <Calendar
                       value={newRevenue.collectionDate}
-                                              onChange={(date) =>
-                          setNewRevenue({
-                            ...newRevenue,
-                            collectionDate: date || new CalendarDate(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()),
-                          })
-                        }
+                      onChange={(date) =>
+                        setNewRevenue({
+                          ...newRevenue,
+                          collectionDate: date || new CalendarDate(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()),
+                        })
+                      }
                     />
                   </PopoverContent>
                 </Popover>

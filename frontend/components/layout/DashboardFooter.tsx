@@ -1,14 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
-import {
-  BuildingOffice2Icon,
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
-  GlobeAltIcon,
-} from '../icons';
+
+
 
 export default function DashboardFooter() {
   const currentYear = new Date().getFullYear();

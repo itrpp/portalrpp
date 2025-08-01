@@ -24,7 +24,7 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ArrowRightOnRectangleIcon,
-} from '@/components/icons';
+} from '@/components/ui/Icons';
 
 export default function LoginPage() {
   const router = useRouter();

@@ -15,7 +15,7 @@ import {
   ArrowDownTrayIcon,
   ChevronRightIcon,
   ArrowUpTrayIcon,
-} from '../icons';
+} from '../ui/Icons';
 
 interface SidebarItem {
   name: string;
@@ -172,16 +172,14 @@ export default function Sidebar() {
         {item.href === '#' ? (
           <Button
             variant='light'
-            className={`sidebar-item w-full justify-start h-10 group ${
-              isItemActive ? 'active' : ''
-            }`}
+            className={`sidebar-item w-full justify-start h-10 group ${isItemActive ? 'active' : ''
+              }`}
             startContent={
               <item.icon
-                className={`w-4 h-4 transition-colors ${
-                  isItemActive
+                className={`w-4 h-4 transition-colors ${isItemActive
                     ? 'text-white'
                     : 'text-default-600 group-hover:text-primary-500'
-                }`}
+                  }`}
               />
             }
             endContent={
@@ -198,9 +196,8 @@ export default function Sidebar() {
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${
-                      isExpanded ? 'rotate-90' : ''
-                    }`}
+                    className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''
+                      }`}
                   />
                 )}
               </div>
@@ -245,16 +242,14 @@ export default function Sidebar() {
             as={HeroUILink}
             href={item.href}
             variant='light'
-            className={`sidebar-item w-full justify-start h-10 group ${
-              isItemActive ? 'active' : ''
-            }`}
+            className={`sidebar-item w-full justify-start h-10 group ${isItemActive ? 'active' : ''
+              }`}
             startContent={
               <item.icon
-                className={`w-4 h-4 transition-colors ${
-                  isItemActive
+                className={`w-4 h-4 transition-colors ${isItemActive
                     ? 'text-white'
                     : 'text-default-600 group-hover:text-primary-500'
-                }`}
+                  }`}
               />
             }
             endContent={
@@ -271,9 +266,8 @@ export default function Sidebar() {
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${
-                      isExpanded ? 'rotate-90' : ''
-                    }`}
+                    className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''
+                      }`}
                   />
                 )}
               </div>

@@ -190,6 +190,13 @@ router.get('/sessions/user/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
 
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ userId',
+      });
+    }
+
     logger.admin('Admin user sessions request', { adminId: req.user?.id, userId });
 
     const sessions = await AdminService.getUserSessions(userId);
@@ -216,6 +223,13 @@ router.get('/sessions/user/:userId', async (req: Request, res: Response) => {
 router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ sessionId',
+      });
+    }
 
     logger.admin('Admin delete session request', { adminId: req.user?.id, sessionId });
 
@@ -249,6 +263,13 @@ router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
 router.delete('/sessions/user/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ userId',
+      });
+    }
 
     logger.admin('Admin delete all user sessions request', { adminId: req.user?.id, userId });
 
@@ -311,6 +332,13 @@ router.get('/users/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
 
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ userId',
+      });
+    }
+
     logger.admin('Admin user info request', { adminId: req.user?.id, userId });
 
     const userInfo = await AdminService.getUserInfo(userId);
@@ -350,6 +378,13 @@ router.patch(
     try {
       const { userId } = req.params;
       const { isActive } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'กรุณาระบุ userId',
+        });
+      }
 
       // ตรวจสอบข้อมูลที่จำเป็น
       if (typeof isActive !== 'boolean') {
@@ -396,6 +431,13 @@ router.patch(
       const { userId } = req.params;
       const { role } = req.body;
 
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'กรุณาระบุ userId',
+        });
+      }
+
       // ตรวจสอบข้อมูลที่จำเป็น
       if (!role || typeof role !== 'string') {
         return ErrorHandler.createValidationError(res, 'กรุณาระบุบทบาท role');
@@ -434,6 +476,13 @@ router.patch(
 router.delete('/users/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ userId',
+      });
+    }
 
     logger.admin('Admin delete user request', { adminId: req.user?.id, userId });
 
@@ -616,6 +665,13 @@ router.delete('/sessions/ip/:ipAddress', async (req: Request, res: Response) => 
   try {
     const { ipAddress } = req.params;
 
+    if (!ipAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ ipAddress',
+      });
+    }
+
     logger.admin('Admin delete sessions by IP request', { adminId: req.user?.id, ipAddress });
 
     const result = await AdminService.deleteSessionsByIP(ipAddress);
@@ -649,6 +705,13 @@ router.delete('/sessions/ip/:ipAddress', async (req: Request, res: Response) => 
 router.delete('/login-attempts/ip/:ipAddress', async (req: Request, res: Response) => {
   try {
     const { ipAddress } = req.params;
+
+    if (!ipAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ ipAddress',
+      });
+    }
 
     logger.admin('Admin delete login attempts by IP request', { adminId: req.user?.id, ipAddress });
 
@@ -870,7 +933,7 @@ router.get('/debug/database', async (req: Request, res: Response) => {
     }, {} as Record<string, number>);
 
     const topIPs = Object.entries(ipAddresses)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([ip, count]) => ({ ip, count }));
 

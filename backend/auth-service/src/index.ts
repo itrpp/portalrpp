@@ -45,7 +45,10 @@ export function getClientIP(req: express.Request): string {
 
   // If x-forwarded-for contains multiple IPs, take the first one
   if (clientIP && clientIP.includes(',')) {
-    clientIP = clientIP.split(',')[0].trim();
+    const firstIP = clientIP.split(',')[0];
+    if (firstIP) {
+      clientIP = firstIP.trim();
+    }
   }
 
   // Handle IPv6 format

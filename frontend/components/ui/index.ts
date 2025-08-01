@@ -4,3 +4,6 @@ export {
   ThemeProvider,
   useCustomTheme,
 } from './ThemeToggle';
+
+// Icons
+export * from './Icons';

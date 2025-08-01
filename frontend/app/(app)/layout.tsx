@@ -2,8 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Sidebar } from '@/components/navigation';
-import { DashboardFooter } from '@/components/layout';
+import { Sidebar, DashboardFooter } from '@/components/layout';
 import {
   Breadcrumbs,
   BreadcrumbItem,
@@ -20,7 +19,7 @@ import {
   UserIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
-} from '@/components/icons';
+} from '@/components/ui/Icons';
 import { ThemeToggle } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -50,7 +49,7 @@ export default function DashboardLayout({
     ];
 
     let currentPath = '';
-    segments.forEach((segment, index) => {
+    segments.forEach((segment) => {
       currentPath += `/${segment}`;
 
       // แปลงชื่อ segment เป็นภาษาไทย

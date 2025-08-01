@@ -13,7 +13,7 @@ import {
   BellIcon,
   ClockIcon,
   CheckCircleIcon,
-} from '@/components/icons';
+} from '@/components/ui/Icons';
 
 function DashboardContent() {
   const router = useRouter();
