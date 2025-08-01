@@ -7,8 +7,10 @@ import { IconSvgProps } from '@/types';
 export const Logo: React.FC<IconSvgProps> = ({ size = 36, width, height }) => (
   <div
     className='w-12 h-12 bg-gradient-to-br from-green-400 to-yellow-400 rounded-full flex items-center justify-center'
-    style={{ width: size || width,
-height: size || height }}
+    style={{
+      width: size || width,
+      height: size || height
+    }}
   >
     <span className='text-white font-bold text-sm'>RPP</span>
   </div>
@@ -1257,6 +1259,167 @@ export const CurrencyDollarIcon = ({
   return (
     <Icon
       icon='heroicons:currency-dollar'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// File Text Icon สำหรับไฟล์ DBF
+export const FileTextIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:document-text'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Upload Icon สำหรับอัปโหลดไฟล์
+export const UploadIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:arrow-up-tray'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Download Icon สำหรับดาวน์โหลดไฟล์
+export const DownloadIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:arrow-down-tray'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Settings Icon สำหรับการตั้งค่า
+export const SettingsIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:cog-6-tooth'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Play Icon สำหรับเริ่มการประมวลผล
+export const PlayIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:play'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// X Circle Icon สำหรับข้อผิดพลาด
+export const XCircleIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:x-circle'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Alert Circle Icon สำหรับคำเตือน
+export const AlertCircleIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:exclamation-circle'
       className={className}
       {...iconProps}
       {...props}

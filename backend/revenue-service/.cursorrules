@@ -1,0 +1,433 @@
+# ========================================
+# Cursor Rules สำหรับ Revenue Service
+# ========================================
+
+## 🎯 เป้าหมายหลัก
+Revenue Service เป็น service สำหรับจัดการรายได้/ค่าใช้จ่าย และ DBF file management ต้องมีความแม่นยำสูง ตรวจสอบได้ และรองรับการประมวลผลข้อมูลจำนวนมาก
+
+## 💰 Revenue Management
+
+### หลักการออกแบบ
+- **Revenue Tracking**: จัดการรายได้และค่าใช้จ่าย
+- **Category Management**: จัดกลุ่มรายได้/ค่าใช้จ่าย
+- **Reporting & Analytics**: สร้างรายงานและวิเคราะห์ข้อมูล
+- **Data Validation**: ตรวจสอบความถูกต้องของข้อมูล
+- **Audit Trail**: เก็บประวัติการเปลี่ยนแปลง
+- **Multi-Currency Support**: รองรับสกุลเงินหลายประเภท
+
+### Revenue Flow
+```
+Client Request → Revenue Service → Validation → Processing → Database → Response
+                ↓
+            Business Logic:
+            - Revenue Calculation
+            - Category Classification
+            - Data Validation
+            - Report Generation
+            - Export/Import
+```
+
+## 📊 DBF File Management
+
+### หลักการออกแบบ
+- **File Upload**: รองรับการอัปโหลดไฟล์ DBF
+- **Data Processing**: ประมวลผลข้อมูลตามเงื่อนไข
+- **Condition Management**: จัดการเงื่อนไขการอัปเดต
+- **Export Functionality**: ส่งออกไฟล์ที่ประมวลผลแล้ว
+- **Batch Processing**: ประมวลผลไฟล์หลายไฟล์พร้อมกัน
+- **Data Validation**: ตรวจสอบความถูกต้องของข้อมูล
+
+### DBF Processing Flow
+```
+File Upload → Schema Analysis → Data Validation → Condition Processing → Export → Response
+                ↓
+            Processing Steps:
+            - File Format Validation
+            - Schema Extraction
+            - Data Parsing
+            - Condition Application
+            - Data Transformation
+            - Export Generation
+```
+
+## 🛡️ Security Best Practices
+
+### Data Security
+- ใช้ input validation สำหรับข้อมูลทางการเงิน
+- ตรวจสอบ file upload security
+- ใช้ proper authentication
+- เก็บ audit logs
+- ใช้ data encryption เมื่อจำเป็น
+
+### File Security
+- ตรวจสอบ file type และ size
+- ใช้ secure file storage
+- ตรวจสอบ file content
+- ใช้ virus scanning
+- จัดการ file permissions
+
+### Financial Data Protection
+- ใช้ proper data validation
+- เก็บ audit trails
+- ใช้ role-based access
+- ตรวจสอบ data integrity
+- ใช้ secure transmission
+
+## 📊 Database Management
+
+### Prisma ORM Best Practices
+- ใช้ Prisma Client สำหรับ database operations
+- ตั้งค่า connection pooling
+- ใช้ transactions สำหรับ financial operations
+- จัดการ database migrations
+- ใช้ Prisma Studio สำหรับ development
+
+### Database Schema
+- ใช้ proper relationships
+- ตั้งค่า foreign key constraints
+- ใช้ indexes สำหรับ performance
+- จัดการ data integrity
+- ใช้ soft deletes เมื่อเหมาะสม
+
+### Financial Data Integrity
+- ตรวจสอบ data consistency
+- ใช้ constraints สำหรับ financial data
+- จัดการ currency conversions
+- ตรวจสอบ calculation accuracy
+- ใช้ proper decimal handling
+
+## 🔄 API Design
+
+### RESTful Endpoints
+- ใช้ HTTP methods ที่เหมาะสม
+- ตั้งค่า proper status codes
+- ใช้ consistent response format
+- จัดการ error responses
+- ใช้ proper URL structure
+
+### Request/Response Format
+```typescript
+// Revenue Request Format
+{
+  "title": "รายได้จากโครงการหลัก",
+  "amount": 500000,
+  "currency": "THB",
+  "categoryName": "รายได้หลัก",
+  "type": "INCOME",
+  "date": "2024-01-15"
+}
+
+// DBF Request Format
+{
+  "filename": "sample.dbf",
+  "originalName": "SAMPLE.DBF",
+  "size": 1024,
+  "schema": { /* DBF schema */ }
+}
+
+// Response Format
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { /* response data */ },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+### Error Handling
+- ใช้ consistent error format
+- จัดการ different error types
+- ใช้ proper HTTP status codes
+- Log errors appropriately
+- ไม่ expose sensitive information
+
+## 🧪 Testing Strategy
+
+### Unit Tests
+- ทดสอบ revenue calculations
+- ทดสอบ DBF file processing
+- ทดสอบ data validation
+- ทดสอบ export functionality
+- ทดสอบ condition processing
+
+### Integration Tests
+- ทดสอบ API endpoints
+- ทดสอบ database operations
+- ทดสอบ file upload/download
+- ทดสอบ export/import
+- ทดสอบ error scenarios
+
+### Financial Tests
+- ทดสอบ calculation accuracy
+- ทดสอบ currency handling
+- ทดสอบ data integrity
+- ทดสอบ audit trails
+- ทดสอบ reporting accuracy
+
+## 📝 Code Quality
+
+### TypeScript Best Practices
+- ใช้ strict mode
+- กำหนด interfaces ให้ชัดเจน
+- ใช้ proper type annotations
+- ใช้ enums สำหรับ constants
+- ใช้ generics เมื่อเหมาะสม
+
+### Error Handling
+- ใช้ custom error classes
+- จัดการ async errors
+- ใช้ try-catch blocks
+- Log errors with context
+- ใช้ error boundaries
+
+### Code Organization
+- แยก business logic
+- ใช้ dependency injection
+- แยก concerns
+- ใช้ proper naming conventions
+- ใช้ consistent formatting
+
+## 🔧 Configuration Management
+
+### Environment Variables
+- ใช้ `.env` files
+- แยก config สำหรับ environments
+- ใช้ validation สำหรับ config
+- ใช้ default values
+- ใช้ secure secrets management
+
+### Database Configuration
+- ใช้ connection pooling
+- ตั้งค่า timeout ที่เหมาะสม
+- ใช้ SSL ใน production
+- จัดการ database migrations
+- ใช้ database monitoring
+
+### File Storage Configuration
+- ใช้ secure file storage
+- ตั้งค่า file size limits
+- ใช้ proper file permissions
+- จัดการ storage cleanup
+- ใช้ file compression
+
+## 📈 Monitoring และ Logging
+
+### Logging Strategy
+- ใช้ structured logging
+- Log financial transactions
+- Log file operations
+- Log performance metrics
+- ใช้ log levels ที่เหมาะสม
+
+### Metrics
+- Revenue calculation performance
+- File processing success rates
+- Export generation times
+- Database query performance
+- API response times
+
+### Alerts
+- Alert เมื่อ calculation errors
+- Alert เมื่อ file processing failures
+- Alert เมื่อ database errors
+- Alert เมื่อ export failures
+- Alert เมื่อ performance issues
+
+## 🚨 Financial Monitoring
+
+### Transaction Monitoring
+- Monitor revenue calculations
+- Track expense processing
+- Monitor currency conversions
+- Track audit trail creation
+- Monitor data integrity
+
+### File Processing Monitoring
+- Monitor file uploads
+- Track processing success rates
+- Monitor export generation
+- Track condition processing
+- Monitor batch operations
+
+### Performance Monitoring
+- Monitor calculation performance
+- Track database operations
+- Monitor file I/O operations
+- Track memory usage
+- Monitor CPU utilization
+
+## 🔄 File Processing
+
+### DBF File Handling
+- ตรวจสอบ file format
+- แยก schema information
+- ประมวลผลข้อมูล
+- ใช้ condition processing
+- สร้าง export files
+
+### File Security
+- ตรวจสอบ file type
+- ใช้ secure file storage
+- ตรวจสอบ file content
+- จัดการ file permissions
+- ใช้ file encryption
+
+### Batch Processing
+- จัดการ multiple files
+- ใช้ parallel processing
+- จัดการ memory usage
+- ใช้ progress tracking
+- จัดการ error recovery
+
+## 📋 API Documentation
+
+### OpenAPI/Swagger
+- สร้าง OpenAPI specification
+- ใช้ Swagger UI
+- อัปเดต documentation
+- รวม examples
+- ใช้ proper schemas
+
+### API Versioning
+- รองรับ API versions
+- ใช้ URL versioning
+- จัดการ backward compatibility
+- แยก documentation
+- ใช้ version headers
+
+## 🛠️ Development Workflow
+
+### Local Development
+- ใช้ SQLite สำหรับ development
+- ใช้ Prisma Studio
+- ใช้ hot reload
+- ใช้ debug mode
+- ใช้ local environment
+- ใช้ **Windows Command Prompt (cmd)** เป็นมาตรฐาน
+
+### Windows Development Commands
+- **ใช้คำสั่ง cmd เป็นมาตรฐาน** สำหรับการพัฒนาใน Windows
+- ใช้ `cmd` แทน `bash` หรือ `powershell` สำหรับคำสั่ง terminal
+- ใช้ `dir` แทน `ls` สำหรับการแสดงรายการไฟล์
+- ใช้ `copy` แทน `cp` สำหรับการคัดลอกไฟล์
+- ใช้ `move` แทน `mv` สำหรับการย้ายไฟล์
+- ใช้ `del` แทน `rm` สำหรับการลบไฟล์
+- ใช้ `mkdir` สำหรับการสร้างโฟลเดอร์
+- ใช้ `cd` สำหรับการเปลี่ยนไดเรกทอรี
+- ใช้ `netstat -ano | findstr :PORT` สำหรับการตรวจสอบ port ที่ใช้งาน
+- ใช้ `taskkill /PID <PID>` สำหรับการหยุด process
+- ใช้ `tasklist` สำหรับการแสดงรายการ processes
+- ใช้ `ipconfig` สำหรับการตรวจสอบ network configuration
+- ใช้ `ping` สำหรับการทดสอบการเชื่อมต่อ
+- ใช้ `nslookup` สำหรับการตรวจสอบ DNS
+- ใช้ `tracert` แทน `traceroute` สำหรับการติดตามเส้นทาง
+- ใช้ `systeminfo` สำหรับข้อมูลระบบ
+- ใช้ `ver` สำหรับเวอร์ชันของ Windows
+- ใช้ `echo %PATH%` สำหรับการแสดง PATH environment variable
+- ใช้ `set` สำหรับการแสดง environment variables
+- ใช้ `set VARIABLE=value` สำหรับการตั้งค่า environment variable
+- ใช้ `cls` สำหรับการล้างหน้าจอ
+- ใช้ `help` สำหรับการแสดงคำสั่งที่ใช้ได้
+- ใช้ `/?` หลังคำสั่งเพื่อดู help (เช่น `dir /?`)
+
+### Code Quality Tools
+- ใช้ ESLint
+- ใช้ Prettier
+- ใช้ TypeScript strict mode
+- ใช้ Husky hooks
+- ใช้ commitlint
+
+## 🔍 Debugging และ Troubleshooting
+
+### Financial Debugging
+- Debug calculation errors
+- Debug currency issues
+- Debug data integrity
+- Debug audit trail
+- Debug reporting issues
+
+### File Processing Debugging
+- Debug file upload issues
+- Debug processing errors
+- Debug export problems
+- Debug condition processing
+- Debug batch operations
+
+### Database Debugging
+- Debug Prisma queries
+- Debug connection issues
+- Debug migration problems
+- Debug data integrity
+- Debug performance issues
+
+## 📚 Best Practices Summary
+
+### Do's ✅
+- ใช้ proper decimal handling สำหรับ financial data
+- ใช้ input validation
+- ใช้ audit trails
+- ใช้ proper error handling
+- ใช้ TypeScript strict mode
+- ใช้ environment variables
+- ใช้ security headers
+- ใช้ file validation
+- ใช้ condition processing
+- ใช้ batch processing
+
+### Don'ts ❌
+- อย่าใช้ floating point สำหรับ financial calculations
+- อย่าลืม input validation
+- อย่าลืม error handling
+- อย่าลืม audit trails
+- อย่าลืม file security
+- อย่าลืม data integrity
+- อย่าลืม performance monitoring
+- อย่าลืม logging
+- อย่าลืม security headers
+- อย่าลืม database migrations
+
+## 🎯 Performance Targets
+
+### Response Time
+- Revenue calculations: < 100ms
+- File upload: < 2000ms
+- File processing: < 5000ms
+- Export generation: < 3000ms
+- Database queries: < 100ms
+
+### Throughput
+- Revenue operations: > 100/second
+- File uploads: > 10/second
+- File processing: > 5/second
+- Export operations: > 20/second
+- Database operations: > 1000/second
+
+### Availability
+- Uptime: > 99.9%
+- Calculation accuracy: > 99.99%
+- File processing success: > 99%
+- Export success rate: > 99%
+- Database availability: > 99.9%
+
+## 🔐 Security Requirements
+
+### Financial Data Security
+- ใช้ proper data validation
+- เก็บ audit trails
+- ใช้ role-based access
+- ตรวจสอบ data integrity
+- ใช้ secure transmission
+
+### File Security
+- ตรวจสอบ file type และ size
+- ใช้ secure file storage
+- ตรวจสอบ file content
+- ใช้ virus scanning
+- จัดการ file permissions
+
+### Rate Limiting
+- Revenue operations: 100 ครั้ง/นาที
+- File uploads: 10 ครั้ง/นาที
+- File processing: 5 ครั้ง/นาที
+- Export operations: 20 ครั้ง/นาที
+- Database operations: 1000 ครั้ง/นาที 

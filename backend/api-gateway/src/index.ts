@@ -1659,7 +1659,7 @@ const authServiceProxy = createProxyMiddleware({
 
 // สร้าง proxy สำหรับ Revenue Service
 const revenueServiceProxy = createProxyMiddleware({
-  target: config.services.revenue?.url || 'http://localhost:3005',
+  target: config.services.revenue?.url || 'http://localhost:3004',
   changeOrigin: true,
   timeout: config.services.revenue?.timeout || 30000,
   proxyTimeout: config.services.revenue?.timeout || 30000,
@@ -1740,6 +1740,9 @@ app.post('/api/auth/validate-session', validateSessionRateLimiter, circuitBreake
 // Revenue Service routes (with rate limiting)
 app.use('/api/revenue', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
 app.use('/api/reports', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
+
+// DBF Service routes (with rate limiting)
+app.use('/api/dbf', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
 
 // Backward compatibility routes
 app.use('/auth', authRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);

@@ -30,8 +30,8 @@ const services: Record<string, ServiceConfig> = {
   },
   revenue: {
     name: 'Revenue Service',
-    url: process.env.REVENUE_SERVICE_URL || 'http://localhost:3005',
-    healthCheckUrl: `${process.env.REVENUE_SERVICE_URL || 'http://localhost:3005'}/health`,
+    url: process.env.REVENUE_SERVICE_URL || 'http://localhost:3004',
+    healthCheckUrl: `${process.env.REVENUE_SERVICE_URL || 'http://localhost:3004'}/health`,
     timeout: parseInt(process.env.REVENUE_SERVICE_TIMEOUT || '30000'),
     retries: parseInt(process.env.REVENUE_SERVICE_RETRIES || '3'),
   },

@@ -42,10 +42,12 @@ import {
   CurrencyDollarIcon,
   UsersIcon,
   CalendarIcon,
+  FileTextIcon,
 } from '@/components/ui/Icons';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { CalendarDate } from '@internationalized/date';
+import DBFManager from './components/DBFManager';
 
 interface RevenueCollection {
   id: string;
@@ -540,6 +542,10 @@ export default function RevenuePage() {
               </CardBody>
             </Card>
           </div>
+        </Tab>
+
+        <Tab key='dbf' title='จัดการไฟล์ DBF' startContent={<FileTextIcon />}>
+          <DBFManager />
         </Tab>
 
         <Tab key='summary' title='สรุปข้อมูล'>

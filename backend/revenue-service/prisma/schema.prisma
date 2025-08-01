@@ -1,0 +1,220 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Revenue Management Models
+
+model Revenue {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  amount      Float
+  currency    String   @default("THB")
+  categoryName String
+  type        RevenueType
+  date        DateTime
+  status      RevenueStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String   // External user ID from auth-service
+  categoryId  String?
+  category    RevenueCategory? @relation(fields: [categoryId], references: [id])
+  
+  // Metadata
+  tags        String?  // JSON string of tags
+  notes       String?
+  attachments String?  // JSON string of file paths
+  
+  @@map("revenues")
+}
+
+model RevenueCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?  // Hex color code
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  revenues    Revenue[]
+  
+  @@map("revenue_categories")
+}
+
+model RevenueReport {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        ReportType
+  period      String   // e.g., "2024-01", "2024-Q1"
+  data        String   // JSON string of report data
+  status      ReportStatus @default(DRAFT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String   // External user ID from auth-service
+  
+  @@map("revenue_reports")
+}
+
+model RevenueImport {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  fileSize    Int
+  status      ImportStatus @default(PENDING)
+  totalRecords Int     @default(0)
+  importedRecords Int  @default(0)
+  errorRecords Int     @default(0)
+  errors      String?  // JSON string of errors
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String   // External user ID from auth-service
+  
+  @@map("revenue_imports")
+}
+
+model RevenueExport {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  fileSize    Int?
+  status      ExportStatus @default(PENDING)
+  downloadUrl String?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String   // External user ID from auth-service
+  
+  @@map("revenue_exports")
+}
+
+// DBF File Management Models (จาก DBF_Manage)
+
+model DBFFile {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  size         Int
+  userId       String   // External user ID from auth-service
+  status       String   @default("uploaded")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  schema       String?  // JSON string of DBF structure
+  
+  // Relations
+  records      DBFRecord[]
+  conditions   DBFCondition[]
+  exports      DBFExport[]
+  
+  @@map("dbf_files")
+}
+
+model DBFRecord {
+  id       String @id @default(cuid())
+  fileId   String
+  data     String  // JSON string of record data
+  rowIndex Int
+  createdAt DateTime @default(now())
+  
+  // Relations
+  file     DBFFile   @relation(fields: [fileId], references: [id])
+  
+  @@map("dbf_records")
+}
+
+model DBFCondition {
+  id          String   @id @default(cuid())
+  userId      String   // External user ID from auth-service
+  fileId      String
+  name        String
+  description String?
+  rules       String   // JSON string of processing rules
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  file        DBFFile  @relation(fields: [fileId], references: [id])
+  
+  @@map("dbf_conditions")
+}
+
+model DBFExport {
+  id          String   @id @default(cuid())
+  userId      String   // External user ID from auth-service
+  fileId      String?
+  filename    String
+  format      String   // dbf/csv/json/txt
+  status      String   @default("processing")
+  downloadUrl String?
+  recordCount Int      @default(0)
+  updatedRecordCount Int @default(0)
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  file        DBFFile? @relation(fields: [fileId], references: [id])
+  
+  @@map("dbf_exports")
+}
+
+// Enums
+enum RevenueType {
+  INCOME
+  EXPENSE
+  REFUND
+  ADJUSTMENT
+}
+
+enum RevenueStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum ReportType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum ReportStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+} 
