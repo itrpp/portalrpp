@@ -29,7 +29,7 @@ export interface AuthConfig {
 // JWT Configuration (ตาม Security Requirements)
 const jwtConfig: JwtConfig = {
   secret: process.env.JWT_SECRET ?? 'your-secret-key',
-  accessTokenExpiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN ?? '15m', // 15 นาทีตาม Security Requirements
+  accessTokenExpiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN ?? '60m', // เพิ่มจาก 15m เป็น 60m
   refreshTokenExpiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES_IN ?? '7d', // 7 วันตาม Security Requirements
 };
 

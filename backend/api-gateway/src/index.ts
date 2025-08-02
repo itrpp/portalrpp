@@ -18,18 +18,18 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import { config, validateConfig, isDev } from './config/index.js';
 import { logger, logStartup, logShutdown, logRequest } from './utils/logger.js';
 import { errorHandler, setupProcessErrorHandlers } from './utils/errorHandler.js';
-import { 
-  generalRateLimiter, 
-  authRateLimiter, 
+import {
+  generalRateLimiter,
+  authRateLimiter,
   validateSessionRateLimiter,
   adminRateLimiter,
   slowDownMiddleware,
-  rateLimitMonitor, 
+  rateLimitMonitor,
 } from './middleware/rateLimitMiddleware.js';
-import { 
+import {
   initializeCircuitBreakers,
   circuitBreakerMiddleware,
-  getAllCircuitBreakerStats, 
+  getAllCircuitBreakerStats,
 } from './middleware/circuitBreakerMiddleware.js';
 import { sanitizeInput } from './middleware/validationMiddleware.js';
 
@@ -129,40 +129,40 @@ const metrics = {
 // Performance monitoring middleware
 const performanceMonitor = (req: any, res: any, next: any) => {
   const startTime = Date.now();
-  
+
   // Track request count
   metrics.requests.total++;
-  
+
   res.on('finish', () => {
     const responseTime = Date.now() - startTime;
     metrics.responseTimes.push(responseTime);
-    
+
     // Keep only last 1000 response times for memory efficiency
     if (metrics.responseTimes.length > 1000) {
       metrics.responseTimes.shift();
     }
-    
+
     // Track success/failure
     if (res.statusCode >= 200 && res.statusCode < 400) {
       metrics.requests.successful++;
     } else {
       metrics.requests.failed++;
     }
-    
+
     // Calculate performance metrics
     calculatePerformanceMetrics();
   });
-  
+
   next();
 };
 
 // Calculate performance metrics
 const calculatePerformanceMetrics = () => {
   if (metrics.responseTimes.length === 0) return;
-  
+
   const sortedTimes = [...metrics.responseTimes].sort((a, b) => a - b);
   const uptime = Date.now() - metrics.requests.startTime;
-  
+
   metrics.performance = {
     p50: sortedTimes[Math.floor(sortedTimes.length * 0.5)] || 0,
     p95: sortedTimes[Math.floor(sortedTimes.length * 0.95)] || 0,
@@ -172,7 +172,7 @@ const calculatePerformanceMetrics = () => {
     memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024, // MB
     cpuUsage: process.cpuUsage().user + process.cpuUsage().system,
   };
-  
+
   // Check performance targets
   checkPerformanceTargets();
 };
@@ -181,21 +181,21 @@ const calculatePerformanceMetrics = () => {
 const checkPerformanceTargets = () => {
   const { performance } = metrics;
   const warnings = [];
-  
+
   // Response time targets
   if (performance.p50 > 100) warnings.push(`P50 response time (${performance.p50}ms) exceeds target (100ms)`);
   if (performance.p95 > 500) warnings.push(`P95 response time (${performance.p95}ms) exceeds target (500ms)`);
   if (performance.p99 > 1000) warnings.push(`P99 response time (${performance.p99}ms) exceeds target (1000ms)`);
-  
+
   // Throughput targets
   if (performance.requestRate < 1000) warnings.push(`Request rate (${performance.requestRate}/s) below target (1000/s)`);
-  
+
   // Memory usage target
   if (performance.memoryUsage > 512) warnings.push(`Memory usage (${performance.memoryUsage.toFixed(2)}MB) exceeds target (512MB)`);
-  
+
   // CPU usage target (simplified check)
   if (performance.cpuUsage > 80) warnings.push(`CPU usage (${performance.cpuUsage}%) exceeds target (80%)`);
-  
+
   if (warnings.length > 0) {
     logger.warn('Performance targets not met', { warnings, performance });
   }
@@ -250,8 +250,8 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
+    'Content-Type',
+    'Authorization',
     'X-Requested-With',
     'Accept',
     'Origin',
@@ -316,10 +316,10 @@ app.use(morgan('combined', {
 if (config.security.rateLimitEnabled) {
   // General rate limiting
   app.use(generalRateLimiter);
-  
+
   // Slow down middleware
   app.use(slowDownMiddleware);
-  
+
   // Rate limit monitoring
   app.use(rateLimitMonitor);
 }
@@ -350,10 +350,10 @@ app.use(sanitizeInput);
 
 app.use((req: any, res: any, next) => {
   const startTime = Date.now();
-  
+
   res.on('finish', () => {
     const responseTime = Date.now() - startTime;
-    
+
     // Structured logging with request details
     const logData = {
       requestId: req.requestId,
@@ -366,17 +366,17 @@ app.use((req: any, res: any, next) => {
       contentLength: res.get('Content-Length'),
       timestamp: new Date().toISOString(),
     };
-    
+
     // Log based on status code
     if (res.statusCode >= 400) {
       logger.warn('HTTP Request Error', logData);
     } else {
       logger.info('HTTP Request', logData);
     }
-    
+
     logRequest(req, res, responseTime);
   });
-  
+
   next();
 });
 
@@ -1374,19 +1374,19 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
  */
 app.get('/health', async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
     // ตรวจสอบสถานะ services
     const services = await checkServicesHealth();
     const circuitBreakers = getAllCircuitBreakerStats();
-    
+
     // Calculate availability metrics
     const uptime = process.uptime();
     const totalRequests = metrics.requests.total;
     const errorRate = totalRequests > 0 ? (metrics.requests.failed / totalRequests) * 100 : 0;
     const circuitBreakerTrips = Object.values(circuitBreakers).filter(cb => cb.state.status === 'OPEN').length;
     const circuitBreakerTripRate = Object.keys(circuitBreakers).length > 0 ? (circuitBreakerTrips / Object.keys(circuitBreakers).length) * 100 : 0;
-    
+
     const healthResponse = {
       status: 'OK',
       service: 'API Gateway',
@@ -1413,10 +1413,10 @@ app.get('/health', async (req, res) => {
         },
       },
     };
-    
+
     const responseTime = Date.now() - startTime;
     logger.info('Health check completed', { responseTime, services });
-    
+
     res.json(healthResponse);
   } catch (error) {
     logger.error('Health check failed', { error });
@@ -1482,18 +1482,18 @@ app.get('/health', async (req, res) => {
 app.get('/metrics', (req, res) => {
   // Calculate performance metrics
   const responseTimes = metrics.responseTimes;
-  const avgResponseTime = responseTimes.length > 0 
-    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length 
+  const avgResponseTime = responseTimes.length > 0
+    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
     : 0;
-  
+
   const sortedTimes = [...responseTimes].sort((a, b) => a - b);
   const p50 = sortedTimes.length > 0 ? sortedTimes[Math.floor(sortedTimes.length * 0.5)] : 0;
   const p95 = sortedTimes.length > 0 ? sortedTimes[Math.floor(sortedTimes.length * 0.95)] : 0;
   const p99 = sortedTimes.length > 0 ? sortedTimes[Math.floor(sortedTimes.length * 0.99)] : 0;
-  
+
   const uptime = Date.now() - metrics.requests.startTime;
   const requestRate = uptime > 0 ? (metrics.requests.total / uptime) * 1000 : 0;
-  
+
   const systemMetrics = {
     uptime: process.uptime(),
     memory: process.memoryUsage(),
@@ -1501,7 +1501,7 @@ app.get('/metrics', (req, res) => {
     circuitBreakers: getAllCircuitBreakerStats(),
     timestamp: new Date().toISOString(),
   };
-  
+
   const performanceMetrics = {
     requests: {
       total: metrics.requests.total,
@@ -1536,7 +1536,7 @@ app.get('/metrics', (req, res) => {
       },
     },
   };
-  
+
   res.json({
     ...systemMetrics,
     performance: performanceMetrics,
@@ -1550,21 +1550,21 @@ app.get('/metrics', (req, res) => {
 
 async function checkServicesHealth() {
   const services: Record<string, any> = {};
-  
+
   for (const [serviceName, serviceConfig] of Object.entries(config.services)) {
     try {
       const startTime = Date.now();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       const response = await fetch(serviceConfig.healthCheckUrl, {
         method: 'GET',
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
       const responseTime = Date.now() - startTime;
-      
+
       services[serviceName] = {
         url: serviceConfig.url,
         status: response.ok ? 'connected' : 'error',
@@ -1580,7 +1580,7 @@ async function checkServicesHealth() {
       };
     }
   }
-  
+
   return services;
 }
 
@@ -1601,12 +1601,12 @@ const authServiceProxy = createProxyMiddleware({
   onProxyReq: (proxyReq, req) => {
     // เพิ่ม service name สำหรับ monitoring
     (req as any).serviceName = 'auth-service';
-    
+
     // Log การส่งต่อ request
     if (isDev()) {
       logger.debug(`🔄 ส่งต่อ ${req.method} ${req.path} -> Auth Service`);
     }
-    
+
     // ส่งต่อ headers ที่สำคัญ
     if (req.headers['authorization']) {
       proxyReq.setHeader('Authorization', req.headers['authorization']);
@@ -1614,12 +1614,12 @@ const authServiceProxy = createProxyMiddleware({
     if (req.headers['content-type']) {
       proxyReq.setHeader('Content-Type', req.headers['content-type']);
     }
-    
+
     // เพิ่ม tracing headers
     proxyReq.setHeader('X-Request-ID', (req as any).requestId);
     proxyReq.setHeader('X-Forwarded-For', req.ip || req.connection.remoteAddress || 'unknown');
     proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
-    
+
     // สำหรับ POST request ให้ส่งต่อ body
     if (req.method === 'POST' && req.body) {
       const bodyData = JSON.stringify(req.body);
@@ -1632,7 +1632,7 @@ const authServiceProxy = createProxyMiddleware({
     if (isDev()) {
       logger.debug(`✅ Auth Service ตอบกลับด้วย ${proxyRes.statusCode} สำหรับ ${req.method} ${req.path}`);
     }
-    
+
     // Add response headers for monitoring
     proxyRes.headers['X-Proxy-By'] = 'API-Gateway';
     proxyRes.headers['X-Service'] = 'auth-service';
@@ -1640,12 +1640,12 @@ const authServiceProxy = createProxyMiddleware({
   onError: (err, req, res) => {
     // จัดการ error เมื่อ Auth Service ไม่พร้อมใช้งาน
     logger.error(`❌ Proxy error สำหรับ ${req.method} ${req.path}:`, err.message);
-    
+
     // Track error metrics
     metrics.errors.total++;
     const errorType = (err as any).code || 'PROXY_ERROR';
     metrics.errors.byType[errorType] = (metrics.errors.byType[errorType] || 0) + 1;
-    
+
     res.status(503).json({
       success: false,
       message: 'Auth Service ไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง',
@@ -1659,23 +1659,24 @@ const authServiceProxy = createProxyMiddleware({
 
 // สร้าง proxy สำหรับ Revenue Service
 const revenueServiceProxy = createProxyMiddleware({
-  target: config.services.revenue?.url || 'http://localhost:3004',
+  target: config.services.revenue?.url || 'http://localhost:3003',
   changeOrigin: true,
   timeout: config.services.revenue?.timeout || 30000,
   proxyTimeout: config.services.revenue?.timeout || 30000,
   pathRewrite: {
     '^/api/revenue': '/api/revenue',
     '^/api/reports': '/api/reports',
+    '^/api/dbf': '/api/dbf',
   },
   onProxyReq: (proxyReq, req) => {
     // เพิ่ม service name สำหรับ monitoring
     (req as any).serviceName = 'revenue-service';
-    
+
     // Log การส่งต่อ request
     if (isDev()) {
       logger.debug(`🔄 ส่งต่อ ${req.method} ${req.path} -> Revenue Service`);
     }
-    
+
     // ส่งต่อ headers ที่สำคัญ
     if (req.headers['authorization']) {
       proxyReq.setHeader('Authorization', req.headers['authorization']);
@@ -1683,12 +1684,12 @@ const revenueServiceProxy = createProxyMiddleware({
     if (req.headers['content-type']) {
       proxyReq.setHeader('Content-Type', req.headers['content-type']);
     }
-    
+
     // เพิ่ม tracing headers
     proxyReq.setHeader('X-Request-ID', (req as any).requestId);
     proxyReq.setHeader('X-Forwarded-For', req.ip || req.connection.remoteAddress || 'unknown');
     proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
-    
+
     // สำหรับ POST request ให้ส่งต่อ body
     if (req.method === 'POST' && req.body) {
       const bodyData = JSON.stringify(req.body);
@@ -1701,7 +1702,7 @@ const revenueServiceProxy = createProxyMiddleware({
     if (isDev()) {
       logger.debug(`✅ Revenue Service ตอบกลับด้วย ${proxyRes.statusCode} สำหรับ ${req.method} ${req.path}`);
     }
-    
+
     // Add response headers for monitoring
     proxyRes.headers['X-Proxy-By'] = 'API-Gateway';
     proxyRes.headers['X-Service'] = 'revenue-service';
@@ -1709,12 +1710,12 @@ const revenueServiceProxy = createProxyMiddleware({
   onError: (err, req, res) => {
     // จัดการ error เมื่อ Revenue Service ไม่พร้อมใช้งาน
     logger.error(`❌ Proxy error สำหรับ ${req.method} ${req.path}:`, err.message);
-    
+
     // Track error metrics
     metrics.errors.total++;
     const errorType = (err as any).code || 'PROXY_ERROR';
     metrics.errors.byType[errorType] = (metrics.errors.byType[errorType] || 0) + 1;
-    
+
     res.status(503).json({
       success: false,
       message: 'Revenue Service ไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง',
@@ -1736,6 +1737,9 @@ app.use('/api/admin', adminRateLimiter, circuitBreakerMiddleware('auth-service')
 
 // Special rate limiting for validate-session endpoint
 app.post('/api/auth/validate-session', validateSessionRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
+
+// Special rate limiting for verify-token endpoint
+app.post('/api/auth/verify-token', authRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
 
 // Revenue Service routes (with rate limiting)
 app.use('/api/revenue', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
@@ -1795,7 +1799,7 @@ app.get('/', (req, res) => {
     environment: config.environment,
     services: {
       auth: config.services.auth?.url || 'http://localhost:3002',
-      revenue: config.services.revenue?.url || 'http://localhost:3005',
+      revenue: config.services.revenue?.url || 'http://localhost:3003',
     },
     endpoints: {
       health: 'GET /health',
@@ -1828,22 +1832,22 @@ app.use('*', (req, res) => {
   // Track 404 errors
   metrics.errors.total++;
   metrics.errors.byType['NOT_FOUND'] = (metrics.errors.byType['NOT_FOUND'] || 0) + 1;
-  
-  res.status(404).json({ 
+
+  res.status(404).json({
     success: false,
     message: 'ไม่พบ API endpoint นี้',
     code: 'ENDPOINT_NOT_FOUND',
     timestamp: new Date().toISOString(),
     requestId: (req as any).requestId,
-          availableEndpoints: {
-        health: 'GET /health',
-        metrics: 'GET /metrics',
-        swagger: 'GET /api-docs',
-        auth: '/api/auth/*',
-        admin: '/api/admin/*',
-        revenue: '/api/revenue/*',
-        reports: '/api/reports/*',
-      },
+    availableEndpoints: {
+      health: 'GET /health',
+      metrics: 'GET /metrics',
+      swagger: 'GET /api-docs',
+      auth: '/api/auth/*',
+      admin: '/api/admin/*',
+      revenue: '/api/revenue/*',
+      reports: '/api/reports/*',
+    },
   });
 });
 
@@ -1856,7 +1860,7 @@ app.use(errorHandler);
 
 const server = app.listen(config.port, () => {
   logStartup();
-  
+
   console.log(`🚀 API Gateway กำลังรันที่ port ${config.port}`);
   console.log(`📍 Health check: http://localhost:${config.port}/health`);
   console.log(`📊 Metrics: http://localhost:${config.port}/metrics`);
@@ -1870,7 +1874,7 @@ const server = app.listen(config.port, () => {
   console.log(`🛡️ Security Headers: ${config.security.helmetEnabled ? 'Enabled' : 'Disabled'}`);
   console.log(`🗜️ Compression: ${config.security.compressionEnabled ? 'Enabled' : 'Disabled'}`);
   console.log(`📈 Monitoring: ${config.monitoring.enabled ? 'Enabled' : 'Disabled'}`);
-  
+
   // Log configuration details
   console.log('\n📋 Configuration:');
   console.log(`   - Environment: ${config.environment}`);
@@ -1886,14 +1890,14 @@ const server = app.listen(config.port, () => {
 
 const gracefulShutdown = (signal: string) => {
   console.log(`\n${signal} received, shutting down gracefully...`);
-  
+
   logShutdown();
-  
+
   server.close(() => {
     console.log('HTTP server closed');
     process.exit(0);
   });
-  
+
   // Force close after 10 seconds
   setTimeout(() => {
     console.error('Could not close connections in time, forcefully shutting down');

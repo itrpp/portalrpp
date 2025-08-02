@@ -38,10 +38,10 @@ app.use(express.static('public'));
 export function getClientIP(req: express.Request): string {
   // Try multiple sources for IP address
   let clientIP = req.headers['x-forwarded-for'] as string ||
-                 req.headers['x-real-ip'] as string ||
-                 req.ip ||
-                 req.connection.remoteAddress ||
-                 'unknown';
+    req.headers['x-real-ip'] as string ||
+    req.ip ||
+    req.connection.remoteAddress ||
+    'unknown';
 
   // If x-forwarded-for contains multiple IPs, take the first one
   if (clientIP && clientIP.includes(',')) {
@@ -123,7 +123,7 @@ app.get('/health', async (req, res) => {
         bindDN: ldapConfig.bindDN,
       },
     });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   } catch (_error) {
     // Import LDAP config
     const { ldapConfig } = await import('./config/ldap');

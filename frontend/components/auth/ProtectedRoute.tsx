@@ -1,78 +1,56 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { Spinner } from '@heroui/react';
+import React, { useEffect } from 'react';
+import { LoadingSpinner } from '@/components/ui';
+
+// ========================================
+// PROTECTED ROUTE COMPONENT
+// ========================================
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  fallback?: React.ReactNode;
   requiredRole?: string;
+  fallback?: React.ReactNode;
 }
 
 export function ProtectedRoute({
   children,
-  fallback,
   requiredRole,
+  fallback
 }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    // ตรวจสอบว่ากำลังอยู่ในหน้าสาธารณะหรือไม่
-    const publicPages = ['/', '/login', '/theme'];
-    const currentPath = window.location.pathname;
-    const isPublicPage = publicPages.includes(currentPath);
+    if (status === 'loading') return;
 
-    // ถ้าไม่ได้ login และไม่ได้อยู่ในหน้าสาธารณะ ให้ redirect ไป login
-    if (!isLoading && !isAuthenticated && !isPublicPage) {
+    if (!session) {
       router.push('/login');
       return;
     }
 
-    // ตรวจสอบ role ถ้ามีการกำหนด
-    if (
-      !isLoading &&
-      isAuthenticated &&
-      requiredRole &&
-      user?.role !== requiredRole
-    ) {
+    if (requiredRole && session.user.role !== requiredRole) {
       router.push('/dashboard');
       return;
     }
-  }, [isAuthenticated, isLoading, router, requiredRole, user?.role]);
+  }, [session, status, requiredRole, router]);
 
-  // แสดง loading spinner ขณะตรวจสอบ authentication
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3'>
-        <div className='text-center'>
-          <Spinner size='lg' color='primary' />
-          <p className='mt-4 text-default-600 dark:text-default-400'>
-            กำลังตรวจสอบการเข้าสู่ระบบ...
-          </p>
-        </div>
-      </div>
-    );
+  // แสดง loading ขณะตรวจสอบ session
+  if (status === 'loading') {
+    return fallback || <LoadingSpinner />;
   }
 
-  // ถ้าไม่ได้ login ให้แสดง fallback หรือ redirect
-  if (!isAuthenticated) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-    return null; // จะ redirect ไป login ใน useEffect
+  // ถ้าไม่มี session ให้ redirect ไป login
+  if (!session) {
+    return null;
   }
 
-  // ตรวจสอบ role ถ้ามีการกำหนด
-  if (requiredRole && user?.role !== requiredRole) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-    return null; // จะ redirect ไป dashboard ใน useEffect
+  // ถ้ามี requiredRole แต่ user ไม่มี role ที่ต้องการ
+  if (requiredRole && session.user.role !== requiredRole) {
+    return null;
   }
 
-  // ถ้า login แล้วและมีสิทธิ์ ให้แสดง children
   return <>{children}</>;
 }

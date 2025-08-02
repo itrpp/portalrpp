@@ -30,8 +30,8 @@ const services: Record<string, ServiceConfig> = {
   },
   revenue: {
     name: 'Revenue Service',
-    url: process.env.REVENUE_SERVICE_URL || 'http://localhost:3004',
-    healthCheckUrl: `${process.env.REVENUE_SERVICE_URL || 'http://localhost:3004'}/health`,
+    url: process.env.REVENUE_SERVICE_URL || 'http://localhost:3003',
+    healthCheckUrl: `${process.env.REVENUE_SERVICE_URL || 'http://localhost:3003'}/health`,
     timeout: parseInt(process.env.REVENUE_SERVICE_TIMEOUT || '30000'),
     retries: parseInt(process.env.REVENUE_SERVICE_RETRIES || '3'),
   },
@@ -102,7 +102,7 @@ const monitoring: MonitoringConfig = {
   enabled: process.env.MONITORING_ENABLED !== 'false',
   metricsPath: process.env.METRICS_PATH || '/metrics',
   healthCheckPath: process.env.HEALTH_CHECK_PATH || '/health',
-      // Removed statusMonitorPath due to security vulnerabilities
+  // Removed statusMonitorPath due to security vulnerabilities
 };
 
 // ========================================

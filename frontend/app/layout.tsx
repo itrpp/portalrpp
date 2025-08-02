@@ -1,11 +1,9 @@
-'use client';
-
 import React from 'react';
-import { usePathname } from 'next/navigation';
 import { siteConfig } from '@/config/site';
 
 import '@/styles/globals.css';
 import { Providers } from './providers';
+import { ClientLayout } from './client-layout';
 
 import { fontPrompt, fontSans } from '@/config/fonts';
 
@@ -14,12 +12,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
-  // ตรวจสอบว่าเป็นหน้า login หรือ dashboard หรือไม่
-  const isLoginPage = pathname === '/login';
-  const isDashboardPage = pathname.startsWith('/dashboard');
-
   return (
     <html
       suppressHydrationWarning
@@ -64,24 +56,7 @@ export default function RootLayout({
         className={`${fontPrompt.className} bg-background text-foreground`}
       >
         <Providers>
-          {/* Layout สำหรับหน้า Login */}
-          {isLoginPage && (
-            <div className='min-h-screen bg-gradient-to-br from-background via-content2/20 to-content3/20'>
-              {children}
-            </div>
-          )}
-
-          {/* Layout สำหรับหน้า Dashboard */}
-          {isDashboardPage && (
-            <div className='min-h-screen bg-background'>{children}</div>
-          )}
-
-          {/* Layout สำหรับหน้าแรก (Landing Page) และหน้าอื่นๆ */}
-          {!isLoginPage && !isDashboardPage && (
-            <div className='min-h-screen bg-gradient-to-br from-background via-content2/20 to-content3/20'>
-              {children}
-            </div>
-          )}
+          <ClientLayout>{children}</ClientLayout>
         </Providers>
       </body>
     </html>

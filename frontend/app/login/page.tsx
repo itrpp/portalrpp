@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import {
   Input,
   Button,
@@ -13,7 +14,6 @@ import {
   ButtonGroup,
 } from '@heroui/react';
 import { siteConfig } from '@/config/site';
-import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ui';
 import {
   UserIcon,
@@ -28,12 +28,7 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const {
-    login,
-    loginLDAP,
-    isAuthenticated,
-    isLoading: authLoading,
-  } = useAuth();
+  const { data: session, status } = useSession();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,69 +36,22 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [useLDAP, setUseLDAP] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
-  // ตรวจสอบ authentication state เมื่อ component mount
+  // ถ้ามี session แล้วให้ redirect ไปหน้าแรก
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      // ให้ผู้ใช้ไปหน้า home หลังจาก login
-      router.push('/');
+    if (status === 'authenticated' && session) {
+      setShouldRedirect(true);
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [session, status]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setSuccessMessage('');
-
-    try {
-      let success;
-
-      if (useLDAP) {
-        // LDAP Authentication
-        success = await loginLDAP(username, password);
-      } else {
-        // Local Authentication
-        success = await login(username, password, 'local');
-      }
-
-      if (success) {
-        setSuccessMessage('เข้าสู่ระบบสำเร็จ! กำลังเปลี่ยนหน้า...');
-        // รอให้ AuthContext อัปเดต state ก่อน redirect
-        setTimeout(() => {
-          router.push('/');
-        }, 1000);
-      } else {
-        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-      }
-    } catch (error: unknown) {
-      // console.error("Login error:", error);
-
-      const errorObj = error as { status?: number; message?: string };
-
-      if (errorObj.status === 401) {
-        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-      } else if (errorObj.status === 429) {
-        setError('มีการพยายามเข้าสู่ระบบมากเกินไป กรุณารอสักครู่');
-      } else if (errorObj.status === 503) {
-        setError('ระบบไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
-      } else {
-        setError(errorObj.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
-      }
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push('/dashboard');
     }
-  };
+  }, [shouldRedirect, router]);
 
-  const handleInputChange = () => {
-    // ล้าง error เมื่อผู้ใช้เริ่มพิมพ์
-    if (error) {
-      setError('');
-    }
-  };
-
-  // แสดง loading spinner ขณะตรวจสอบ authentication
-  if (authLoading) {
+  if (status === 'loading') {
     return (
       <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3'>
         <div className='text-center'>
@@ -116,10 +64,57 @@ export default function LoginPage() {
     );
   }
 
-  // ถ้า login แล้วให้ redirect ไป dashboard
-  if (isAuthenticated) {
-    return null; // จะ redirect ใน useEffect
+  if (status === 'authenticated' && session) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3'>
+        <div className='text-center'>
+          <div className='rounded-full h-12 w-12 border-b-2 border-primary mx-auto'></div>
+          <p className='mt-4 text-default-600 dark:text-default-400'>
+            กำลังเปลี่ยนหน้า...
+          </p>
+        </div>
+      </div>
+    );
   }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const result = await signIn('credentials', {
+        email: username,
+        password,
+        authMethod: useLDAP ? 'ldap' : 'local',
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else if (result?.ok) {
+        setSuccessMessage('เข้าสู่ระบบสำเร็จ! กำลังเปลี่ยนหน้า...');
+        setTimeout(() => {
+          setShouldRedirect(true);
+        }, 1000);
+      } else {
+        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = () => {
+    // ล้าง error เมื่อผู้ใช้เริ่มพิมพ์
+    if (error) {
+      setError('');
+    }
+  };
 
   return (
     <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3'>

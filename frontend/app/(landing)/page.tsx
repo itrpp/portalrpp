@@ -13,14 +13,14 @@ import {
   UserIcon,
 } from '@/components/ui/Icons';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 import { siteConfig } from '@/config/site';
 
 function HomeContent() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -71,7 +71,7 @@ function HomeContent() {
             </p>
 
             {/* Action Buttons */}
-            {isAuthenticated ? (
+            {session ? (
               <div className='flex justify-center mb-8'>
                 <Button
                   color='secondary'

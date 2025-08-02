@@ -23,7 +23,7 @@ export default function ThemePage() {
       </div>
 
       {/* Theme Information */}
-      <Card className='w-full dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-600'>
+      <Card className='w-full bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700'>
         <CardHeader>
           <h2 className='text-xl font-semibold text-foreground'>
             🌈 การตั้งค่า Theme
@@ -137,7 +137,7 @@ export default function ThemePage() {
 
       {/* Color Palette */}
       {/* Primary Colors - โทนสีฟ้า */}
-      <Card className='w-full dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-600'>
+      <Card className='w-full bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700'>
         <CardHeader>
           <h3 className='text-lg font-semibold text-primary-600'>
             🎨 Primary Colors - โทนสีฟ้า
@@ -223,7 +223,7 @@ export default function ThemePage() {
       </Card>
 
       {/* Secondary Colors - โทนสีเขียว */}
-      <Card className='w-full dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-600'>
+      <Card className='w-full bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700'>
         <CardHeader>
           <h3 className='text-lg font-semibold text-secondary-600'>
             🌿 Secondary Colors - โทนสีเขียว
@@ -309,9 +309,9 @@ export default function ThemePage() {
       </Card>
 
       {/* Usage Examples */}
-      <Card className='w-full dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-600'>
+      <Card className='w-full bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700'>
         <CardHeader>
-          <h3 className='text-lg font-semibold'>📝 ตัวอย่างการใช้งาน</h3>
+          <h3 className='text-lg font-semibold text-foreground'>📝 ตัวอย่างการใช้งาน</h3>
           <p className='text-sm text-default-500'>
             วิธีการใช้สีใน components ต่างๆ
           </p>
@@ -377,7 +377,7 @@ export default function ThemePage() {
       </Card>
 
       {/* Color Usage Examples */}
-      <Card className='w-full dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-600'>
+      <Card className='w-full bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700'>
         <CardHeader>
           <h2 className='text-xl font-semibold text-foreground'>
             🎯 ตัวอย่างการใช้งานสี
@@ -531,7 +531,7 @@ export default function ThemePage() {
       </Card>
 
       {/* Usage Guidelines */}
-      <Card className='w-full dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-600'>
+      <Card className='w-full bg-background/90 backdrop-blur-lg border border-default-200 dark:border-default-700'>
         <CardHeader>
           <h2 className='text-xl font-semibold text-foreground'>
             📋 แนวทางการใช้งานสี

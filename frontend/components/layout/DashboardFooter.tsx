@@ -3,7 +3,7 @@
 
 
 
-export default function DashboardFooter() {
+export default function AppFooter() {
   const currentYear = new Date().getFullYear();
 
   return (

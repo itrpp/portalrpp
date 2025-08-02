@@ -80,6 +80,45 @@ export interface ChangePasswordRequest {
 }
 
 // ========================================
+// DBF TYPES
+// ========================================
+
+export interface DBFFile {
+  id: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  status: string;
+  createdAt: string;
+  schema?: string;
+  userId: string;
+}
+
+export interface DBFExport {
+  id: string;
+  filename: string;
+  format: string;
+  status: string;
+  downloadUrl?: string | undefined;
+  recordCount: number;
+  updatedRecordCount: number;
+  createdAt: string;
+  userId: string;
+  fileId: string;
+}
+
+export interface ExportResult {
+  originalFile: string;
+  exportedFile: string | null;
+  recordCount: number;
+  updatedRecordCount?: number;
+  downloadUrl: string | null;
+  status: string;
+  reason?: string;
+  error?: string;
+}
+
+// ========================================
 // API CLIENT
 // ========================================
 
@@ -103,15 +142,6 @@ class ApiClient {
       },
       ...options,
     };
-
-    // เพิ่ม Authorization header ถ้ามี token
-    const token = this.getToken();
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`,
-      };
-    }
 
     try {
       const response = await fetch(url, config);
@@ -140,214 +170,82 @@ class ApiClient {
     }
   }
 
-  private getToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem('auth_token');
-  }
+  private async uploadRequest<T>(
+    endpoint: string,
+    formData: FormData,
+    options: globalThis.RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
 
-  private setToken(token: string): void {
-    if (typeof window === 'undefined') return;
-    sessionStorage.setItem('auth_token', token);
-  }
-
-  private removeToken(): void {
-    if (typeof window === 'undefined') return;
-    sessionStorage.removeItem('auth_token');
-    sessionStorage.removeItem('refresh_token');
-    sessionStorage.removeItem('session_token');
-    sessionStorage.removeItem('user');
-  }
-
-  // ========================================
-  // AUTHENTICATION METHODS
-  // ========================================
-
-  /**
-   * เข้าสู่ระบบ (Local Authentication)
-   */
-  async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-
-    if (response.success) {
-      // รองรับทั้งรูปแบบเก่าและใหม่
-      const userData = response.data?.user || response.user;
-      const token = response.data?.token || response.accessToken;
-      const refreshToken = response.data?.refreshToken || response.refreshToken;
-
-      if (userData && token && refreshToken) {
-        this.setToken(token);
-        sessionStorage.setItem('refresh_token', refreshToken);
-        sessionStorage.setItem('user', JSON.stringify(userData));
-        // เก็บ sessionToken สำหรับ logout
-        if (response.sessionToken) {
-          sessionStorage.setItem('session_token', response.sessionToken);
-        }
-      }
-    }
-
-    return response;
-  }
-
-  /**
-   * เข้าสู่ระบบ (LDAP Authentication)
-   */
-  async loginLDAP(data: LoginLDAPRequest): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/api/auth/login-ldap', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-
-    if (response.success) {
-      // รองรับทั้งรูปแบบเก่าและใหม่
-      const userData = response.data?.user || response.user;
-      const token = response.data?.token || response.accessToken;
-      const refreshToken = response.data?.refreshToken || response.refreshToken;
-
-      if (userData && token && refreshToken) {
-        this.setToken(token);
-        sessionStorage.setItem('refresh_token', refreshToken);
-        sessionStorage.setItem('user', JSON.stringify(userData));
-        // เก็บ sessionToken สำหรับ logout
-        if (response.sessionToken) {
-          sessionStorage.setItem('session_token', response.sessionToken);
-        }
-      }
-    }
-
-    return response;
-  }
-
-  /**
-   * ออกจากระบบ
-   */
-  async logout(): Promise<{ success: boolean; message: string }> {
-    const sessionToken = sessionStorage.getItem('session_token');
-
-    if (sessionToken) {
-      try {
-        await this.request('/api/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ sessionToken }),
-        });
-      } catch {
-        // console.warn('Logout request failed:', error);
-      }
-    }
-
-    this.removeToken();
-    return { success: true,
-message: 'ออกจากระบบสำเร็จ' };
-  }
-
-  /**
-   * ต่ออายุ Access Token
-   */
-  async refreshToken(): Promise<LoginResponse> {
-    const refreshToken = sessionStorage.getItem('refresh_token');
-
-    if (!refreshToken) {
-      throw new ApiError('No refresh token available', 401, {});
-    }
-
-    const response = await this.request<LoginResponse>('/api/auth/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (response.success) {
-      // รองรับทั้งรูปแบบเก่าและใหม่
-      const userData = response.data?.user || response.user;
-      const token = response.data?.token || response.accessToken;
-      const refreshToken = response.data?.refreshToken || response.refreshToken;
-
-      if (userData && token && refreshToken) {
-        this.setToken(token);
-        sessionStorage.setItem('refresh_token', refreshToken);
-        // เก็บ sessionToken ใหม่ถ้ามี
-        if (response.sessionToken) {
-          sessionStorage.setItem('session_token', response.sessionToken);
-        }
-      }
-    }
-
-    return response;
-  }
-
-  /**
-   * ตรวจสอบ Session
-   */
-  async validateSession(): Promise<{
-    success: boolean;
-    data?: { user: User };
-    user?: User;
-  }> {
-    const sessionToken = sessionStorage.getItem('session_token');
-
-    if (!sessionToken) {
-      return { success: false };
-    }
+    const config: globalThis.RequestInit = {
+      headers: {
+        ...options.headers,
+      },
+      ...options,
+    };
 
     try {
-      const response = await this.request<{
-        success: boolean;
-        data?: { user: User };
-      }>('/api/auth/validate-session', {
+      const response = await fetch(url, {
+        ...config,
         method: 'POST',
-        body: JSON.stringify({ sessionToken }),
+        body: formData,
       });
 
-      return response;
-    } catch {
-      // console.log("❌ validateSession - Request failed:", error);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
 
-      // ไม่ log error สำหรับ session validation ที่ล้มเหลว เพราะเป็นเรื่องปกติ
-      // console.warn('Session validation failed:', error);
-      return { success: false };
-    }
-  }
+        throw new ApiError(
+          errorData.message || `HTTP error! status: ${response.status}`,
+          response.status,
+          errorData
+        );
+      }
 
-  /**
-   * ตรวจสอบสถานะ Session แบบละเอียด
-   */
-  async checkSessionStatus(): Promise<{
-    success: boolean;
-    data?: { user: User; details: unknown };
-  }> {
-    const sessionToken = sessionStorage.getItem('session_token');
-
-    if (!sessionToken) {
-      return { success: false };
-    }
-
-    try {
-      const response = await this.request<{
-        success: boolean;
-        data?: { user: User; details: unknown };
-      }>('/api/auth/check-session-status', {
-        method: 'POST',
-        body: JSON.stringify({ sessionToken }),
-      });
-
-      return response;
-    } catch {
-      return { success: false };
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(
+        error instanceof Error ? error.message : 'Network error',
+        0,
+        {}
+      );
     }
   }
 
   // ========================================
-  // USER PROFILE METHODS
+  // AUTHENTICATION METHODS (สำหรับ NextAuth)
   // ========================================
 
   /**
-   * ดึงข้อมูลผู้ใช้ปัจจุบัน
+   * สร้าง headers สำหรับ authentication จาก NextAuth session
    */
-  async getCurrentUser(): Promise<{ success: boolean; data?: User }> {
+  private getAuthHeaders(session: any): Record<string, string> {
+    const headers: Record<string, string> = {};
+
+    if (session?.accessToken) {
+      headers['Authorization'] = `Bearer ${session.accessToken}`;
+    }
+
+    if (session?.sessionToken) {
+      headers['X-Session-Token'] = session.sessionToken;
+    }
+
+    return headers;
+  }
+
+  /**
+   * ดึงข้อมูลผู้ใช้ปัจจุบัน (ใช้ NextAuth session)
+   */
+  async getCurrentUser(session: any): Promise<{ success: boolean; data?: User }> {
     try {
       const response = await this.request<{ success: boolean; data?: User }>(
-        '/api/auth/me'
+        '/api/auth/me',
+        {
+          headers: this.getAuthHeaders(session),
+        }
       );
       return response;
     } catch {
@@ -358,10 +256,13 @@ message: 'ออกจากระบบสำเร็จ' };
   /**
    * ดึงข้อมูล Profile
    */
-  async getProfile(): Promise<{ success: boolean; data?: unknown }> {
+  async getProfile(session: any): Promise<{ success: boolean; data?: unknown }> {
     try {
       const response = await this.request<{ success: boolean; data?: unknown }>(
-        '/api/auth/profile'
+        '/api/auth/profile',
+        {
+          headers: this.getAuthHeaders(session),
+        }
       );
       return response;
     } catch {
@@ -373,12 +274,14 @@ message: 'ออกจากระบบสำเร็จ' };
    * อัปเดต Profile
    */
   async updateProfile(
+    session: any,
     data: ProfileUpdateRequest
   ): Promise<{ success: boolean; message: string }> {
     const response = await this.request<{ success: boolean; message: string }>(
       '/api/auth/profile',
       {
         method: 'PUT',
+        headers: this.getAuthHeaders(session),
         body: JSON.stringify(data),
       }
     );
@@ -390,12 +293,14 @@ message: 'ออกจากระบบสำเร็จ' };
    * เปลี่ยนรหัสผ่าน
    */
   async changePassword(
+    session: any,
     data: ChangePasswordRequest
   ): Promise<{ success: boolean; message: string }> {
     const response = await this.request<{ success: boolean; message: string }>(
       '/api/auth/change-password',
       {
         method: 'PUT',
+        headers: this.getAuthHeaders(session),
         body: JSON.stringify(data),
       }
     );
@@ -404,37 +309,171 @@ message: 'ออกจากระบบสำเร็จ' };
   }
 
   // ========================================
-  // UTILITY METHODS
+  // DBF METHODS
   // ========================================
 
   /**
-   * ตรวจสอบว่ามี token หรือไม่
+   * ดึงรายการไฟล์ DBF ทั้งหมด
    */
-  isAuthenticated(): boolean {
-    return !!this.getToken();
+  async getDBFFiles(session: any): Promise<DBFFile[]> {
+    return await this.request<DBFFile[]>('/api/dbf/files', {
+      headers: this.getAuthHeaders(session),
+    });
   }
 
   /**
-   * ดึงข้อมูลผู้ใช้จาก sessionStorage
+   * ดึงไฟล์ DBF ตาม ID
    */
-  getStoredUser(): User | null {
-    if (typeof window === 'undefined') return null;
+  async getDBFFile(session: any, id: string): Promise<DBFFile> {
+    return await this.request<DBFFile>(`/api/dbf/files/${id}`, {
+      headers: this.getAuthHeaders(session),
+    });
+  }
 
-    const userStr = sessionStorage.getItem('user');
-    if (!userStr) return null;
+  /**
+   * อัปโหลดไฟล์ DBF
+   */
+  async uploadDBFFile(session: any, file: File, schema?: any): Promise<DBFFile> {
+    const formData = new FormData();
+    formData.append('file', file);
 
+    if (schema) {
+      formData.append('schema', JSON.stringify(schema));
+    }
+
+    return await this.uploadRequest<DBFFile>('/api/dbf/files', formData, {
+      headers: this.getAuthHeaders(session),
+    });
+  }
+
+  /**
+   * ลบไฟล์ DBF
+   */
+  async deleteDBFFile(session: any, id: string): Promise<void> {
+    await this.request(`/api/dbf/files/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(session),
+    });
+  }
+
+  /**
+   * ดึงรายการการส่งออกทั้งหมด
+   */
+  async getDBFExports(session: any): Promise<DBFExport[]> {
+    return await this.request<DBFExport[]>('/api/dbf/exports', {
+      headers: this.getAuthHeaders(session),
+    });
+  }
+
+  /**
+   * สร้างการส่งออกใหม่
+   */
+  async createDBFExport(session: any, data: {
+    fileId: string;
+    filename: string;
+    format: string;
+  }): Promise<DBFExport> {
+    return await this.request<DBFExport>('/api/dbf/exports', {
+      method: 'POST',
+      headers: this.getAuthHeaders(session),
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * อัปเดตการส่งออก
+   */
+  async updateDBFExport(
+    session: any,
+    id: string,
+    data: {
+      filename?: string;
+      format?: string;
+      status?: string;
+      recordCount?: number;
+      updatedRecordCount?: number;
+      downloadUrl?: string;
+    }
+  ): Promise<DBFExport> {
+    return await this.request<DBFExport>(`/api/dbf/exports/${id}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(session),
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ========================================
+  // SESSION MANAGEMENT METHODS
+  // ========================================
+
+  async getActiveSessions(session: any): Promise<{
+    success: boolean;
+    data?: {
+      sessions: Array<{
+        id: string;
+        sessionToken: string;
+        ipAddress: string | null;
+        userAgent: string | null;
+        createdAt: string;
+        expires: string;
+        isCurrentSession: boolean;
+      }>;
+      totalSessions: number;
+    };
+  }> {
     try {
-      return JSON.parse(userStr);
-    } catch {
-      return null;
+      const response = await this.request<{
+        success: boolean;
+        data?: {
+          sessions: Array<{
+            id: string;
+            sessionToken: string;
+            ipAddress: string | null;
+            userAgent: string | null;
+            createdAt: string;
+            expires: string;
+            isCurrentSession: boolean;
+          }>;
+          totalSessions: number;
+        };
+      }>('/api/auth/active-sessions', {
+        method: 'GET',
+        headers: this.getAuthHeaders(session),
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error getting active sessions:', error);
+      throw new ApiError('เกิดข้อผิดพลาดในการดึงรายการ session', 500, error);
     }
   }
 
-  /**
-   * ล้างข้อมูลการ authentication ทั้งหมด
-   */
-  clearAuth(): void {
-    this.removeToken();
+  async revokeOtherSessions(session: any): Promise<{
+    success: boolean;
+    message: string;
+    data?: {
+      deletedCount: number;
+      remainingSessions: number;
+    };
+  }> {
+    try {
+      const response = await this.request<{
+        success: boolean;
+        message: string;
+        data?: {
+          deletedCount: number;
+          remainingSessions: number;
+        };
+      }>('/api/auth/revoke-other-sessions', {
+        method: 'POST',
+        headers: this.getAuthHeaders(session),
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error revoking other sessions:', error);
+      throw new ApiError('เกิดข้อผิดพลาดในการลบ session อื่นๆ', 500, error);
+    }
   }
 }
 
@@ -460,26 +499,3 @@ export class ApiError extends Error {
 
 export const api = new ApiClient(API_BASE_URL);
 export const apiClient = api; // Alias for backward compatibility
-
-// ========================================
-// AUTH HOOKS
-// ========================================
-
-export const useAuth = () => {
-  const isAuthenticated = api.isAuthenticated();
-  const user = api.getStoredUser();
-
-  return {
-    isAuthenticated,
-    user,
-    login: api.login.bind(api),
-    loginLDAP: api.loginLDAP.bind(api),
-    logout: api.logout.bind(api),
-    refreshToken: api.refreshToken.bind(api),
-    validateSession: api.validateSession.bind(api),
-    getCurrentUser: api.getCurrentUser.bind(api),
-    getProfile: api.getProfile.bind(api),
-    updateProfile: api.updateProfile.bind(api),
-    changePassword: api.changePassword.bind(api),
-  };
-};

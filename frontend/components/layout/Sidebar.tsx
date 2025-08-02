@@ -39,6 +39,18 @@ export default function Sidebar() {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
+  // Auto-expand parent items when on sub-items
+  useEffect(() => {
+    const newExpandedItems = new Set<string>();
+    
+    // Auto-expand "นำเข้าไฟล์" when on import pages
+    if (pathname.startsWith('/revenue/import/')) {
+      newExpandedItems.add('นำเข้าไฟล์');
+    }
+    
+    setExpandedItems(newExpandedItems);
+  }, [pathname]);
+
   // ตรวจสอบ theme เมื่อ component mount
   useEffect(() => {
     const savedTheme =
@@ -105,24 +117,24 @@ export default function Sidebar() {
           subItems: [
             {
               name: 'DBF',
-              href: '/import/dbf',
+              href: '/revenue/import/dbf',
               icon: DocumentTextIcon,
             },
             {
               name: 'REP',
-              href: '/import/rep',
+              href: '/revenue/import/rep',
               icon: DocumentTextIcon,
             },
             {
               name: 'Statement',
-              href: '/import/statement',
+              href: '/revenue/import/statement',
               icon: DocumentTextIcon,
             },
           ],
         },
         {
           name: 'ส่งออกข้อมูล',
-          href: '#',
+          href: '/revenue/export',
           icon: ArrowUpTrayIcon,
         },
       ],
@@ -142,6 +154,18 @@ export default function Sidebar() {
   const isActive = (href: string) => {
     if (href === '/') {
       return pathname === '/';
+    }
+    // ตรวจสอบว่าเป็น exact match หรือเป็น sub-path ที่ถูกต้อง
+    if (pathname === href) {
+      return true;
+    }
+    // สำหรับ sub-items ที่อยู่ใน parent path
+    if (href.includes('/revenue/') && pathname.startsWith(href)) {
+      return true;
+    }
+    // สำหรับ parent items ที่มี sub-items
+    if (href === '/revenue' && pathname.startsWith('/revenue/')) {
+      return false; // ไม่ highlight parent เมื่ออยู่ที่ sub-item
     }
     return pathname.startsWith(href);
   };

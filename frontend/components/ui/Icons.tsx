@@ -1426,3 +1426,95 @@ export const AlertCircleIcon = ({
     />
   );
 };
+
+// Document Arrow Up Icon สำหรับอัปโหลดไฟล์
+export const DocumentArrowUpIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:document-arrow-up'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Document Arrow Down Icon สำหรับดาวน์โหลดไฟล์
+export const DocumentArrowDownIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:document-arrow-down'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Trash Icon สำหรับลบไฟล์
+export const TrashIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:trash'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Pencil Icon สำหรับแก้ไข
+export const PencilIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:pencil'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};

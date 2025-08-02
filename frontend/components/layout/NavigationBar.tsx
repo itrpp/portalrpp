@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   Navbar,
@@ -10,93 +9,95 @@ import {
   NavbarContent,
   NavbarItem,
   NavbarMenu,
-  NavbarMenuToggle,
   NavbarMenuItem,
+  NavbarMenuToggle,
   Button,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
   Avatar,
-  User,
 } from '@heroui/react';
 import {
   HomeIcon,
+  ChartBarIcon,
   UserIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
-  XMarkIcon,
-  SunIcon,
-  MoonIcon,
-} from '../ui/Icons';
-import { ThemeToggle } from '../ui/ThemeToggle';
-import { useAuth } from '@/contexts/AuthContext';
+} from '@/components/ui/Icons';
+import { ThemeToggle } from '@/components/ui';
+import { useSession, signOut } from 'next-auth/react';
 
-export default function NavigationBar() {
+// ========================================
+// NAVIGATION BAR COMPONENT
+// ========================================
+
+const menuItems = [
+  {
+    name: 'หน้าแรก',
+    href: '/',
+    icon: HomeIcon,
+  },
+  {
+    name: 'แดชบอร์ด',
+    href: '/dashboard',
+    icon: ChartBarIcon,
+  },
+  {
+    name: 'ระบบงานจัดเก็บรายได้',
+    href: '/revenue',
+    icon: ChartBarIcon,
+  },
+];
+
+export function NavigationBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { data: session } = useSession();
 
-  const menuItems = [
-    {
-      name: 'หน้าแรก',
-      href: '/',
-      icon: HomeIcon,
-    },
-    {
-      name: 'แดชบอร์ด',
-      href: '/dashboard',
-      icon: UserIcon,
-    },
-  ];
-
-  const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
-    }
-    return pathname.startsWith(href);
+  const handleLogout = async () => {
+    await signOut({ redirect: true,
+callbackUrl: '/login' });
   };
 
   return (
     <Navbar
+      isBordered
+      isMenuOpen={isMenuOpen}
       onMenuOpenChange={setIsMenuOpen}
-      className='border-b border-divider'
-      maxWidth='xl'
+      className='bg-background/80 backdrop-blur-lg border-b border-divider'
     >
       <NavbarContent>
         <NavbarMenuToggle
-          aria-label={isMenuOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
+          aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
           className='sm:hidden'
         />
         <NavbarBrand>
           <Link href='/' className='flex items-center space-x-2'>
-            <Image
-              src='/images/logo.png'
-              alt='Portal RPP Logo'
-              width={32}
-              height={32}
-              className='w-8 h-8 object-contain'
-              priority
-            />
-            <span className='font-bold text-xl text-foreground'>
-              Portal RPP
-            </span>
+            <div className='w-8 h-8 relative'>
+              <img
+                src='/images/logo.png'
+                alt='RPP Logo'
+                className='w-full h-full object-cover rounded-full'
+              />
+            </div>
+            <span className='font-bold text-inherit'>RPP Portal</span>
           </Link>
         </NavbarBrand>
       </NavbarContent>
 
       <NavbarContent className='hidden sm:flex gap-4' justify='center'>
         {menuItems.map((item) => (
-          <NavbarItem key={item.href} isActive={isActive(item.href)}>
+          <NavbarItem key={item.href}>
             <Link
               href={item.href}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${isActive(item.href)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-foreground hover:text-primary'
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors ${pathname === item.href
+                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
+                  : 'text-default-600 hover:text-foreground hover:bg-default-100'
                 }`}
             >
-              <item.icon className='w-5 h-5' />
+              <item.icon className='w-4 h-4' />
               <span>{item.name}</span>
             </Link>
           </NavbarItem>
@@ -107,8 +108,7 @@ export default function NavigationBar() {
         <NavbarItem>
           <ThemeToggle />
         </NavbarItem>
-
-        {user ? (
+        {session?.user && (
           <NavbarItem>
             <Dropdown placement='bottom-end'>
               <DropdownTrigger>
@@ -116,23 +116,17 @@ export default function NavigationBar() {
                   <Avatar
                     isBordered
                     color='primary'
-                    name={
-                      user.displayName || user.name || user.email || 'ผู้ใช้'
-                    }
+                    name={session.user.name || session.user.email || 'ผู้ใช้'}
                     size='sm'
-                    {...(user.avatar && { src: user.avatar })}
                   />
                   <div className='hidden md:block text-left'>
                     <p className='text-sm font-medium text-foreground'>
-                      {user.displayName || user.name || user.email || 'ผู้ใช้'}
+                      {session.user.name || session.user.email || 'ผู้ใช้'}
                     </p>
                     <p className='text-xs text-foreground-400'>
-                      {user.role?.toLowerCase() === 'admin'
+                      {session.user.role === 'admin'
                         ? 'ผู้ดูแลระบบ'
                         : 'ผู้ใช้งาน'}
-                      {user.department &&
-                        user.department !== '-' &&
-                        ` • ${user.department}`}
                     </p>
                   </div>
                 </div>
@@ -156,16 +150,23 @@ export default function NavigationBar() {
                   startContent={
                     <ArrowRightOnRectangleIcon className='w-4 h-4' />
                   }
-                  onPress={logout}
+                  onPress={handleLogout}
                 >
                   ออกจากระบบ
                 </DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </NavbarItem>
-        ) : (
+        )}
+        {!session && (
           <NavbarItem>
-            <Button as={Link} color='primary' href='/login' variant='flat'>
+            <Button
+              as={Link}
+              color='primary'
+              href='/login'
+              variant='flat'
+              startContent={<UserIcon className='w-4 h-4' />}
+            >
               เข้าสู่ระบบ
             </Button>
           </NavbarItem>
@@ -177,32 +178,17 @@ export default function NavigationBar() {
           <NavbarMenuItem key={item.href}>
             <Link
               href={item.href}
-              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-lg ${isActive(item.href)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-foreground hover:text-primary'
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md transition-colors ${pathname === item.href
+                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
+                  : 'text-default-600 hover:text-foreground hover:bg-default-100'
                 }`}
               onClick={() => setIsMenuOpen(false)}
             >
-              <item.icon className='w-5 h-5' />
+              <item.icon className='w-4 h-4' />
               <span>{item.name}</span>
             </Link>
           </NavbarMenuItem>
         ))}
-
-        {!user && (
-          <NavbarMenuItem>
-            <Button
-              as={Link}
-              color='primary'
-              href='/login'
-              variant='flat'
-              className='w-full'
-              onClick={() => setIsMenuOpen(false)}
-            >
-              เข้าสู่ระบบ
-            </Button>
-          </NavbarMenuItem>
-        )}
       </NavbarMenu>
     </Navbar>
   );

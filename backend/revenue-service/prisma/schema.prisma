@@ -10,211 +10,105 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Revenue Management Models
-
-model Revenue {
+// Model สำหรับเก็บข้อมูลไฟล์ DBF
+model File {
   id          String   @id @default(cuid())
-  title       String
-  description String?
-  amount      Float
-  currency    String   @default("THB")
-  categoryName String
-  type        RevenueType
-  date        DateTime
-  status      RevenueStatus @default(ACTIVE)
+  filename    String   // ชื่อไฟล์ที่บันทึกในระบบ
+  originalName String  // ชื่อไฟล์ต้นฉบับ
+  size        Int      // ขนาดไฟล์ (bytes)
+  status      String   @default("uploaded") // uploaded, processing, completed, error
+  fileType    String?  // ADP, OPD, CHT, CHA, INS, DRU
+  schema      String?  // JSON string ของ schema
+  userId      String   // ID ของผู้ใช้
+  userName    String   // ชื่อผู้ใช้
+  ipAddress   String?  // IP address ของผู้ใช้
+  filePath    String?  // Path ของไฟล์ในระบบ
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relations
-  userId      String   // External user ID from auth-service
-  categoryId  String?
-  category    RevenueCategory? @relation(fields: [categoryId], references: [id])
-  
-  // Metadata
-  tags        String?  // JSON string of tags
-  notes       String?
-  attachments String?  // JSON string of file paths
-  
-  @@map("revenues")
+  records Record[]
+  schemas Schema[]
+  processingLogs ProcessingLog[]
+  exportLogs ExportLog[]
+
+  @@index([userId])
+  @@index([fileType])
+  @@index([status])
 }
 
-model RevenueCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  color       String?  // Hex color code
-  icon        String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  revenues    Revenue[]
-  
-  @@map("revenue_categories")
-}
-
-model RevenueReport {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  type        ReportType
-  period      String   // e.g., "2024-01", "2024-Q1"
-  data        String   // JSON string of report data
-  status      ReportStatus @default(DRAFT)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  userId      String   // External user ID from auth-service
-  
-  @@map("revenue_reports")
-}
-
-model RevenueImport {
-  id          String   @id @default(cuid())
-  filename    String
-  originalName String
-  fileSize    Int
-  status      ImportStatus @default(PENDING)
-  totalRecords Int     @default(0)
-  importedRecords Int  @default(0)
-  errorRecords Int     @default(0)
-  errors      String?  // JSON string of errors
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  userId      String   // External user ID from auth-service
-  
-  @@map("revenue_imports")
-}
-
-model RevenueExport {
-  id          String   @id @default(cuid())
-  filename    String
-  originalName String
-  fileSize    Int?
-  status      ExportStatus @default(PENDING)
-  downloadUrl String?
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  userId      String   // External user ID from auth-service
-  
-  @@map("revenue_exports")
-}
-
-// DBF File Management Models (จาก DBF_Manage)
-
-model DBFFile {
-  id           String   @id @default(cuid())
-  filename     String
-  originalName String
-  size         Int
-  userId       String   // External user ID from auth-service
-  status       String   @default("uploaded")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  schema       String?  // JSON string of DBF structure
-  
-  // Relations
-  records      DBFRecord[]
-  conditions   DBFCondition[]
-  exports      DBFExport[]
-  
-  @@map("dbf_files")
-}
-
-model DBFRecord {
-  id       String @id @default(cuid())
-  fileId   String
-  data     String  // JSON string of record data
-  rowIndex Int
+// Model สำหรับเก็บข้อมูล Records จากไฟล์ DBF
+model Record {
+  id        String   @id @default(cuid())
+  fileId    String   // ID ของไฟล์
+  rowIndex  Int      // ลำดับของ record
+  data      String   // JSON string ของข้อมูล record
   createdAt DateTime @default(now())
-  
+
   // Relations
-  file     DBFFile   @relation(fields: [fileId], references: [id])
-  
-  @@map("dbf_records")
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@index([rowIndex])
 }
 
-model DBFCondition {
-  id          String   @id @default(cuid())
-  userId      String   // External user ID from auth-service
-  fileId      String
-  name        String
-  description String?
-  rules       String   // JSON string of processing rules
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+// Model สำหรับเก็บข้อมูล Schema ของไฟล์ DBF
+model Schema {
+  id        String   @id @default(cuid())
+  fileId    String   // ID ของไฟล์
+  fieldName String   // ชื่อฟิลด์
+  fieldType String   // ประเภทฟิลด์ (C, N, D, L, M)
+  fieldLength Int    // ความยาวฟิลด์
+  fieldDecimal Int   // จำนวนทศนิยม
+  fieldOffset Int    // ตำแหน่งเริ่มต้นของฟิลด์
+  createdAt DateTime @default(now())
+
   // Relations
-  file        DBFFile  @relation(fields: [fileId], references: [id])
-  
-  @@map("dbf_conditions")
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@index([fieldName])
 }
 
-model DBFExport {
-  id          String   @id @default(cuid())
-  userId      String   // External user ID from auth-service
-  fileId      String?
-  filename    String
-  format      String   // dbf/csv/json/txt
-  status      String   @default("processing")
-  downloadUrl String?
-  recordCount Int      @default(0)
-  updatedRecordCount Int @default(0)
-  createdAt   DateTime @default(now())
-  
+// Model สำหรับเก็บข้อมูลการประมวลผล
+model ProcessingLog {
+  id              String   @id @default(cuid())
+  fileId          String   // ID ของไฟล์
+  processType     String   // batch, individual, linked
+  processDetails  String?  // รายละเอียดการประมวลผล
+  recordCount     Int      // จำนวน records ที่ประมวลผล
+  processingTime  Int      // เวลาที่ใช้ในการประมวลผล (ms)
+  status          String   @default("processing") // processing, completed, error
+  errorMessage    String?  // ข้อความ error (ถ้ามี)
+  userId          String   // ID ของผู้ใช้
+  userName        String   // ชื่อผู้ใช้
+  createdAt       DateTime @default(now())
+
   // Relations
-  file        DBFFile? @relation(fields: [fileId], references: [id])
-  
-  @@map("dbf_exports")
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@index([status])
+  @@index([userId])
 }
 
-// Enums
-enum RevenueType {
-  INCOME
-  EXPENSE
-  REFUND
-  ADJUSTMENT
-}
+// Model สำหรับเก็บข้อมูลการ Export
+model ExportLog {
+  id            String   @id @default(cuid())
+  fileId        String   // ID ของไฟล์
+  exportType    String   // DBF, CSV, JSON, Excel
+  exportFormat  String?  // รูปแบบการ export
+  recordCount   Int      // จำนวน records ที่ export
+  fileSize      Int      // ขนาดไฟล์ที่ export (bytes)
+  downloadPath  String?  // Path ของไฟล์ที่ export
+  userId        String   // ID ของผู้ใช้
+  userName      String   // ชื่อผู้ใช้
+  createdAt     DateTime @default(now())
 
-enum RevenueStatus {
-  ACTIVE
-  INACTIVE
-  DELETED
-}
+  // Relations
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
-enum ReportType {
-  DAILY
-  WEEKLY
-  MONTHLY
-  QUARTERLY
-  YEARLY
-  CUSTOM
-}
-
-enum ReportStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
-enum ImportStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
-enum ExportStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
+  @@index([fileId])
+  @@index([exportType])
+  @@index([userId])
 } 
