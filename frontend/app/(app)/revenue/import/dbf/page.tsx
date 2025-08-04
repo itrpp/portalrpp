@@ -485,8 +485,8 @@ export default function DBFImportPage() {
                             <TableColumn>สถานะ</TableColumn>
                             <TableColumn>การดำเนินการ</TableColumn>
                         </TableHeader>
-                        <TableBody>
-                            {uploadBatches.map((batch) => (
+                        <TableBody items={uploadBatches} emptyContent={"ยังไม่มีประวัติการอัปโหลด"}>
+                            {(batch) => (
                                 <TableRow key={batch.id}>
                                     <TableCell>
                                         <div className='flex items-center space-x-2'>
@@ -554,7 +554,7 @@ export default function DBFImportPage() {
                                         </div>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )}
                         </TableBody>
                     </Table>
                 </CardBody>
