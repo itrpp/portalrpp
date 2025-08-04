@@ -29,8 +29,7 @@ import {
     AlertCircleIcon,
     PlusIcon,
     EyeIcon,
-    TrashIcon,
-    DownloadIcon
+    TrashIcon
 } from '@/components/ui/Icons';
 
 interface UploadedFile {
@@ -217,7 +216,9 @@ export default function DBFImportPage() {
     const [errorMessage, setErrorMessage] = useState<string>('');
     const { isOpen, onOpen, onClose } = useDisclosure();
     const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
+    const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
     const [selectedBatch, setSelectedBatch] = useState<UploadBatch | null>(null);
+    const [batchToDelete, setBatchToDelete] = useState<UploadBatch | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // ค่าคงที่สำหรับการจำกัด
@@ -312,6 +313,27 @@ export default function DBFImportPage() {
         setUploadedFiles([]);
         setErrorMessage('');
     }, []);
+
+    // ฟังก์ชันแสดง modal ยืนยันการลบ batch
+    const confirmDeleteBatch = useCallback((batch: UploadBatch) => {
+        setBatchToDelete(batch);
+        onConfirmOpen();
+    }, [onConfirmOpen]);
+
+    // ฟังก์ชันลบ batch
+    const deleteBatch = useCallback((batchId: string) => {
+        setUploadBatches((prev) => prev.filter((batch) => batch.id !== batchId));
+
+        // แสดง toast
+        addToast({
+            title: 'ลบสำเร็จ',
+            description: 'ลบ batch เรียบร้อยแล้ว',
+            color: 'success'
+        });
+
+        // ปิด modal ยืนยัน
+        onConfirmClose();
+    }, [onConfirmClose]);
 
     // ฟังก์ชันอัปโหลดไฟล์
     const uploadFiles = useCallback(async () => {
@@ -524,13 +546,10 @@ export default function DBFImportPage() {
                                                 isIconOnly
                                                 size='sm'
                                                 variant='light'
-                                                color='success'
-                                                onPress={() => {
-                                                    // TODO: Implement download functionality
-                                                    // console.log('Download batch:', batch.batchName);
-                                                }}
+                                                color='danger'
+                                                onPress={() => confirmDeleteBatch(batch)}
                                             >
-                                                <DownloadIcon className='h-4 w-4' />
+                                                <TrashIcon className='h-4 w-4' />
                                             </Button>
                                         </div>
                                     </TableCell>
@@ -781,13 +800,13 @@ export default function DBFImportPage() {
                                                             isIconOnly
                                                             size='sm'
                                                             variant='light'
-                                                            color='success'
+                                                            color='danger'
                                                             onPress={() => {
-                                                                // TODO: Implement download functionality
-                                                                // console.log('Download:', file.fileName);
+                                                                // TODO: Implement delete file functionality
+                                                                // console.log('Delete file:', file.fileName);
                                                             }}
                                                         >
-                                                            <DownloadIcon className='h-4 w-4' />
+                                                            <TrashIcon className='h-4 w-4' />
                                                         </Button>
                                                     </div>
                                                 </TableCell>
@@ -803,15 +822,89 @@ export default function DBFImportPage() {
                             ปิด
                         </Button>
                         <Button
-                            color='success'
+                            color='danger'
                             variant='solid'
-                            startContent={<DownloadIcon className='h-4 w-4' />}
+                            startContent={<TrashIcon className='h-4 w-4' />}
                             onPress={() => {
-                                // TODO: Implement download all files functionality
-                                // console.log('Download all files from batch:', selectedBatch?.batchName);
+                                if (selectedBatch) {
+                                    confirmDeleteBatch(selectedBatch);
+                                    onDetailClose();
+                                }
                             }}
                         >
-                            ดาวน์โหลดทั้งหมด
+                            ลบทั้งหมด
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Confirm Delete Modal */}
+            <Modal isOpen={isConfirmOpen} onClose={onConfirmClose} size='md'>
+                <ModalContent>
+                    <ModalHeader>
+                        <div className='flex items-center space-x-2'>
+                            <AlertCircleIcon className='h-5 w-5 text-danger-600' />
+                            <h3 className='text-lg font-medium text-foreground'>ยืนยันการลบ</h3>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody>
+                        <div className='space-y-4'>
+                            <p className='text-default-600'>
+                                คุณต้องการลบ batch <span className='font-semibold text-foreground'>{batchToDelete?.batchName}</span> ใช่หรือไม่?
+                            </p>
+                            <div className='bg-warning-50 dark:bg-warning-900/20 p-4 rounded-lg'>
+                                <div className='flex items-start space-x-2'>
+                                    <AlertCircleIcon className='h-5 w-5 text-warning-600 mt-0.5' />
+                                    <div className='text-sm text-warning-800 dark:text-warning-200'>
+                                        <p className='font-medium mb-1'>คำเตือน:</p>
+                                        <ul className='list-disc list-inside space-y-1'>
+                                            <li>การลบจะไม่สามารถกู้คืนได้</li>
+                                            <li>ไฟล์ทั้งหมดใน batch นี้จะถูกลบออก</li>
+                                            <li>ข้อมูลที่ประมวลผลแล้วจะหายไป</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            {batchToDelete && (
+                                <div className='bg-default-50 dark:bg-default-900/20 p-4 rounded-lg'>
+                                    <h4 className='font-medium text-foreground mb-2'>รายละเอียด Batch:</h4>
+                                    <div className='grid grid-cols-2 gap-4 text-sm'>
+                                        <div>
+                                            <span className='text-default-600'>ไฟล์ทั้งหมด:</span>
+                                            <span className='ml-2 font-medium'>{batchToDelete.totalFiles}</span>
+                                        </div>
+                                        <div>
+                                            <span className='text-default-600'>รายการทั้งหมด:</span>
+                                            <span className='ml-2 font-medium'>{batchToDelete.totalRecords.toLocaleString()}</span>
+                                        </div>
+                                        <div>
+                                            <span className='text-default-600'>ขนาดรวม:</span>
+                                            <span className='ml-2 font-medium'>{formatFileSize(batchToDelete.totalSize)}</span>
+                                        </div>
+                                        <div>
+                                            <span className='text-default-600'>วันที่อัปโหลด:</span>
+                                            <span className='ml-2 font-medium'>{formatDate(batchToDelete.uploadDate)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant='light' onPress={onConfirmClose}>
+                            ยกเลิก
+                        </Button>
+                        <Button
+                            color='danger'
+                            variant='solid'
+                            startContent={<TrashIcon className='h-4 w-4' />}
+                            onPress={() => {
+                                if (batchToDelete) {
+                                    deleteBatch(batchToDelete.id);
+                                }
+                            }}
+                        >
+                            ลบ Batch
                         </Button>
                     </ModalFooter>
                 </ModalContent>
