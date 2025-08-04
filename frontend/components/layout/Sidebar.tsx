@@ -42,12 +42,12 @@ export default function Sidebar() {
   // Auto-expand parent items when on sub-items
   useEffect(() => {
     const newExpandedItems = new Set<string>();
-    
+
     // Auto-expand "นำเข้าไฟล์" when on import pages
     if (pathname.startsWith('/revenue/import/')) {
       newExpandedItems.add('นำเข้าไฟล์');
     }
-    
+
     setExpandedItems(newExpandedItems);
   }, [pathname]);
 
@@ -201,8 +201,8 @@ export default function Sidebar() {
             startContent={
               <item.icon
                 className={`w-4 h-4 transition-colors ${isItemActive
-                    ? 'text-white'
-                    : 'text-default-600 group-hover:text-primary-500'
+                  ? 'text-white'
+                  : 'text-default-600 group-hover:text-primary-500'
                   }`}
               />
             }
@@ -261,19 +261,71 @@ export default function Sidebar() {
               </div>
             )}
           </Button>
+        ) : isItemActive ? (
+          <Button
+            variant='light'
+            className={`sidebar-item w-full justify-start h-10 group active`}
+            startContent={
+              <item.icon
+                className={`w-4 h-4 transition-colors text-white`}
+              />
+            }
+            endContent={
+              <div className='flex items-center gap-1'>
+                {item.badge && (
+                  <Chip
+                    size='sm'
+                    variant='flat'
+                    color='primary'
+                    className='sidebar-chip-primary'
+                  >
+                    {item.badge}
+                  </Chip>
+                )}
+                {hasSubItems && (
+                  <ChevronRightIcon
+                    className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''
+                      }`}
+                  />
+                )}
+              </div>
+            }
+          >
+            {!isCollapsed && (
+              <div className='flex items-center justify-between w-full'>
+                <span>{item.name}</span>
+                {item.count && (
+                  <Chip
+                    size='sm'
+                    variant='flat'
+                    color='primary'
+                    className='sidebar-chip-primary'
+                  >
+                    {item.count}
+                  </Chip>
+                )}
+                {item.isNew && (
+                  <Chip
+                    size='sm'
+                    variant='flat'
+                    color='success'
+                    className='sidebar-chip-secondary'
+                  >
+                    ใหม่
+                  </Chip>
+                )}
+              </div>
+            )}
+          </Button>
         ) : (
           <Button
             as={HeroUILink}
             href={item.href}
             variant='light'
-            className={`sidebar-item w-full justify-start h-10 group ${isItemActive ? 'active' : ''
-              }`}
+            className={`sidebar-item w-full justify-start h-10 group`}
             startContent={
               <item.icon
-                className={`w-4 h-4 transition-colors ${isItemActive
-                    ? 'text-white'
-                    : 'text-default-600 group-hover:text-primary-500'
-                  }`}
+                className={`w-4 h-4 transition-colors text-default-600 group-hover:text-primary-500`}
               />
             }
             endContent={

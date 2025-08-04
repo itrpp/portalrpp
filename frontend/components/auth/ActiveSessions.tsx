@@ -22,7 +22,7 @@ import {
   ModalFooter,
   useDisclosure,
 } from '@heroui/react';
-import { api } from '@/utils/api';
+import { api } from '@/app/api';
 import { toast } from 'react-hot-toast';
 
 // ========================================
@@ -56,7 +56,7 @@ export function ActiveSessions() {
     try {
       setLoading(true);
       const response = await api.getActiveSessions(session);
-      
+
       if (response.success && response.data) {
         setSessions(response.data.sessions);
       }
@@ -72,7 +72,7 @@ export function ActiveSessions() {
     try {
       setRevoking(true);
       const response = await api.revokeOtherSessions(session);
-      
+
       if (response.success) {
         toast.success('ลบ session อื่นๆ สำเร็จ');
         await loadSessions();
@@ -94,13 +94,13 @@ export function ActiveSessions() {
 
   const getDeviceInfo = (userAgent: string | null) => {
     if (!userAgent) return 'ไม่ทราบ';
-    
+
     // ตรวจสอบ browser
     if (userAgent.includes('Chrome')) return 'Chrome';
     if (userAgent.includes('Firefox')) return 'Firefox';
     if (userAgent.includes('Safari')) return 'Safari';
     if (userAgent.includes('Edge')) return 'Edge';
-    
+
     return 'Browser อื่น';
   };
 
@@ -181,7 +181,7 @@ export function ActiveSessions() {
           <ModalHeader>ยืนยันการลบ Session</ModalHeader>
           <ModalBody>
             <p>
-              คุณต้องการลบ session อื่นๆ ทั้งหมดหรือไม่? 
+              คุณต้องการลบ session อื่นๆ ทั้งหมดหรือไม่?
               การดำเนินการนี้จะทำให้ session อื่นๆ หมดอายุทันที
             </p>
           </ModalBody>

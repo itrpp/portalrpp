@@ -1518,3 +1518,49 @@ export const PencilIcon = ({
     />
   );
 };
+
+// Chevron Down Icon สำหรับ expand/collapse
+export const ChevronDownIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:chevron-down'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Chevron Up Icon สำหรับ expand/collapse
+export const ChevronUpIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:chevron-up'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};

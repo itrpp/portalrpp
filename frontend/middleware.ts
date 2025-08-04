@@ -8,16 +8,39 @@ import { withAuth } from 'next-auth/middleware';
 export default withAuth(
   (req) => {
     const { pathname } = req.nextUrl;
-    const isLoggedIn = !!req.nextauth.token;
+    const {token} = req.nextauth;
+    const isLoggedIn = !!token;
 
     // ตรวจสอบ role สำหรับหน้า admin
-    if (pathname.startsWith('/admin') && req.nextauth.token?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
+    if (pathname.startsWith('/admin')) {
+      if (!isLoggedIn) {
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
+
+      if (token?.role !== 'admin') {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
     }
 
-    // ตรวจสอบ role สำหรับหน้า dashboard
-    if (pathname.startsWith('/dashboard') && !isLoggedIn) {
-      return NextResponse.redirect(new URL('/login', req.url));
+    // ตรวจสอบ authentication สำหรับหน้า dashboard
+    if (pathname.startsWith('/dashboard')) {
+      if (!isLoggedIn) {
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
+    }
+
+    // ตรวจสอบ authentication สำหรับหน้า revenue
+    if (pathname.startsWith('/revenue')) {
+      if (!isLoggedIn) {
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
+    }
+
+    // ตรวจสอบ authentication สำหรับหน้า theme
+    if (pathname.startsWith('/theme')) {
+      if (!isLoggedIn) {
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
     }
 
     return NextResponse.next();
@@ -29,6 +52,18 @@ export default withAuth(
 
         // อนุญาตให้เข้าถึงหน้า login และหน้าแรกได้เสมอ
         if (pathname === '/login' || pathname === '/') {
+          return true;
+        }
+
+        // อนุญาตให้เข้าถึง API routes ได้เสมอ
+        if (pathname.startsWith('/api/')) {
+          return true;
+        }
+
+        // อนุญาตให้เข้าถึง static files ได้เสมอ
+        if (pathname.startsWith('/_next/') ||
+          pathname.startsWith('/images/') ||
+          pathname === '/favicon.ico') {
           return true;
         }
 

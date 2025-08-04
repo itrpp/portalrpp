@@ -1745,6 +1745,9 @@ app.post('/api/auth/verify-token', authRateLimiter, circuitBreakerMiddleware('au
 app.use('/api/revenue', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
 app.use('/api/reports', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
 
+// Import Service routes (with rate limiting)
+app.use('/api/import', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
+
 // DBF Service routes (with rate limiting)
 app.use('/api/dbf', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
 

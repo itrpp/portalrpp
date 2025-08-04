@@ -19,12 +19,9 @@ import {
   Avatar,
 } from '@heroui/react';
 import {
-  HomeIcon,
-  ChartBarIcon,
   UserIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
-  Bars3Icon,
 } from '@/components/ui/Icons';
 import { ThemeToggle } from '@/components/ui';
 import { useSession, signOut } from 'next-auth/react';
@@ -33,32 +30,16 @@ import { useSession, signOut } from 'next-auth/react';
 // NAVIGATION BAR COMPONENT
 // ========================================
 
-const menuItems = [
-  {
-    name: 'หน้าแรก',
-    href: '/',
-    icon: HomeIcon,
-  },
-  {
-    name: 'แดชบอร์ด',
-    href: '/dashboard',
-    icon: ChartBarIcon,
-  },
-  {
-    name: 'ระบบงานจัดเก็บรายได้',
-    href: '/revenue',
-    icon: ChartBarIcon,
-  },
-];
-
 export function NavigationBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
 
   const handleLogout = async () => {
-    await signOut({ redirect: true,
-callbackUrl: '/login' });
+    await signOut({
+      redirect: true,
+      callbackUrl: '/login'
+    });
   };
 
   return (
@@ -88,20 +69,7 @@ callbackUrl: '/login' });
       </NavbarContent>
 
       <NavbarContent className='hidden sm:flex gap-4' justify='center'>
-        {menuItems.map((item) => (
-          <NavbarItem key={item.href}>
-            <Link
-              href={item.href}
-              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors ${pathname === item.href
-                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
-                  : 'text-default-600 hover:text-foreground hover:bg-default-100'
-                }`}
-            >
-              <item.icon className='w-4 h-4' />
-              <span>{item.name}</span>
-            </Link>
-          </NavbarItem>
-        ))}
+        {/* Menu items removed */}
       </NavbarContent>
 
       <NavbarContent justify='end'>
@@ -174,21 +142,7 @@ callbackUrl: '/login' });
       </NavbarContent>
 
       <NavbarMenu>
-        {menuItems.map((item) => (
-          <NavbarMenuItem key={item.href}>
-            <Link
-              href={item.href}
-              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md transition-colors ${pathname === item.href
-                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
-                  : 'text-default-600 hover:text-foreground hover:bg-default-100'
-                }`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <item.icon className='w-4 h-4' />
-              <span>{item.name}</span>
-            </Link>
-          </NavbarMenuItem>
-        ))}
+        {/* Menu items removed */}
       </NavbarMenu>
     </Navbar>
   );

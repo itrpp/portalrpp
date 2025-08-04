@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button, Switch } from '@heroui/react';
+import { Switch } from '@heroui/react';
 import { SunIcon, MoonIcon } from './Icons';
 
 // Theme Provider Component - ใช้ HeroUI theme system

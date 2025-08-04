@@ -1,4 +1,4 @@
 // UI Components
+export * from './Icons';
 export { ThemeToggle } from './ThemeToggle';
-export { Icons } from './Icons';
 export { LoadingSpinner } from './LoadingSpinner';

@@ -24,7 +24,7 @@ export default function DashboardPage() {
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-        <Card className='shadow-lg'>
+        <Card className='shadow-lg bg-default'>
           <CardHeader className='flex items-center space-x-3'>
             <div className='w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center'>
               <UserIcon className='w-6 h-6 text-primary-600 dark:text-primary-400' />
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           </CardBody>
         </Card>
 
-        <Card className='shadow-lg'>
+        <Card className='shadow-lg bg-default'>
           <CardHeader className='flex items-center space-x-3'>
             <div className='w-12 h-12 bg-secondary-100 dark:bg-secondary-900/20 rounded-full flex items-center justify-center'>
               <ChartBarIcon className='w-6 h-6 text-secondary-600 dark:text-secondary-400' />
@@ -82,7 +82,7 @@ export default function DashboardPage() {
           </CardBody>
         </Card>
 
-        <Card className='shadow-lg'>
+        <Card className='shadow-lg bg-default'>
           <CardHeader className='flex items-center space-x-3'>
             <div className='w-12 h-12 bg-warning-100 dark:bg-warning-900/20 rounded-full flex items-center justify-center'>
               <Cog6ToothIcon className='w-6 h-6 text-warning-600 dark:text-warning-400' />
@@ -110,7 +110,7 @@ export default function DashboardPage() {
       </div>
 
       <div className='mt-8'>
-        <Card className='shadow-lg'>
+        <Card className='shadow-lg bg-default'>
           <CardHeader>
             <h2 className='text-xl font-semibold text-foreground'>
               ข้อมูลระบบ
@@ -142,6 +142,6 @@ export default function DashboardPage() {
           </CardBody>
         </Card>
       </div>
-    </div>
+    </div >
   );
 }

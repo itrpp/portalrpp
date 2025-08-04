@@ -12,7 +12,7 @@ import {
   DropdownItem,
   Avatar,
 } from '@heroui/react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   ChevronRightIcon,
   HomeIcon,
@@ -36,12 +36,13 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
 
   const handleLogout = async () => {
-    await signOut({ redirect: true,
-callbackUrl: '/login' });
+    await signOut({
+      redirect: true,
+      callbackUrl: '/login'
+    });
   };
 
   // สร้าง breadcrumbs จาก pathname

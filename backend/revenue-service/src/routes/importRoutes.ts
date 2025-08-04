@@ -3,11 +3,14 @@ import multer from 'multer';
 import { AuthService } from '../services/authService';
 import { ImportService } from '../services/importService';
 import { DatabaseService } from '../services/databaseService';
+import { BatchService } from '../services/batchService';
+import { ValidationService } from '../services/validationService';
 import { logger } from '../utils/logger';
 import { join } from 'path';
 import { mkdir, writeFile, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { ProcessService } from '../services/processService';
+import prisma from '../config/database.js';
 
 const router = express.Router();
 
@@ -70,17 +73,79 @@ async function authenticateToken(req: express.Request, res: express.Response, ne
   next();
 }
 
-// POST /api/import - อัปโหลดไฟล์ DBF
-router.post('/', authenticateToken, upload.array('files', 20), async (req: any, res): Promise<void> => {
+// POST /api/import/batch/create - สร้าง batch ใหม่
+router.post('/batch/create', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const user = req.user;
     const clientIP = getClientIPAddress(req);
+    const { batchName, validateOnUpload, processOnUpload, metadata } = req.body as any;
+
+    const { batchId, batch } = await BatchService.createBatch(user, clientIP, {
+      batchName,
+      validateOnUpload,
+      processOnUpload,
+      metadata,
+    });
+
+    // บันทึก user activity
+    await BatchService.logUserActivity(
+      user.userId,
+      user.userName,
+      'create_batch',
+      `Created batch ${batchId}`,
+      clientIP,
+      req.get('User-Agent'),
+      { batchId, batchName }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'สร้าง batch สำเร็จ',
+      data: {
+        batchId,
+        batchName,
+        status: batch.status,
+        createdAt: batch.createdAt,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Create batch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// POST /api/import/batch/:batchId/upload - อัปโหลดไฟล์ลงใน batch
+router.post('/batch/:batchId/upload', authenticateToken, upload.array('files', 20), async (req: any, res): Promise<void> => {
+  try {
+    const user = req.user;
+    const clientIP = getClientIPAddress(req);
+    const { batchId } = req.params;
     const files = req.files as any[];
 
     if (!files || files.length === 0) {
       res.status(400).json({ error: 'No files uploaded' });
       return;
     }
+
+    // ตรวจสอบ batch
+    const batch = await BatchService.getBatch(batchId);
+    if (!batch) {
+      res.status(404).json({ error: 'Batch not found' });
+      return;
+    }
+
+    if (batch.status === 'completed' || batch.status === 'failed') {
+      res.status(400).json({ error: 'Cannot upload to completed or failed batch' });
+      return;
+    }
+
+    // อัปเดตสถานะ batch เป็น uploading
+    await BatchService.updateBatchStatus(batchId, 'uploading');
 
     // สร้างโฟลเดอร์สำหรับผู้ใช้
     const uploadDir = join(process.cwd(), 'uploads');
@@ -105,6 +170,9 @@ router.post('/', authenticateToken, upload.array('files', 20), async (req: any, 
           continue;
         }
 
+        // คำนวณ checksum
+        const checksum = BatchService.calculateChecksum(file.buffer);
+
         // บันทึกไฟล์
         const filename = `${Date.now()}_${file.originalname}`;
         const filePath = join(ipUserDir, filename);
@@ -114,40 +182,83 @@ router.post('/', authenticateToken, upload.array('files', 20), async (req: any, 
         const { records, schema } = ImportService.parseDBFWithSchema(file.buffer);
         const fileType = ImportService.getFileType(filename, schema);
 
-        // บันทึกลง database
-        const dbFile = await DatabaseService.saveFile(
-          filename,
-          file.originalname,
-          file.size,
-          fileType,
-          schema,
-          user.userId,
-          user.userName,
-          clientIP,
-          filePath,
+        // เพิ่มไฟล์ลงใน batch
+        const fileResult = await BatchService.addFileToBatch(
+          batchId,
+          {
+            filename,
+            originalName: file.originalname,
+            size: file.size,
+            fileType,
+            recordCount: records.length,
+            fieldCount: schema.length,
+            checksum,
+            filePath,
+            schema,
+          },
+          user,
+          clientIP
         );
 
         // บันทึก records ลง database
-        await DatabaseService.saveRecords(dbFile.id, records);
+        await DatabaseService.saveRecords(fileResult.id, records);
 
         // บันทึก schema ลง database
-        await DatabaseService.saveSchema(dbFile.id, schema);
+        await DatabaseService.saveSchema(fileResult.id, schema);
 
-        uploadedFiles.push({
-          id: dbFile.id,
-          filename: filename,
-          originalName: file.originalname,
-          size: file.size,
-          status: 'completed',
-          fileType,
-          recordCount: records.length,
-          fieldCount: schema.length,
-        });
+        // Validate ไฟล์ (ถ้าเปิดใช้งาน)
+        if (batch.metadata?.validateOnUpload) {
+          const validationStartTime = Date.now();
 
-        logger.info(`อัปโหลดไฟล์ ${file.originalname} สำเร็จ`);
+          // Validate schema
+          const schemaValidation = ValidationService.validateSchema(schema, fileType);
+
+          // Validate records
+          const recordsValidation = ValidationService.validateRecords(records, schema, fileType);
+
+          const validationTime = Date.now() - validationStartTime;
+
+          // บันทึก validation log
+          const validationRules = ValidationService['getValidationRules'](fileType);
+          await ValidationService.saveValidationLog(
+            fileResult.id,
+            'upload_validation',
+            validationRules,
+            {
+              isValid: schemaValidation.isValid && recordsValidation.isValid,
+              errors: [...schemaValidation.errors, ...recordsValidation.errors],
+              validRecords: recordsValidation.validRecords,
+              invalidRecords: recordsValidation.invalidRecords,
+              totalRecords: recordsValidation.totalRecords,
+            },
+            validationTime,
+            user.userId,
+            user.userName
+          );
+
+          // อัปเดตสถานะ validation
+          const validationStatus = schemaValidation.isValid && recordsValidation.isValid ? 'valid' : 'invalid';
+          await ValidationService.updateFileValidationStatus(
+            fileResult.id,
+            validationStatus,
+            [...schemaValidation.errors, ...recordsValidation.errors]
+          );
+
+          // อัปเดต records validation status
+          if (recordsValidation.errors.length > 0) {
+            await ValidationService.updateRecordsValidationStatus(fileResult.id, recordsValidation.errors);
+          }
+
+          fileResult.validationStatus = validationStatus;
+          fileResult.validationErrors = [...schemaValidation.errors, ...recordsValidation.errors].map(e => e.errorMessage);
+        }
+
+        uploadedFiles.push(fileResult);
+
+        logger.info(`อัปโหลดไฟล์ ${file.originalname} ลงใน batch ${batchId} สำเร็จ`);
 
       } catch (error) {
-        logger.error(`Error uploading file ${file.originalname}:`, error);
+        logger.error(`Error uploading file ${file.originalname} to batch ${batchId}:`, error);
         uploadedFiles.push({
           originalName: file.originalname,
           status: 'error',
@@ -156,24 +267,441 @@ router.post('/', authenticateToken, upload.array('files', 20), async (req: any, 
       }
     }
 
+    // อัปเดตสถานะ batch
+    const finalBatch = await BatchService.getBatch(batchId);
+    const batchStatus = finalBatch?.uploadedFiles === finalBatch?.totalFiles ? 'completed' : 'uploading';
+    await BatchService.updateBatchStatus(batchId, batchStatus);
+
+    // บันทึก user activity
+    await BatchService.logUserActivity(
+      user.userId,
+      user.userName,
+      'upload_files',
+      `Uploaded ${uploadedFiles.length} files to batch ${batchId}`,
+      clientIP,
+      req.get('User-Agent'),
+      { batchId, fileCount: uploadedFiles.length }
+    );
+
     res.status(200).json({
-      message: 'Files uploaded successfully',
-      uploadedFiles,
-      totalFiles: files.length,
-      successfulUploads: uploadedFiles.filter(f => f.status === 'completed').length,
-      failedUploads: uploadedFiles.filter(f => f.status === 'error').length,
+      success: true,
+      message: 'อัปโหลดไฟล์สำเร็จ',
+      data: {
+        batchId,
+        uploadedFiles,
+        batchStatus: finalBatch,
+        totalFiles: files.length,
+        successfulUploads: uploadedFiles.filter(f => f.status === 'uploaded').length,
+        failedUploads: uploadedFiles.filter(f => f.status === 'error').length,
+      },
     });
 
   } catch (error) {
-    logger.error('Upload error:', error);
+    logger.error('Batch upload error:', error);
     res.status(500).json({
+      success: false,
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
 
-// GET /api/import/files - ดึงรายการไฟล์ที่อัปโหลด
+// GET /api/import/batch/:batchId - ดึงข้อมูล batch
+router.get('/batch/:batchId', authenticateToken, async (req: any, res): Promise<void> => {
+  try {
+    const user = req.user;
+    const { batchId } = req.params;
+
+    const batch = await BatchService.getBatch(batchId);
+
+    if (!batch) {
+      res.status(404).json({ error: 'Batch not found' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'ดึงข้อมูล batch สำเร็จ',
+      data: batch,
+    });
+
+  } catch (error) {
+    logger.error('Get batch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// GET /api/import/batches - ดึงรายการ batch ของผู้ใช้
+router.get('/batches', authenticateToken, async (req: any, res): Promise<void> => {
+  try {
+    const user = req.user;
+
+    const batches = await BatchService.getUserBatches(user.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'ดึงรายการ batch สำเร็จ',
+      data: {
+        batches,
+        totalBatches: batches.length,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Get batches error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// DELETE /api/import/batch/:batchId - ลบ batch
+router.delete('/batch/:batchId', authenticateToken, async (req: any, res): Promise<void> => {
+  try {
+    const user = req.user;
+    const { batchId } = req.params;
+
+    await BatchService.deleteBatch(batchId, user.userId);
+
+    // บันทึก user activity
+    await BatchService.logUserActivity(
+      user.userId,
+      user.userName,
+      'delete_batch',
+      `Deleted batch ${batchId}`,
+      getClientIPAddress(req),
+      req.get('User-Agent'),
+      { batchId }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'ลบ batch สำเร็จ',
+      data: { batchId },
+    });
+
+  } catch (error) {
+    logger.error('Delete batch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// POST /api/import/batch/:batchId/validate - Validate batch
+router.post('/batch/:batchId/validate', authenticateToken, async (req: any, res): Promise<void> => {
+  try {
+    const user = req.user;
+    const { batchId } = req.params;
+    const { validationType = 'all' } = req.body;
+
+    const batch = await BatchService.getBatch(batchId);
+    if (!batch) {
+      res.status(404).json({ error: 'Batch not found' });
+      return;
+    }
+
+    // ดึงไฟล์ทั้งหมดใน batch
+    const files = await DatabaseService.getFilesByBatchId(batchId);
+
+    const validationResults: any[] = [];
+
+    for (const file of files) {
+      try {
+        const schema = file.schemas.map((s: any) => ({
+          name: s.fieldName,
+          type: s.fieldType,
+          length: s.fieldLength,
+          decimalPlaces: s.fieldDecimal,
+        }));
+
+        const records = file.records.map(r => JSON.parse(r.data));
+
+        const validationStartTime = Date.now();
+
+        // Validate ตามประเภทที่ระบุ
+        let validationResult;
+        if (validationType === 'schema' || validationType === 'all') {
+          validationResult = ValidationService.validateSchema(schema, file.fileType || '');
+        } else {
+          validationResult = ValidationService.validateRecords(records, schema, file.fileType || '');
+        }
+
+        const validationTime = Date.now() - validationStartTime;
+
+        // บันทึก validation log
+        const validationRules = ValidationService['getValidationRules'](file.fileType || '');
+        await ValidationService.saveValidationLog(
+          file.id,
+          validationType,
+          validationRules,
+          validationResult,
+          validationTime,
+          user.userId,
+          user.userName
+        );
+
+        // อัปเดตสถานะ validation
+        const validationStatus = validationResult.isValid ? 'valid' : 'invalid';
+        await ValidationService.updateFileValidationStatus(
+          file.id,
+          validationStatus,
+          validationResult.errors
+        );
+
+        // อัปเดต records validation status
+        if (validationResult.errors.length > 0) {
+          await ValidationService.updateRecordsValidationStatus(file.id, validationResult.errors);
+        }
+
+        validationResults.push({
+          fileId: file.id,
+          filename: file.filename,
+          originalName: file.originalName,
+          validationType,
+          totalRecords: validationResult.totalRecords,
+          validRecords: validationResult.validRecords,
+          invalidRecords: validationResult.invalidRecords,
+          validationTime,
+          status: validationStatus,
+          errors: validationResult.errors,
+        });
+
+      } catch (error) {
+        logger.error(`Error validating file ${file.filename}:`, error);
+        validationResults.push({
+          fileId: file.id,
+          filename: file.filename,
+          originalName: file.originalName,
+          validationType,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    // บันทึก user activity
+    await BatchService.logUserActivity(
+      user.userId,
+      user.userName,
+      'validate_batch',
+      `Validated batch ${batchId} (${validationType})`,
+      getClientIPAddress(req),
+      req.get('User-Agent'),
+      { batchId, validationType, fileCount: files.length }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Validate batch สำเร็จ',
+      data: {
+        batchId,
+        validationType,
+        results: validationResults,
+        totalFiles: files.length,
+        successfulValidations: validationResults.filter(r => r.status === 'valid').length,
+        failedValidations: validationResults.filter(r => r.status === 'invalid').length,
+        errorValidations: validationResults.filter(r => r.status === 'error').length,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Validate batch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// POST /api/import/batch/:batchId/process - ประมวลผล batch
+router.post('/batch/:batchId/process', authenticateToken, async (req: any, res): Promise<void> => {
+  try {
+    const user = req.user;
+    const { batchId } = req.params;
+    const { processType = 'all' } = req.body;
+
+    const batch = await BatchService.getBatch(batchId);
+    if (!batch) {
+      res.status(404).json({ error: 'Batch not found' });
+      return;
+    }
+
+    // อัปเดตสถานะ batch เป็น processing
+    await BatchService.updateBatchStatus(batchId, 'processing');
+
+    // ดึงไฟล์ทั้งหมดใน batch
+    const files = await DatabaseService.getFilesByBatchId(batchId);
+
+    const processingResults: any[] = [];
+
+    for (const file of files) {
+      try {
+        const records = file.records.map((r: any) => JSON.parse(r.data));
+        const processingStartTime = Date.now();
+
+        let processedRecords = records;
+        let processingDetails = '';
+
+        // ประมวลผลตามประเภทไฟล์
+        if (file.fileType === 'ADP') {
+          processedRecords = ImportService.modifyADPFieldType(records);
+          processingDetails = 'แก้ไขข้อมูล ADP field (15 → 16)';
+        } else if (file.fileType === 'CHT') {
+          const chtResult = ProcessService.processCHTFile(records);
+          processedRecords = chtResult.updatedRecords;
+          processingDetails = `ประมวลผลไฟล์ CHT: ลบ SEQ ${chtResult.deletedSeqValues.size} รายการ`;
+        } else if (file.fileType === 'CHA') {
+          processedRecords = ProcessService.processCHAFile(records, new Set());
+          processingDetails = 'ประมวลผลไฟล์ CHA: รวม TOTAL ตาม CHRGITEM=31';
+        } else if (file.fileType === 'OPD') {
+          processedRecords = ProcessService.processOPDFile(records);
+          processingDetails = 'ประมวลผลไฟล์ OPD: อัปเดต OPTYPE และจัดรูปแบบวันที่';
+        }
+
+        const processingTime = Date.now() - processingStartTime;
+
+        // บันทึก processing log
+        await DatabaseService.saveProcessingLog(
+          file.id,
+          'batch',
+          processingDetails,
+          processedRecords.length,
+          processingTime,
+          'completed',
+          user.userId,
+          user.userName
+        );
+
+        // อัปเดตสถานะไฟล์
+        await DatabaseService.updateFileStatus(file.id, 'completed');
+
+        processingResults.push({
+          fileId: file.id,
+          filename: file.filename,
+          originalName: file.originalName,
+          fileType: file.fileType,
+          recordCount: processedRecords.length,
+          processingDetails,
+          processingTime,
+          status: 'completed',
+        });
+
+        logger.info(`ประมวลผลไฟล์ ${file.originalName} ใน batch ${batchId} สำเร็จ`);
+
+      } catch (error) {
+        logger.error(`Error processing file ${file.filename} in batch ${batchId}:`, error);
+        processingResults.push({
+          fileId: file.id,
+          filename: file.filename,
+          originalName: file.originalName,
+          fileType: file.fileType,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    // อัปเดตสถานะ batch
+    const finalBatch = await BatchService.getBatch(batchId);
+    const batchStatus = finalBatch?.processedFiles === finalBatch?.totalFiles ? 'completed' : 'processing';
+    await BatchService.updateBatchStatus(batchId, batchStatus);
+
+    // บันทึก user activity
+    await BatchService.logUserActivity(
+      user.userId,
+      user.userName,
+      'process_batch',
+      `Processed batch ${batchId} (${processType})`,
+      getClientIPAddress(req),
+      req.get('User-Agent'),
+      { batchId, processType, fileCount: files.length }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'ประมวลผล batch สำเร็จ',
+      data: {
+        batchId,
+        processType,
+        results: processingResults,
+        batchStatus: finalBatch,
+        totalFiles: files.length,
+        successfulProcesses: processingResults.filter(r => r.status === 'completed').length,
+        failedProcesses: processingResults.filter(r => r.status === 'error').length,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Process batch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// GET /api/import/batch/:batchId/status - ดึงสถานะ batch แบบ real-time
+router.get('/batch/:batchId/status', authenticateToken, async (req: any, res): Promise<void> => {
+  try {
+    const user = req.user;
+    const { batchId } = req.params;
+
+    const batch = await BatchService.getBatch(batchId);
+
+    if (!batch) {
+      res.status(404).json({ error: 'Batch not found' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'ดึงสถานะ batch สำเร็จ',
+      data: {
+        batchId,
+        status: batch.status,
+        progress: {
+          upload: batch.uploadProgress,
+          processing: batch.processingProgress,
+        },
+        stats: {
+          totalFiles: batch.totalFiles,
+          uploadedFiles: batch.uploadedFiles,
+          processedFiles: batch.processedFiles,
+          totalRecords: batch.totalRecords,
+          totalSize: batch.totalSize,
+        },
+        timestamps: {
+          uploadStartTime: batch.uploadStartTime,
+          uploadEndTime: batch.uploadEndTime,
+          processingStartTime: batch.processingStartTime,
+          processingEndTime: batch.processingEndTime,
+        },
+        errorMessage: batch.errorMessage,
+      },
+    });
+
+  } catch (error) {
+    logger.error('Get batch status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// GET /api/import/files - ดึงรายการไฟล์ที่อัปโหลด (backward compatibility)
 router.get('/files', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const user = req.user;
@@ -206,7 +734,7 @@ router.get('/files', authenticateToken, async (req: any, res): Promise<void> => 
   }
 });
 
-// GET /api/import/file/:id - ดึงข้อมูลไฟล์เฉพาะ
+// GET /api/import/file/:id - ดึงข้อมูลไฟล์เฉพาะ (backward compatibility)
 router.get('/file/:id', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const { id } = req.params;
@@ -254,7 +782,7 @@ router.get('/file/:id', authenticateToken, async (req: any, res): Promise<void> 
   }
 });
 
-// DELETE /api/import/file/:id - ลบไฟล์
+// DELETE /api/import/file/:id - ลบไฟล์ (backward compatibility)
 router.delete('/file/:id', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const { id } = req.params;
@@ -290,7 +818,7 @@ router.delete('/file/:id', authenticateToken, async (req: any, res): Promise<voi
   }
 });
 
-// GET /api/import/status - ตรวจสอบสถานะการอัปโหลด
+// GET /api/import/status - ตรวจสอบสถานะการอัปโหลด (backward compatibility)
 router.get('/status', authenticateToken, (req: any, res): void => {
   try {
     const user = req.user;
@@ -303,9 +831,11 @@ router.get('/status', authenticateToken, (req: any, res): void => {
       timestamp: new Date().toISOString(),
       features: [
         'DBF file upload',
+        'Batch upload management',
         'File validation',
         'User-specific directories',
         'IP-based organization',
+        'Real-time progress tracking',
       ],
     });
 
@@ -318,7 +848,7 @@ router.get('/status', authenticateToken, (req: any, res): void => {
   }
 });
 
-// GET /api/import/content/:filename - ดูเนื้อหาไฟล์ DBF
+// GET /api/import/content/:filename - ดูเนื้อหาไฟล์ DBF (backward compatibility)
 router.get('/content/:filename', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const { filename } = req.params;
@@ -366,7 +896,7 @@ router.get('/content/:filename', authenticateToken, async (req: any, res): Promi
   }
 });
 
-// GET /api/import/schema/:filename - ดูโครงสร้างไฟล์ DBF
+// GET /api/import/schema/:filename - ดูโครงสร้างไฟล์ DBF (backward compatibility)
 router.get('/schema/:filename', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const { filename } = req.params;
@@ -409,7 +939,7 @@ router.get('/schema/:filename', authenticateToken, async (req: any, res): Promis
   }
 });
 
-// GET /api/import/preview/:filename - ดูตัวอย่างข้อมูลไฟล์ DBF
+// GET /api/import/preview/:filename - ดูตัวอย่างข้อมูลไฟล์ DBF (backward compatibility)
 router.get('/preview/:filename', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const { filename } = req.params;
@@ -457,7 +987,7 @@ router.get('/preview/:filename', authenticateToken, async (req: any, res): Promi
   }
 });
 
-// GET /api/import/download/:filename - ดาวน์โหลดไฟล์ DBF
+// GET /api/import/download/:filename - ดาวน์โหลดไฟล์ DBF (backward compatibility)
 router.get('/download/:filename', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const { filename } = req.params;
@@ -497,7 +1027,7 @@ router.get('/download/:filename', authenticateToken, async (req: any, res): Prom
   }
 });
 
-// POST /api/import/batch-process - ประมวลผลไฟล์แบบ batch
+// POST /api/import/batch-process - ประมวลผลไฟล์แบบ batch (backward compatibility)
 router.post('/batch-process', authenticateToken, async (req: any, res): Promise<void> => {
   try {
     const user = req.user;
