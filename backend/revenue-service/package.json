@@ -1,66 +1,35 @@
 {
   "name": "revenue-service",
   "version": "1.0.0",
-  "description": "Revenue Service for DBF file processing",
+  "description": "Revenue Service - Health Check Only",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "build:prod": "tsc -p tsconfig.prod.json",
     "start": "node dist/index.js",
-    "start:dev": "tsx src/index.ts",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "type-check": "tsc --noEmit",
-    "quality-check": "npm run lint && npm run type-check",
-    "format": "prettier --write src/**/*.ts",
-    "format:check": "prettier --check src/**/*.ts",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset",
-    "db:seed": "tsx prisma/seed.ts"
+    "lint": "echo 'No linting configured'",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
-    "dbf",
     "revenue",
-    "processing",
+    "health",
     "api"
   ],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^6.13.0",
-    "@types/uuid": "^10.0.0",
-    "archiver": "^7.0.1",
-    "axios": "^1.11.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "express-async-errors": "^3.1.1",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
-    "iconv-lite": "^0.6.3",
-    "multer": "^1.4.5-lts.1",
-    "uuid": "^11.1.0",
-    "winston": "^3.11.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "helmet": "^7.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/multer": "^1.4.11",
     "@types/node": "^20.10.5",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.1.1",
-    "prisma": "^6.13.0",
-    "rimraf": "^6.0.1",
     "tsx": "^4.6.0",
     "typescript": "^5.3.0"
   },
   "engines": {
     "node": ">=18.0.0"
   }
-}
+} 
