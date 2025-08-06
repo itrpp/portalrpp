@@ -1,9 +1,19 @@
-import express from 'express';
+// ========================================
+// REVENUE SERVICE - MAIN ENTRY POINT
+// ========================================
+
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import config from '@/config';
+import { errorHandler, notFoundHandler } from '@/utils/errorHandler';
+import { logInfo, logError } from '@/utils/logger';
+import revenueRoutes from '@/routes/revenueRoutes';
 
 const app = express();
-const PORT = process.env['PORT'] || 3003;
+const PORT = config.server.port;
 
 // ========================================
 // SECURITY MIDDLEWARE
@@ -31,23 +41,11 @@ app.use(helmet({
 
 // ตั้งค่า CORS
 app.use(cors({
-  origin: function (origin, callback) {
+  origin: function (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001', 
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
-      'http://127.0.0.1:3002', 
-      'http://127.0.0.1:3003',
-      'null' // สำหรับ file:// URLs
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (config.security.allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -74,12 +72,8 @@ app.use(cors({
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
-// ตั้งค่า trust proxy สำหรับ development environment เท่านั้น
-if (process.env['NODE_ENV'] === 'production') {
-  app.set('trust proxy', 1); // ใช้เฉพาะ production
-} else {
-  app.set('trust proxy', false); // ปิดใน development
-}
+// ตั้งค่า trust proxy
+app.set('trust proxy', config.server.trustProxy);
 
 // ========================================
 // BODY PARSING MIDDLEWARE
@@ -89,18 +83,96 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ========================================
+// REQUEST LOGGING MIDDLEWARE
+// ========================================
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const startTime = Date.now();
+  
+  // Add request ID
+  req.headers['x-request-id'] = req.headers['x-request-id'] || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Log request
+  logInfo('Incoming request', {
+    method: req.method,
+    url: req.url,
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+    requestId: req.headers['x-request-id'],
+  });
+  
+  // Override res.end to log response
+  const originalEnd = res.end;
+  res.end = function(chunk?: any, encoding?: any) {
+    const responseTime = Date.now() - startTime;
+    
+    logInfo('Outgoing response', {
+      method: req.method,
+      url: req.url,
+      statusCode: res.statusCode,
+      responseTime,
+      requestId: req.headers['x-request-id'],
+    });
+    
+    originalEnd.call(this, chunk, encoding);
+  };
+  
+  next();
+});
+
+// ========================================
+// DIRECTORY SETUP
+// ========================================
+
+async function setupDirectories() {
+  try {
+    const directories = [
+      config.upload.uploadPath,
+      config.upload.processedPath,
+      config.upload.backupPath,
+      config.upload.tempPath,
+      config.logging.filePath,
+    ];
+    
+    for (const dir of directories) {
+      await fs.ensureDir(path.resolve(dir));
+      logInfo(`Directory ensured: ${dir}`);
+    }
+  } catch (error) {
+    logError('Failed to setup directories', error as Error);
+    throw error;
+  }
+}
+
+// ========================================
 // HEALTH CHECK ENDPOINT
 // ========================================
 
-app.get('/health', async (req, res, _next) => {
+app.get('/health', async (req: Request, res: Response) => {
   try {
-    res.status(200).json({
-      status: 'OK',
+    // ตรวจสอบ file system
+    const uploadDirExists = await fs.pathExists(config.upload.uploadPath);
+    const processedDirExists = await fs.pathExists(config.upload.processedPath);
+    const backupDirExists = await fs.pathExists(config.upload.backupPath);
+    const tempDirExists = await fs.pathExists(config.upload.tempPath);
+    
+    const isHealthy = uploadDirExists && processedDirExists && backupDirExists && tempDirExists;
+    
+    res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'OK' : 'DEGRADED',
       service: 'Revenue Service',
       timestamp: new Date().toISOString(),
       port: PORT,
-      message: 'Revenue Service is running',
-      environment: process.env['NODE_ENV'] || 'development',
+      message: isHealthy ? 'Revenue Service is running' : 'Revenue Service has issues',
+      environment: config.server.nodeEnv,
+      uptime: process.uptime(),
+      memoryUsage: process.memoryUsage(),
+      fileSystem: {
+        uploadDirectory: uploadDirExists,
+        processedDirectory: processedDirExists,
+        backupDirectory: backupDirExists,
+        tempDirectory: tempDirExists,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -116,36 +188,45 @@ app.get('/health', async (req, res, _next) => {
 // ROOT ENDPOINT
 // ========================================
 
-app.get('/', (req, res, _next) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
     message: 'RPP Portal Revenue Service',
     version: '1.0.0',
+    description: 'จัดการข้อมูล DBF, REP, และ Statement สำหรับการเบิกจ่าย สปสช.',
     endpoints: {
       health: 'GET /health',
+      upload: 'POST /api/revenue/upload',
+      validate: 'POST /api/revenue/validate',
+      process: 'POST /api/revenue/process/:fileId',
+      statistics: 'GET /api/revenue/statistics',
+      history: 'GET /api/revenue/history',
+      report: 'GET /api/revenue/report',
     },
+    features: [
+      'ตรวจสอบความพร้อม DBF File ก่อนนำส่งเบิก สปสช.',
+      'จัดการข้อมูลผลการตรวจสอบ (REP)',
+      'จัดการข้อมูลสรุปผลการเบิกจ่ายรายเดือน (Statement)',
+      'แสดงผลรายงานที่ส่วนของ Frontend',
+      'เก็บสถิติต่างๆ',
+    ],
   });
 });
+
+// ========================================
+// API ROUTES
+// ========================================
+
+app.use('/api/revenue', revenueRoutes);
 
 // ========================================
 // ERROR HANDLING MIDDLEWARE
 // ========================================
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Revenue Service Error', { error: err.message, stack: err.stack });
-  res.status(500).json({
-    success: false,
-    message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง',
-  });
-});
+app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req, res, _next) => {
-  res.status(404).json({
-    success: false,
-    message: 'ไม่พบ API endpoint นี้',
-  });
-});
+app.use('*', notFoundHandler);
 
 // ========================================
 // START SERVER
@@ -154,16 +235,47 @@ app.use('*', (req, res, _next) => {
 // Start server
 async function startServer() {
   try {
+    // Setup directories
+    await setupDirectories();
+    
+    // Start listening
     app.listen(PORT, () => {
-      console.log(`🚀 Revenue Service running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
-      console.log(`🌍 Environment: ${process.env['NODE_ENV'] || 'development'}`);
+      logInfo(`🚀 Revenue Service running on port ${PORT}`);
+      logInfo(`📊 Health check: http://localhost:${PORT}/health`);
+      logInfo(`🌍 Environment: ${config.server.nodeEnv}`);
+      logInfo(`📁 Upload directory: ${config.upload.uploadPath}`);
+      logInfo(`📁 Processed directory: ${config.upload.processedPath}`);
+      logInfo(`📁 Backup directory: ${config.upload.backupPath}`);
+      logInfo(`📁 Temp directory: ${config.upload.tempPath}`);
+      logInfo(`📁 Log directory: ${config.logging.filePath}`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logError('Failed to start server', error as Error);
     process.exit(1);
   }
 }
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logInfo('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logInfo('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+  logError('Uncaught Exception', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: any, promise: any) => {
+  logError('Unhandled Rejection', new Error(`Promise: ${promise}, Reason: ${reason}`));
+  process.exit(1);
+});
 
 startServer();
 
