@@ -58,6 +58,7 @@ export interface FileProcessingResult {
   fileId: string;
   statistics: ProcessingStatistics;
   errors?: string[];
+  metadata?: string;
 }
 
 export interface ProcessingStatistics {
@@ -376,6 +377,15 @@ export interface BatchProcessingResult {
   progress: BatchProgress;
 }
 
+export interface FileProcessingInBatchResult {
+  fileId: string;
+  success: boolean;
+  processingTime: number;
+  recordsProcessed: number;
+  recordsFailed: number;
+  errors: ProcessingError[];
+}
+
 // ========================================
 // CONFIGURATION TYPES
 // ========================================
@@ -501,6 +511,8 @@ export interface ValidationResult {
     errors: ValidationError[];
     warnings: string[];
   }>;
+  securityScore?: number;
+  totalFiles?: number;
 }
 
 export interface BatchValidationResult {

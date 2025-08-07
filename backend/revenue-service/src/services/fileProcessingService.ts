@@ -9,14 +9,15 @@ import * as path from 'path';
 import * as iconv from 'iconv-lite';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  FileProcessingResult,
-  ProcessingStatistics,
-  RevenueReport,
   FileValidationResult,
+  FileProcessingResult,
+  RevenueReport,
   BatchProcessingResult,
+  ProcessingError,
   BatchStatus,
 } from '@/types';
-import { FileProcessingError } from '@/utils/errorHandler';
+import { DatabaseService } from './databaseService';
+import { ValidationService } from './validationService';
 import { logFileProcessing } from '@/utils/logger';
 import config from '@/config';
 
@@ -31,6 +32,14 @@ export interface IFileProcessingService {
 }
 
 export class FileProcessingService implements IFileProcessingService {
+  private databaseService: DatabaseService;
+  private validationService: ValidationService;
+
+  constructor() {
+    this.databaseService = new DatabaseService();
+    this.validationService = new ValidationService();
+  }
+
   /**
    * ประมวลผลไฟล์ตามประเภท
    */
@@ -40,10 +49,33 @@ export class FileProcessingService implements IFileProcessingService {
     validationResult: FileValidationResult,
   ): Promise<FileProcessingResult> {
     const startTime = Date.now();
-    
+
     try {
+      // ตรวจสอบ file integrity ก่อนประมวลผล
+      const integrityValidation = await this.validationService.validateFileIntegrity(filePath);
+      if (!integrityValidation.isValid) {
+        return {
+          success: false,
+          message: 'ไฟล์ไม่สมบูรณ์',
+          processedAt: new Date(),
+          fileId: '',
+          statistics: {
+            totalRecords: 0,
+            validRecords: 0,
+            invalidRecords: 0,
+            processedRecords: 0,
+            skippedRecords: 0,
+            processingTime: Date.now() - startTime,
+          },
+          errors: integrityValidation.errors.map(e => e.message),
+        };
+      }
+
+      // สร้าง checksum สำหรับไฟล์
+      const checksum = await this.validationService.generateChecksum(filePath, 'sha256');
+
+      // ประมวลผลตามประเภทไฟล์
       let result: FileProcessingResult;
-      
       switch (validationResult.fileType) {
         case 'dbf':
           result = await this.processDBF(filePath, filename);
@@ -55,9 +87,16 @@ export class FileProcessingService implements IFileProcessingService {
           result = await this.processStatement(filePath, filename);
           break;
         default:
-          throw new FileProcessingError(`ประเภทไฟล์ไม่รองรับ: ${validationResult.fileType}`);
+          throw new Error(`ประเภทไฟล์ไม่รองรับ: ${validationResult.fileType}`);
       }
-      
+
+      // เพิ่ม checksum ใน metadata
+      result.metadata = JSON.stringify({
+        checksum,
+        algorithm: 'sha256',
+        integrityValid: integrityValidation.isValid,
+      });
+
       const processingTime = Date.now() - startTime;
       result.statistics.processingTime = processingTime;
       
@@ -68,10 +107,10 @@ export class FileProcessingService implements IFileProcessingService {
       const processingTime = Date.now() - startTime;
       logFileProcessing(filename, false, processingTime, 0);
       
-      if (error instanceof FileProcessingError) {
+      if (error instanceof Error) {
         throw error;
       }
-      throw new FileProcessingError(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ DBF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ DBF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -88,11 +127,11 @@ export class FileProcessingService implements IFileProcessingService {
       const utf8Buffer = iconv.decode(buffer, config.fileRules.dbf.encoding);
       
       // Parse DBF
-      const dbf = new DBF(utf8Buffer);
-      const table = dbf.table;
+      const dbf = DBF.parse(Buffer.from(utf8Buffer, 'utf8'));
+      const table = dbf;
       
       if (!table || !table.records) {
-        throw new FileProcessingError('ไม่สามารถอ่านข้อมูลจากไฟล์ DBF ได้');
+        throw new Error('ไม่สามารถอ่านข้อมูลจากไฟล์ DBF ได้');
       }
       
       // ประมวลผลข้อมูล
@@ -155,7 +194,7 @@ export class FileProcessingService implements IFileProcessingService {
       
       return {
         success: false,
-        message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ DBF: ${error.message}`,
+        message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ DBF: ${error instanceof Error ? error.message : 'Unknown error'}`,
         processedAt: new Date(),
         fileId,
         statistics: {
@@ -166,7 +205,7 @@ export class FileProcessingService implements IFileProcessingService {
           skippedRecords: 0,
           processingTime,
         },
-        errors: [error.message],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
   }
@@ -192,11 +231,11 @@ export class FileProcessingService implements IFileProcessingService {
       // ประมวลผลแต่ละ sheet
       for (const sheetName of sheetNames) {
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const jsonData = worksheet ? XLSX.utils.sheet_to_json(worksheet, { header: 1 }) : [];
         
         if (jsonData.length > 1) { // มี header + data
-          const headers = jsonData[0] as string[];
-          const dataRows = jsonData.slice(1);
+          const headers = (jsonData[0] as string[]) || [];
+          const dataRows = jsonData.slice(1) as any[][];
           
           totalRecords += dataRows.length;
           
@@ -251,10 +290,10 @@ export class FileProcessingService implements IFileProcessingService {
       const processingTime = Date.now() - startTime;
       logFileProcessing(filename, false, processingTime, 0);
       
-      if (error instanceof FileProcessingError) {
+      if (error instanceof Error) {
         throw error;
       }
-      throw new FileProcessingError(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ REP: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ REP: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -279,11 +318,11 @@ export class FileProcessingService implements IFileProcessingService {
       // ประมวลผลแต่ละ sheet
       for (const sheetName of sheetNames) {
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const jsonData = worksheet ? XLSX.utils.sheet_to_json(worksheet, { header: 1 }) : [];
         
         if (jsonData.length > 1) { // มี header + data
-          const headers = jsonData[0] as string[];
-          const dataRows = jsonData.slice(1);
+          const headers = (jsonData[0] as string[]) || [];
+          const dataRows = jsonData.slice(1) as any[][];
           
           totalRecords += dataRows.length;
           
@@ -338,10 +377,10 @@ export class FileProcessingService implements IFileProcessingService {
       const processingTime = Date.now() - startTime;
       logFileProcessing(filename, false, processingTime, 0);
       
-      if (error instanceof FileProcessingError) {
+      if (error instanceof Error) {
         throw error;
       }
-      throw new FileProcessingError(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ Statement: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ Statement: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -367,29 +406,85 @@ export class FileProcessingService implements IFileProcessingService {
     const startTime = Date.now();
     
     try {
-      // TODO: Implement batch processing logic
-      // This method should coordinate the processing of multiple files in a batch
-      
+      // ดึงข้อมูล batch จาก database
+      const batch = await this.databaseService.getUploadBatch(batchId);
+      if (!batch) {
+        throw new Error(`ไม่พบ batch ที่มี ID: ${batchId}`);
+      }
+
+      // ดึงไฟล์ใน batch
+      const filesResult = await this.databaseService.getUploadRecords({
+        batchId,
+        limit: 1000,
+      });
+      const files = filesResult.records;
+
+      let processedFiles = 0;
+      let failedFiles = 0;
+      let totalRecords = 0;
+      let processedRecords = 0;
+      let failedRecords = 0;
+      const errors: ProcessingError[] = [];
+
+      // ประมวลผลไฟล์แต่ละไฟล์
+      for (const file of files) {
+        try {
+          const fileResult = await this.processFileInBatch(file.id, batchId);
+          
+          if (fileResult.success) {
+            processedFiles++;
+            processedRecords += fileResult.statistics.processedRecords;
+            totalRecords += fileResult.statistics.totalRecords;
+          } else {
+            failedFiles++;
+            failedRecords += fileResult.statistics.invalidRecords;
+            totalRecords += fileResult.statistics.totalRecords;
+          }
+
+          if (fileResult.errors) {
+            errors.push(...fileResult.errors.map(error => ({
+              type: 'processing' as const,
+              message: error,
+              code: 'FILE_PROCESSING_ERROR',
+              timestamp: new Date(),
+              retryable: true,
+            })));
+          }
+        } catch (error) {
+          failedFiles++;
+          errors.push({
+            type: 'processing' as const,
+            message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ ${file.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            code: 'FILE_PROCESSING_ERROR',
+            timestamp: new Date(),
+            retryable: true,
+          });
+        }
+      }
+
+      const processingTime = Date.now() - startTime;
+      const success = failedFiles === 0;
+
       const result: BatchProcessingResult = {
         batchId,
-        success: true,
-        totalFiles: 0,
-        processedFiles: 0,
-        failedFiles: 0,
-        totalRecords: 0,
-        processedRecords: 0,
-        failedRecords: 0,
-        processingTime: Date.now() - startTime,
-        errors: [],
+        success,
+        totalFiles: files.length,
+        processedFiles,
+        failedFiles,
+        totalRecords,
+        processedRecords,
+        failedRecords,
+        processingTime,
+        errors,
         progress: {
           batchId,
-          batchName: '',
-          totalFiles: 0,
-          completedFiles: 0,
-          failedFiles: 0,
+          batchName: batch.batchName,
+          totalFiles: files.length,
+          completedFiles: processedFiles + failedFiles,
+          failedFiles,
           processingFiles: 0,
           progress: 100,
-          status: BatchStatus.SUCCESS,
+          status: success ? BatchStatus.SUCCESS : failedFiles === files.length ? BatchStatus.ERROR : BatchStatus.PARTIAL,
         },
       };
 
@@ -408,7 +503,7 @@ export class FileProcessingService implements IFileProcessingService {
         failedRecords: 0,
         processingTime,
         errors: [{
-          type: 'processing',
+          type: 'processing' as const,
           message: error instanceof Error ? error.message : 'Unknown error',
           code: 'BATCH_PROCESSING_ERROR',
           timestamp: new Date(),
@@ -431,29 +526,50 @@ export class FileProcessingService implements IFileProcessingService {
   /**
    * ประมวลผลไฟล์ใน batch
    */
-  async processFileInBatch(fileId: string, batchId: string): Promise<FileProcessingResult> {
+  async processFileInBatch(fileId: string, _batchId: string): Promise<FileProcessingResult> {
     const startTime = Date.now();
     
     try {
-      // TODO: Implement file processing in batch context
-      // This method should process a single file within a batch context
-      
-      const result: FileProcessingResult = {
-        success: true,
-        message: 'ประมวลผลไฟล์ใน batch สำเร็จ',
-        processedAt: new Date(),
-        fileId,
-        statistics: {
-          totalRecords: 0,
-          validRecords: 0,
-          invalidRecords: 0,
-          processedRecords: 0,
-          skippedRecords: 0,
-          processingTime: Date.now() - startTime,
-        },
+      // ดึงข้อมูลไฟล์จาก database
+      const fileRecord = await this.databaseService.getUploadRecord(fileId);
+      if (!fileRecord) {
+        throw new Error(`ไม่พบไฟล์ที่มี ID: ${fileId}`);
+      }
+
+      // อัปเดตสถานะไฟล์เป็น processing
+      await this.databaseService.updateUploadRecord(fileId, { status: 'processing' });
+
+      // สร้าง validation result จากข้อมูลใน database
+      const validationResult: FileValidationResult = {
+        isValid: fileRecord.isValid || false,
+        errors: fileRecord.errors ? JSON.parse(fileRecord.errors) : [],
+        warnings: fileRecord.warnings ? JSON.parse(fileRecord.warnings) : [],
+        fileType: fileRecord.fileType.toLowerCase() as any,
+        recordCount: fileRecord.totalRecords || 0,
+        fileSize: fileRecord.fileSize,
       };
 
-      return result;
+      // ประมวลผลไฟล์
+      const processingResult = await this.processFile(
+        fileRecord.filePath,
+        fileRecord.filename,
+        validationResult
+      );
+
+      // อัปเดตผลการประมวลผล
+      await this.databaseService.updateUploadRecord(fileId, {
+        status: processingResult.success ? 'completed' : 'failed',
+        processedAt: new Date(),
+        totalRecords: processingResult.statistics.totalRecords,
+        validRecords: processingResult.statistics.validRecords,
+        invalidRecords: processingResult.statistics.invalidRecords,
+        processedRecords: processingResult.statistics.processedRecords,
+        skippedRecords: processingResult.statistics.skippedRecords,
+        processingTime: processingResult.statistics.processingTime,
+        errorMessage: processingResult.success ? null : processingResult.message,
+      });
+
+      return processingResult;
     } catch (error) {
       const processingTime = Date.now() - startTime;
       
@@ -509,17 +625,17 @@ export class FileProcessingService implements IFileProcessingService {
     );
   }
 
-  private async processDBFRecord(record: any): Promise<void> {
+  private async processDBFRecord(_record: any): Promise<void> {
     // เพิ่ม business logic สำหรับประมวลผล DBF record
     // เช่น การแปลงข้อมูล การตรวจสอบความถูกต้อง การบันทึกลงฐานข้อมูล
   }
 
-  private async processREPRecord(row: any[], headers: string[], sheetName: string): Promise<void> {
+  private async processREPRecord(_row: any[], _headers: string[], _sheetName: string): Promise<void> {
     // เพิ่ม business logic สำหรับประมวลผล REP record
     // เช่น การแปลงข้อมูล การตรวจสอบความถูกต้อง การบันทึกลงฐานข้อมูล
   }
 
-  private async processStatementRecord(row: any[], headers: string[], sheetName: string): Promise<void> {
+  private async processStatementRecord(_row: any[], _headers: string[], _sheetName: string): Promise<void> {
     // เพิ่ม business logic สำหรับประมวลผล Statement record
     // เช่น การแปลงข้อมูล การตรวจสอบความถูกต้อง การบันทึกลงฐานข้อมูล
   }

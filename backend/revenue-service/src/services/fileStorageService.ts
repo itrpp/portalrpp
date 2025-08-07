@@ -91,7 +91,7 @@ export class FileStorageService {
   async createDateFolder(fileType: FileType, date: Date = new Date()): Promise<string> {
     const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
     const typePath = this.getTypePath(fileType);
-    const datePath = path.join(typePath, dateStr);
+    const datePath = path.join(typePath, dateStr || '');
     
     await fs.ensureDir(datePath);
     logInfo('Date folder created', { fileType, date: dateStr, path: datePath });
@@ -299,13 +299,13 @@ export class FileStorageService {
     try {
       const dateStr = date.toISOString().split('T')[0];
       const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
-      const processedDatePath = path.join(processedTypePath, dateStr);
+      const processedDatePath = path.join(processedTypePath, dateStr || "");
       const processedBatchPath = path.join(processedDatePath, batchId);
       const processedUuidPath = path.join(processedBatchPath, uuid);
       
       await fs.ensureDir(processedUuidPath);
       
-      const sourcePath = path.join(this.getTypePath(fileType), dateStr, batchId, uuid, originalName);
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", batchId, uuid, originalName);
       const targetPath = path.join(processedUuidPath, originalName);
       
       if (await fs.pathExists(sourcePath)) {
@@ -327,7 +327,7 @@ export class FileStorageService {
           relativePath,
           filename: originalName,
           uuid,
-          dateFolder: dateStr,
+          dateFolder: dateStr || "",
           batchFolder: batchId,
           batchId,
           message: 'ไฟล์ถูกย้ายไปยัง processed directory ใน batch สำเร็จ',
@@ -378,12 +378,12 @@ export class FileStorageService {
     try {
       const dateStr = date.toISOString().split('T')[0];
       const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
-      const processedDatePath = path.join(processedTypePath, dateStr);
+      const processedDatePath = path.join(processedTypePath, dateStr || "");
       const processedUuidPath = path.join(processedDatePath, uuid);
       
       await fs.ensureDir(processedUuidPath);
       
-      const sourcePath = path.join(this.getTypePath(fileType), dateStr, uuid, originalName);
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", uuid, originalName);
       const targetPath = path.join(processedUuidPath, originalName);
       
       if (await fs.pathExists(sourcePath)) {
@@ -404,7 +404,7 @@ export class FileStorageService {
           relativePath,
           filename: originalName,
           uuid,
-          dateFolder: dateStr,
+          dateFolder: dateStr || "",
           message: 'ไฟล์ถูกย้ายไปยัง processed directory สำเร็จ',
         };
       } else {
@@ -455,13 +455,13 @@ export class FileStorageService {
     try {
       const dateStr = date.toISOString().split('T')[0];
       const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
-      const backupDatePath = path.join(backupTypePath, dateStr);
+      const backupDatePath = path.join(backupTypePath, dateStr || "");
       const backupBatchPath = path.join(backupDatePath, batchId);
       const backupUuidPath = path.join(backupBatchPath, uuid);
       
       await fs.ensureDir(backupUuidPath);
       
-      const sourcePath = path.join(this.getTypePath(fileType), dateStr, batchId, uuid, originalName);
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", batchId, uuid, originalName);
       const backupPath = path.join(backupUuidPath, originalName);
       
       if (await fs.pathExists(sourcePath)) {
@@ -483,7 +483,7 @@ export class FileStorageService {
           relativePath,
           filename: originalName,
           uuid,
-          dateFolder: dateStr,
+          dateFolder: dateStr || "",
           batchFolder: batchId,
           batchId,
           message: 'Backup ถูกสร้างใน batch สำเร็จ',
@@ -534,12 +534,12 @@ export class FileStorageService {
     try {
       const dateStr = date.toISOString().split('T')[0];
       const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
-      const backupDatePath = path.join(backupTypePath, dateStr);
+      const backupDatePath = path.join(backupTypePath, dateStr || "");
       const backupUuidPath = path.join(backupDatePath, uuid);
       
       await fs.ensureDir(backupUuidPath);
       
-      const sourcePath = path.join(this.getTypePath(fileType), dateStr, uuid, originalName);
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", uuid, originalName);
       const backupPath = path.join(backupUuidPath, originalName);
       
       if (await fs.pathExists(sourcePath)) {
@@ -560,7 +560,7 @@ export class FileStorageService {
           relativePath,
           filename: originalName,
           uuid,
-          dateFolder: dateStr,
+          dateFolder: dateStr || "",
           message: 'Backup ถูกสร้างสำเร็จ',
         };
       } else {

@@ -11,70 +11,22 @@ import {
   BatchQueryParams,
   BatchListResponse,
   BatchFilesResponse,
-  BatchProgress,
-  BatchError,
-  BatchUploadResult,
-  BatchUploadProgress,
   BatchStatistics,
   BatchMetrics,
   ProcessingError,
-  BatchErrorSummary
+  BatchErrorSummary,
+  BatchProcessingResult,
+  FileProcessingInBatchResult
 } from '@/types';
 import { DatabaseService } from './databaseService';
 import { FileProcessingService } from './fileProcessingService';
 import { ValidationService } from './validationService';
-import { BatchError as BatchServiceError, ResourceNotFoundError, ConflictError } from '@/utils/errorHandler';
+import { BatchError, ResourceNotFoundError, FileValidationError } from '@/utils/errorHandler';
 import {
   logInfo,
   logError,
-  logWarn,
-  logBatchCreation,
-  logBatchProcessing,
-  logBatchCompletion,
-  logBatchError,
-  logBatchProgress,
-  logBatchFileProcessing
+  logBatchCreation
 } from '@/utils/logger';
-import { v4 as uuidv4 } from 'uuid';
-
-export interface ICreateBatchRequest {
-  batchName: string;
-  userId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-}
-
-export interface IGetBatchesParams {
-  page?: number;
-  limit?: number;
-  status?: BatchStatus;
-  userId?: string;
-  startDate?: Date;
-  endDate?: Date;
-}
-
-export interface IBatchProcessingResult {
-  batchId: string;
-  success: boolean;
-  totalFiles: number;
-  processedFiles: number;
-  failedFiles: number;
-  totalRecords: number;
-  processedRecords: number;
-  failedRecords: number;
-  processingTime: number;
-  errors: ProcessingError[];
-  progress: BatchProgress;
-}
-
-export interface IFileProcessingInBatchResult {
-  fileId: string;
-  success: boolean;
-  processingTime: number;
-  recordsProcessed: number;
-  recordsFailed: number;
-  errors: ProcessingError[];
-}
 
 export class BatchService {
   private databaseService: DatabaseService;
@@ -90,7 +42,7 @@ export class BatchService {
   /**
    * สร้าง batch ใหม่
    */
-  async createBatch(data: ICreateBatchRequest): Promise<UploadBatch> {
+  async createBatch(data: BatchCreateRequest): Promise<UploadBatch> {
     try {
       logInfo('Creating new batch', { batchName: data.batchName, userId: data.userId });
 
@@ -120,14 +72,14 @@ export class BatchService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logError('Failed to create batch', error as Error, { batchName: data.batchName });
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการสร้าง batch: ${errorMessage}`);
+      throw new BatchError(`เกิดข้อผิดพลาดในการสร้าง batch: ${errorMessage}`);
     }
   }
 
   /**
    * ดึงรายการ batches
    */
-  async getBatches(params: IGetBatchesParams): Promise<BatchListResponse> {
+  async getBatches(params: BatchQueryParams): Promise<BatchListResponse> {
     try {
       logInfo('Fetching batches', params);
 
@@ -140,7 +92,7 @@ export class BatchService {
         endDate: params.endDate as any,
       });
 
-      const response: BatchListResponse = {
+      return {
         batches: result.batches as UploadBatch[],
         pagination: {
           page: result.page,
@@ -149,18 +101,10 @@ export class BatchService {
           totalPages: result.totalPages,
         },
       };
-
-      logInfo('Batches fetched successfully', {
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages
-      });
-
-      return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logError('Failed to fetch batches', error as Error, params);
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการดึงรายการ batches: ${errorMessage}`);
+      logError('Failed to get batches', error as Error, params);
+      throw new BatchError(`เกิดข้อผิดพลาดในการดึงรายการ batches: ${errorMessage}`);
     }
   }
 
@@ -169,21 +113,14 @@ export class BatchService {
    */
   async getBatch(id: string): Promise<UploadBatch | null> {
     try {
-      logInfo('Fetching batch', { batchId: id });
+      logInfo('Fetching batch', { id });
 
       const batch = await this.databaseService.getUploadBatch(id);
-
-      if (!batch) {
-        logWarn('Batch not found', { batchId: id });
-        return null;
-      }
-
-      logInfo('Batch fetched successfully', { batchId: id, batchName: batch.batchName });
       return batch as UploadBatch;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logError('Failed to fetch batch', error as Error, { batchId: id });
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการดึงข้อมูล batch: ${errorMessage}`);
+      logError('Failed to get batch', error as Error, { id });
+      throw new BatchError(`เกิดข้อผิดพลาดในการดึงข้อมูล batch: ${errorMessage}`);
     }
   }
 
@@ -192,16 +129,14 @@ export class BatchService {
    */
   async updateBatch(id: string, data: BatchUpdateRequest): Promise<UploadBatch> {
     try {
-      logInfo('Updating batch', { batchId: id, updates: data });
+      logInfo('Updating batch', { id, data });
 
       const batch = await this.databaseService.updateUploadBatch(id, data);
-
-      logInfo('Batch updated successfully', { batchId: id, batchName: batch.batchName });
       return batch as UploadBatch;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logError('Failed to update batch', error as Error, { batchId: id, updates: data });
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการอัปเดต batch: ${errorMessage}`);
+      logError('Failed to update batch', error as Error, { id, data });
+      throw new BatchError(`เกิดข้อผิดพลาดในการอัปเดต batch: ${errorMessage}`);
     }
   }
 
@@ -210,26 +145,18 @@ export class BatchService {
    */
   async deleteBatch(id: string): Promise<void> {
     try {
-      logInfo('Deleting batch', { batchId: id });
+      logInfo('Deleting batch', { id });
 
-      // ตรวจสอบว่า batch มีอยู่หรือไม่
       const batch = await this.databaseService.getUploadBatch(id);
       if (!batch) {
         throw new ResourceNotFoundError('batch', id);
       }
-
-      // ลบ batch และไฟล์ที่เกี่ยวข้อง
       // TODO: เพิ่มการลบไฟล์จริง
-      await this.databaseService.updateUploadBatch(id, { status: BatchStatus.ERROR });
-
-      logInfo('Batch deleted successfully', { batchId: id });
+      await this.databaseService.updateUploadBatch(id, { status: 'error' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logError('Failed to delete batch', error as Error, { batchId: id });
-      if (error instanceof ResourceNotFoundError) {
-        throw error;
-      }
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการลบ batch: ${errorMessage}`);
+      logError('Failed to delete batch', error as Error, { id });
+      throw new BatchError(`เกิดข้อผิดพลาดในการลบ batch: ${errorMessage}`);
     }
   }
 
@@ -238,32 +165,28 @@ export class BatchService {
    */
   async updateBatchStatus(id: string, status: BatchStatus): Promise<void> {
     try {
-      logInfo('Updating batch status', { batchId: id, status });
+      logInfo('Updating batch status', { id, status });
 
       await this.databaseService.updateUploadBatch(id, { status });
-
-      logInfo('Batch status updated successfully', { batchId: id, status });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logError('Failed to update batch status', error as Error, { batchId: id, status });
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการอัปเดตสถานะ batch: ${errorMessage}`);
+      logError('Failed to update batch status', error as Error, { id, status });
+      throw new BatchError(`เกิดข้อผิดพลาดในการอัปเดตสถานะ batch: ${errorMessage}`);
     }
   }
 
   /**
    * ดึงไฟล์ใน batch
    */
-  async getBatchFiles(id: string, params: IGetBatchesParams): Promise<BatchFilesResponse> {
+  async getBatchFiles(id: string, params: BatchQueryParams): Promise<BatchFilesResponse> {
     try {
-      logInfo('Fetching batch files', { batchId: id, params });
+      logInfo('Fetching batch files', { id, params });
 
-      // ตรวจสอบว่า batch มีอยู่หรือไม่
       const batch = await this.databaseService.getUploadBatch(id);
       if (!batch) {
         throw new ResourceNotFoundError('batch', id);
       }
 
-      // ดึงไฟล์ใน batch
       const result = await this.databaseService.getUploadRecords({
         page: params.page || 1,
         limit: params.limit || 20,
@@ -274,7 +197,7 @@ export class BatchService {
         endDate: params.endDate as any,
       });
 
-      const response: BatchFilesResponse = {
+      return {
         batch: batch as UploadBatch,
         files: result.records as UploadRecord[],
         pagination: {
@@ -284,28 +207,17 @@ export class BatchService {
           totalPages: result.totalPages,
         },
       };
-
-      logInfo('Batch files fetched successfully', {
-        batchId: id,
-        totalFiles: result.total,
-        page: result.page
-      });
-
-      return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logError('Failed to fetch batch files', error as Error, { batchId: id, params });
-      if (error instanceof ResourceNotFoundError) {
-        throw error;
-      }
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการดึงไฟล์ใน batch: ${errorMessage}`);
+      logError('Failed to get batch files', error as Error, { id, params });
+      throw new BatchError(`เกิดข้อผิดพลาดในการดึงไฟล์ใน batch: ${errorMessage}`);
     }
   }
 
   /**
    * ประมวลผล batch
    */
-  async processBatch(batchId: string): Promise<IBatchProcessingResult> {
+  async processBatch(batchId: string): Promise<BatchProcessingResult> {
     const startTime = Date.now();
 
     try {
@@ -315,6 +227,34 @@ export class BatchService {
       const batch = await this.databaseService.getUploadBatch(batchId);
       if (!batch) {
         throw new ResourceNotFoundError('batch', batchId);
+      }
+
+      // ตรวจสอบ batch security ก่อนประมวลผล
+      const batchFiles = await this.getBatchFiles(batchId, { limit: 1000 });
+      if (batchFiles.files.length > 0) {
+        // สร้าง mock files สำหรับ validation (เนื่องจากไฟล์ถูกบันทึกแล้ว)
+        const mockFiles = batchFiles.files.map(file => ({
+          originalname: file.filename,
+          size: file.fileSize,
+          mimetype: 'application/octet-stream',
+          buffer: Buffer.alloc(0), // ไม่ใช้ buffer ในการตรวจสอบ
+        } as Express.Multer.File));
+
+        try {
+          const batchSecurityValidation = await this.validationService.validateBatchSecurity(batchId, mockFiles);
+          if (!batchSecurityValidation.isValid) {
+            throw new FileValidationError('Batch ไม่ปลอดภัย', {
+              batchId,
+              errors: batchSecurityValidation.errors,
+            });
+          }
+        } catch (error) {
+          if (error instanceof FileValidationError) {
+            throw error;
+          }
+          // ถ้าไม่ใช่ FileValidationError ให้ดำเนินการต่อ
+          logError('Batch security validation failed', error as Error, { batchId });
+        }
       }
 
       // อัปเดตสถานะเป็น processing
@@ -334,6 +274,36 @@ export class BatchService {
       // ประมวลผลไฟล์แต่ละไฟล์
       for (const file of files) {
         try {
+          // ตรวจสอบ file integrity ก่อนประมวลผล
+          const integrityValidation = await this.validationService.validateFileIntegrity(file.filePath);
+          if (!integrityValidation.isValid) {
+            failedFiles++;
+            errors.push({
+              type: 'validation',
+              message: `ไฟล์ ${file.filename} ไม่สมบูรณ์: ${integrityValidation.errors.map(e => e.message).join(', ')}`,
+              code: 'FILE_INTEGRITY_ERROR',
+              timestamp: new Date(),
+              retryable: false,
+            });
+            continue;
+          }
+
+          // ตรวจสอบ checksum
+          try {
+            const checksum = await this.validationService.generateChecksum(file.filePath, 'sha256');
+            logInfo('File checksum generated', { 
+              fileId: file.id, 
+              filename: file.filename, 
+              checksum 
+            });
+          } catch (error) {
+            logError('Checksum generation failed', error as Error, { 
+              fileId: file.id, 
+              filename: file.filename 
+            });
+            // ไม่หยุดการประมวลผล แต่บันทึก warning
+          }
+
           const fileResult = await this.processFileInBatch(file.id, batchId);
 
           if (fileResult.success) {
@@ -353,7 +323,7 @@ export class BatchService {
           failedFiles++;
           errors.push({
             type: 'processing',
-            message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ ${file.filename}: ${error.message}`,
+            message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ ${file.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`,
             code: 'FILE_PROCESSING_ERROR',
             timestamp: new Date(),
             retryable: true,
@@ -375,7 +345,7 @@ export class BatchService {
         status: finalStatus,
       });
 
-      const result: IBatchProcessingResult = {
+      const result: BatchProcessingResult = {
         batchId,
         success: finalStatus === 'success',
         totalFiles: files.length,
@@ -416,14 +386,14 @@ export class BatchService {
       // อัปเดตสถานะเป็น error
       await this.updateBatchStatus(batchId, BatchStatus.ERROR);
 
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการประมวลผล batch: ${errorMessage}`);
+      throw new BatchError(`เกิดข้อผิดพลาดในการประมวลผล batch: ${errorMessage}`);
     }
   }
 
   /**
    * ประมวลผลไฟล์ใน batch
    */
-  async processFileInBatch(fileId: string, batchId: string): Promise<IFileProcessingInBatchResult> {
+  async processFileInBatch(fileId: string, batchId: string): Promise<FileProcessingInBatchResult> {
     const startTime = Date.now();
 
     try {
@@ -466,7 +436,7 @@ export class BatchService {
       });
 
       const processingTime = Date.now() - startTime;
-      const result: IFileProcessingInBatchResult = {
+      const result: FileProcessingInBatchResult = {
         fileId,
         success: processingResult.success,
         processingTime,
@@ -589,7 +559,7 @@ export class BatchService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logError('Failed to fetch batch statistics', error as Error);
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการดึงสถิติ batch: ${errorMessage}`);
+      throw new BatchError(`เกิดข้อผิดพลาดในการดึงสถิติ batch: ${errorMessage}`);
     }
   }
 
@@ -598,30 +568,38 @@ export class BatchService {
    */
   async getBatchMetrics(batchId: string): Promise<BatchMetrics> {
     try {
-      logInfo('Fetching batch metrics', { batchId });
-
       const batch = await this.databaseService.getUploadBatch(batchId);
       if (!batch) {
         throw new ResourceNotFoundError('batch', batchId);
       }
 
       const files = await this.getBatchFiles(batchId, { limit: 1000 });
-
+      
       const processedFiles = files.files.filter(f => f.status === 'completed').length;
       const failedFiles = files.files.filter(f => f.status === 'failed').length;
-
+      
       const processedRecords = files.files.reduce((sum, f) => sum + (f.processedRecords || 0), 0);
       const failedRecords = files.files.reduce((sum, f) => sum + (f.invalidRecords || 0), 0);
-
-      const averageProcessingTime = files.files.length > 0
+      
+      const averageProcessingTime = files.files.length > 0 
         ? files.files.reduce((sum, f) => sum + (f.processingTime || 0), 0) / files.files.length
         : 0;
 
-      const metrics: BatchMetrics = {
+      // คำนวณ memory usage
+      const memoryUsage = process.memoryUsage().heapUsed;
+
+      // คำนวณ CPU usage (ประมาณการ)
+      const cpuUsage = process.cpuUsage();
+      const cpuUsagePercent = (cpuUsage.user + cpuUsage.system) / 1000000; // แปลงเป็นวินาที
+
+      // คำนวณ disk usage (ประมาณการ)
+      const diskUsage = batch.totalSize; // ใช้ขนาดไฟล์รวมเป็น disk usage
+
+      const result: BatchMetrics = {
         batchId,
         startTime: batch.uploadDate,
-        endTime: batch.status !== 'processing' ? batch.uploadDate : batch.uploadDate,
-        duration: batch.status !== 'processing' ? 0 : 0,
+        endTime: batch.status !== 'processing' ? batch.uploadDate : new Date(),
+        duration: batch.status !== 'processing' ? 0 : 0, // ใช้ 0 แทนการคำนวณจริง
         totalFiles: batch.totalFiles,
         processedFiles,
         failedFiles,
@@ -629,26 +607,15 @@ export class BatchService {
         processedRecords,
         failedRecords,
         averageProcessingTime,
-        memoryUsage: process.memoryUsage().heapUsed,
-        cpuUsage: 0, // TODO: เพิ่มการวัด CPU usage
-        diskUsage: 0, // TODO: เพิ่มการวัด disk usage
+        memoryUsage,
+        cpuUsage: cpuUsagePercent,
+        diskUsage,
       };
 
-      logInfo('Batch metrics fetched successfully', {
-        batchId,
-        totalFiles: metrics.totalFiles,
-        processedFiles: metrics.processedFiles
-      });
-
-      return metrics;
-
+      return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logError('Failed to fetch batch metrics', error as Error, { batchId });
-      if (error instanceof ResourceNotFoundError) {
-        throw error;
-      }
-      throw new BatchServiceError(`เกิดข้อผิดพลาดในการดึง metrics ของ batch: ${errorMessage}`);
+      logError('Failed to get batch metrics', error as Error, { batchId });
+      throw error;
     }
   }
 

@@ -13,9 +13,34 @@ import { logInfo, logError } from '@/utils/logger';
 import revenueRoutes from '@/routes/revenueRoutes';
 import DatabaseService from '@/services/databaseService';
 import FileStorageService from '@/services/fileStorageService';
+import BatchService from '@/services/batchService';
+import StatisticsService from '@/services/statisticsService';
+import ValidationService from '@/services/validationService';
+import FileValidationService from '@/services/fileValidationService';
+import FileProcessingService from '@/services/fileProcessingService';
 
 const app = express();
 const PORT = config.server.port;
+
+// สร้าง service instances
+const databaseService = new DatabaseService();
+const fileStorageService = new FileStorageService();
+const validationService = new ValidationService();
+const fileValidationService = new FileValidationService();
+const fileProcessingService = new FileProcessingService();
+const statisticsService = new StatisticsService();
+const batchService = new BatchService();
+
+// แชร์ services ไปยัง routes
+app.locals.services = {
+  databaseService,
+  fileStorageService,
+  validationService,
+  fileValidationService,
+  fileProcessingService,
+  statisticsService,
+  batchService,
+};
 
 // ========================================
 // SECURITY MIDDLEWARE
@@ -105,7 +130,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   
   // Override res.end to log response
   const originalEnd = res.end;
-  res.end = function(chunk?: any, encoding?: any) {
+  res.end = function(chunk?: any, encoding?: any): any {
     const responseTime = Date.now() - startTime;
     
     logInfo('Outgoing response', {
@@ -116,7 +141,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       requestId: req.headers['x-request-id'],
     });
     
-    originalEnd.call(this, chunk, encoding);
+    return originalEnd.call(this, chunk, encoding);
   };
   
   next();
@@ -150,7 +175,7 @@ async function setupDirectories() {
 // HEALTH CHECK ENDPOINT
 // ========================================
 
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
   try {
     // ตรวจสอบ file system
     const uploadDirExists = await fs.pathExists(config.upload.uploadPath);
@@ -190,7 +215,7 @@ app.get('/health', async (req: Request, res: Response) => {
 // ROOT ENDPOINT
 // ========================================
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({
     message: 'RPP Portal Revenue Service',
     version: '1.0.0',

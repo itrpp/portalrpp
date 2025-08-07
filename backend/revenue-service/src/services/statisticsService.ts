@@ -12,12 +12,12 @@ import {
   FileProcessingResult,
   BatchStatistics,
   BatchMetrics,
-  BatchProgress,
+  // BatchProgress,
   SystemMetrics,
   BatchStatus,
 } from '@/types';
 import { DatabaseService } from './databaseService';
-import { BatchService } from './batchService';
+// import { BatchService } from './batchService';
 import { logInfo, logError } from '@/utils/logger';
 import config from '@/config';
 
@@ -39,14 +39,14 @@ export class StatisticsService implements IStatisticsService {
   private historyFile: string;
   private reportsFile: string;
   private databaseService: DatabaseService;
-  private batchService: BatchService;
+  // private batchService: BatchService;
 
   constructor() {
     this.statisticsFile = path.join(config.upload.backupPath, 'upload-statistics.json');
     this.historyFile = path.join(config.upload.backupPath, 'processing-history.json');
     this.reportsFile = path.join(config.upload.backupPath, 'reports.json');
     this.databaseService = new DatabaseService();
-    this.batchService = new BatchService();
+    // this.batchService = new BatchService();
   }
 
   /**
@@ -637,7 +637,7 @@ export class StatisticsService implements IStatisticsService {
     return [];
   }
 
-  private determineFileType(fileId: string): 'dbf' | 'rep' | 'statement' {
+  private determineFileType(_fileId: string): 'dbf' | 'rep' | 'statement' {
     // ใช้ fileId หรือข้อมูลอื่นๆ ในการระบุประเภทไฟล์
     // ตัวอย่างง่ายๆ ใช้การสุ่ม
     const types: ('dbf' | 'rep' | 'statement')[] = ['dbf', 'rep', 'statement'];

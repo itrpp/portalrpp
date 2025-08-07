@@ -5,7 +5,7 @@
 import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
 import * as path from 'path';
-import { ValidationError, ValidationResult, FileValidationRule, BatchValidationResult, ProcessingError } from '@/types';
+import { ValidationError, ProcessingError, ValidationResult, BatchValidationResult, FileValidationRule } from '@/types';
 import { FileValidationError } from '@/utils/errorHandler';
 import { logError, logInfo } from '@/utils/logger';
 
@@ -103,7 +103,7 @@ export class ValidationService implements IValidationService {
       {
         field: 'files',
         required: true,
-        type: 'array',
+        type: 'string',
         minValue: 1,
         maxValue: 10,
         errorMessage: 'จำนวนไฟล์ไม่ถูกต้อง',
@@ -138,29 +138,37 @@ export class ValidationService implements IValidationService {
 
     try {
       if (!await fs.pathExists(filePath)) {
+        const errorMessage = 'ไม่พบไฟล์ที่ระบุ';
         errors.push({
           field: 'filePath',
-          message: 'ไม่พบไฟล์ที่ระบุ',
+          message: errorMessage,
           code: 'FILE_NOT_FOUND',
         });
-        return { isValid: false, errors, warnings, fieldResults: {} };
+        throw new FileValidationError(errorMessage, { filePath, errors });
       }
 
       const actualChecksum = await this.generateChecksum(filePath, 'sha256');
       
       if (expectedChecksum && actualChecksum !== expectedChecksum) {
+        const errorMessage = 'Checksum ไม่ตรงกัน';
         errors.push({
           field: 'checksum',
-          message: 'Checksum ไม่ตรงกัน',
+          message: errorMessage,
           code: 'CHECKSUM_MISMATCH',
           value: { expected: expectedChecksum, actual: actualChecksum },
         });
-      } else {
-        logInfo('Checksum validation passed', { 
+        throw new FileValidationError(errorMessage, { 
           filePath, 
-          checksum: actualChecksum 
+          expectedChecksum, 
+          actualChecksum, 
+          errors 
         });
       }
+
+      logInfo('Checksum validation passed', { 
+        filePath, 
+        checksum: actualChecksum 
+      });
 
       return {
         isValid: errors.length === 0,
@@ -171,19 +179,21 @@ export class ValidationService implements IValidationService {
             isValid: errors.length === 0,
             errors: errors.filter(e => e.field === 'checksum'),
             warnings: [],
-            actualChecksum,
-            expectedChecksum,
           },
         },
       };
     } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
       logError('Checksum validation failed', error as Error, { filePath });
+      const errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบ checksum';
       errors.push({
         field: 'checksum',
-        message: 'เกิดข้อผิดพลาดในการตรวจสอบ checksum',
+        message: errorMessage,
         code: 'CHECKSUM_ERROR',
       });
-      return { isValid: false, errors, warnings, fieldResults: {} };
+      throw new FileValidationError(errorMessage, { filePath, errors });
     }
   }
 
@@ -196,45 +206,52 @@ export class ValidationService implements IValidationService {
 
     try {
       if (!await fs.pathExists(filePath)) {
+        const errorMessage = 'ไม่พบไฟล์ที่ระบุ';
         errors.push({
           field: 'filePath',
-          message: 'ไม่พบไฟล์ที่ระบุ',
+          message: errorMessage,
           code: 'FILE_NOT_FOUND',
         });
-        return { isValid: false, errors, warnings, fieldResults: {} };
+        throw new FileValidationError(errorMessage, { filePath, errors });
       }
 
       const stats = await fs.stat(filePath);
       
       // ตรวจสอบขนาดไฟล์
       if (stats.size === 0) {
+        const errorMessage = 'ไฟล์ว่างเปล่า';
         errors.push({
           field: 'fileSize',
-          message: 'ไฟล์ว่างเปล่า',
+          message: errorMessage,
           code: 'EMPTY_FILE',
         });
+        throw new FileValidationError(errorMessage, { filePath, fileSize: stats.size, errors });
       }
 
       // ตรวจสอบสิทธิ์การเข้าถึง
       try {
         await fs.access(filePath, fs.constants.R_OK);
       } catch (error) {
+        const errorMessage = 'ไม่มีสิทธิ์ในการอ่านไฟล์';
         errors.push({
           field: 'filePermissions',
-          message: 'ไม่มีสิทธิ์ในการอ่านไฟล์',
+          message: errorMessage,
           code: 'PERMISSION_DENIED',
         });
+        throw new FileValidationError(errorMessage, { filePath, errors });
       }
 
       // ตรวจสอบนามสกุลไฟล์
       const extension = path.extname(filePath).toLowerCase();
       if (!this.allowedFileTypes.includes(extension)) {
+        const errorMessage = 'นามสกุลไฟล์ไม่ได้รับอนุญาต';
         errors.push({
           field: 'fileExtension',
-          message: 'นามสกุลไฟล์ไม่ได้รับอนุญาต',
+          message: errorMessage,
           code: 'INVALID_EXTENSION',
           value: extension,
         });
+        throw new FileValidationError(errorMessage, { filePath, extension, errors });
       }
 
       return {
@@ -246,19 +263,21 @@ export class ValidationService implements IValidationService {
             isValid: errors.length === 0,
             errors: errors.filter(e => e.field !== 'filePath'),
             warnings: [],
-            fileSize: stats.size,
-            fileExtension: extension,
           },
         },
       };
     } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
       logError('File integrity validation failed', error as Error, { filePath });
+      const errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบความสมบูรณ์ของไฟล์';
       errors.push({
         field: 'integrity',
-        message: 'เกิดข้อผิดพลาดในการตรวจสอบความสมบูรณ์ของไฟล์',
+        message: errorMessage,
         code: 'INTEGRITY_ERROR',
       });
-      return { isValid: false, errors, warnings, fieldResults: {} };
+      throw new FileValidationError(errorMessage, { filePath, errors });
     }
   }
 
@@ -272,42 +291,67 @@ export class ValidationService implements IValidationService {
     try {
       // ตรวจสอบชื่อไฟล์
       if (this.isMaliciousFilename(file.originalname)) {
+        const errorMessage = 'ชื่อไฟล์ไม่ปลอดภัย';
         errors.push({
           field: 'filename',
-          message: 'ชื่อไฟล์ไม่ปลอดภัย',
+          message: errorMessage,
           code: 'MALICIOUS_FILENAME',
           value: file.originalname,
+        });
+        throw new FileValidationError(errorMessage, { 
+          filename: file.originalname, 
+          errors 
         });
       }
 
       // ตรวจสอบขนาดไฟล์
       if (file.size > this.maxFileSize) {
+        const errorMessage = 'ขนาดไฟล์เกินขีดจำกัด';
         errors.push({
           field: 'fileSize',
-          message: 'ขนาดไฟล์เกินขีดจำกัด',
+          message: errorMessage,
           code: 'FILE_TOO_LARGE',
           value: file.size,
+        });
+        throw new FileValidationError(errorMessage, { 
+          filename: file.originalname, 
+          fileSize: file.size, 
+          maxFileSize: this.maxFileSize, 
+          errors 
         });
       }
 
       // ตรวจสอบประเภทไฟล์
       const extension = path.extname(file.originalname).toLowerCase();
       if (!this.allowedFileTypes.includes(extension)) {
+        const errorMessage = 'ประเภทไฟล์ไม่ได้รับอนุญาต';
         errors.push({
           field: 'fileType',
-          message: 'ประเภทไฟล์ไม่ได้รับอนุญาต',
+          message: errorMessage,
           code: 'INVALID_FILE_TYPE',
           value: extension,
+        });
+        throw new FileValidationError(errorMessage, { 
+          filename: file.originalname, 
+          extension, 
+          allowedTypes: this.allowedFileTypes, 
+          errors 
         });
       }
 
       // ตรวจสอบ MIME type
       if (!this.isValidMimeType(file.mimetype)) {
+        const errorMessage = 'MIME type ไม่ถูกต้อง';
         errors.push({
           field: 'mimetype',
-          message: 'MIME type ไม่ถูกต้อง',
+          message: errorMessage,
           code: 'INVALID_MIME_TYPE',
           value: file.mimetype,
+        });
+        throw new FileValidationError(errorMessage, { 
+          filename: file.originalname, 
+          mimetype: file.mimetype, 
+          errors 
         });
       }
 
@@ -317,10 +361,18 @@ export class ValidationService implements IValidationService {
         if (!contentCheck.isValid) {
           errors.push(...contentCheck.errors);
           warnings.push(...contentCheck.warnings);
+          
+          if (contentCheck.errors.length > 0) {
+            const errorMessage = 'พบเนื้อหาที่ไม่ปลอดภัยในไฟล์';
+            throw new FileValidationError(errorMessage, { 
+              filename: file.originalname, 
+              errors: contentCheck.errors 
+            });
+          }
         }
       }
 
-      const securityScore = this.calculateSecurityScore(errors, warnings);
+
 
       return {
         isValid: errors.length === 0,
@@ -331,21 +383,21 @@ export class ValidationService implements IValidationService {
             isValid: errors.length === 0,
             errors,
             warnings,
-            securityScore,
-            fileSize: file.size,
-            fileType: extension,
-            fileName: file.originalname,
           },
         },
       };
     } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
       logError('File security validation failed', error as Error, { filename: file.originalname });
+      const errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบความปลอดภัย';
       errors.push({
         field: 'security',
-        message: 'เกิดข้อผิดพลาดในการตรวจสอบความปลอดภัย',
+        message: errorMessage,
         code: 'SECURITY_ERROR',
       });
-      return { isValid: false, errors, warnings, fieldResults: {} };
+      throw new FileValidationError(errorMessage, { filename: file.originalname, errors });
     }
   }
 
@@ -354,7 +406,10 @@ export class ValidationService implements IValidationService {
    */
   async generateChecksum(filePath: string, algorithm: string = 'sha256'): Promise<string> {
     if (!this.allowedAlgorithms.includes(algorithm)) {
-      throw new Error(`Algorithm ไม่ได้รับอนุญาต: ${algorithm}`);
+      throw new FileValidationError(`Algorithm ไม่ได้รับอนุญาต: ${algorithm}`, { 
+        algorithm, 
+        allowedAlgorithms: this.allowedAlgorithms 
+      });
     }
 
     return new Promise((resolve, reject) => {
@@ -370,7 +425,11 @@ export class ValidationService implements IValidationService {
       });
       
       stream.on('error', (error) => {
-        reject(error);
+        reject(new FileValidationError('เกิดข้อผิดพลาดในการสร้าง checksum', { 
+          filePath, 
+          algorithm, 
+          error: error.message 
+        }));
       });
     });
   }
@@ -385,11 +444,18 @@ export class ValidationService implements IValidationService {
     try {
       // ตรวจสอบจำนวนไฟล์
       if (files.length > 10) {
+        const errorMessage = 'จำนวนไฟล์ใน batch เกินขีดจำกัด';
         errors.push({
           field: 'batchSize',
-          message: 'จำนวนไฟล์ใน batch เกินขีดจำกัด',
+          message: errorMessage,
           code: 'BATCH_TOO_LARGE',
           value: files.length,
+        });
+        throw new FileValidationError(errorMessage, { 
+          batchId, 
+          fileCount: files.length, 
+          maxFiles: 10, 
+          errors 
         });
       }
 
@@ -398,27 +464,55 @@ export class ValidationService implements IValidationService {
       const maxBatchSize = this.maxFileSize * 10; // 500MB
       
       if (totalSize > maxBatchSize) {
+        const errorMessage = 'ขนาดรวมของ batch เกินขีดจำกัด';
         errors.push({
           field: 'batchSize',
-          message: 'ขนาดรวมของ batch เกินขีดจำกัด',
+          message: errorMessage,
           code: 'BATCH_SIZE_TOO_LARGE',
           value: totalSize,
+        });
+        throw new FileValidationError(errorMessage, { 
+          batchId, 
+          totalSize, 
+          maxBatchSize, 
+          errors 
         });
       }
 
       // ตรวจสอบไฟล์แต่ละไฟล์
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileSecurity = await this.validateFileSecurity(file);
-        
-        if (!fileSecurity.isValid) {
-          errors.push(...fileSecurity.errors.map(error => ({
-            ...error,
-            field: `file_${i}_${error.field}`,
-          })));
+        try {
+          const fileSecurity = await this.validateFileSecurity(file!);
+          
+          if (!fileSecurity.isValid) {
+            errors.push(...fileSecurity.errors.map(error => ({
+              ...error,
+              field: `file_${i}_${error.field}`,
+            })));
+          }
+          
+          warnings.push(...fileSecurity.warnings.map(warning => `File ${i + 1}: ${warning}`));
+        } catch (error) {
+          if (error instanceof FileValidationError) {
+            errors.push(...error.details?.errors || []);
+          } else {
+            errors.push({
+              field: `file_${i}`,
+              message: 'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
+              code: 'FILE_SECURITY_ERROR',
+            });
+          }
         }
-        
-        warnings.push(...fileSecurity.warnings.map(warning => `File ${i + 1}: ${warning}`));
+      }
+
+      if (errors.length > 0) {
+        const errorMessage = 'พบไฟล์ที่ไม่ปลอดภัยใน batch';
+        throw new FileValidationError(errorMessage, { 
+          batchId, 
+          totalFiles: files.length, 
+          errors 
+        });
       }
 
       return {
@@ -430,20 +524,21 @@ export class ValidationService implements IValidationService {
             isValid: errors.length === 0,
             errors,
             warnings,
-            totalFiles: files.length,
-            totalSize,
-            batchId,
           },
         },
       };
     } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
       logError('Batch security validation failed', error as Error, { batchId });
+      const errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบความปลอดภัยของ batch';
       errors.push({
         field: 'batchSecurity',
-        message: 'เกิดข้อผิดพลาดในการตรวจสอบความปลอดภัยของ batch',
+        message: errorMessage,
         code: 'BATCH_SECURITY_ERROR',
       });
-      return { isValid: false, errors, warnings, fieldResults: {} };
+      throw new FileValidationError(errorMessage, { batchId, errors });
     }
   }
 
@@ -543,20 +638,7 @@ export class ValidationService implements IValidationService {
     };
   }
 
-  /**
-   * คำนวณ security score
-   */
-  private calculateSecurityScore(errors: ValidationError[], warnings: string[]): number {
-    let score = 100;
-    
-    // ลดคะแนนตาม errors
-    score -= errors.length * 20;
-    
-    // ลดคะแนนตาม warnings
-    score -= warnings.length * 5;
-    
-    return Math.max(0, score);
-  }
+
 
   async validateFile(file: Express.Multer.File): Promise<ValidationResult> {
     const errors: ValidationError[] = [];
@@ -566,12 +648,13 @@ export class ValidationService implements IValidationService {
     try {
       // ตรวจสอบไฟล์มีอยู่หรือไม่
       if (!file) {
+        const errorMessage = 'ไม่พบไฟล์ที่อัปโหลด';
         errors.push({
           field: 'file',
-          message: 'ไม่พบไฟล์ที่อัปโหลด',
+          message: errorMessage,
           code: 'FILE_MISSING',
         });
-        return { isValid: false, errors, warnings, fieldResults };
+        throw new FileValidationError(errorMessage, { errors });
       }
 
       // ตรวจสอบความปลอดภัย
@@ -596,6 +679,14 @@ export class ValidationService implements IValidationService {
         warnings.push(...fieldResult.warnings);
       }
 
+      if (errors.length > 0) {
+        const errorMessage = 'ไฟล์ไม่ผ่านการตรวจสอบ';
+        throw new FileValidationError(errorMessage, { 
+          filename: file.originalname, 
+          errors 
+        });
+      }
+
       return {
         isValid: errors.length === 0,
         errors,
@@ -603,13 +694,17 @@ export class ValidationService implements IValidationService {
         fieldResults,
       };
     } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
       logError('File validation failed', error as Error, { filename: file?.originalname });
+      const errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบไฟล์';
       errors.push({
         field: 'validation',
-        message: 'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
+        message: errorMessage,
         code: 'VALIDATION_ERROR',
       });
-      return { isValid: false, errors, warnings, fieldResults };
+      throw new FileValidationError(errorMessage, { filename: file?.originalname, errors });
     }
   }
 
@@ -622,7 +717,7 @@ export class ValidationService implements IValidationService {
       const batchSecurity = await this.validateBatchSecurity(batchId, files);
       if (!batchSecurity.isValid) {
         errors.push(...batchSecurity.errors.map(error => ({
-          type: 'security' as const,
+          type: 'validation' as const,
           message: error.message,
           code: error.code,
           details: error.value,
@@ -634,20 +729,51 @@ export class ValidationService implements IValidationService {
       // ตรวจสอบไฟล์แต่ละไฟล์
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileValidation = await this.validateFile(file);
-        
-        fileResults[`file_${i}`] = fileValidation;
-        
-        if (!fileValidation.isValid) {
-          errors.push(...fileValidation.errors.map(error => ({
-            type: 'validation' as const,
-            message: error.message,
-            code: error.code,
-            details: { filename: file.originalname, field: error.field },
-            timestamp: new Date(),
-            retryable: false,
-          })));
+        try {
+          const fileValidation = await this.validateFile(file!);
+          
+          fileResults[`file_${i}`] = fileValidation;
+          
+          if (!fileValidation.isValid) {
+            errors.push(...fileValidation.errors.map(error => ({
+              type: 'validation' as const,
+              message: error.message,
+              code: error.code,
+              details: { filename: file!.originalname, field: error.field },
+              timestamp: new Date(),
+              retryable: false,
+            })));
+          }
+        } catch (error) {
+          if (error instanceof FileValidationError) {
+            errors.push({
+              type: 'validation' as const,
+              message: error.message,
+              code: 'FILE_VALIDATION_ERROR',
+              details: { filename: file!.originalname, errors: error.details?.errors },
+              timestamp: new Date(),
+              retryable: false,
+            });
+          } else {
+            errors.push({
+              type: 'system' as const,
+              message: 'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
+              code: 'FILE_VALIDATION_SYSTEM_ERROR',
+              details: { filename: file!.originalname },
+              timestamp: new Date(),
+              retryable: true,
+            });
+          }
         }
+      }
+
+      if (errors.length > 0) {
+        const errorMessage = 'Batch ไม่ผ่านการตรวจสอบ';
+        throw new FileValidationError(errorMessage, { 
+          batchId, 
+          totalFiles: files.length, 
+          errors 
+        });
       }
 
       return {
@@ -660,25 +786,21 @@ export class ValidationService implements IValidationService {
         fileResults,
       };
     } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
       logError('Batch validation failed', error as Error, { batchId });
+      const errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบ batch';
       errors.push({
         type: 'system',
-        message: 'เกิดข้อผิดพลาดในการตรวจสอบ batch',
+        message: errorMessage,
         code: 'BATCH_VALIDATION_ERROR',
         details: { batchId },
         timestamp: new Date(),
         retryable: true,
       });
       
-      return {
-        batchId,
-        isValid: false,
-        totalFiles: files.length,
-        validFiles: 0,
-        invalidFiles: files.length,
-        errors,
-        fileResults: {},
-      };
+      throw new FileValidationError(errorMessage, { batchId, errors });
     }
   }
 
@@ -723,6 +845,14 @@ export class ValidationService implements IValidationService {
         }
       }
 
+      if (errors.length > 0 && rule.errorMessage) {
+        throw new FileValidationError(rule.errorMessage, { 
+          field: rule.field, 
+          value, 
+          errors 
+        });
+      }
+
       return {
         isValid: errors.length === 0,
         errors,
@@ -730,14 +860,18 @@ export class ValidationService implements IValidationService {
         fieldResults: {},
       };
     } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
       logError('Field validation failed', error as Error, { field: rule.field, value });
+      const errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบ field';
       errors.push({
         field: rule.field,
-        message: 'เกิดข้อผิดพลาดในการตรวจสอบ field',
+        message: errorMessage,
         code: 'FIELD_VALIDATION_ERROR',
         value,
       });
-      return { isValid: false, errors, warnings, fieldResults: {} };
+      throw new FileValidationError(errorMessage, { field: rule.field, value, errors });
     }
   }
 
@@ -926,9 +1060,7 @@ export class ValidationService implements IValidationService {
     }
   }
 
-  private getFileExtension(filename: string): string {
-    return path.extname(filename).toLowerCase();
-  }
+
 }
 
 export default ValidationService; 

@@ -46,10 +46,4 @@ module.exports = {
     'no-new-func': 'error',
     'no-script-url': 'error',
   },
-  ignorePatterns: [
-    'dist/',
-    'node_modules/',
-    '*.js',
-    '*.d.ts',
-  ],
 }; 

@@ -11,7 +11,6 @@ import {
   FileUploadResult,
   SuccessResponse,
   ApiResponse,
-  UploadBatch,
   BatchStatus,
   ProcessingStatus,
 } from '@/types';
@@ -19,27 +18,19 @@ import { asyncHandler } from '@/utils/errorHandler';
 import { logFileUpload, logApiRequest } from '@/utils/logger';
 import { apiRateLimiter, uploadRateLimiter, validationRateLimiter } from '@/middleware/rateLimitMiddleware';
 import { validateUploadedFile, validateQueryParams, validateRequestBody, validateFileId, validateBatchId } from '@/middleware/validationMiddleware';
-import FileValidationService from '@/services/fileValidationService';
-import FileProcessingService from '@/services/fileProcessingService';
-import StatisticsService from '@/services/statisticsService';
-import DatabaseService from '@/services/databaseService';
-import BatchService from '@/services/batchService';
-import ValidationService from '@/services/validationService';
-import { BatchError as BatchServiceError } from '@/utils/errorHandler';
+
 import config from '@/config';
 
 const router = Router();
 
-// สร้าง service instances
-const fileValidationService = new FileValidationService();
-const fileProcessingService = new FileProcessingService();
-const statisticsService = new StatisticsService();
-const databaseService = new DatabaseService();
-const batchService = new BatchService();
+// ใช้ services ที่แชร์จาก index.ts
+const getServices = (req: Request) => {
+  return req.app.locals.services;
+};
 
 // สร้าง multer storage สำหรับโครงสร้างใหม่
 const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
+  destination: async (_req, file, cb) => {
     try {
       // กำหนดประเภทไฟล์ตามนามสกุล
       let fileType = 'temp';
@@ -84,7 +75,7 @@ const storage = multer.diskStorage({
       cb(error as Error, '');
     }
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     // ใช้ชื่อไฟล์ต้นฉบับ
     cb(null, file.originalname);
   },
@@ -95,7 +86,7 @@ const upload = multer({
   limits: {
     fileSize: parseInt(config.upload.maxFileSize.replace('mb', '')) * 1024 * 1024,
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedTypes = config.upload.allowedFileTypes;
     const fileExtension = path.extname(file.originalname).toLowerCase();
 
@@ -130,7 +121,7 @@ router.get('/batches',
       if (startDate) params.startDate = new Date(startDate as string);
       if (endDate) params.endDate = new Date(endDate as string);
 
-      const result = await batchService.getBatches(params);
+      const result = await getServices(req).batchService.getBatches(params);
 
       const response: SuccessResponse = {
         success: true,
@@ -142,13 +133,13 @@ router.get('/batches',
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/batches', 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/batches', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการดึงรายการ batches',
         timestamp: new Date(),
@@ -166,7 +157,7 @@ router.post('/batches',
     const { batchName, userId, ipAddress, userAgent } = req.body;
 
     try {
-      const batch = await batchService.createBatch({
+      const batch = await getServices(req).batchService.createBatch({
         batchName: batchName || `Batch ${new Date().toISOString()}`,
         userId: userId || (req.ip || 'unknown'),
         ipAddress: ipAddress || (req.ip || 'unknown'),
@@ -183,13 +174,13 @@ router.post('/batches',
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', '/batches', 200, responseTime);
 
-      res.status(201).json(response);
+      return res.status(201).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', '/batches', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการสร้าง batch',
         timestamp: new Date(),
@@ -207,7 +198,7 @@ router.get('/batches/:id',
     const { id } = req.params;
 
     try {
-      const batch = await batchService.getBatch(id!);
+      const batch = await getServices(req).batchService.getBatch(id!);
 
       if (!batch) {
         return res.status(404).json({
@@ -227,13 +218,13 @@ router.get('/batches/:id',
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', `/batches/${id!}`, 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', `/batches/${id!}`, 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการดึงข้อมูล batch',
         timestamp: new Date(),
@@ -251,7 +242,7 @@ router.delete('/batches/:id',
     const { id } = req.params;
 
     try {
-      const batch = await batchService.getBatch(id!);
+      const batch = await getServices(req).batchService.getBatch(id!);
 
       if (!batch) {
         return res.status(404).json({
@@ -262,7 +253,7 @@ router.delete('/batches/:id',
       }
 
       // ลบ batch และไฟล์ที่เกี่ยวข้อง
-      await batchService.deleteBatch(id!);
+      await getServices(req).batchService.deleteBatch(id!);
 
       const response: SuccessResponse = {
         success: true,
@@ -274,13 +265,13 @@ router.delete('/batches/:id',
       const responseTime = Date.now() - startTime;
       logApiRequest('DELETE', `/batches/${id!}`, 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('DELETE', `/batches/${id!}`, 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการลบ batch',
         timestamp: new Date(),
@@ -300,7 +291,7 @@ router.get('/batches/:id/files',
     const { page = '1', limit = '20', status, fileType } = req.query;
 
     try {
-      const batch = await batchService.getBatch(id!);
+      const batch = await getServices(req).batchService.getBatch(id!);
 
       if (!batch) {
         return res.status(404).json({
@@ -318,7 +309,7 @@ router.get('/batches/:id/files',
       if (fileType) params.fileType = fileType;
       if (status) params.status = status;
 
-      const result = await batchService.getBatchFiles(id!, params);
+      const result = await getServices(req).batchService.getBatchFiles(id!, params);
 
       const response: SuccessResponse = {
         success: true,
@@ -330,13 +321,13 @@ router.get('/batches/:id/files',
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', `/batches/${id!}/files`, 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', `/batches/${id!}/files`, 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการดึงไฟล์ใน batch',
         timestamp: new Date(),
@@ -354,7 +345,7 @@ router.post('/batches/:id/process',
     const { id } = req.params;
 
     try {
-      const batch = await batchService.getBatch(id!);
+      const batch = await getServices(req).batchService.getBatch(id!);
 
       if (!batch) {
         return res.status(404).json({
@@ -364,35 +355,26 @@ router.post('/batches/:id/process',
         });
       }
 
-      // ตรวจสอบสถานะ batch
-      if (batch.status === BatchStatus.SUCCESS || batch.status === BatchStatus.ERROR) {
-        return res.status(400).json({
-          success: false,
-          message: 'ไม่สามารถประมวลผล batch ที่เสร็จสิ้นแล้วได้',
-          timestamp: new Date(),
-        });
-      }
-
       // ประมวลผล batch
-      const result = await batchService.processBatch(id!);
+      const processingResult = await getServices(req).batchService.processBatch(id!);
 
       const response: SuccessResponse = {
         success: true,
-        data: result,
-        message: `ประมวลผล batch สำเร็จ (${result.processedFiles}/${result.totalFiles} ไฟล์)`,
+        data: processingResult,
+        message: `ประมวลผล batch สำเร็จ (${processingResult.processedFiles}/${processingResult.totalFiles} ไฟล์)`,
         timestamp: new Date(),
       };
 
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', `/batches/${id!}/process`, 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', `/batches/${id!}/process`, 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการประมวลผล batch',
         timestamp: new Date(),
@@ -405,7 +387,7 @@ router.post('/batches/:id/process',
 // HEALTH CHECK
 // ========================================
 
-router.get('/health', asyncHandler(async (req: Request, res: Response) => {
+router.get('/health', asyncHandler(async (_req: Request, res: Response) => {
   const startTime = Date.now();
 
   try {
@@ -436,12 +418,12 @@ router.get('/health', asyncHandler(async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     logApiRequest('GET', '/health', 200, responseTime);
 
-    res.status(200).json(response);
+    return res.status(200).json(response);
   } catch (error) {
     const responseTime = Date.now() - startTime;
     logApiRequest('GET', '/health', 500, responseTime);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการตรวจสอบสถานะ',
       timestamp: new Date(),
@@ -470,19 +452,47 @@ router.post('/upload',
         });
       }
 
-      const { originalname, filename, size, path: filePath } = req.file;
+      const { originalname, size, path: filePath } = req.file;
       const { batchId } = req.body; // รองรับ batch ID
       const fileId = uuidv4();
 
       // ตรวจสอบไฟล์
-      const validationResult = await fileValidationService.validateFile(filePath, originalname);
+      const validationResult = await getServices(req).fileValidationService.validateFile(filePath, originalname);
+
+      // เพิ่มการตรวจสอบด้วย ValidationService
+      const securityValidation = await getServices(req).validationService.validateFileSecurity(req.file!);
+      if (!securityValidation.isValid) {
+        // ลบไฟล์ที่ไม่ปลอดภัย
+        await fs.remove(filePath);
+        return res.status(400).json({
+          success: false,
+          message: 'ไฟล์ไม่ปลอดภัย',
+          errors: securityValidation.errors.map((e: any) => e.message),
+          timestamp: new Date(),
+        });
+      }
+
+      // ตรวจสอบ file integrity
+      const integrityValidation = await getServices(req).validationService.validateFileIntegrity(filePath);
+      if (!integrityValidation.isValid) {
+        // ลบไฟล์ที่ไม่สมบูรณ์
+        await fs.remove(filePath);
+        return res.status(400).json({
+          success: false,
+          message: 'ไฟล์ไม่สมบูรณ์',
+          errors: integrityValidation.errors.map((e: any) => e.message),
+          timestamp: new Date(),
+        });
+      }
+
+
 
       if (!validationResult.isValid) {
         // ลบไฟล์ที่ไม่ผ่านการตรวจสอบ
         await fs.remove(filePath);
 
         // อัปเดตสถิติ
-        await statisticsService.updateUploadStatistics(
+        await getServices(req).statisticsService.updateUploadStatistics(
           validationResult.fileType,
           size,
           false,
@@ -502,7 +512,7 @@ router.post('/upload',
       }
 
       // สร้าง upload record
-      const record = await databaseService.createUploadRecord({
+      const record = await getServices(req).databaseService.createUploadRecord({
         filename: originalname,
         originalName: originalname,
         fileType: validationResult.fileType.toUpperCase(),
@@ -521,9 +531,9 @@ router.post('/upload',
 
       // อัปเดต batch statistics ถ้ามี batch
       if (batchId) {
-        const batch = await batchService.getBatch(batchId);
+        const batch = await getServices(req).batchService.getBatch(batchId);
         if (batch) {
-          await batchService.updateBatch(batchId, {
+          await getServices(req).batchService.updateBatch(batchId, {
             totalFiles: batch.totalFiles + 1,
             processingFiles: batch.processingFiles + 1,
             totalSize: batch.totalSize + size,
@@ -533,17 +543,17 @@ router.post('/upload',
       }
 
       // ประมวลผลไฟล์
-      const processingResult = await fileProcessingService.processFile(
+      const processingResult = await getServices(req).fileProcessingService.processFile(
         filePath,
         originalname,
         validationResult,
       );
 
       // บันทึกผลการประมวลผล
-      await statisticsService.saveProcessingResult(processingResult);
+      await getServices(req).statisticsService.saveProcessingResult(processingResult);
 
       // อัปเดตสถิติ
-      await statisticsService.updateUploadStatistics(
+      await getServices(req).statisticsService.updateUploadStatistics(
         validationResult.fileType,
         size,
         processingResult.success,
@@ -569,13 +579,13 @@ router.post('/upload',
       logApiRequest('POST', '/upload', 200, responseTime);
       logFileUpload(originalname, size, validationResult.fileType);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', '/upload', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์',
         timestamp: new Date(),
@@ -604,12 +614,23 @@ router.post('/upload/batch',
       }
 
       // สร้าง batch ใหม่
-      const batch = await batchService.createBatch({
+      const batch = await getServices(req).batchService.createBatch({
         batchName: batchName || `Batch ${new Date().toISOString()}`,
         userId: (req.ip || 'unknown'),
         ipAddress: (req.ip || 'unknown'),
         userAgent: (req.get('User-Agent') || 'unknown'),
       });
+
+      // ตรวจสอบ batch security
+      const batchSecurityValidation = await getServices(req).validationService.validateBatchSecurity(batch.id, files);
+      if (!batchSecurityValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Batch ไม่ปลอดภัย',
+          errors: batchSecurityValidation.errors.map((e: any) => e.message),
+          timestamp: new Date(),
+        });
+      }
 
       const results = [];
       let successCount = 0;
@@ -620,14 +641,82 @@ router.post('/upload/batch',
       // ประมวลผลไฟล์แต่ละไฟล์
       for (const file of files) {
         try {
-          const { originalname, filename, size, path: filePath } = file;
+          const { originalname, size, buffer } = file;
+
+          // ตรวจสอบประเภทไฟล์
+          const fileExtension = path.extname(originalname).toLowerCase();
+          let fileType = 'temp';
+          
+          if (fileExtension === '.dbf') {
+            fileType = 'dbf';
+          } else if (fileExtension === '.xls' || fileExtension === '.xlsx') {
+            if (originalname.toLowerCase().includes('rep')) {
+              fileType = 'rep';
+            } else if (originalname.toLowerCase().includes('statement') || originalname.toLowerCase().includes('stm')) {
+              fileType = 'stm';
+            }
+          }
+
+          // บันทึกไฟล์ด้วย FileStorageService
+          const storageResult = await getServices(req).fileStorageService.saveFileInBatch(
+            fileType as any,
+            originalname,
+            buffer,
+            batch.id,
+            new Date()
+          );
+
+          if (!storageResult.success) {
+            errorCount++;
+            results.push({
+              filename: originalname,
+              success: false,
+              message: 'เกิดข้อผิดพลาดในการบันทึกไฟล์',
+              errors: [storageResult.error || 'Unknown error'],
+            });
+            continue;
+          }
 
           // ตรวจสอบไฟล์
-          const validationResult = await fileValidationService.validateFile(filePath, originalname);
+          const validationResult = await getServices(req).fileValidationService.validateFile(storageResult.filePath, originalname);
+
+          // เพิ่มการตรวจสอบด้วย ValidationService
+          const securityValidation = await getServices(req).validationService.validateFileSecurity(file);
+          if (!securityValidation.isValid) {
+            // ลบไฟล์ที่ไม่ปลอดภัย
+            await fs.remove(storageResult.filePath);
+            errorCount++;
+
+            results.push({
+              filename: originalname,
+              success: false,
+              message: 'ไฟล์ไม่ปลอดภัย',
+              errors: securityValidation.errors.map((e: any) => e.message),
+            });
+            continue;
+          }
+
+          // ตรวจสอบ file integrity
+          const integrityValidation = await getServices(req).validationService.validateFileIntegrity(storageResult.filePath);
+          if (!integrityValidation.isValid) {
+            // ลบไฟล์ที่ไม่สมบูรณ์
+            await fs.remove(storageResult.filePath);
+            errorCount++;
+
+            results.push({
+              filename: originalname,
+              success: false,
+              message: 'ไฟล์ไม่สมบูรณ์',
+              errors: integrityValidation.errors.map((e: any) => e.message),
+            });
+            continue;
+          }
+
+
 
           if (!validationResult.isValid) {
             // ลบไฟล์ที่ไม่ผ่านการตรวจสอบ
-            await fs.remove(filePath);
+            await fs.remove(storageResult.filePath);
             errorCount++;
 
             results.push({
@@ -640,12 +729,12 @@ router.post('/upload/batch',
           }
 
           // สร้าง upload record
-          const record = await databaseService.createUploadRecord({
+          const record = await getServices(req).databaseService.createUploadRecord({
             filename: originalname,
             originalName: originalname,
             fileType: validationResult.fileType.toUpperCase(),
             fileSize: size,
-            filePath: filePath,
+            filePath: storageResult.filePath,
             status: ProcessingStatus.PENDING,
             batchId: batch.id,
             userId: (req.ip || 'unknown'),
@@ -658,8 +747,8 @@ router.post('/upload/batch',
           });
 
           // ประมวลผลไฟล์
-          const processingResult = await fileProcessingService.processFile(
-            filePath,
+          const processingResult = await getServices(req).fileProcessingService.processFile(
+            storageResult.filePath,
             originalname,
             validationResult,
           );
@@ -678,7 +767,7 @@ router.post('/upload/batch',
             message: processingResult.message,
             fileId: record.id,
             fileSize: size,
-            errors: processingResult.errors,
+            errors: processingResult.errors || [],
           });
 
         } catch (error) {
@@ -693,16 +782,13 @@ router.post('/upload/batch',
       }
 
       // อัปเดต batch statistics
-      const batchStatus = errorCount === 0 ? BatchStatus.SUCCESS :
-        successCount === 0 ? BatchStatus.ERROR : BatchStatus.PARTIAL;
-
-      await batchService.updateBatch(batch.id, {
+      await getServices(req).batchService.updateBatch(batch.id, {
+        totalFiles: files.length,
         successFiles: successCount,
         errorFiles: errorCount,
-        processingFiles: 0,
-        totalSize: totalSize,
-        totalRecords: totalRecords,
-        status: batchStatus,
+        totalRecords,
+        totalSize,
+        status: errorCount === 0 ? BatchStatus.SUCCESS : successCount === 0 ? BatchStatus.ERROR : BatchStatus.PARTIAL,
       });
 
       const response: SuccessResponse = {
@@ -713,7 +799,11 @@ router.post('/upload/batch',
           totalFiles: files.length,
           successFiles: successCount,
           errorFiles: errorCount,
-          results: results,
+          results,
+          totalSize,
+          totalRecords,
+          processingTime: Date.now() - startTime,
+          status: errorCount === 0 ? BatchStatus.SUCCESS : successCount === 0 ? BatchStatus.ERROR : BatchStatus.PARTIAL,
         },
         message: `อัปโหลด batch สำเร็จ (${successCount}/${files.length} ไฟล์)`,
         timestamp: new Date(),
@@ -722,13 +812,13 @@ router.post('/upload/batch',
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', '/upload/batch', 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', '/upload/batch', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการอัปโหลด batch',
         timestamp: new Date(),
@@ -760,7 +850,7 @@ router.post('/validate',
       const { originalname, path: filePath } = req.file;
 
       // ตรวจสอบไฟล์
-      const validationResult = await fileValidationService.validateFile(filePath, originalname);
+      const validationResult = await getServices(req).fileValidationService.validateFile(filePath, originalname);
 
       // ลบไฟล์หลังจากตรวจสอบ
       await fs.remove(filePath);
@@ -775,13 +865,13 @@ router.post('/validate',
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', '/validate', 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', '/validate', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
         timestamp: new Date(),
@@ -819,7 +909,7 @@ router.post('/process/:fileId',
       const filename = targetFile.replace(`${fileId}_`, '');
 
       // ตรวจสอบไฟล์อีกครั้ง
-      const validationResult = await fileValidationService.validateFile(filePath, filename);
+      const validationResult = await getServices(req).fileValidationService.validateFile(filePath, filename);
 
       if (!validationResult.isValid) {
         return res.status(400).json({
@@ -830,14 +920,14 @@ router.post('/process/:fileId',
       }
 
       // ประมวลผลไฟล์
-      const processingResult = await fileProcessingService.processFile(
+      const processingResult = await getServices(req).fileProcessingService.processFile(
         filePath,
         filename,
         validationResult,
       );
 
       // บันทึกผลการประมวลผล
-      await statisticsService.saveProcessingResult(processingResult);
+      await getServices(req).statisticsService.saveProcessingResult(processingResult);
 
       const response: SuccessResponse = {
         success: true,
@@ -849,13 +939,13 @@ router.post('/process/:fileId',
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', `/process/${fileId}`, 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('POST', `/process/${fileId}`, 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการประมวลผลไฟล์',
         timestamp: new Date(),
@@ -870,12 +960,12 @@ router.post('/process/:fileId',
 
 router.get('/statistics',
   apiRateLimiter,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (_req: Request, res: Response) => {
     const startTime = Date.now();
 
     try {
-      const uploadStats = await statisticsService.getUploadStatistics();
-      const processingStats = await statisticsService.getProcessingStatistics();
+      const uploadStats = await getServices(_req).statisticsService.getUploadStatistics();
+      const processingStats = await getServices(_req).statisticsService.getProcessingStatistics();
 
       const response: SuccessResponse = {
         success: true,
@@ -890,13 +980,13 @@ router.get('/statistics',
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/statistics', 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/statistics', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการดึงสถิติ',
         timestamp: new Date(),
@@ -917,17 +1007,17 @@ router.get('/history',
     const { page = '1', limit = '20', type, status } = req.query;
 
     try {
-      const history = await statisticsService.getProcessingHistory();
+      const history = await getServices(req).statisticsService.getProcessingHistory();
 
       // กรองตาม type และ status
       let filteredHistory = history;
 
       if (type) {
-        filteredHistory = filteredHistory.filter(item => item.type === type);
+        filteredHistory = filteredHistory.filter((item: any) => item.type === type);
       }
 
       if (status) {
-        filteredHistory = filteredHistory.filter(item => item.status === status);
+        filteredHistory = filteredHistory.filter((item: any) => item.status === status);
       }
 
       // Pagination
@@ -955,13 +1045,13 @@ router.get('/history',
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/history', 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/history', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการดึงประวัติ',
         timestamp: new Date(),
@@ -976,11 +1066,11 @@ router.get('/history',
 
 router.get('/report',
   apiRateLimiter,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (_req: Request, res: Response) => {
     const startTime = Date.now();
 
     try {
-      const report = await statisticsService.generateSystemReport();
+      const report = await getServices(_req).statisticsService.generateSystemReport();
 
       const response: SuccessResponse = {
         success: true,
@@ -992,13 +1082,13 @@ router.get('/report',
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/report', 200, responseTime);
 
-      res.status(200).json(response);
+      return res.status(200).json(response);
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
       logApiRequest('GET', '/report', 500, responseTime);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการสร้างรายงาน',
         timestamp: new Date(),

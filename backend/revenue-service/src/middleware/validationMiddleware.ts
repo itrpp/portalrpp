@@ -3,10 +3,10 @@
 // ========================================
 
 import { Request, Response, NextFunction } from 'express';
-import { body, query, param, validationResult } from 'express-validator';
-import { ValidationService } from '@/services/validationService';
+import { body, query, validationResult } from 'express-validator';
 import { FileValidationError, BatchError } from '@/utils/errorHandler';
 import { logError } from '@/utils/logger';
+import { ValidationService } from '@/services/validationService';
 
 const validationService = new ValidationService();
 
@@ -14,7 +14,7 @@ const validationService = new ValidationService();
 // REQUEST VALIDATION
 // ========================================
 
-export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
+export const validateRequest = (req: Request, _res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorMessages = errors.array().map(error => error.msg).join(', ');
@@ -27,10 +27,19 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
 // FILE UPLOAD VALIDATION
 // ========================================
 
-export const validateUploadedFile = (req: Request, res: Response, next: NextFunction) => {
+export const validateUploadedFile = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     if (!req.file) {
       throw new FileValidationError('ไม่พบไฟล์ที่อัปโหลด', { field: 'file' });
+    }
+
+    // ใช้ ValidationService ตรวจสอบความปลอดภัยของไฟล์
+    const securityValidation = await validationService.validateFileSecurity(req.file);
+    if (!securityValidation.isValid) {
+      throw new FileValidationError('ไฟล์ไม่ปลอดภัย', {
+        filename: req.file.originalname,
+        errors: securityValidation.errors,
+      });
     }
 
     // ตรวจสอบขนาดไฟล์
@@ -63,7 +72,7 @@ export const validateUploadedFile = (req: Request, res: Response, next: NextFunc
 // BATCH UPLOAD VALIDATION
 // ========================================
 
-export const validateBatchUpload = (req: Request, res: Response, next: NextFunction) => {
+export const validateBatchUpload = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     const files = req.files as Express.Multer.File[];
     
@@ -75,6 +84,16 @@ export const validateBatchUpload = (req: Request, res: Response, next: NextFunct
       throw new BatchError('จำนวนไฟล์เกินขีดจำกัด (สูงสุด 10 ไฟล์)', {
         fileCount: files.length,
         maxFiles: 10
+      });
+    }
+
+    // ใช้ ValidationService ตรวจสอบความปลอดภัยของ batch
+    const batchId = `batch-${Date.now()}`; // สร้าง temporary batch ID
+    const batchSecurityValidation = await validationService.validateBatchSecurity(batchId, files);
+    if (!batchSecurityValidation.isValid) {
+      throw new BatchError('Batch ไม่ปลอดภัย', {
+        batchId,
+        errors: batchSecurityValidation.errors,
       });
     }
 
@@ -109,7 +128,7 @@ export const validateBatchUpload = (req: Request, res: Response, next: NextFunct
 // QUERY PARAMETERS VALIDATION
 // ========================================
 
-export const validateQueryParams = (req: Request, res: Response, next: NextFunction) => {
+export const validateQueryParams = (req: Request, _res: Response, next: NextFunction) => {
   try {
     const { page, limit, status, userId, startDate, endDate } = req.query;
 
@@ -178,7 +197,7 @@ export const validateQueryParams = (req: Request, res: Response, next: NextFunct
 // REQUEST BODY VALIDATION
 // ========================================
 
-export const validateRequestBody = (req: Request, res: Response, next: NextFunction) => {
+export const validateRequestBody = (req: Request, _res: Response, next: NextFunction) => {
   try {
     const { batchName, userId, ipAddress, userAgent } = req.body;
 
@@ -221,7 +240,7 @@ export const validateRequestBody = (req: Request, res: Response, next: NextFunct
 // FILE ID VALIDATION
 // ========================================
 
-export const validateFileId = (req: Request, res: Response, next: NextFunction) => {
+export const validateFileId = (req: Request, _res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -250,7 +269,7 @@ export const validateFileId = (req: Request, res: Response, next: NextFunction) 
 // BATCH ID VALIDATION
 // ========================================
 
-export const validateBatchId = (req: Request, res: Response, next: NextFunction) => {
+export const validateBatchId = (req: Request, _res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 

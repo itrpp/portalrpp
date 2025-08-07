@@ -12,7 +12,7 @@ import {
   DBFValidationResult,
   REPValidationResult,
   StatementValidationResult,
-  DBFField,
+  // DBFField,
 } from '@/types';
 import { FileValidationError } from '@/utils/errorHandler';
 import { logFileValidation } from '@/utils/logger';
@@ -62,7 +62,7 @@ export class FileValidationService implements IFileValidationService {
       if (error instanceof FileValidationError) {
         throw error;
       }
-      throw new FileValidationError(`เกิดข้อผิดพลาดในการตรวจสอบไฟล์: ${error.message}`);
+      throw new FileValidationError(`เกิดข้อผิดพลาดในการตรวจสอบไฟล์: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -81,11 +81,11 @@ export class FileValidationService implements IFileValidationService {
       const utf8Buffer = iconv.decode(buffer, config.fileRules.dbf.encoding);
       
       // Parse DBF
-      const dbf = new DBF(utf8Buffer);
-      const table = dbf.table;
+      const dbf = DBF.parse(Buffer.from(utf8Buffer, 'utf8'));
+      const table = dbf;
       
       // ตรวจสอบโครงสร้าง
-      if (!table || !table.fields || table.fields.length === 0) {
+      if (!table || !table.header || !table.header.fields || table.header.fields.length === 0) {
         errors.push('ไฟล์ DBF ไม่มีโครงสร้างที่ถูกต้อง');
       }
       
@@ -96,20 +96,15 @@ export class FileValidationService implements IFileValidationService {
       }
       
       // ตรวจสอบ fields ที่จำเป็น
-      if (table && table.fields) {
-        const fieldNames = table.fields.map((field: any) => field.name.toUpperCase());
+      if (table && table.header && table.header.fields) {
+        const fieldNames = table.header.fields.map((field: any) => field.name.toUpperCase());
         const requiredFields = config.validation.requiredFields.dbf;
         
-        for (const requiredField of requiredFields) {
+        for (const requiredField of requiredFields || []) {
           if (!fieldNames.includes(requiredField)) {
-            errors.push(`ไม่พบ field ที่จำเป็น: ${requiredField}`);
+            warnings.push(`ไม่พบ field ที่จำเป็น: ${requiredField}`);
           }
         }
-      }
-      
-      // ตรวจสอบ encoding
-      if (table && table.encoding && !config.validation.allowedEncodings.includes(table.encoding)) {
-        warnings.push(`Encoding ที่ใช้ (${table.encoding}) อาจไม่เหมาะสม`);
       }
       
       const result: DBFValidationResult = {
@@ -117,30 +112,24 @@ export class FileValidationService implements IFileValidationService {
         errors,
         warnings,
         fileType: 'dbf',
-        tableName: table ? table.name : undefined,
-        fieldCount: table ? table.fields.length : 0,
         recordCount,
-        encoding: table ? table.encoding : undefined,
-        fields: table ? table.fields.map((field: any) => ({
-          name: field.name,
-          type: field.type,
-          length: field.length,
-          decimalPlaces: field.decimalPlaces,
-        })) : undefined,
-        fileSize: buffer.length,
+        fileSize: (await fs.stat(filePath)).size,
+        encoding: config.fileRules.dbf.encoding,
+        fields: table && table.header ? table.header.fields : [],
       };
       
       logFileValidation(filename, result.isValid, errors, warnings);
       return result;
       
     } catch (error) {
-      errors.push(`เกิดข้อผิดพลาดในการอ่านไฟล์ DBF: ${error.message}`);
+      errors.push(`เกิดข้อผิดพลาดในการอ่านไฟล์ DBF: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return {
         isValid: false,
         errors,
         warnings,
         fileType: 'dbf',
         fileSize: 0,
+        recordCount: 0,
       };
     }
   }
@@ -170,7 +159,7 @@ export class FileValidationService implements IFileValidationService {
       let totalRows = 0;
       for (const sheetName of sheetNames) {
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const jsonData = worksheet ? XLSX.utils.sheet_to_json(worksheet, { header: 1 }) : [];
         
         if (jsonData.length > 0) {
           totalRows += jsonData.length;
@@ -181,7 +170,7 @@ export class FileValidationService implements IFileValidationService {
             const headerNames = headers.map(h => h?.toString().toUpperCase() || '');
             const requiredFields = config.validation.requiredFields.rep;
             
-            for (const requiredField of requiredFields) {
+            for (const requiredField of requiredFields || []) {
               if (!headerNames.includes(requiredField)) {
                 warnings.push(`ไม่พบ column ที่จำเป็นใน sheet "${sheetName}": ${requiredField}`);
               }
@@ -209,7 +198,7 @@ export class FileValidationService implements IFileValidationService {
       return result;
       
     } catch (error) {
-      errors.push(`เกิดข้อผิดพลาดในการอ่านไฟล์ REP: ${error.message}`);
+      errors.push(`เกิดข้อผิดพลาดในการอ่านไฟล์ REP: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return {
         isValid: false,
         errors,
@@ -245,7 +234,7 @@ export class FileValidationService implements IFileValidationService {
       let totalRows = 0;
       for (const sheetName of sheetNames) {
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const jsonData = worksheet ? XLSX.utils.sheet_to_json(worksheet, { header: 1 }) : [];
         
         if (jsonData.length > 0) {
           totalRows += jsonData.length;
@@ -256,7 +245,7 @@ export class FileValidationService implements IFileValidationService {
             const headerNames = headers.map(h => h?.toString().toUpperCase() || '');
             const requiredFields = config.validation.requiredFields.statement;
             
-            for (const requiredField of requiredFields) {
+            for (const requiredField of requiredFields || []) {
               if (!headerNames.includes(requiredField)) {
                 warnings.push(`ไม่พบ column ที่จำเป็นใน sheet "${sheetName}": ${requiredField}`);
               }
@@ -284,7 +273,7 @@ export class FileValidationService implements IFileValidationService {
       return result;
       
     } catch (error) {
-      errors.push(`เกิดข้อผิดพลาดในการอ่านไฟล์ Statement: ${error.message}`);
+      errors.push(`เกิดข้อผิดพลาดในการอ่านไฟล์ Statement: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return {
         isValid: false,
         errors,

@@ -24,7 +24,9 @@ revenue-service/
 │   │   ├── fileProcessingService.ts # File processing
 │   │   ├── fileStorageService.ts    # File storage
 │   │   ├── statisticsService.ts     # Statistics
-│   │   └── databaseService.ts       # Database operations
+│   │   ├── databaseService.ts       # Database operations
+│   │   ├── batchService.ts          # Batch management
+│   │   └── validationService.ts     # Security validation
 │   ├── config/               # Configuration files
 │   │   └── index.ts         # Service configuration
 │   ├── middleware/           # Express middleware
@@ -38,29 +40,36 @@ revenue-service/
 ├── uploads/                  # ไฟล์ที่อัปโหลด
 │   ├── dbf/                 # ไฟล์ DBF
 │   │   ├── 2024-01-15/      # วันที่อัปโหลด
-│   │   │   ├── uuid-1/      # UUID ของไฟล์
-│   │   │   │   └── PAT6805.DBF
-│   │   │   └── uuid-2/
-│   │   │       └── ADP6805.DBF
+│   │   │   ├── batch-1/     # Batch ID
+│   │   │   │   ├── uuid-1/  # UUID ของไฟล์
+│   │   │   │   │   └── PAT6805.DBF
+│   │   │   │   └── uuid-2/
+│   │   │   │       └── ADP6805.DBF
+│   │   │   └── batch-2/
+│   │   │       └── uuid-3/
+│   │   │           └── AER6805.DBF
 │   │   └── 2024-01-16/
-│   │       └── uuid-3/
-│   │           └── AER6805.DBF
+│   │       └── batch-3/
+│   │           └── uuid-4/
+│   │               └── CHA6805.DBF
 │   ├── rep/                  # ไฟล์ REP (Excel)
 │   │   ├── 2024-01-15/
-│   │   │   ├── uuid-4/
-│   │   │   │   └── 680600025.xls
-│   │   │   └── uuid-5/
-│   │   │       └── 680600030.xls
+│   │   │   └── batch-1/
+│   │   │       └── uuid-5/
+│   │   │           └── 680600025.xls
 │   │   └── 2024-01-16/
-│   │       └── uuid-6/
-│   │           └── 680600031.xls
+│   │       └── batch-2/
+│   │           └── uuid-6/
+│   │               └── 680600030.xls
 │   └── stm/                  # ไฟล์ Statement (Excel)
 │       ├── 2024-01-15/
-│       │   └── uuid-7/
-│       │       └── STM_14641_OPUCS256806_01.xls
+│       │   └── batch-1/
+│       │       └── uuid-7/
+│       │           └── STM_14641_OPUCS256806_01.xls
 │       └── 2024-01-16/
-│           └── uuid-8/
-│               └── STM_14641_OPUCS256806_02.xls
+│           └── batch-2/
+│               └── uuid-8/
+│                   └── STM_14641_OPUCS256806_02.xls
 ├── processed/                # ไฟล์ที่ประมวลผลแล้ว
 ├── backup/                   # ไฟล์ backup
 ├── temp/                     # ไฟล์ชั่วคราว
@@ -91,8 +100,17 @@ npm run dev
 ### Health Check
 - `GET /health` - ตรวจสอบสถานะ service
 
+### Batch Management
+- `GET /api/revenue/batches` - ดึงรายการ batches
+- `POST /api/revenue/batches` - สร้าง batch ใหม่
+- `GET /api/revenue/batches/:id` - ดึงข้อมูล batch
+- `DELETE /api/revenue/batches/:id` - ลบ batch
+- `GET /api/revenue/batches/:id/files` - ดึงไฟล์ใน batch
+- `POST /api/revenue/batches/:id/process` - ประมวลผล batch
+
 ### File Upload
-- `POST /api/revenue/upload` - อัปโหลดไฟล์ DBF, REP, Statement
+- `POST /api/revenue/upload` - อัปโหลดไฟล์เดี่ยว
+- `POST /api/revenue/upload/batch` - อัปโหลดหลายไฟล์เป็น batch
 
 ### File Validation
 - `POST /api/revenue/validate` - ตรวจสอบไฟล์
