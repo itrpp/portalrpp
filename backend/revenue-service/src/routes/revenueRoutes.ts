@@ -23,16 +23,56 @@ import config from '@/config';
 
 const router = Router();
 
-// สร้าง multer storage
+// สร้าง multer storage สำหรับโครงสร้างใหม่
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.resolve(config.upload.uploadPath);
-    await fs.ensureDir(uploadDir);
-    cb(null, uploadDir);
+    try {
+      // กำหนดประเภทไฟล์ตามนามสกุล
+      let fileType = 'temp';
+      const fileExtension = path.extname(file.originalname).toLowerCase();
+      
+      if (fileExtension === '.dbf') {
+        fileType = 'dbf';
+      } else if (fileExtension === '.xls' || fileExtension === '.xlsx') {
+        // ตรวจสอบว่าเป็น REP หรือ Statement ตามชื่อไฟล์
+        if (file.originalname.toLowerCase().includes('rep')) {
+          fileType = 'rep';
+        } else if (file.originalname.toLowerCase().includes('statement') || file.originalname.toLowerCase().includes('stm')) {
+          fileType = 'stm';
+        } else {
+          fileType = 'temp'; // ถ้าไม่แน่ใจให้เก็บใน temp
+        }
+      }
+      
+      // สร้างโครงสร้างโฟลเดอร์ตามรูปแบบใหม่
+      const date = new Date();
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const uuid = uuidv4();
+      
+      let uploadDir: string;
+      switch (fileType) {
+        case 'dbf':
+          uploadDir = path.resolve(config.upload.dbfPath || './uploads/dbf', dateStr, uuid);
+          break;
+        case 'rep':
+          uploadDir = path.resolve(config.upload.repPath || './uploads/rep', dateStr, uuid);
+          break;
+        case 'stm':
+          uploadDir = path.resolve(config.upload.stmPath || './uploads/stm', dateStr, uuid);
+          break;
+        default:
+          uploadDir = path.resolve(config.upload.tempPath || './uploads/temp', dateStr, uuid);
+      }
+      
+      await fs.ensureDir(uploadDir);
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error as Error);
+    }
   },
   filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}_${file.originalname}`;
-    cb(null, uniqueName);
+    // ใช้ชื่อไฟล์ต้นฉบับ
+    cb(null, file.originalname);
   },
 });
 

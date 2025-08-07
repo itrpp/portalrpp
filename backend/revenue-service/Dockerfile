@@ -11,31 +11,30 @@ WORKDIR /app
 # ติดตั้ง dependencies สำหรับ build
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
+# คัดลอก package files
 COPY package*.json ./
 
 # ติดตั้ง dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production
 
-# Copy source code
+# คัดลอก source code
 COPY . .
 
 # Build TypeScript
 RUN npm run build
 
-# สร้าง directories ที่จำเป็น
+# สร้างโฟลเดอร์ที่จำเป็น
 RUN mkdir -p uploads processed backup temp logs
 
 # ตั้งค่า permissions
-RUN chown -R node:node /app
-USER node
+RUN chmod -R 755 uploads processed backup temp logs
 
-# Expose port
+# เปิด port 3003
 EXPOSE 3003
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3003/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+# ตั้งค่า environment variables
+ENV NODE_ENV=production
+ENV PORT=3003
 
-# Start application
+# รัน application
 CMD ["npm", "start"] 

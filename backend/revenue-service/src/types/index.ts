@@ -161,6 +161,9 @@ export interface FileUploadConfig {
   maxFileSize: string;
   allowedFileTypes: string[];
   uploadPath: string;
+  dbfPath: string;
+  repPath: string;
+  stmPath: string;
   tempPath: string;
   processedPath: string;
   backupPath: string;
@@ -178,4 +181,36 @@ export interface ProcessingConfig {
   timeout: number;
   retryAttempts: number;
   parallelProcessing: boolean;
+}
+
+// ========================================
+// FILE STORAGE TYPES
+// ========================================
+
+export interface FileStorageInfo {
+  fileType: 'dbf' | 'rep' | 'stm';
+  date: string; // YYYY-MM-DD
+  uuid: string;
+  filename: string;
+  fullPath: string;
+  relativePath: string;
+  fileSize: number;
+  uploadDate: Date;
+}
+
+export interface FileStorageStructure {
+  uploadPath: string;
+  dbfPath: string;
+  repPath: string;
+  stmPath: string;
+  tempPath: string;
+  processedPath: string;
+  backupPath: string;
+}
+
+export interface FileLocation {
+  fileType: 'dbf' | 'rep' | 'stm';
+  date: string;
+  uuid: string;
+  filename: string;
 } 

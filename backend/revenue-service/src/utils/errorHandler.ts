@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { logError } from './logger';
 import { ErrorResponse } from '@/types';
+import config from '@/config';
 
 export class RevenueServiceError extends Error {
   public statusCode: number;

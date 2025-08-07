@@ -4,6 +4,34 @@
 
 import { FileUploadConfig, ValidationConfig, ProcessingConfig } from '@/types';
 
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      PORT?: string;
+      NODE_ENV?: string;
+      MAX_FILE_SIZE?: string;
+      ALLOWED_FILE_TYPES?: string;
+      UPLOAD_PATH?: string;
+      DBF_PATH?: string;
+      REP_PATH?: string;
+      STM_PATH?: string;
+      TEMP_DIR?: string;
+      PROCESSED_DIR?: string;
+      BACKUP_DIR?: string;
+      LOG_LEVEL?: string;
+      LOG_FILE_PATH?: string;
+      LOG_MAX_SIZE?: string;
+      LOG_MAX_FILES?: string;
+      RATE_LIMIT_WINDOW_MS?: string;
+      RATE_LIMIT_MAX_REQUESTS?: string;
+      CORS_ORIGIN?: string;
+      DATABASE_URL?: string;
+    }
+  }
+}
+
+declare const process: any;
+
 export const config = {
   // Server Configuration
   server: {
@@ -17,9 +45,12 @@ export const config = {
     maxFileSize: process.env.MAX_FILE_SIZE || '50mb',
     allowedFileTypes: (process.env.ALLOWED_FILE_TYPES || '.dbf,.xls,.xlsx').split(','),
     uploadPath: process.env.UPLOAD_PATH || './uploads',
-    tempPath: process.env.TEMP_DIR || './temp',
-    processedPath: process.env.PROCESSED_DIR || './processed',
-    backupPath: process.env.BACKUP_DIR || './backup',
+    dbfPath: process.env.DBF_PATH || './uploads/dbf',
+    repPath: process.env.REP_PATH || './uploads/rep',
+    stmPath: process.env.STM_PATH || './uploads/stm',
+    tempPath: process.env.TEMP_DIR || './uploads/temp',
+    processedPath: process.env.PROCESSED_DIR || './uploads/processed',
+    backupPath: process.env.BACKUP_DIR || './uploads/backup',
   } as FileUploadConfig,
 
   // Validation Configuration

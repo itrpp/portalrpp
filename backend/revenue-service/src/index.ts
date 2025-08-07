@@ -11,6 +11,8 @@ import config from '@/config';
 import { errorHandler, notFoundHandler } from '@/utils/errorHandler';
 import { logInfo, logError } from '@/utils/logger';
 import revenueRoutes from '@/routes/revenueRoutes';
+import DatabaseService from '@/services/databaseService';
+import FileStorageService from '@/services/fileStorageService';
 
 const app = express();
 const PORT = config.server.port;

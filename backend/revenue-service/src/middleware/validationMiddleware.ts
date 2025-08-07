@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import { validationErrorHandler } from '@/utils/errorHandler';
+import config from '@/config';
 
 // ตรวจสอบ validation errors
 export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
