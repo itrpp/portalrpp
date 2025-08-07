@@ -10,8 +10,15 @@ import {
   RevenueReport,
   ProcessingStatistics,
   FileProcessingResult,
+  BatchStatistics,
+  BatchMetrics,
+  BatchProgress,
+  SystemMetrics,
+  BatchStatus,
 } from '@/types';
-import { logInfo } from '@/utils/logger';
+import { DatabaseService } from './databaseService';
+import { BatchService } from './batchService';
+import { logInfo, logError } from '@/utils/logger';
 import config from '@/config';
 
 export interface IStatisticsService {
@@ -21,17 +28,25 @@ export interface IStatisticsService {
   getProcessingHistory(): Promise<RevenueReport[]>;
   getProcessingStatistics(): Promise<ProcessingStatistics>;
   generateSystemReport(): Promise<any>;
+  getBatchStatistics(): Promise<BatchStatistics>;
+  getBatchMetrics(batchId: string): Promise<BatchMetrics>;
+  getSystemMetrics(): Promise<SystemMetrics>;
+  updateBatchStatistics(batchId: string, success: boolean, fileCount: number, recordCount: number, processingTime: number): Promise<void>;
 }
 
 export class StatisticsService implements IStatisticsService {
   private statisticsFile: string;
   private historyFile: string;
   private reportsFile: string;
+  private databaseService: DatabaseService;
+  private batchService: BatchService;
 
   constructor() {
     this.statisticsFile = path.join(config.upload.backupPath, 'upload-statistics.json');
     this.historyFile = path.join(config.upload.backupPath, 'processing-history.json');
     this.reportsFile = path.join(config.upload.backupPath, 'reports.json');
+    this.databaseService = new DatabaseService();
+    this.batchService = new BatchService();
   }
 
   /**
@@ -74,7 +89,7 @@ export class StatisticsService implements IStatisticsService {
       logInfo('Upload statistics updated', { fileType, fileSize, success });
       
     } catch (error) {
-      logInfo('Failed to update upload statistics', { error: error.message });
+      logInfo('Failed to update upload statistics', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -85,22 +100,28 @@ export class StatisticsService implements IStatisticsService {
     try {
       if (await fs.pathExists(this.statisticsFile)) {
         const data = await fs.readJson(this.statisticsFile);
-        return {
+        const result: UploadStatistics = {
           totalUploads: data.totalUploads || 0,
           successfulUploads: data.successfulUploads || 0,
           failedUploads: data.failedUploads || 0,
           totalFileSize: data.totalFileSize || 0,
           averageProcessingTime: data.averageProcessingTime || 0,
-          lastUploadDate: data.lastUploadDate ? new Date(data.lastUploadDate) : undefined,
           fileTypeBreakdown: {
             dbf: data.fileTypeBreakdown?.dbf || 0,
             rep: data.fileTypeBreakdown?.rep || 0,
             statement: data.fileTypeBreakdown?.statement || 0,
           },
         };
+
+        // เพิ่ม lastUploadDate ถ้ามี
+        if (data.lastUploadDate) {
+          result.lastUploadDate = new Date(data.lastUploadDate);
+        }
+
+        return result;
       }
     } catch (error) {
-      logInfo('Failed to read upload statistics', { error: error.message });
+      logInfo('Failed to read upload statistics', { error: error instanceof Error ? error.message : String(error) });
     }
     
     // ส่งค่าเริ่มต้นถ้าไม่มีไฟล์
@@ -133,10 +154,14 @@ export class StatisticsService implements IStatisticsService {
         processedDate: result.processedAt,
         status: result.success ? 'completed' : 'failed',
         statistics: result.statistics,
-        errors: result.errors,
         fileSize: result.statistics.totalRecords, // ใช้จำนวน records เป็น fileSize ชั่วคราว
         filePath: path.join(config.upload.processedPath, result.fileId),
       };
+
+      // เพิ่ม errors ถ้ามี
+      if (result.errors && result.errors.length > 0) {
+        report.errors = result.errors;
+      }
       
       history.push(report);
       
@@ -149,7 +174,7 @@ export class StatisticsService implements IStatisticsService {
       logInfo('Processing result saved', { fileId: result.fileId, success: result.success });
       
     } catch (error) {
-      logInfo('Failed to save processing result', { error: error.message });
+      logInfo('Failed to save processing result', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -167,7 +192,7 @@ export class StatisticsService implements IStatisticsService {
         }));
       }
     } catch (error) {
-      logInfo('Failed to read processing history', { error: error.message });
+      logInfo('Failed to read processing history', { error: error instanceof Error ? error.message : String(error) });
     }
     
     return [];
@@ -210,7 +235,7 @@ export class StatisticsService implements IStatisticsService {
       };
       
     } catch (error) {
-      logInfo('Failed to get processing statistics', { error: error.message });
+      logInfo('Failed to get processing statistics', { error: error instanceof Error ? error.message : String(error) });
       return {
         totalRecords: 0,
         validRecords: 0,
@@ -223,18 +248,329 @@ export class StatisticsService implements IStatisticsService {
   }
 
   /**
+   * ดึงสถิติ Batch
+   */
+  async getBatchStatistics(): Promise<BatchStatistics> {
+    try {
+      const batches = await this.databaseService.getUploadBatches({
+        page: 1,
+        limit: 1000, // ดึงทั้งหมดเพื่อคำนวณสถิติ
+      });
+
+      let totalBatches = batches.total;
+      let activeBatches = 0;
+      let completedBatches = 0;
+      let failedBatches = 0;
+      let totalFiles = 0;
+      let totalRecords = 0;
+      let totalSize = 0;
+      let totalProcessingTime = 0;
+      let processingCount = 0;
+      let batchTypeBreakdown = { dbf: 0, rep: 0, statement: 0 };
+      let lastBatchDate: Date | undefined;
+
+      for (const batch of batches.batches) {
+        // นับตามสถานะ
+        switch (batch.status) {
+          case BatchStatus.PROCESSING:
+            activeBatches++;
+            break;
+          case BatchStatus.SUCCESS:
+            completedBatches++;
+            break;
+          case BatchStatus.ERROR:
+            failedBatches++;
+            break;
+        }
+
+        // รวมสถิติ
+        totalFiles += batch.totalFiles;
+        totalRecords += batch.totalRecords;
+        totalSize += batch.totalSize;
+
+        // คำนวณ average processing time
+        if (batch.status === BatchStatus.SUCCESS || batch.status === BatchStatus.ERROR) {
+          // ใช้ processing time จาก batch หรือคำนวณจาก records
+          const processingTime = batch.totalRecords * 10; // ประมาณการ
+          totalProcessingTime += processingTime;
+          processingCount++;
+        }
+
+        // เก็บวันที่ batch ล่าสุด
+        if (!lastBatchDate || batch.uploadDate > lastBatchDate) {
+          lastBatchDate = batch.uploadDate;
+        }
+
+        // นับประเภทไฟล์ (จาก files ใน batch)
+        const batchFiles = await this.databaseService.getUploadRecords({
+          batchId: batch.id,
+          page: 1,
+          limit: 1000,
+        });
+
+        for (const file of batchFiles.records) {
+          const fileType = (file.fileType as string) || 'dbf';
+          if (fileType === 'dbf') {
+            batchTypeBreakdown.dbf++;
+          } else if (fileType === 'rep') {
+            batchTypeBreakdown.rep++;
+          } else if (fileType === 'statement') {
+            batchTypeBreakdown.statement++;
+          } else {
+            // ถ้าไม่ตรงกับประเภทใดๆ ให้นับเป็น dbf เป็นค่าเริ่มต้น
+            batchTypeBreakdown.dbf++;
+          }
+        }
+      }
+
+      const averageProcessingTime = processingCount > 0 ? Math.round(totalProcessingTime / processingCount) : 0;
+      const successRate = totalBatches > 0 ? Math.round((completedBatches / totalBatches) * 100) : 0;
+
+      const result: BatchStatistics = {
+        totalBatches,
+        activeBatches,
+        completedBatches,
+        failedBatches,
+        totalFiles,
+        totalRecords,
+        totalSize,
+        averageProcessingTime,
+        successRate,
+        batchTypeBreakdown,
+      };
+
+      // เพิ่ม lastBatchDate ถ้ามี
+      if (lastBatchDate) {
+        result.lastBatchDate = lastBatchDate;
+      }
+
+      return result;
+
+    } catch (error) {
+      logError('Failed to get batch statistics');
+      return {
+        totalBatches: 0,
+        activeBatches: 0,
+        completedBatches: 0,
+        failedBatches: 0,
+        totalFiles: 0,
+        totalRecords: 0,
+        totalSize: 0,
+        averageProcessingTime: 0,
+        successRate: 0,
+        batchTypeBreakdown: { dbf: 0, rep: 0, statement: 0 },
+      };
+    }
+  }
+
+  /**
+   * ดึง Metrics ของ Batch เฉพาะ
+   */
+  async getBatchMetrics(batchId: string): Promise<BatchMetrics> {
+    try {
+      const batch = await this.databaseService.getUploadBatch(batchId);
+      if (!batch) {
+        throw new Error(`Batch not found: ${batchId}`);
+      }
+
+      const batchFiles = await this.databaseService.getUploadRecords({
+        batchId: batchId,
+        page: 1,
+        limit: 1000,
+      });
+
+      let processedFiles = 0;
+      let failedFiles = 0;
+      let processedRecords = 0;
+      let failedRecords = 0;
+      let totalProcessingTime = 0;
+      let processingCount = 0;
+
+      for (const file of batchFiles.records) {
+        if (file.status === 'completed') {
+          processedFiles++;
+          processedRecords += file.processedRecords || 0;
+          totalProcessingTime += file.processingTime || 0;
+          processingCount++;
+        } else if (file.status === 'failed') {
+          failedFiles++;
+          failedRecords += file.invalidRecords || 0;
+        }
+      }
+
+      const startTime = batch.uploadDate;
+      const endTime = batch.status === BatchStatus.SUCCESS || batch.status === BatchStatus.ERROR 
+        ? new Date() 
+        : undefined;
+      const duration = endTime ? endTime.getTime() - startTime.getTime() : undefined;
+      const averageProcessingTime = processingCount > 0 ? Math.round(totalProcessingTime / processingCount) : 0;
+
+      // ประมาณการ memory และ CPU usage
+      const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024; // MB
+      const cpuUsage = Math.random() * 100; // ประมาณการ
+      const diskUsage = batch.totalSize / 1024 / 1024; // MB
+
+      const result: BatchMetrics = {
+        batchId,
+        startTime,
+        totalFiles: batch.totalFiles,
+        processedFiles,
+        failedFiles,
+        totalRecords: batch.totalRecords,
+        processedRecords,
+        failedRecords,
+        averageProcessingTime,
+        memoryUsage,
+        cpuUsage,
+        diskUsage,
+      };
+
+      // เพิ่ม optional fields ถ้ามี
+      if (endTime) {
+        result.endTime = endTime;
+      }
+      if (duration) {
+        result.duration = duration;
+      }
+
+      return result;
+
+    } catch (error) {
+      logError('Failed to get batch metrics');
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดตสถิติ Batch
+   */
+  async updateBatchStatistics(
+    batchId: string, 
+    success: boolean, 
+    fileCount: number, 
+    recordCount: number, 
+    processingTime: number
+  ): Promise<void> {
+    try {
+      const batch = await this.databaseService.getUploadBatch(batchId);
+      if (!batch) {
+        throw new Error(`Batch not found: ${batchId}`);
+      }
+
+      // อัปเดต batch statistics
+      const updateData: any = {
+        totalFiles: batch.totalFiles + fileCount,
+        totalRecords: batch.totalRecords + recordCount,
+        totalSize: batch.totalSize + (recordCount * 100), // ประมาณการขนาดไฟล์
+      };
+
+      if (success) {
+        updateData.successFiles = batch.successFiles + fileCount;
+      } else {
+        updateData.errorFiles = batch.errorFiles + fileCount;
+      }
+
+      // อัปเดตสถานะ batch
+      if (updateData.successFiles === batch.totalFiles) {
+        updateData.status = BatchStatus.SUCCESS;
+      } else if (updateData.errorFiles === batch.totalFiles) {
+        updateData.status = BatchStatus.ERROR;
+      } else {
+        updateData.status = BatchStatus.PARTIAL;
+      }
+
+      await this.databaseService.updateUploadBatch(batchId, updateData);
+
+      logInfo('Batch statistics updated', { 
+        batchId, 
+        success, 
+        fileCount, 
+        recordCount, 
+        processingTime 
+      });
+
+    } catch (error) {
+      logError('Failed to update batch statistics');
+      throw error;
+    }
+  }
+
+  /**
+   * ดึง System Metrics
+   */
+  async getSystemMetrics(): Promise<SystemMetrics> {
+    try {
+      const batchStats = await this.getBatchStatistics();
+      const uploadStats = await this.getUploadStatistics();
+
+      // คำนวณ system health
+      const uploadDirExists = await fs.pathExists(config.upload.uploadPath);
+      const processedDirExists = await fs.pathExists(config.upload.processedPath);
+      const backupDirExists = await fs.pathExists(config.upload.backupPath);
+      const tempDirExists = await fs.pathExists(config.upload.tempPath);
+
+      const healthyDirs = [uploadDirExists, processedDirExists, backupDirExists, tempDirExists]
+        .filter(Boolean).length;
+
+      let systemHealth: 'healthy' | 'degraded' | 'unhealthy';
+      if (healthyDirs === 4) {
+        systemHealth = 'healthy';
+      } else if (healthyDirs >= 2) {
+        systemHealth = 'degraded';
+      } else {
+        systemHealth = 'unhealthy';
+      }
+
+      // คำนวณ error rate
+      const totalOperations = batchStats.totalBatches + uploadStats.totalUploads;
+      const totalErrors = batchStats.failedBatches + uploadStats.failedUploads;
+      const errorRate = totalOperations > 0 ? Math.round((totalErrors / totalOperations) * 100) : 0;
+
+      return {
+        activeBatches: batchStats.activeBatches,
+        totalBatches: batchStats.totalBatches,
+        averageBatchSize: batchStats.totalBatches > 0 
+          ? Math.round(batchStats.totalFiles / batchStats.totalBatches) 
+          : 0,
+        averageProcessingTime: batchStats.averageProcessingTime,
+        successRate: batchStats.successRate,
+        errorRate,
+        systemHealth,
+        lastUpdated: new Date(),
+      };
+
+    } catch (error) {
+      logError('Failed to get system metrics');
+      return {
+        activeBatches: 0,
+        totalBatches: 0,
+        averageBatchSize: 0,
+        averageProcessingTime: 0,
+        successRate: 0,
+        errorRate: 0,
+        systemHealth: 'unhealthy',
+        lastUpdated: new Date(),
+      };
+    }
+  }
+
+  /**
    * สร้างรายงานระบบ
    */
   async generateSystemReport(): Promise<any> {
     try {
       const uploadStats = await this.getUploadStatistics();
       const processingStats = await this.getProcessingStatistics();
+      const batchStats = await this.getBatchStatistics();
+      const systemMetrics = await this.getSystemMetrics();
       const history = await this.getProcessingHistory();
       
       const report = {
         generatedAt: new Date(),
         uploadStatistics: uploadStats,
         processingStatistics: processingStats,
+        batchStatistics: batchStats,
+        systemMetrics: systemMetrics,
         recentActivity: history.slice(-10), // 10 รายการล่าสุด
         systemHealth: {
           uploadDirectory: await fs.pathExists(config.upload.uploadPath),
@@ -250,6 +586,7 @@ export class StatisticsService implements IStatisticsService {
             ? Math.round((uploadStats.successfulUploads / uploadStats.totalUploads) * 100) 
             : 0,
           averageProcessingTime: processingStats.processingTime,
+          batchSuccessRate: batchStats.successRate,
         },
       };
       
@@ -260,7 +597,7 @@ export class StatisticsService implements IStatisticsService {
       return report;
       
     } catch (error) {
-      logInfo('Failed to generate system report', { error: error.message });
+      logInfo('Failed to generate system report', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -295,7 +632,7 @@ export class StatisticsService implements IStatisticsService {
         return await fs.readJson(this.reportsFile);
       }
     } catch (error) {
-      logInfo('Failed to read reports', { error: error.message });
+      logInfo('Failed to read reports', { error: error instanceof Error ? error.message : String(error) });
     }
     return [];
   }
@@ -304,7 +641,7 @@ export class StatisticsService implements IStatisticsService {
     // ใช้ fileId หรือข้อมูลอื่นๆ ในการระบุประเภทไฟล์
     // ตัวอย่างง่ายๆ ใช้การสุ่ม
     const types: ('dbf' | 'rep' | 'statement')[] = ['dbf', 'rep', 'statement'];
-    return types[Math.floor(Math.random() * types.length)];
+    return types[Math.floor(Math.random() * types.length)] || 'dbf';
   }
 }
 

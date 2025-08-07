@@ -12,6 +12,40 @@ datasource db {
 }
 
 // ========================================
+// UPLOAD BATCHES
+// ========================================
+
+model UploadBatch {
+  id          String   @id @default(cuid())
+  batchName   String
+  uploadDate  DateTime @default(now())
+  
+  // File counts
+  totalFiles      Int @default(0)
+  successFiles    Int @default(0)
+  errorFiles      Int @default(0)
+  processingFiles Int @default(0)
+  
+  // Statistics
+  totalRecords    Int @default(0)
+  totalSize       Int @default(0) // bytes
+  
+  // Status
+  status          String @default("processing") // SUCCESS, ERROR, PROCESSING, PARTIAL
+  
+  // Relations
+  files           UploadRecord[]
+  userId          String?
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("upload_batches")
+}
+
+// ========================================
 // UPLOAD RECORDS
 // ========================================
 
@@ -19,12 +53,18 @@ model UploadRecord {
   id          String   @id @default(cuid())
   filename    String
   originalName String
-  fileType    FileType
+  fileType    String   // DBF, REP, STM
   fileSize    Int
   filePath    String
   uploadDate  DateTime @default(now())
   processedAt DateTime?
-  status      UploadStatus @default(PENDING)
+  status      String   @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED, VALIDATION_FAILED
+  
+  // Batch relation
+  batchId     String?
+  batch       UploadBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  
+  // User info
   userId      String?
   ipAddress   String?
   userAgent   String?
@@ -41,6 +81,9 @@ model UploadRecord {
   processedRecords Int?
   skippedRecords  Int?
   processingTime   Int? // milliseconds
+  
+  // Error message for frontend
+  errorMessage String?
   
   // Metadata
   metadata    String? // JSON string of additional data
@@ -62,8 +105,8 @@ model ProcessingHistory {
   uploadId    String
   upload      UploadRecord @relation(fields: [uploadId], references: [id], onDelete: Cascade)
   
-  action      ProcessingAction
-  status      ProcessingStatus
+  action      String   // VALIDATE, PROCESS, BACKUP, CLEANUP
+  status      String   // STARTED, COMPLETED, FAILED, CANCELLED
   message     String?
   
   // Processing details
@@ -130,36 +173,4 @@ model SystemConfig {
   updatedAt   DateTime @updatedAt
   
   @@map("system_config")
-}
-
-// ========================================
-// ENUMS
-// ========================================
-
-enum FileType {
-  DBF
-  REP
-  STM
-}
-
-enum UploadStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  VALIDATION_FAILED
-}
-
-enum ProcessingAction {
-  VALIDATE
-  PROCESS
-  BACKUP
-  CLEANUP
-}
-
-enum ProcessingStatus {
-  STARTED
-  COMPLETED
-  FAILED
-  CANCELLED
 } 

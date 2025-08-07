@@ -3,6 +3,7 @@
 // ========================================
 
 import { PrismaClient } from '@prisma/client';
+import { exit } from 'process';
 
 const prisma = new PrismaClient();
 
@@ -53,6 +54,29 @@ async function main() {
 
   console.log('✅ System configuration seeded');
 
+  // สร้าง sample upload batch
+  const sampleBatch = await prisma.uploadBatch.upsert({
+    where: { id: 'sample-batch-001' },
+    update: {},
+    create: {
+      id: 'sample-batch-001',
+      batchName: 'Sample Upload Batch',
+      uploadDate: new Date(),
+      totalFiles: 0,
+      successFiles: 0,
+      errorFiles: 0,
+      processingFiles: 0,
+      totalRecords: 0,
+      totalSize: 0,
+      status: 'PROCESSING',
+      userId: 'sample-user',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Sample User Agent',
+    },
+  });
+
+  console.log('✅ Sample upload batch seeded');
+
   // สร้าง sample upload statistics สำหรับวันนี้
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -86,7 +110,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error('❌ Error seeding database:', e);
-    process.exit(1);
+    exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

@@ -13,6 +13,8 @@ import {
   ProcessingStatistics,
   RevenueReport,
   FileValidationResult,
+  BatchProcessingResult,
+  BatchStatus,
 } from '@/types';
 import { FileProcessingError } from '@/utils/errorHandler';
 import { logFileProcessing } from '@/utils/logger';
@@ -24,6 +26,8 @@ export interface IFileProcessingService {
   processREP(filePath: string, filename: string): Promise<FileProcessingResult>;
   processStatement(filePath: string, filename: string): Promise<FileProcessingResult>;
   generateReport(fileId: string, filename: string, fileType: string): Promise<RevenueReport>;
+  processBatch(batchId: string): Promise<BatchProcessingResult>;
+  processFileInBatch(fileId: string, batchId: string): Promise<FileProcessingResult>;
 }
 
 export class FileProcessingService implements IFileProcessingService {
@@ -67,7 +71,7 @@ export class FileProcessingService implements IFileProcessingService {
       if (error instanceof FileProcessingError) {
         throw error;
       }
-      throw new FileProcessingError(`เกิดข้อผิดพลาดในการประมวลผลไฟล์: ${error.message}`);
+      throw new FileProcessingError(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ DBF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -245,22 +249,12 @@ export class FileProcessingService implements IFileProcessingService {
       
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      logFileProcessing(filename, false, processingTime, 0);
       
-      return {
-        success: false,
-        message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ REP: ${error.message}`,
-        processedAt: new Date(),
-        fileId,
-        statistics: {
-          totalRecords: 0,
-          validRecords: 0,
-          invalidRecords: 0,
-          processedRecords: 0,
-          skippedRecords: 0,
-          processingTime,
-        },
-        errors: [error.message],
-      };
+      if (error instanceof FileProcessingError) {
+        throw error;
+      }
+      throw new FileProcessingError(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ REP: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -342,10 +336,130 @@ export class FileProcessingService implements IFileProcessingService {
       
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      logFileProcessing(filename, false, processingTime, 0);
+      
+      if (error instanceof FileProcessingError) {
+        throw error;
+      }
+      throw new FileProcessingError(`เกิดข้อผิดพลาดในการประมวลผลไฟล์ Statement: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * สร้างรายงาน
+   */
+  async generateReport(fileId: string, filename: string, fileType: string): Promise<RevenueReport> {
+    return {
+      id: fileId,
+      type: fileType as 'dbf' | 'rep' | 'statement',
+      filename,
+      uploadDate: new Date(),
+      status: 'completed',
+      fileSize: 0,
+      filePath: '',
+    };
+  }
+
+  /**
+   * ประมวลผล batch
+   */
+  async processBatch(batchId: string): Promise<BatchProcessingResult> {
+    const startTime = Date.now();
+    
+    try {
+      // TODO: Implement batch processing logic
+      // This method should coordinate the processing of multiple files in a batch
+      
+      const result: BatchProcessingResult = {
+        batchId,
+        success: true,
+        totalFiles: 0,
+        processedFiles: 0,
+        failedFiles: 0,
+        totalRecords: 0,
+        processedRecords: 0,
+        failedRecords: 0,
+        processingTime: Date.now() - startTime,
+        errors: [],
+        progress: {
+          batchId,
+          batchName: '',
+          totalFiles: 0,
+          completedFiles: 0,
+          failedFiles: 0,
+          processingFiles: 0,
+          progress: 100,
+          status: BatchStatus.SUCCESS,
+        },
+      };
+
+      return result;
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      
+      return {
+        batchId,
+        success: false,
+        totalFiles: 0,
+        processedFiles: 0,
+        failedFiles: 0,
+        totalRecords: 0,
+        processedRecords: 0,
+        failedRecords: 0,
+        processingTime,
+        errors: [{
+          type: 'processing',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: 'BATCH_PROCESSING_ERROR',
+          timestamp: new Date(),
+          retryable: true,
+        }],
+        progress: {
+          batchId,
+          batchName: '',
+          totalFiles: 0,
+          completedFiles: 0,
+          failedFiles: 0,
+          processingFiles: 0,
+          progress: 0,
+          status: BatchStatus.ERROR,
+        },
+      };
+    }
+  }
+
+  /**
+   * ประมวลผลไฟล์ใน batch
+   */
+  async processFileInBatch(fileId: string, batchId: string): Promise<FileProcessingResult> {
+    const startTime = Date.now();
+    
+    try {
+      // TODO: Implement file processing in batch context
+      // This method should process a single file within a batch context
+      
+      const result: FileProcessingResult = {
+        success: true,
+        message: 'ประมวลผลไฟล์ใน batch สำเร็จ',
+        processedAt: new Date(),
+        fileId,
+        statistics: {
+          totalRecords: 0,
+          validRecords: 0,
+          invalidRecords: 0,
+          processedRecords: 0,
+          skippedRecords: 0,
+          processingTime: Date.now() - startTime,
+        },
+      };
+
+      return result;
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
       
       return {
         success: false,
-        message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ Statement: ${error.message}`,
+        message: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการประมวลผลไฟล์ใน batch',
         processedAt: new Date(),
         fileId,
         statistics: {
@@ -356,27 +470,9 @@ export class FileProcessingService implements IFileProcessingService {
           skippedRecords: 0,
           processingTime,
         },
-        errors: [error.message],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
-  }
-
-  /**
-   * สร้างรายงาน
-   */
-  async generateReport(fileId: string, filename: string, fileType: string): Promise<RevenueReport> {
-    const report: RevenueReport = {
-      id: fileId,
-      type: fileType as 'dbf' | 'rep' | 'statement',
-      filename,
-      uploadDate: new Date(),
-      processedDate: new Date(),
-      status: 'completed',
-      fileSize: 0, // จะต้องอัปเดตจากไฟล์จริง
-      filePath: path.join(config.upload.processedPath, `${fileId}_${filename}`),
-    };
-    
-    return report;
   }
 
   // Helper methods

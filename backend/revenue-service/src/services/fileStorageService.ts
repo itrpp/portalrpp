@@ -5,8 +5,14 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { FileType } from '@prisma/client';
 import { logInfo, logError } from '@/utils/logger';
+
+// กำหนด FileType enum เอง
+export enum FileType {
+  DBF = 'DBF',
+  REP = 'REP',
+  STM = 'STM',
+}
 
 export interface IFileStorageConfig {
   basePath: string;
@@ -26,8 +32,14 @@ export interface IFileStorageResult {
   filename: string;
   uuid: string;
   dateFolder: string;
+  batchFolder?: string;
   message?: string;
   error?: string;
+}
+
+export interface IBatchStorageResult extends IFileStorageResult {
+  batchId: string;
+  batchFolder: string;
 }
 
 export class FileStorageService {
@@ -48,7 +60,7 @@ export class FileStorageService {
 
   /**
    * สร้างโครงสร้างโฟลเดอร์ตามรูปแบบที่กำหนด
-   * /uploads/{fileType}/{date}/{uuid}/
+   * /uploads/{fileType}/{date}/{batchId}/{uuid}/
    */
   async createDirectoryStructure(): Promise<void> {
     try {
@@ -87,7 +99,42 @@ export class FileStorageService {
   }
 
   /**
-   * สร้างโฟลเดอร์ตาม UUID
+   * สร้างโฟลเดอร์ตาม Batch ID
+   * /uploads/{fileType}/{date}/{batchId}/
+   */
+  async createBatchFolder(fileType: FileType, batchId: string, date: Date = new Date()): Promise<string> {
+    if (!batchId) {
+      throw new Error('Batch ID is required');
+    }
+    
+    const dateFolder = await this.createDateFolder(fileType, date);
+    const batchFolder = path.join(dateFolder, batchId);
+    
+    await fs.ensureDir(batchFolder);
+    logInfo('Batch folder created', { fileType, batchId, path: batchFolder });
+    return batchFolder;
+  }
+
+  /**
+   * สร้างโฟลเดอร์ตาม UUID ใน batch
+   * /uploads/{fileType}/{date}/{batchId}/{uuid}/
+   */
+  async createUuidFolderInBatch(fileType: FileType, batchId: string, date: Date = new Date()): Promise<{ uuid: string; folderPath: string }> {
+    if (!batchId) {
+      throw new Error('Batch ID is required');
+    }
+    
+    const uuid = uuidv4();
+    const batchFolder = await this.createBatchFolder(fileType, batchId, date);
+    const uuidFolder = path.join(batchFolder, uuid);
+    
+    await fs.ensureDir(uuidFolder);
+    logInfo('UUID folder created in batch', { fileType, batchId, uuid, path: uuidFolder });
+    return { uuid, folderPath: uuidFolder };
+  }
+
+  /**
+   * สร้างโฟลเดอร์ตาม UUID (legacy - ไม่มี batch)
    * /uploads/{fileType}/{date}/{uuid}/
    */
   async createUuidFolder(fileType: FileType, date: Date = new Date()): Promise<{ uuid: string; folderPath: string }> {
@@ -101,7 +148,77 @@ export class FileStorageService {
   }
 
   /**
-   * บันทึกไฟล์ตามโครงสร้างที่กำหนด
+   * บันทึกไฟล์ใน batch
+   * /uploads/{fileType}/{date}/{batchId}/{uuid}/{filename}
+   */
+  async saveFileInBatch(
+    fileType: FileType,
+    originalName: string,
+    fileBuffer: Buffer,
+    batchId: string,
+    date: Date = new Date(),
+  ): Promise<IBatchStorageResult> {
+    if (!batchId) {
+      throw new Error('Batch ID is required');
+    }
+    
+    if (!originalName) {
+      throw new Error('Original name is required');
+    }
+    
+    try {
+      const { uuid, folderPath } = await this.createUuidFolderInBatch(fileType, batchId, date);
+      const filePath = path.join(folderPath, originalName);
+      
+      await fs.writeFile(filePath, fileBuffer);
+      
+      const relativePath = path.relative(this.config.basePath, filePath);
+      const dateFolder = path.dirname(path.dirname(path.dirname(filePath))); // ขึ้นไป 3 ระดับ
+      const batchFolder = path.dirname(path.dirname(filePath)); // ขึ้นไป 2 ระดับ
+      
+      logInfo('File saved in batch', { 
+        fileType, 
+        batchId, 
+        uuid, 
+        filename: originalName, 
+        path: filePath 
+      });
+
+      return {
+        success: true,
+        filePath,
+        relativePath,
+        filename: originalName,
+        uuid,
+        dateFolder: path.basename(dateFolder),
+        batchFolder: path.basename(batchFolder),
+        batchId,
+        message: 'ไฟล์ถูกบันทึกใน batch สำเร็จ',
+      };
+    } catch (error) {
+      logError('Failed to save file in batch', error as Error, { 
+        fileType, 
+        batchId, 
+        filename: originalName 
+      });
+      
+      return {
+        success: false,
+        filePath: '',
+        relativePath: '',
+        filename: originalName,
+        uuid: '',
+        dateFolder: '',
+        batchFolder: '',
+        batchId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * บันทึกไฟล์ (legacy - ไม่มี batch)
+   * /uploads/{fileType}/{date}/{uuid}/{filename}
    */
   async saveFile(
     fileType: FileType,
@@ -109,46 +226,46 @@ export class FileStorageService {
     fileBuffer: Buffer,
     date: Date = new Date(),
   ): Promise<IFileStorageResult> {
+    if (!originalName) {
+      throw new Error('Original name is required');
+    }
+    
     try {
-      // สร้างโฟลเดอร์ตาม UUID
       const { uuid, folderPath } = await this.createUuidFolder(fileType, date);
+      const filePath = path.join(folderPath, originalName);
       
-      // สร้างชื่อไฟล์ใหม่
-      const extension = path.extname(originalName);
-      const filename = `${uuid}${extension}`;
-      const filePath = path.join(folderPath, filename);
-      
-      // บันทึกไฟล์
       await fs.writeFile(filePath, fileBuffer);
       
-      // สร้าง relative path สำหรับเก็บในฐานข้อมูล
       const relativePath = path.relative(this.config.basePath, filePath);
+      const dateFolder = path.dirname(path.dirname(filePath)); // ขึ้นไป 2 ระดับ
       
-      logInfo('File saved successfully', {
-        fileType,
-        originalName,
-        filename,
-        uuid,
-        filePath,
-        relativePath,
+      logInfo('File saved', { 
+        fileType, 
+        uuid, 
+        filename: originalName, 
+        path: filePath 
       });
 
       return {
         success: true,
         filePath,
         relativePath,
-        filename,
+        filename: originalName,
         uuid,
-        dateFolder: path.dirname(folderPath),
+        dateFolder: path.basename(dateFolder),
         message: 'ไฟล์ถูกบันทึกสำเร็จ',
       };
     } catch (error) {
-      logError('Failed to save file', error as Error);
+      logError('Failed to save file', error as Error, { 
+        fileType, 
+        filename: originalName 
+      });
+      
       return {
         success: false,
         filePath: '',
         relativePath: '',
-        filename: '',
+        filename: originalName,
         uuid: '',
         dateFolder: '',
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -157,7 +274,92 @@ export class FileStorageService {
   }
 
   /**
-   * ย้ายไฟล์ไปยังโฟลเดอร์ที่ประมวลผลแล้ว
+   * ย้ายไฟล์ไปยัง processed directory ใน batch
+   * /uploads/processed/{fileType}/{date}/{batchId}/{uuid}/{filename}
+   */
+  async moveToProcessedInBatch(
+    fileType: FileType,
+    batchId: string,
+    uuid: string,
+    date: Date,
+    originalName: string,
+  ): Promise<IBatchStorageResult> {
+    if (!batchId) {
+      throw new Error('Batch ID is required');
+    }
+    
+    if (!uuid) {
+      throw new Error('UUID is required');
+    }
+    
+    if (!originalName) {
+      throw new Error('Original name is required');
+    }
+    
+    try {
+      const dateStr = date.toISOString().split('T')[0];
+      const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
+      const processedDatePath = path.join(processedTypePath, dateStr);
+      const processedBatchPath = path.join(processedDatePath, batchId);
+      const processedUuidPath = path.join(processedBatchPath, uuid);
+      
+      await fs.ensureDir(processedUuidPath);
+      
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr, batchId, uuid, originalName);
+      const targetPath = path.join(processedUuidPath, originalName);
+      
+      if (await fs.pathExists(sourcePath)) {
+        await fs.move(sourcePath, targetPath);
+        
+        const relativePath = path.relative(this.config.basePath, targetPath);
+        
+        logInfo('File moved to processed in batch', { 
+          fileType, 
+          batchId, 
+          uuid, 
+          filename: originalName, 
+          path: targetPath 
+        });
+
+        return {
+          success: true,
+          filePath: targetPath,
+          relativePath,
+          filename: originalName,
+          uuid,
+          dateFolder: dateStr,
+          batchFolder: batchId,
+          batchId,
+          message: 'ไฟล์ถูกย้ายไปยัง processed directory ใน batch สำเร็จ',
+        };
+      } else {
+        throw new Error(`Source file not found: ${sourcePath}`);
+      }
+    } catch (error) {
+      logError('Failed to move file to processed in batch', error as Error, { 
+        fileType, 
+        batchId, 
+        uuid, 
+        filename: originalName 
+      });
+      
+      return {
+        success: false,
+        filePath: '',
+        relativePath: '',
+        filename: originalName,
+        uuid,
+        dateFolder: '',
+        batchFolder: '',
+        batchId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * ย้ายไฟล์ไปยัง processed directory (legacy - ไม่มี batch)
+   * /uploads/processed/{fileType}/{date}/{uuid}/{filename}
    */
   async moveToProcessed(
     fileType: FileType,
@@ -165,50 +367,62 @@ export class FileStorageService {
     date: Date,
     originalName: string,
   ): Promise<IFileStorageResult> {
+    if (!uuid) {
+      throw new Error('UUID is required');
+    }
+    
+    if (!originalName) {
+      throw new Error('Original name is required');
+    }
+    
     try {
       const dateStr = date.toISOString().split('T')[0];
-      const typePath = this.getTypePath(fileType);
-      const sourcePath = path.join(typePath, dateStr, uuid);
-      
-      // สร้างโฟลเดอร์ processed
-      const processedPath = path.join(this.config.basePath, 'processed', fileType.toLowerCase());
-      const processedDatePath = path.join(processedPath, dateStr);
+      const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
+      const processedDatePath = path.join(processedTypePath, dateStr);
       const processedUuidPath = path.join(processedDatePath, uuid);
       
       await fs.ensureDir(processedUuidPath);
       
-      // ย้ายไฟล์ทั้งหมดในโฟลเดอร์
-      await fs.move(sourcePath, processedUuidPath, { overwrite: true });
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr, uuid, originalName);
+      const targetPath = path.join(processedUuidPath, originalName);
       
-      const extension = path.extname(originalName);
-      const filename = `${uuid}${extension}`;
-      const filePath = path.join(processedUuidPath, filename);
-      const relativePath = path.relative(this.config.basePath, filePath);
-      
-      logInfo('File moved to processed', {
-        fileType,
-        uuid,
-        sourcePath,
-        processedPath: filePath,
-      });
+      if (await fs.pathExists(sourcePath)) {
+        await fs.move(sourcePath, targetPath);
+        
+        const relativePath = path.relative(this.config.basePath, targetPath);
+        
+        logInfo('File moved to processed', { 
+          fileType, 
+          uuid, 
+          filename: originalName, 
+          path: targetPath 
+        });
 
-      return {
-        success: true,
-        filePath,
-        relativePath,
-        filename,
-        uuid,
-        dateFolder: processedDatePath,
-        message: 'ไฟล์ถูกย้ายไปยังโฟลเดอร์ที่ประมวลผลแล้ว',
-      };
+        return {
+          success: true,
+          filePath: targetPath,
+          relativePath,
+          filename: originalName,
+          uuid,
+          dateFolder: dateStr,
+          message: 'ไฟล์ถูกย้ายไปยัง processed directory สำเร็จ',
+        };
+      } else {
+        throw new Error(`Source file not found: ${sourcePath}`);
+      }
     } catch (error) {
-      logError('Failed to move file to processed', error as Error);
+      logError('Failed to move file to processed', error as Error, { 
+        fileType, 
+        uuid, 
+        filename: originalName 
+      });
+      
       return {
         success: false,
         filePath: '',
         relativePath: '',
-        filename: '',
-        uuid: '',
+        filename: originalName,
+        uuid,
         dateFolder: '',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
@@ -216,7 +430,92 @@ export class FileStorageService {
   }
 
   /**
-   * สร้าง backup ของไฟล์
+   * สร้าง backup ใน batch
+   * /uploads/backup/{fileType}/{date}/{batchId}/{uuid}/{filename}
+   */
+  async createBackupInBatch(
+    fileType: FileType,
+    batchId: string,
+    uuid: string,
+    date: Date,
+    originalName: string,
+  ): Promise<IBatchStorageResult> {
+    if (!batchId) {
+      throw new Error('Batch ID is required');
+    }
+    
+    if (!uuid) {
+      throw new Error('UUID is required');
+    }
+    
+    if (!originalName) {
+      throw new Error('Original name is required');
+    }
+    
+    try {
+      const dateStr = date.toISOString().split('T')[0];
+      const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
+      const backupDatePath = path.join(backupTypePath, dateStr);
+      const backupBatchPath = path.join(backupDatePath, batchId);
+      const backupUuidPath = path.join(backupBatchPath, uuid);
+      
+      await fs.ensureDir(backupUuidPath);
+      
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr, batchId, uuid, originalName);
+      const backupPath = path.join(backupUuidPath, originalName);
+      
+      if (await fs.pathExists(sourcePath)) {
+        await fs.copy(sourcePath, backupPath);
+        
+        const relativePath = path.relative(this.config.basePath, backupPath);
+        
+        logInfo('Backup created in batch', { 
+          fileType, 
+          batchId, 
+          uuid, 
+          filename: originalName, 
+          path: backupPath 
+        });
+
+        return {
+          success: true,
+          filePath: backupPath,
+          relativePath,
+          filename: originalName,
+          uuid,
+          dateFolder: dateStr,
+          batchFolder: batchId,
+          batchId,
+          message: 'Backup ถูกสร้างใน batch สำเร็จ',
+        };
+      } else {
+        throw new Error(`Source file not found: ${sourcePath}`);
+      }
+    } catch (error) {
+      logError('Failed to create backup in batch', error as Error, { 
+        fileType, 
+        batchId, 
+        uuid, 
+        filename: originalName 
+      });
+      
+      return {
+        success: false,
+        filePath: '',
+        relativePath: '',
+        filename: originalName,
+        uuid,
+        dateFolder: '',
+        batchFolder: '',
+        batchId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * สร้าง backup (legacy - ไม่มี batch)
+   * /uploads/backup/{fileType}/{date}/{uuid}/{filename}
    */
   async createBackup(
     fileType: FileType,
@@ -224,50 +523,62 @@ export class FileStorageService {
     date: Date,
     originalName: string,
   ): Promise<IFileStorageResult> {
+    if (!uuid) {
+      throw new Error('UUID is required');
+    }
+    
+    if (!originalName) {
+      throw new Error('Original name is required');
+    }
+    
     try {
       const dateStr = date.toISOString().split('T')[0];
-      const typePath = this.getTypePath(fileType);
-      const sourcePath = path.join(typePath, dateStr, uuid);
-      
-      // สร้างโฟลเดอร์ backup
-      const backupPath = path.join(this.config.backupPath, fileType.toLowerCase());
-      const backupDatePath = path.join(backupPath, dateStr);
+      const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
+      const backupDatePath = path.join(backupTypePath, dateStr);
       const backupUuidPath = path.join(backupDatePath, uuid);
       
       await fs.ensureDir(backupUuidPath);
       
-      // คัดลอกไฟล์ทั้งหมดในโฟลเดอร์
-      await fs.copy(sourcePath, backupUuidPath);
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr, uuid, originalName);
+      const backupPath = path.join(backupUuidPath, originalName);
       
-      const extension = path.extname(originalName);
-      const filename = `${uuid}${extension}`;
-      const filePath = path.join(backupUuidPath, filename);
-      const relativePath = path.relative(this.config.basePath, filePath);
-      
-      logInfo('Backup created', {
-        fileType,
-        uuid,
-        sourcePath,
-        backupPath: filePath,
-      });
+      if (await fs.pathExists(sourcePath)) {
+        await fs.copy(sourcePath, backupPath);
+        
+        const relativePath = path.relative(this.config.basePath, backupPath);
+        
+        logInfo('Backup created', { 
+          fileType, 
+          uuid, 
+          filename: originalName, 
+          path: backupPath 
+        });
 
-      return {
-        success: true,
-        filePath,
-        relativePath,
-        filename,
-        uuid,
-        dateFolder: backupDatePath,
-        message: 'Backup ถูกสร้างสำเร็จ',
-      };
+        return {
+          success: true,
+          filePath: backupPath,
+          relativePath,
+          filename: originalName,
+          uuid,
+          dateFolder: dateStr,
+          message: 'Backup ถูกสร้างสำเร็จ',
+        };
+      } else {
+        throw new Error(`Source file not found: ${sourcePath}`);
+      }
     } catch (error) {
-      logError('Failed to create backup', error as Error);
+      logError('Failed to create backup', error as Error, { 
+        fileType, 
+        uuid, 
+        filename: originalName 
+      });
+      
       return {
         success: false,
         filePath: '',
         relativePath: '',
-        filename: '',
-        uuid: '',
+        filename: originalName,
+        uuid,
         dateFolder: '',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
@@ -275,15 +586,18 @@ export class FileStorageService {
   }
 
   /**
-   * ลบไฟล์และโฟลเดอร์
+   * ลบไฟล์
    */
   async deleteFile(filePath: string): Promise<boolean> {
     try {
-      await fs.remove(filePath);
-      logInfo('File deleted', { filePath });
-      return true;
+      if (await fs.pathExists(filePath)) {
+        await fs.remove(filePath);
+        logInfo('File deleted', { path: filePath });
+        return true;
+      }
+      return false;
     } catch (error) {
-      logError('Failed to delete file', error as Error);
+      logError('Failed to delete file', error as Error, { path: filePath });
       return false;
     }
   }
@@ -295,7 +609,7 @@ export class FileStorageService {
     try {
       return await fs.pathExists(filePath);
     } catch (error) {
-      logError('Failed to check file existence', error as Error);
+      logError('Failed to check file existence', error as Error, { path: filePath });
       return false;
     }
   }
@@ -305,14 +619,17 @@ export class FileStorageService {
    */
   async getFileInfo(filePath: string): Promise<{ size: number; created: Date; modified: Date } | null> {
     try {
-      const stats = await fs.stat(filePath);
-      return {
-        size: stats.size,
-        created: stats.birthtime,
-        modified: stats.mtime,
-      };
+      if (await fs.pathExists(filePath)) {
+        const stats = await fs.stat(filePath);
+        return {
+          size: stats.size,
+          created: stats.birthtime,
+          modified: stats.mtime,
+        };
+      }
+      return null;
     } catch (error) {
-      logError('Failed to get file info', error as Error);
+      logError('Failed to get file info', error as Error, { path: filePath });
       return null;
     }
   }
@@ -322,22 +639,22 @@ export class FileStorageService {
    */
   private getTypePath(fileType: FileType): string {
     switch (fileType) {
-      case 'DBF':
+      case FileType.DBF:
         return this.config.dbfPath;
-      case 'REP':
+      case FileType.REP:
         return this.config.repPath;
-      case 'STM':
+      case FileType.STM:
         return this.config.stmPath;
       default:
-        throw new Error(`Unsupported file type: ${fileType}`);
+        return this.config.tempPath;
     }
   }
 
   /**
-   * ดึงโครงสร้างโฟลเดอร์ปัจจุบัน
+   * ดึง config
    */
   getConfig(): IFileStorageConfig {
-    return { ...this.config };
+    return this.config;
   }
 }
 

@@ -2,45 +2,64 @@
 // DATABASE SERVICE
 // ========================================
 
-import { PrismaClient, FileType, UploadStatus, ProcessingAction, ProcessingStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { logInfo, logError } from '@/utils/logger';
+import { FileType, ProcessingStatus, BatchStatus } from '@/types';
 
 export interface IUploadRecord {
   id: string;
   filename: string;
   originalName: string;
-  fileType: FileType;
+  fileType: string; // DBF, REP, STM
   fileSize: number;
   filePath: string;
   uploadDate: Date;
-  processedAt?: Date;
-  status: UploadStatus;
-  userId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  isValid?: boolean;
-  errors?: string;
-  warnings?: string;
-  totalRecords?: number;
-  validRecords?: number;
-  invalidRecords?: number;
-  processedRecords?: number;
-  skippedRecords?: number;
-  processingTime?: number;
-  metadata?: string;
+  processedAt?: Date | null;
+  status: string; // PENDING, PROCESSING, COMPLETED, FAILED, VALIDATION_FAILED
+  batchId?: string | null;
+  userId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  isValid?: boolean | null;
+  errors?: string | null;
+  warnings?: string | null;
+  totalRecords?: number | null;
+  validRecords?: number | null;
+  invalidRecords?: number | null;
+  processedRecords?: number | null;
+  skippedRecords?: number | null;
+  processingTime?: number | null;
+  errorMessage?: string | null;
+  metadata?: string | null;
+}
+
+export interface IUploadBatch {
+  id: string;
+  batchName: string;
+  uploadDate: Date;
+  totalFiles: number;
+  successFiles: number;
+  errorFiles: number;
+  processingFiles: number;
+  totalRecords: number;
+  totalSize: number;
+  status: string; // SUCCESS, ERROR, PROCESSING, PARTIAL
+  userId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }
 
 export interface IProcessingHistory {
   id: string;
   uploadId: string;
-  action: ProcessingAction;
-  status: ProcessingStatus;
-  message?: string;
+  action: string; // VALIDATE, PROCESS, BACKUP, CLEANUP
+  status: string; // STARTED, COMPLETED, FAILED, CANCELLED
+  message?: string | null;
   startTime: Date;
-  endTime?: Date;
-  duration?: number;
-  error?: string;
-  stackTrace?: string;
+  endTime?: Date | null;
+  duration?: number | null;
+  error?: string | null;
+  stackTrace?: string | null;
 }
 
 export interface IUploadStatistics {
@@ -69,6 +88,121 @@ export class DatabaseService {
   }
 
   /**
+   * สร้าง upload batch ใหม่
+   */
+  async createUploadBatch(data: Omit<IUploadBatch, 'id' | 'uploadDate'>): Promise<IUploadBatch> {
+    try {
+      const batch = await this.prisma.uploadBatch.create({
+        data: {
+          batchName: data.batchName,
+          totalFiles: data.totalFiles,
+          successFiles: data.successFiles,
+          errorFiles: data.errorFiles,
+          processingFiles: data.processingFiles,
+          totalRecords: data.totalRecords,
+          totalSize: data.totalSize,
+          status: data.status,
+          userId: data.userId || null,
+          ipAddress: data.ipAddress || null,
+          userAgent: data.userAgent || null,
+        },
+      });
+
+      logInfo('Upload batch created', { id: batch.id, batchName: batch.batchName });
+      return batch;
+    } catch (error) {
+      logError('Failed to create upload batch', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดต upload batch
+   */
+  async updateUploadBatch(id: string, data: Partial<IUploadBatch>): Promise<IUploadBatch> {
+    try {
+      const batch = await this.prisma.uploadBatch.update({
+        where: { id },
+        data,
+      });
+
+      logInfo('Upload batch updated', { id: batch.id, batchName: batch.batchName });
+      return batch;
+    } catch (error) {
+      logError('Failed to update upload batch', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดึง upload batch ตาม ID
+   */
+  async getUploadBatch(id: string): Promise<IUploadBatch | null> {
+    try {
+      const batch = await this.prisma.uploadBatch.findUnique({
+        where: { id },
+        include: {
+          files: true,
+        },
+      });
+
+      return batch;
+    } catch (error) {
+      logError('Failed to get upload batch', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดึง upload batches ทั้งหมด
+   */
+  async getUploadBatches(params: {
+    page?: number;
+    limit?: number;
+    status?: BatchStatus;
+    userId?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<{ batches: IUploadBatch[]; total: number; page: number; totalPages: number }> {
+    try {
+      const { page = 1, limit = 20, status, userId, startDate, endDate } = params;
+      const skip = (page - 1) * limit;
+
+      const where: any = {};
+      if (status) where.status = status;
+      if (userId) where.userId = userId;
+      if (startDate || endDate) {
+        where.uploadDate = {};
+        if (startDate) where.uploadDate.gte = startDate;
+        if (endDate) where.uploadDate.lte = endDate;
+      }
+
+      const [batches, total] = await Promise.all([
+        this.prisma.uploadBatch.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { uploadDate: 'desc' },
+          include: {
+            files: true,
+          },
+        }),
+        this.prisma.uploadBatch.count({ where }),
+      ]);
+
+      return {
+        batches,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      logError('Failed to get upload batches', error as Error);
+      throw error;
+    }
+  }
+
+  /**
    * สร้าง upload record ใหม่
    */
   async createUploadRecord(data: Omit<IUploadRecord, 'id' | 'uploadDate' | 'createdAt' | 'updatedAt'>): Promise<IUploadRecord> {
@@ -81,19 +215,21 @@ export class DatabaseService {
           fileSize: data.fileSize,
           filePath: data.filePath,
           status: data.status,
-          userId: data.userId,
-          ipAddress: data.ipAddress,
-          userAgent: data.userAgent,
-          isValid: data.isValid,
-          errors: data.errors,
-          warnings: data.warnings,
-          totalRecords: data.totalRecords,
-          validRecords: data.validRecords,
-          invalidRecords: data.invalidRecords,
-          processedRecords: data.processedRecords,
-          skippedRecords: data.skippedRecords,
-          processingTime: data.processingTime,
-          metadata: data.metadata,
+          batchId: data.batchId || null,
+          userId: data.userId || null,
+          ipAddress: data.ipAddress || null,
+          userAgent: data.userAgent || null,
+          isValid: data.isValid || null,
+          errors: data.errors || null,
+          warnings: data.warnings || null,
+          totalRecords: data.totalRecords || null,
+          validRecords: data.validRecords || null,
+          invalidRecords: data.invalidRecords || null,
+          processedRecords: data.processedRecords || null,
+          skippedRecords: data.skippedRecords || null,
+          processingTime: data.processingTime || null,
+          errorMessage: data.errorMessage || null,
+          metadata: data.metadata || null,
         },
       });
 
@@ -143,25 +279,27 @@ export class DatabaseService {
   }
 
   /**
-   * ดึง upload records ตามเงื่อนไข
+   * ดึง upload records ทั้งหมด
    */
   async getUploadRecords(params: {
     page?: number;
     limit?: number;
     fileType?: FileType;
-    status?: UploadStatus;
+    status?: ProcessingStatus;
     userId?: string;
+    batchId?: string;
     startDate?: Date;
     endDate?: Date;
   }): Promise<{ records: IUploadRecord[]; total: number; page: number; totalPages: number }> {
     try {
-      const { page = 1, limit = 20, fileType, status, userId, startDate, endDate } = params;
+      const { page = 1, limit = 20, fileType, status, userId, batchId, startDate, endDate } = params;
       const skip = (page - 1) * limit;
 
       const where: any = {};
       if (fileType) where.fileType = fileType;
       if (status) where.status = status;
       if (userId) where.userId = userId;
+      if (batchId) where.batchId = batchId;
       if (startDate || endDate) {
         where.uploadDate = {};
         if (startDate) where.uploadDate.gte = startDate;
@@ -175,10 +313,7 @@ export class DatabaseService {
           take: limit,
           orderBy: { uploadDate: 'desc' },
           include: {
-            processingHistory: {
-              orderBy: { startTime: 'desc' },
-              take: 5,
-            },
+            processingHistory: true,
           },
         }),
         this.prisma.uploadRecord.count({ where }),
@@ -206,11 +341,11 @@ export class DatabaseService {
           uploadId: data.uploadId,
           action: data.action,
           status: data.status,
-          message: data.message,
-          endTime: data.endTime,
-          duration: data.duration,
-          error: data.error,
-          stackTrace: data.stackTrace,
+          message: data.message || null,
+          endTime: data.endTime || null,
+          duration: data.duration || null,
+          error: data.error || null,
+          stackTrace: data.stackTrace || null,
         },
       });
 
@@ -303,8 +438,8 @@ export class DatabaseService {
     try {
       await this.prisma.systemConfig.upsert({
         where: { key },
-        update: { value, description },
-        create: { key, value, description },
+        update: { value, description: description || null },
+        create: { key, value, description: description || null },
       });
 
       logInfo('System config updated', { key, value });
