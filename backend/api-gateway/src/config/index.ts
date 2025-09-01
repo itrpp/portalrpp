@@ -32,7 +32,7 @@ const services: Record<string, ServiceConfig> = {
     name: 'Revenue Service',
     url: process.env.REVENUE_SERVICE_URL || 'http://localhost:3003',
     healthCheckUrl: `${process.env.REVENUE_SERVICE_URL || 'http://localhost:3003'}/health`,
-    timeout: parseInt(process.env.REVENUE_SERVICE_TIMEOUT || '30000'),
+    timeout: parseInt(process.env.REVENUE_SERVICE_TIMEOUT || '300000'), // 5 นาที สำหรับ validation ไฟล์ขนาดใหญ่
     retries: parseInt(process.env.REVENUE_SERVICE_RETRIES || '3'),
   },
 };
@@ -59,11 +59,11 @@ const rateLimit: RateLimitConfig = {
   },
   auth: {
     windowMs: parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS || '60000'), // 1 minute
-    maxRequests: parseInt(process.env.RATE_LIMIT_AUTH_MAX_REQUESTS || '10'), // เพิ่มจาก 5 เป็น 10 requests per minute
+    maxRequests: parseInt(process.env.RATE_LIMIT_AUTH_MAX_REQUESTS || '50'), // เพิ่มเป็น 50 requests per minute
   },
   validateSession: {
     windowMs: parseInt(process.env.RATE_LIMIT_VALIDATE_SESSION_WINDOW_MS || '60000'), // 1 minute
-    maxRequests: parseInt(process.env.RATE_LIMIT_VALIDATE_SESSION_MAX_REQUESTS || '30'), // 30 requests per minute
+    maxRequests: parseInt(process.env.RATE_LIMIT_VALIDATE_SESSION_MAX_REQUESTS || '100'), // เพิ่มเป็น 100 requests per minute
   },
   admin: {
     windowMs: parseInt(process.env.RATE_LIMIT_ADMIN_WINDOW_MS || '60000'), // 1 minute

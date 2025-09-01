@@ -24,6 +24,7 @@ declare global {
       LOG_MAX_FILES?: string;
       RATE_LIMIT_WINDOW_MS?: string;
       RATE_LIMIT_MAX_REQUESTS?: string;
+      RATE_LIMIT_UPLOAD_MAX_FILES?: string;
       CORS_ORIGIN?: string;
       DATABASE_URL?: string;
     }
@@ -37,7 +38,9 @@ export const config = {
   server: {
     port: process.env.PORT || 3003,
     nodeEnv: process.env.NODE_ENV || 'development',
-    trustProxy: process.env.NODE_ENV === 'production',
+    // ตั้งค่า trust proxy ให้ปลอดภัย: 1 = เชื่อถือ proxy ชั้นนอกสุด (เช่น API Gateway)
+    // หลีกเลี่ยงการตั้งค่าเป็น true เพราะไม่ปลอดภัยและทำให้ express-rate-limit แจ้งเตือน
+    trustProxy: Number(process.env.TRUST_PROXY || 1),
   },
 
   // File Upload Configuration
@@ -85,6 +88,7 @@ export const config = {
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+    uploadMaxFiles: parseInt(process.env.RATE_LIMIT_UPLOAD_MAX_FILES || '100'),
   },
 
   // Security

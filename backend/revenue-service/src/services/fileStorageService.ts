@@ -5,6 +5,8 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { DateTime } from 'luxon';
+import { DateHelper, DateFormatter } from '@/utils/dateHelper';
 import { logInfo, logError } from '@/utils/logger';
 
 // กำหนด FileType enum เอง
@@ -59,8 +61,15 @@ export class FileStorageService {
   }
 
   /**
+   * แปลงวันที่เป็น format yyyyMMdd
+   */
+  private formatDateToYYYYMMDD(date: DateTime): string {
+    return DateFormatter.toFolderFormat(date);
+  }
+
+  /**
    * สร้างโครงสร้างโฟลเดอร์ตามรูปแบบที่กำหนด
-   * /uploads/{fileType}/{date}/{batchId}/{uuid}/
+   * /uploads/{fileType}/{date}/{batchId}/
    */
   async createDirectoryStructure(): Promise<void> {
     try {
@@ -88,8 +97,8 @@ export class FileStorageService {
    * สร้างโฟลเดอร์ตามวันที่
    * /uploads/{fileType}/{date}/
    */
-  async createDateFolder(fileType: FileType, date: Date = new Date()): Promise<string> {
-    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+  async createDateFolder(fileType: FileType, date: DateTime = DateHelper.now()): Promise<string> {
+    const dateStr = this.formatDateToYYYYMMDD(date); // yyyyMMdd
     const typePath = this.getTypePath(fileType);
     const datePath = path.join(typePath, dateStr || '');
     
@@ -99,10 +108,10 @@ export class FileStorageService {
   }
 
   /**
-   * สร้างโฟลเดอร์ตาม Batch ID
+   * สร้างโฟลเดอร์ตาม Batch ID (ใช้ UUID เป็น batchId)
    * /uploads/{fileType}/{date}/{batchId}/
    */
-  async createBatchFolder(fileType: FileType, batchId: string, date: Date = new Date()): Promise<string> {
+  async createBatchFolder(fileType: FileType, batchId: string, date: DateTime = DateHelper.now()): Promise<string> {
     if (!batchId) {
       throw new Error('Batch ID is required');
     }
@@ -116,28 +125,23 @@ export class FileStorageService {
   }
 
   /**
-   * สร้างโฟลเดอร์ตาม UUID ใน batch
-   * /uploads/{fileType}/{date}/{batchId}/{uuid}/
+   * สร้าง Batch ID ใหม่ (ใช้ UUID)
+   * และสร้างโฟลเดอร์ batch
+   * /uploads/{fileType}/{date}/{batchId}/
    */
-  async createUuidFolderInBatch(fileType: FileType, batchId: string, date: Date = new Date()): Promise<{ uuid: string; folderPath: string }> {
-    if (!batchId) {
-      throw new Error('Batch ID is required');
-    }
-    
-    const uuid = uuidv4();
+  async createNewBatch(fileType: FileType, date: DateTime = DateHelper.now()): Promise<{ batchId: string; folderPath: string }> {
+    const batchId = uuidv4(); // สร้าง UUID เป็น batchId
     const batchFolder = await this.createBatchFolder(fileType, batchId, date);
-    const uuidFolder = path.join(batchFolder, uuid);
     
-    await fs.ensureDir(uuidFolder);
-    logInfo('UUID folder created in batch', { fileType, batchId, uuid, path: uuidFolder });
-    return { uuid, folderPath: uuidFolder };
+    logInfo('New batch created', { fileType, batchId, path: batchFolder });
+    return { batchId, folderPath: batchFolder };
   }
 
   /**
    * สร้างโฟลเดอร์ตาม UUID (legacy - ไม่มี batch)
    * /uploads/{fileType}/{date}/{uuid}/
    */
-  async createUuidFolder(fileType: FileType, date: Date = new Date()): Promise<{ uuid: string; folderPath: string }> {
+  async createUuidFolder(fileType: FileType, date: DateTime = DateHelper.now()): Promise<{ uuid: string; folderPath: string }> {
     const uuid = uuidv4();
     const dateFolder = await this.createDateFolder(fileType, date);
     const uuidFolder = path.join(dateFolder, uuid);
@@ -149,14 +153,14 @@ export class FileStorageService {
 
   /**
    * บันทึกไฟล์ใน batch
-   * /uploads/{fileType}/{date}/{batchId}/{uuid}/{filename}
+   * /uploads/{fileType}/{date}/{batchId}/{filename}
    */
   async saveFileInBatch(
     fileType: FileType,
     originalName: string,
     fileBuffer: Buffer,
     batchId: string,
-    date: Date = new Date(),
+    date: DateTime = DateHelper.now(),
   ): Promise<IBatchStorageResult> {
     if (!batchId) {
       throw new Error('Batch ID is required');
@@ -167,19 +171,17 @@ export class FileStorageService {
     }
     
     try {
-      const { uuid, folderPath } = await this.createUuidFolderInBatch(fileType, batchId, date);
-      const filePath = path.join(folderPath, originalName);
+      const batchFolder = await this.createBatchFolder(fileType, batchId, date);
+      const filePath = path.join(batchFolder, originalName);
       
       await fs.writeFile(filePath, fileBuffer);
       
       const relativePath = path.relative(this.config.basePath, filePath);
-      const dateFolder = path.dirname(path.dirname(path.dirname(filePath))); // ขึ้นไป 3 ระดับ
-      const batchFolder = path.dirname(path.dirname(filePath)); // ขึ้นไป 2 ระดับ
+      const dateFolder = path.dirname(path.dirname(filePath)); // ขึ้นไป 2 ระดับ
       
       logInfo('File saved in batch', { 
         fileType, 
         batchId, 
-        uuid, 
         filename: originalName, 
         path: filePath 
       });
@@ -189,7 +191,7 @@ export class FileStorageService {
         filePath,
         relativePath,
         filename: originalName,
-        uuid,
+        uuid: batchId, // batchId คือ UUID แล้ว
         dateFolder: path.basename(dateFolder),
         batchFolder: path.basename(batchFolder),
         batchId,
@@ -207,7 +209,7 @@ export class FileStorageService {
         filePath: '',
         relativePath: '',
         filename: originalName,
-        uuid: '',
+        uuid: batchId,
         dateFolder: '',
         batchFolder: '',
         batchId,
@@ -224,7 +226,7 @@ export class FileStorageService {
     fileType: FileType,
     originalName: string,
     fileBuffer: Buffer,
-    date: Date = new Date(),
+    date: DateTime = DateHelper.now(),
   ): Promise<IFileStorageResult> {
     if (!originalName) {
       throw new Error('Original name is required');
@@ -275,21 +277,16 @@ export class FileStorageService {
 
   /**
    * ย้ายไฟล์ไปยัง processed directory ใน batch
-   * /uploads/processed/{fileType}/{date}/{batchId}/{uuid}/{filename}
+   * /uploads/processed/{fileType}/{date}/{batchId}/{filename}
    */
   async moveToProcessedInBatch(
     fileType: FileType,
     batchId: string,
-    uuid: string,
-    date: Date,
+    date: DateTime,
     originalName: string,
   ): Promise<IBatchStorageResult> {
     if (!batchId) {
       throw new Error('Batch ID is required');
-    }
-    
-    if (!uuid) {
-      throw new Error('UUID is required');
     }
     
     if (!originalName) {
@@ -297,16 +294,15 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = this.formatDateToYYYYMMDD(date);
       const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
       const processedDatePath = path.join(processedTypePath, dateStr || "");
       const processedBatchPath = path.join(processedDatePath, batchId);
-      const processedUuidPath = path.join(processedBatchPath, uuid);
       
-      await fs.ensureDir(processedUuidPath);
+      await fs.ensureDir(processedBatchPath);
       
-      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", batchId, uuid, originalName);
-      const targetPath = path.join(processedUuidPath, originalName);
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", batchId, originalName);
+      const targetPath = path.join(processedBatchPath, originalName);
       
       if (await fs.pathExists(sourcePath)) {
         await fs.move(sourcePath, targetPath);
@@ -316,7 +312,6 @@ export class FileStorageService {
         logInfo('File moved to processed in batch', { 
           fileType, 
           batchId, 
-          uuid, 
           filename: originalName, 
           path: targetPath 
         });
@@ -326,7 +321,7 @@ export class FileStorageService {
           filePath: targetPath,
           relativePath,
           filename: originalName,
-          uuid,
+          uuid: batchId, // batchId คือ UUID
           dateFolder: dateStr || "",
           batchFolder: batchId,
           batchId,
@@ -339,7 +334,6 @@ export class FileStorageService {
       logError('Failed to move file to processed in batch', error as Error, { 
         fileType, 
         batchId, 
-        uuid, 
         filename: originalName 
       });
       
@@ -348,7 +342,7 @@ export class FileStorageService {
         filePath: '',
         relativePath: '',
         filename: originalName,
-        uuid,
+        uuid: batchId,
         dateFolder: '',
         batchFolder: '',
         batchId,
@@ -364,7 +358,7 @@ export class FileStorageService {
   async moveToProcessed(
     fileType: FileType,
     uuid: string,
-    date: Date,
+    date: DateTime,
     originalName: string,
   ): Promise<IFileStorageResult> {
     if (!uuid) {
@@ -376,7 +370,7 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = this.formatDateToYYYYMMDD(date);
       const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
       const processedDatePath = path.join(processedTypePath, dateStr || "");
       const processedUuidPath = path.join(processedDatePath, uuid);
@@ -431,21 +425,16 @@ export class FileStorageService {
 
   /**
    * สร้าง backup ใน batch
-   * /uploads/backup/{fileType}/{date}/{batchId}/{uuid}/{filename}
+   * /uploads/backup/{fileType}/{date}/{batchId}/{filename}
    */
   async createBackupInBatch(
     fileType: FileType,
     batchId: string,
-    uuid: string,
-    date: Date,
+    date: DateTime,
     originalName: string,
   ): Promise<IBatchStorageResult> {
     if (!batchId) {
       throw new Error('Batch ID is required');
-    }
-    
-    if (!uuid) {
-      throw new Error('UUID is required');
     }
     
     if (!originalName) {
@@ -453,16 +442,15 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = this.formatDateToYYYYMMDD(date);
       const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
       const backupDatePath = path.join(backupTypePath, dateStr || "");
       const backupBatchPath = path.join(backupDatePath, batchId);
-      const backupUuidPath = path.join(backupBatchPath, uuid);
       
-      await fs.ensureDir(backupUuidPath);
+      await fs.ensureDir(backupBatchPath);
       
-      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", batchId, uuid, originalName);
-      const backupPath = path.join(backupUuidPath, originalName);
+      const sourcePath = path.join(this.getTypePath(fileType), dateStr || "", batchId, originalName);
+      const backupPath = path.join(backupBatchPath, originalName);
       
       if (await fs.pathExists(sourcePath)) {
         await fs.copy(sourcePath, backupPath);
@@ -472,7 +460,6 @@ export class FileStorageService {
         logInfo('Backup created in batch', { 
           fileType, 
           batchId, 
-          uuid, 
           filename: originalName, 
           path: backupPath 
         });
@@ -482,7 +469,7 @@ export class FileStorageService {
           filePath: backupPath,
           relativePath,
           filename: originalName,
-          uuid,
+          uuid: batchId, // batchId คือ UUID
           dateFolder: dateStr || "",
           batchFolder: batchId,
           batchId,
@@ -495,7 +482,6 @@ export class FileStorageService {
       logError('Failed to create backup in batch', error as Error, { 
         fileType, 
         batchId, 
-        uuid, 
         filename: originalName 
       });
       
@@ -504,7 +490,7 @@ export class FileStorageService {
         filePath: '',
         relativePath: '',
         filename: originalName,
-        uuid,
+        uuid: batchId,
         dateFolder: '',
         batchFolder: '',
         batchId,
@@ -520,7 +506,7 @@ export class FileStorageService {
   async createBackup(
     fileType: FileType,
     uuid: string,
-    date: Date,
+    date: DateTime,
     originalName: string,
   ): Promise<IFileStorageResult> {
     if (!uuid) {
@@ -532,7 +518,7 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = this.formatDateToYYYYMMDD(date);
       const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
       const backupDatePath = path.join(backupTypePath, dateStr || "");
       const backupUuidPath = path.join(backupDatePath, uuid);
@@ -599,6 +585,42 @@ export class FileStorageService {
     } catch (error) {
       logError('Failed to delete file', error as Error, { path: filePath });
       return false;
+    }
+  }
+
+  /**
+   * ลบโฟลเดอร์ของ batch จากตัวอย่าง path ของไฟล์ใน batch นั้น
+   * และพยายามลบโฟลเดอร์วันที่ถ้าว่าง
+   */
+  async deleteBatchFolderFromFilePath(exampleFilePath: string): Promise<void> {
+    try {
+      const normalized = path.resolve(exampleFilePath);
+
+      // โฟลเดอร์ของ batch คือโฟลเดอร์แม่ของไฟล์
+      const batchFolder = path.dirname(normalized);
+
+      // ป้องกัน path traversal: ต้องอยู่ภายใต้ basePath เสมอ
+      if (!batchFolder.startsWith(this.config.basePath)) {
+        throw new Error('Invalid batch folder path');
+      }
+
+      // ลบโฟลเดอร์ batch (recursive เผื่อมีไฟล์ตกค้าง)
+      if (await fs.pathExists(batchFolder)) {
+        await fs.remove(batchFolder);
+        logInfo('Batch folder deleted', { path: batchFolder });
+      }
+
+      // พยายามลบโฟลเดอร์วันที่ถ้าว่าง เพื่อไม่ให้เหลือโฟลเดอร์เปล่า
+      const dateFolder = path.dirname(batchFolder);
+      if (dateFolder.startsWith(this.config.basePath) && (await fs.pathExists(dateFolder))) {
+        const items = await fs.readdir(dateFolder);
+        if (items.length === 0) {
+          await fs.remove(dateFolder);
+          logInfo('Date folder deleted (empty)', { path: dateFolder });
+        }
+      }
+    } catch (error) {
+      logError('Failed to delete batch or date folder', error as Error, { exampleFilePath });
     }
   }
 

@@ -28,6 +28,7 @@ export interface DBFValidationResult extends FileValidationResult {
   recordCount: number;
   encoding?: string;
   fields?: DBFField[];
+  table?: DBFTable;
 }
 
 export interface REPValidationResult extends FileValidationResult {
@@ -48,7 +49,18 @@ export interface DBFField {
   name: string;
   type: string;
   length: number;
-  decimalPlaces?: number;
+  decimalPlaces: number;
+}
+
+export interface DBFRecord {
+  [key: string]: any;
+}
+
+export interface DBFTable {
+  header: {
+    fields: DBFField[];
+  };
+  records: DBFRecord[];
 }
 
 export interface FileProcessingResult {
@@ -76,7 +88,7 @@ export interface RevenueReport {
   filename: string;
   uploadDate: Date;
   processedDate?: Date;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'success' | 'failed';
   statistics?: ProcessingStatistics;
   errors?: string[];
   warnings?: string[];
@@ -141,11 +153,14 @@ export enum FileType {
   STATEMENT = 'statement',
 }
 
-export enum ProcessingStatus {
+export enum FileProcessingStatus {
   PENDING = 'pending',
   PROCESSING = 'processing',
-  COMPLETED = 'completed',
+  SUCCESS = 'success',
   FAILED = 'failed',
+  VALIDATION_COMPLETED = 'validation_completed',
+  VALIDATION_FAILED = 'validation_failed',
+  VALIDATION_ERROR = 'validation_error',
 }
 
 export enum ValidationLevel {
@@ -159,6 +174,21 @@ export enum BatchStatus {
   ERROR = 'error',
   PROCESSING = 'processing',
   PARTIAL = 'partial',
+  PARTIAL_SUCCESS = 'partial_success',
+}
+
+export enum BatchProcessingStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+export enum ExportStatus {
+  NOT_EXPORTED = 'not_exported',
+  EXPORTING = 'exporting',
+  EXPORTED = 'exported',
+  EXPORT_FAILED = 'export_failed',
 }
 
 // ========================================
@@ -176,6 +206,8 @@ export interface UploadBatch {
   totalRecords: number;
   totalSize: number;
   status: BatchStatus;
+  processingStatus: BatchProcessingStatus;
+  exportStatus: ExportStatus;
   userId?: string;
   ipAddress?: string;
   userAgent?: string;
@@ -210,7 +242,7 @@ export interface UploadRecord {
   filePath: string;
   uploadDate: Date;
   processedAt?: Date;
-  status: ProcessingStatus;
+  status: FileProcessingStatus;
   batchId?: string;
   batch?: UploadBatch;
   userId?: string;
@@ -292,6 +324,7 @@ export interface BatchStatistics {
   activeBatches: number;
   completedBatches: number;
   failedBatches: number;
+  partialBatches: number;
   totalFiles: number;
   totalRecords: number;
   totalSize: number;
@@ -359,7 +392,7 @@ export interface BatchUploadProgress {
   totalFiles: number;
   progress: number;
   currentFileName?: string;
-  status: 'uploading' | 'processing' | 'completed' | 'error';
+  status: 'uploading' | 'processing' | 'success' | 'error';
   estimatedTimeRemaining?: number;
 }
 
@@ -563,7 +596,7 @@ export interface SystemMetrics {
 
 export interface BatchNotification {
   batchId: string;
-  type: 'started' | 'completed' | 'failed' | 'progress';
+  type: 'started' | 'success' | 'failed' | 'progress';
   message: string;
   data?: any;
   timestamp: Date;

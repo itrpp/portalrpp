@@ -48,6 +48,11 @@ export default function Sidebar() {
       newExpandedItems.add('นำเข้าไฟล์');
     }
 
+    // Auto-expand "ส่งออกข้อมูล" when on export pages
+    if (pathname.startsWith('/revenue/export/')) {
+      newExpandedItems.add('ส่งออกข้อมูล');
+    }
+
     setExpandedItems(newExpandedItems);
   }, [pathname]);
 
@@ -134,8 +139,20 @@ export default function Sidebar() {
         },
         {
           name: 'ส่งออกข้อมูล',
-          href: '/revenue/export',
+          href: '#',
           icon: ArrowUpTrayIcon,
+          subItems: [
+            {
+              name: 'ข้อมูล 16 แฟ้ม OPD',
+              href: '/revenue/export/opd',
+              icon: DocumentTextIcon,
+            },
+            {
+              name: 'ข้อมูล 16 แฟ้ม IPD',
+              href: '#',
+              icon: DocumentTextIcon,
+            },            
+          ],
         },
       ],
     },

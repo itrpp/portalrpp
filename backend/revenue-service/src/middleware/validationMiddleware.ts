@@ -4,6 +4,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { body, query, validationResult } from 'express-validator';
+import { FileProcessingStatus } from '@/types';
 import { FileValidationError, BatchError } from '@/utils/errorHandler';
 import { logError } from '@/utils/logger';
 import { ValidationService } from '@/services/validationService';
@@ -150,7 +151,17 @@ export const validateQueryParams = (req: Request, _res: Response, next: NextFunc
 
     // ตรวจสอบ status
     if (status !== undefined) {
-      const validStatuses = ['pending', 'processing', 'completed', 'failed', 'validation_failed', 'success', 'error', 'partial'];
+      const validStatuses = [
+        FileProcessingStatus.PENDING, 
+        FileProcessingStatus.PROCESSING, 
+        FileProcessingStatus.SUCCESS, 
+        FileProcessingStatus.FAILED, 
+        FileProcessingStatus.VALIDATION_FAILED, 
+        FileProcessingStatus.VALIDATION_COMPLETED, 
+        FileProcessingStatus.VALIDATION_ERROR,
+        'error', 
+        'partial'
+      ];
       if (!validStatuses.includes(status as string)) {
         throw new FileValidationError(`status ต้องเป็นหนึ่งใน: ${validStatuses.join(', ')}`, { field: 'status', value: status });
       }

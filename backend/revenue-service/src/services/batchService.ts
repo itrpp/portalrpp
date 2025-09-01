@@ -16,11 +16,17 @@ import {
   ProcessingError,
   BatchErrorSummary,
   BatchProcessingResult,
-  FileProcessingInBatchResult
+  FileProcessingInBatchResult,
+  FileProcessingStatus,
+  BatchProcessingStatus,
+  ExportStatus
 } from '@/types';
+import { DateHelper, createTimer } from '@/utils/dateHelper';
 import { DatabaseService } from './databaseService';
 import { FileProcessingService } from './fileProcessingService';
+import { FileStorageService } from './fileStorageService';
 import { ValidationService } from './validationService';
+import { StatisticsService } from './statisticsService';
 import { BatchError, ResourceNotFoundError, FileValidationError } from '@/utils/errorHandler';
 import {
   logInfo,
@@ -31,12 +37,16 @@ import {
 export class BatchService {
   private databaseService: DatabaseService;
   private fileProcessingService: FileProcessingService;
+  private fileStorageService: FileStorageService;
   private validationService: ValidationService;
+  private statisticsService: StatisticsService;
 
   constructor() {
     this.databaseService = new DatabaseService();
     this.fileProcessingService = new FileProcessingService();
+    this.fileStorageService = new FileStorageService();
     this.validationService = new ValidationService();
+    this.statisticsService = new StatisticsService();
   }
 
   /**
@@ -54,7 +64,9 @@ export class BatchService {
         processingFiles: 0,
         totalRecords: 0,
         totalSize: 0,
-        status: 'processing',
+        status: BatchStatus.PROCESSING,
+        processingStatus: BatchProcessingStatus.PENDING,
+        exportStatus: ExportStatus.NOT_EXPORTED,
         userId: data.userId || null,
         ipAddress: data.ipAddress || null,
         userAgent: data.userAgent || null,
@@ -151,8 +163,45 @@ export class BatchService {
       if (!batch) {
         throw new ResourceNotFoundError('batch', id);
       }
-      // TODO: เพิ่มการลบไฟล์จริง
-      await this.databaseService.updateUploadBatch(id, { status: 'error' });
+
+      // ดึงไฟล์ใน batch เพื่อลบไฟล์จริง
+      const batchFiles = await this.getBatchFiles(id, { limit: 1000 });
+      
+      // ลบไฟล์จริงจาก file system
+      for (const file of batchFiles.files) {
+        try {
+          if (file.filePath) {
+            await this.fileStorageService.deleteFile(file.filePath);
+            logInfo('File deleted from file system', { 
+              fileId: file.id, 
+              filePath: file.filePath 
+            });
+          }
+        } catch (error) {
+          logError('Failed to delete file from file system', error as Error, { 
+            fileId: file.id, 
+            filePath: file.filePath 
+          });
+          // ดำเนินการต่อแม้จะลบไฟล์ไม่สำเร็จ
+        }
+      }
+
+      // ลบโฟลเดอร์ batch และโฟลเดอร์วันที่ถ้าว่าง โดยอิงจากไฟล์ตัวอย่างแรก
+      if (batchFiles.files.length > 0) {
+        const first = batchFiles.files[0];
+        const firstPath = (first && typeof first.filePath === 'string') ? first.filePath : '';
+        if (firstPath && typeof firstPath === 'string') {
+          await this.fileStorageService.deleteBatchFolderFromFilePath(firstPath);
+        }
+      }
+
+      // ลบ batch และ records จาก database
+      await this.databaseService.deleteUploadBatch(id);
+
+      logInfo('Batch deleted successfully', { 
+        id, 
+        totalFiles: batchFiles.files.length 
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logError('Failed to delete batch', error as Error, { id });
@@ -172,6 +221,107 @@ export class BatchService {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logError('Failed to update batch status', error as Error, { id, status });
       throw new BatchError(`เกิดข้อผิดพลาดในการอัปเดตสถานะ batch: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * ตรวจสอบและอัปเดตสถานะ batch ตามสถานะของไฟล์ทั้งหมด
+   */
+  async checkAndUpdateBatchStatus(batchId: string): Promise<void> {
+    try {
+      logInfo('Checking and updating batch status', { batchId });
+
+      // ดึงข้อมูล batch และไฟล์ทั้งหมดใน batch
+      const batch = await this.databaseService.getUploadBatch(batchId);
+      if (!batch) {
+        throw new ResourceNotFoundError('batch', batchId);
+      }
+
+      // ดึงไฟล์ทั้งหมดใน batch
+      const files = await this.databaseService.getUploadRecords({
+        batchId,
+        page: 1,
+        limit: 1000, // ดึงทั้งหมด
+      });
+
+      if (files.records.length === 0) {
+        logInfo('No files found in batch', { batchId });
+        return;
+      }
+
+      // นับสถานะของไฟล์
+      const statusCounts = files.records.reduce((acc, file) => {
+        acc[file.status] = (acc[file.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const totalFiles = files.records.length;
+      const completedFiles = (statusCounts[FileProcessingStatus.SUCCESS] || 0) + (statusCounts[FileProcessingStatus.VALIDATION_COMPLETED] || 0) + (statusCounts.imported || 0);
+      const failedFiles = (statusCounts[FileProcessingStatus.FAILED] || 0) + (statusCounts[FileProcessingStatus.VALIDATION_FAILED] || 0) + (statusCounts[FileProcessingStatus.VALIDATION_ERROR] || 0);
+      const processingFiles = statusCounts[FileProcessingStatus.PROCESSING] || 0;
+      const pendingFiles = statusCounts[FileProcessingStatus.PENDING] || 0;
+
+      logInfo('Batch file status summary', {
+        batchId,
+        totalFiles,
+        completedFiles,
+        failedFiles,
+        processingFiles,
+        pendingFiles,
+        statusCounts
+      });
+
+      // กำหนดสถานะ batch ใหม่
+      let newBatchStatus: BatchStatus;
+
+      if (processingFiles > 0 || pendingFiles > 0) {
+        // ยังมีไฟล์ที่กำลังประมวลผลหรือรอการประมวลผล
+        newBatchStatus = BatchStatus.PROCESSING;
+      } else if (completedFiles === totalFiles) {
+        // ไฟล์ทั้งหมดประมวลผลเสร็จสิ้น
+        newBatchStatus = BatchStatus.SUCCESS;
+      } else if (failedFiles === totalFiles) {
+        // ไฟล์ทั้งหมดล้มเหลว
+        newBatchStatus = BatchStatus.ERROR;
+      } else if (completedFiles > 0 && failedFiles > 0) {
+        // มีทั้งสำเร็จและล้มเหลว
+        newBatchStatus = BatchStatus.PARTIAL;
+      } else {
+        // สถานะอื่นๆ ให้เป็น error
+        newBatchStatus = BatchStatus.ERROR;
+      }
+
+      // อัปเดตสถานะ batch ถ้าเปลี่ยนแปลง
+      if (batch.status !== newBatchStatus) {
+        await this.updateBatchStatus(batchId, newBatchStatus);
+        
+        // อัปเดต statistics ใน batch
+        await this.databaseService.updateUploadBatch(batchId, {
+          status: newBatchStatus,
+          successFiles: completedFiles,
+          errorFiles: failedFiles,
+          processingFiles: processingFiles,
+          totalFiles: totalFiles,
+        });
+
+        logInfo('Batch status updated', {
+          batchId,
+          oldStatus: batch.status,
+          newStatus: newBatchStatus,
+          fileStats: { completedFiles, failedFiles, processingFiles, totalFiles }
+        });
+      } else {
+        logInfo('Batch status unchanged', {
+          batchId,
+          currentStatus: batch.status,
+          fileStats: { completedFiles, failedFiles, processingFiles, totalFiles }
+        });
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logError('Failed to check and update batch status', error as Error, { batchId });
+      throw new BatchError(`เกิดข้อผิดพลาดในการตรวจสอบและอัปเดตสถานะ batch: ${errorMessage}`);
     }
   }
 
@@ -218,7 +368,7 @@ export class BatchService {
    * ประมวลผล batch
    */
   async processBatch(batchId: string): Promise<BatchProcessingResult> {
-    const startTime = Date.now();
+    const timer = createTimer();
 
     try {
       logInfo('Starting batch processing', { batchId });
@@ -282,7 +432,7 @@ export class BatchService {
               type: 'validation',
               message: `ไฟล์ ${file.filename} ไม่สมบูรณ์: ${integrityValidation.errors.map(e => e.message).join(', ')}`,
               code: 'FILE_INTEGRITY_ERROR',
-              timestamp: new Date(),
+              timestamp: DateHelper.toDate(DateHelper.now()),
               retryable: false,
             });
             continue;
@@ -325,14 +475,14 @@ export class BatchService {
             type: 'processing',
             message: `เกิดข้อผิดพลาดในการประมวลผลไฟล์ ${file.filename}: ${error instanceof Error ? error.message : 'Unknown error'}`,
             code: 'FILE_PROCESSING_ERROR',
-            timestamp: new Date(),
+            timestamp: DateHelper.toDate(DateHelper.now()),
             retryable: true,
           });
         }
       }
 
       // อัปเดตสถิติ batch
-      const processingTime = Date.now() - startTime;
+      const processingTime = timer.elapsed();
       const finalStatus = failedFiles === 0 ? BatchStatus.SUCCESS :
         processedFiles === 0 ? BatchStatus.ERROR : BatchStatus.PARTIAL;
 
@@ -347,7 +497,7 @@ export class BatchService {
 
       const result: BatchProcessingResult = {
         batchId,
-        success: finalStatus === 'success',
+        success: finalStatus === BatchStatus.SUCCESS,
         totalFiles: files.length,
         processedFiles,
         failedFiles,
@@ -379,7 +529,7 @@ export class BatchService {
       return result;
 
     } catch (error) {
-      const processingTime = Date.now() - startTime;
+      const processingTime = timer.elapsed();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logError('Batch processing failed', error as Error, { batchId, processingTime });
 
@@ -394,7 +544,7 @@ export class BatchService {
    * ประมวลผลไฟล์ใน batch
    */
   async processFileInBatch(fileId: string, batchId: string): Promise<FileProcessingInBatchResult> {
-    const startTime = Date.now();
+    const timer = createTimer();
 
     try {
       logInfo('Processing file in batch', { fileId, batchId });
@@ -406,7 +556,7 @@ export class BatchService {
       }
 
       // อัปเดตสถานะไฟล์เป็น processing
-      await this.databaseService.updateUploadRecord(fileId, { status: 'processing' });
+      await this.databaseService.updateUploadRecord(fileId, { status: FileProcessingStatus.PROCESSING });
 
       // ประมวลผลไฟล์
       const processingResult = await this.fileProcessingService.processFile(
@@ -424,8 +574,8 @@ export class BatchService {
 
       // อัปเดตผลการประมวลผล
       await this.databaseService.updateUploadRecord(fileId, {
-        status: processingResult.success ? 'completed' : 'failed',
-        processedAt: new Date(),
+        status: processingResult.success ? FileProcessingStatus.SUCCESS : FileProcessingStatus.FAILED,
+        processedAt: DateHelper.toDate(DateHelper.now()),
         totalRecords: processingResult.statistics.totalRecords,
         validRecords: processingResult.statistics.validRecords,
         invalidRecords: processingResult.statistics.invalidRecords,
@@ -435,7 +585,7 @@ export class BatchService {
         errorMessage: processingResult.success ? null : processingResult.message,
       });
 
-      const processingTime = Date.now() - startTime;
+      const processingTime = timer.elapsed();
       const result: FileProcessingInBatchResult = {
         fileId,
         success: processingResult.success,
@@ -458,10 +608,32 @@ export class BatchService {
         processingTime
       });
 
+      // อัปเดตสถิติ batch หลังจากประมวลผลไฟล์เสร็จ
+      try {
+        await this.statisticsService.updateBatchStatistics(
+          batchId,
+          processingResult.success,
+          1, // fileCount
+          processingResult.statistics.processedRecords,
+          processingResult.statistics.processingTime
+        );
+      } catch (error) {
+        logError('Failed to update batch statistics after file processing', error as Error, { batchId, fileId });
+        // ไม่ throw error เพื่อไม่ให้กระทบต่อการประมวลผลไฟล์
+      }
+
+      // ตรวจสอบและอัปเดตสถานะ batch หลังจากประมวลผลไฟล์เสร็จ
+      try {
+        await this.checkAndUpdateBatchStatus(batchId);
+      } catch (error) {
+        logError('Failed to check and update batch status after file processing', error as Error, { batchId, fileId });
+        // ไม่ throw error เพื่อไม่ให้กระทบต่อการประมวลผลไฟล์
+      }
+
       return result;
 
     } catch (error) {
-      const processingTime = Date.now() - startTime;
+      const processingTime = timer.elapsed();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logError('File processing in batch failed', error as Error, { fileId, batchId, processingTime });
 
@@ -498,22 +670,23 @@ export class BatchService {
       const batches = await this.databaseService.getUploadBatches({ limit: 1000 });
 
       const totalBatches = batches.total;
-      const activeBatches = batches.batches.filter(b => b.status === 'processing').length;
-      const completedBatches = batches.batches.filter(b => b.status === 'success').length;
-      const failedBatches = batches.batches.filter(b => b.status === 'error').length;
+      const activeBatches = batches.batches.filter(b => b.status === BatchStatus.PROCESSING).length;
+      const completedBatches = batches.batches.filter(b => b.status === BatchStatus.SUCCESS).length;
+      const failedBatches = batches.batches.filter(b => b.status === BatchStatus.ERROR).length;
+      const partialBatches = batches.batches.filter(b => b.status === BatchStatus.PARTIAL || b.status === BatchStatus.PARTIAL_SUCCESS).length;
 
       const totalFiles = batches.batches.reduce((sum, b) => sum + b.totalFiles, 0);
       const totalRecords = batches.batches.reduce((sum, b) => sum + b.totalRecords, 0);
       const totalSize = batches.batches.reduce((sum, b) => sum + b.totalSize, 0);
 
       const averageProcessingTime = batches.batches.length > 0
-        ? batches.batches.reduce((sum, b) => sum + (b.uploadDate.getTime() - b.uploadDate.getTime()), 0) / batches.batches.length
+        ? batches.batches.reduce((sum) => sum + 0, 0) / batches.batches.length // TODO: คำนวณ processing time จริง
         : 0;
 
       const successRate = totalBatches > 0 ? (completedBatches / totalBatches) * 100 : 0;
 
       const lastBatchDate = batches.batches.length > 0
-        ? batches.batches.reduce((latest, b) => b.uploadDate > latest ? b.uploadDate : latest, batches.batches[0]?.uploadDate || new Date())
+        ? batches.batches.reduce((latest, b) => b.uploadDate > latest ? b.uploadDate : latest, batches.batches[0]?.uploadDate || DateHelper.toDate(DateHelper.now()))
         : undefined;
 
       const batchTypeBreakdown = {
@@ -538,12 +711,13 @@ export class BatchService {
         activeBatches,
         completedBatches,
         failedBatches,
+        partialBatches,
         totalFiles,
         totalRecords,
         totalSize,
         averageProcessingTime,
         successRate,
-        lastBatchDate: lastBatchDate || new Date(),
+        lastBatchDate: lastBatchDate || DateHelper.toDate(DateHelper.now()),
         batchTypeBreakdown,
       };
 
@@ -575,8 +749,8 @@ export class BatchService {
 
       const files = await this.getBatchFiles(batchId, { limit: 1000 });
       
-      const processedFiles = files.files.filter(f => f.status === 'completed').length;
-      const failedFiles = files.files.filter(f => f.status === 'failed').length;
+      const processedFiles = files.files.filter(f => f.status === FileProcessingStatus.SUCCESS).length;
+      const failedFiles = files.files.filter(f => f.status === FileProcessingStatus.FAILED).length;
       
       const processedRecords = files.files.reduce((sum, f) => sum + (f.processedRecords || 0), 0);
       const failedRecords = files.files.reduce((sum, f) => sum + (f.invalidRecords || 0), 0);
@@ -598,7 +772,7 @@ export class BatchService {
       const result: BatchMetrics = {
         batchId,
         startTime: batch.uploadDate,
-        endTime: batch.status !== 'processing' ? batch.uploadDate : new Date(),
+        endTime: batch.status !== 'processing' ? batch.uploadDate : DateHelper.toDate(DateHelper.now()),
         duration: batch.status !== 'processing' ? 0 : 0, // ใช้ 0 แทนการคำนวณจริง
         totalFiles: batch.totalFiles,
         processedFiles,

@@ -33,8 +33,8 @@ export const apiRateLimiter = rateLimit({
 
 // สร้าง rate limiter สำหรับการอัปโหลดไฟล์
 export const uploadRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 นาที
-  max: 10, // สูงสุด 10 ไฟล์ต่อ 15 นาที
+  windowMs: config.rateLimit.windowMs, // ใช้ค่าเดียวกับ API เพื่อความยืดหยุ่น
+  max: config.rateLimit.uploadMaxFiles, // ควบคุมจำนวนไฟล์ต่อช่วงเวลา ผ่าน ENV
   message: {
     success: false,
     message: 'คุณอัปโหลดไฟล์มากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง',

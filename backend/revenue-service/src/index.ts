@@ -18,6 +18,41 @@ import StatisticsService from '@/services/statisticsService';
 import ValidationService from '@/services/validationService';
 import FileValidationService from '@/services/fileValidationService';
 import FileProcessingService from '@/services/fileProcessingService';
+import { DBFReaderService } from '@/services/dbfReaderService';
+
+// ========================================
+// MEMORY OPTIMIZATION
+// ========================================
+
+// เปิดใช้งาน garbage collection
+if (global.gc) {
+  // ตั้งค่า memory monitoring
+  setInterval(() => {
+    const memUsage = process.memoryUsage();
+    const memUsageMB = {
+      rss: Math.round(memUsage.rss / 1024 / 1024),
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+      external: Math.round(memUsage.external / 1024 / 1024),
+    };
+    
+    // Log memory usage ถ้าใช้ memory มากกว่า 512MB
+    if (memUsageMB.heapUsed > 512) {
+      logInfo(`💾 Memory Usage: ${JSON.stringify(memUsageMB)} MB`);
+      
+      // Force garbage collection ถ้าใช้ memory มากกว่า 1GB
+      if (memUsageMB.heapUsed > 1024) {
+        (global as any).gc();
+        logInfo('🧹 Forced garbage collection');
+        
+        // ถ้าใช้ memory มากกว่า 2GB แสดงว่ามี memory leak
+        if (memUsageMB.heapUsed > 2048) {
+          logError(`High memory usage detected - Memory usage: ${memUsageMB.heapUsed} MB - possible memory leak`, new Error('High memory usage detected'));
+        }
+      }
+    }
+  }, 2 * 60 * 1000); // ทุก 2 นาที (ลดจาก 5 นาที)
+}
 
 const app = express();
 const PORT = config.server.port;
@@ -30,6 +65,7 @@ const fileValidationService = new FileValidationService();
 const fileProcessingService = new FileProcessingService();
 const statisticsService = new StatisticsService();
 const batchService = new BatchService();
+const dbfReaderService = new DBFReaderService(databaseService.getPrismaClient());
 
 // แชร์ services ไปยัง routes
 app.locals.services = {
@@ -40,11 +76,15 @@ app.locals.services = {
   fileProcessingService,
   statisticsService,
   batchService,
+  dbfReaderService,
 };
 
 // ========================================
 // SECURITY MIDDLEWARE
 // ========================================
+
+// ตั้งค่า trust proxy ให้สอดคล้องกับ config (สำคัญต่อการคำนวณ IP ที่ถูกต้องของ rate limit)
+app.set('trust proxy', config.server.trustProxy);
 
 // ตั้งค่า security headers ด้วย helmet
 app.use(helmet({
@@ -90,6 +130,8 @@ app.use(cors({
     'X-API-Key',
     'Cache-Control',
     'Pragma',
+    'x-session-token',
+    'X-Session-Token',
   ],
   exposedHeaders: [
     'X-Request-ID',
@@ -99,8 +141,8 @@ app.use(cors({
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
-// ตั้งค่า trust proxy
-app.set('trust proxy', config.server.trustProxy);
+// ตั้งค่า trust proxy (ย้ายไปตั้งตอนต้นแล้ว)
+// app.set('trust proxy', config.server.trustProxy);
 
 // ========================================
 // BODY PARSING MIDDLEWARE
@@ -163,8 +205,11 @@ async function setupDirectories() {
     
     for (const dir of directories) {
       await fs.ensureDir(path.resolve(dir));
-      logInfo(`Directory ensured: ${dir}`);
+      // ลบการ log แต่ละ directory เพื่อลดข้อความซ้ำ
     }
+    
+    // Log ครั้งเดียวเมื่อ setup เสร็จแล้ว
+    logInfo(`Directories setup completed: ${directories.length} directories`);
   } catch (error) {
     logError('Failed to setup directories', error as Error);
     throw error;
@@ -304,5 +349,11 @@ process.on('unhandledRejection', (reason: any, promise: any) => {
   process.exit(1);
 });
 
-startServer();
+// Export app for testing
+export default app;
+
+// Start server only if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 

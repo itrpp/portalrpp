@@ -20,6 +20,18 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Origin',
+    'X-API-Key',
+    'x-session-token',
+    'X-Session-Token',
+  ],
 }));
 app.use(morgan('combined'));
 app.use(express.json());

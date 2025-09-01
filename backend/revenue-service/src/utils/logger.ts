@@ -6,6 +6,7 @@ import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import config from '@/config';
+import { getLogTimestamp } from './dateHelper';
 
 // สร้าง log directory ถ้ายังไม่มี
 const logDir = path.resolve(config.logging.filePath);
@@ -57,16 +58,6 @@ const logger = winston.createLogger({
   ],
 });
 
-// ถ้าไม่ใช่ production ให้เพิ่ม console transport
-if (config.server.nodeEnv !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple(),
-    ),
-  }));
-}
-
 // ========================================
 // BASIC LOGGING FUNCTIONS
 // ========================================
@@ -96,7 +87,7 @@ export const logFileUpload = (filename: string, fileSize: number, fileType: stri
     filename,
     fileSize,
     fileType,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -141,7 +132,7 @@ export const logBatchCreation = (batchId: string, data: any) => {
     userId: data.userId,
     ipAddress: data.ipAddress,
     userAgent: data.userAgent,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -149,7 +140,7 @@ export const logBatchProcessing = (batchId: string, status: string, meta?: any) 
   logger.info('Batch processing', { 
     batchId, 
     status,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
     ...meta,
   });
 };
@@ -163,7 +154,7 @@ export const logBatchCompletion = (batchId: string, result: any) => {
     totalRecords: result.totalRecords,
     processingTime: result.processingTime,
     success: result.success,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -172,7 +163,7 @@ export const logBatchError = (batchId: string, error: Error, meta?: any) => {
     batchId,
     error: error.message,
     stack: error.stack,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
     ...meta,
   });
 };
@@ -184,7 +175,7 @@ export const logBatchProgress = (batchId: string, progress: any) => {
     totalFiles: progress.totalFiles,
     progress: progress.progress,
     status: progress.status,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -196,7 +187,7 @@ export const logBatchFileProcessing = (batchId: string, filename: string, result
     processingTime: result.processingTime,
     recordCount: result.recordCount,
     errors: result.errors,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -208,7 +199,7 @@ export const logDatabaseOperation = (operation: string, table: string, meta?: an
   logger.info('Database operation', {
     operation,
     table,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
     ...meta,
   });
 };
@@ -219,7 +210,7 @@ export const logDatabaseError = (operation: string, table: string, error: Error)
     table,
     error: error.message,
     stack: error.stack,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -228,7 +219,7 @@ export const logDatabaseQuery = (query: string, params: any, duration: number) =
     query,
     params,
     duration,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -240,7 +231,7 @@ export const logValidationStart = (filename: string, fileType: string) => {
   logger.info('Validation started', {
     filename,
     fileType,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -249,7 +240,7 @@ export const logValidationError = (filename: string, errors: any[]) => {
     filename,
     errorCount: errors.length,
     errors,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -258,7 +249,7 @@ export const logValidationWarning = (filename: string, warnings: string[]) => {
     filename,
     warningCount: warnings.length,
     warnings,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -273,7 +264,7 @@ export const logServiceHealth = (health: any) => {
 export const logSystemMetrics = (metrics: any) => {
   logger.info('System metrics', {
     ...metrics,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -283,21 +274,21 @@ export const logMemoryUsage = (usage: NodeJS.MemoryUsage) => {
     heapTotal: usage.heapTotal,
     heapUsed: usage.heapUsed,
     external: usage.external,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
 export const logCpuUsage = (usage: number) => {
   logger.info('CPU usage', {
     usage,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
 export const logDiskUsage = (usage: any) => {
   logger.info('Disk usage', {
     ...usage,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -311,7 +302,7 @@ export const logApiRequest = (method: string, url: string, statusCode: number, r
     url,
     statusCode,
     responseTime,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -322,7 +313,7 @@ export const logApiError = (method: string, url: string, error: Error, statusCod
     statusCode,
     error: error.message,
     stack: error.stack,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -332,7 +323,7 @@ export const logApiResponse = (method: string, url: string, statusCode: number, 
     url,
     statusCode,
     responseSize,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -344,7 +335,7 @@ export const logSecurityEvent = (event: string, details: any) => {
   logger.warn('Security event', {
     event,
     ...details,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -353,7 +344,7 @@ export const logAuthenticationAttempt = (userId: string, success: boolean, ipAdd
     userId,
     success,
     ipAddress,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -362,7 +353,7 @@ export const logAuthorizationCheck = (userId: string, resource: string, allowed:
     userId,
     resource,
     allowed,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -374,7 +365,7 @@ export const logFileStorage = (operation: string, filePath: string, meta?: any) 
   logger.info('File storage operation', {
     operation,
     filePath,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
     ...meta,
   });
 };
@@ -383,7 +374,7 @@ export const logFileBackup = (sourcePath: string, backupPath: string) => {
   logger.info('File backup created', {
     sourcePath,
     backupPath,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -391,7 +382,7 @@ export const logFileCleanup = (filePath: string, reason: string) => {
   logger.info('File cleanup', {
     filePath,
     reason,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -403,7 +394,7 @@ export const logStatisticsUpdate = (type: string, data: any) => {
   logger.info('Statistics updated', {
     type,
     ...data,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -411,7 +402,7 @@ export const logReportGeneration = (reportType: string, filename: string, meta?:
   logger.info('Report generated', {
     reportType,
     filename,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
     ...meta,
   });
 };
@@ -425,7 +416,7 @@ export const logErrorWithContext = (error: Error, context: any) => {
     error: error.message,
     stack: error.stack,
     context,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -434,7 +425,7 @@ export const logPerformanceIssue = (operation: string, duration: number, thresho
     operation,
     duration,
     threshold,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 
@@ -444,7 +435,7 @@ export const logResourceUsage = (resource: string, usage: number, limit: number)
     usage,
     limit,
     percentage: (usage / limit) * 100,
-    timestamp: new Date().toISOString(),
+    timestamp: getLogTimestamp(),
   });
 };
 

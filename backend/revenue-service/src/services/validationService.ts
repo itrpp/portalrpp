@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import { ValidationError, ProcessingError, ValidationResult, BatchValidationResult, FileValidationRule } from '@/types';
 import { FileValidationError } from '@/utils/errorHandler';
+import { DateHelper } from '@/utils/dateHelper';
 import { logError, logInfo } from '@/utils/logger';
 
 export interface IValidationService {
@@ -721,7 +722,7 @@ export class ValidationService implements IValidationService {
           message: error.message,
           code: error.code,
           details: error.value,
-          timestamp: new Date(),
+          timestamp: DateHelper.toDate(DateHelper.now()),
           retryable: false,
         })));
       }
@@ -740,7 +741,7 @@ export class ValidationService implements IValidationService {
               message: error.message,
               code: error.code,
               details: { filename: file!.originalname, field: error.field },
-              timestamp: new Date(),
+              timestamp: DateHelper.toDate(DateHelper.now()),
               retryable: false,
             })));
           }
@@ -751,7 +752,7 @@ export class ValidationService implements IValidationService {
               message: error.message,
               code: 'FILE_VALIDATION_ERROR',
               details: { filename: file!.originalname, errors: error.details?.errors },
-              timestamp: new Date(),
+              timestamp: DateHelper.toDate(DateHelper.now()),
               retryable: false,
             });
           } else {
@@ -760,7 +761,7 @@ export class ValidationService implements IValidationService {
               message: 'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
               code: 'FILE_VALIDATION_SYSTEM_ERROR',
               details: { filename: file!.originalname },
-              timestamp: new Date(),
+              timestamp: DateHelper.toDate(DateHelper.now()),
               retryable: true,
             });
           }
@@ -935,7 +936,7 @@ export class ValidationService implements IValidationService {
         }
         break;
       case 'date':
-        if (!(value instanceof Date) && isNaN(Date.parse(value))) {
+        if (!(value instanceof Date) && !DateHelper.isValid(DateHelper.fromISO(value))) {
           errors.push({
             field: fieldName,
             message: `${fieldName} ต้องเป็นวันที่`,

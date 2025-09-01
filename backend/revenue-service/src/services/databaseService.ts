@@ -4,7 +4,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { logInfo, logError } from '@/utils/logger';
-import { FileType, ProcessingStatus, BatchStatus } from '@/types';
+import { FileType, FileProcessingStatus, BatchStatus, ExportStatus, BatchProcessingStatus } from '@/types';
 
 export interface IUploadRecord {
   id: string;
@@ -15,7 +15,7 @@ export interface IUploadRecord {
   filePath: string;
   uploadDate: Date;
   processedAt?: Date | null;
-  status: string; // PENDING, PROCESSING, COMPLETED, FAILED, VALIDATION_FAILED
+  status: string; // PENDING, PROCESSING, SUCCESS, FAILED, VALIDATION_FAILED
   batchId?: string | null;
   userId?: string | null;
   ipAddress?: string | null;
@@ -43,7 +43,9 @@ export interface IUploadBatch {
   processingFiles: number;
   totalRecords: number;
   totalSize: number;
-  status: string; // SUCCESS, ERROR, PROCESSING, PARTIAL
+  status: BatchStatus;
+  processingStatus: BatchProcessingStatus;
+  exportStatus: ExportStatus;
   userId?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
@@ -53,7 +55,7 @@ export interface IProcessingHistory {
   id: string;
   uploadId: string;
   action: string; // VALIDATE, PROCESS, BACKUP, CLEANUP
-  status: string; // STARTED, COMPLETED, FAILED, CANCELLED
+  status: string; // STARTED, SUCCESS, FAILED, CANCELLED
   message?: string | null;
   startTime: Date;
   endTime?: Date | null;
@@ -88,6 +90,13 @@ export class DatabaseService {
   }
 
   /**
+   * ดึง Prisma client instance
+   */
+  getPrismaClient(): PrismaClient {
+    return this.prisma;
+  }
+
+  /**
    * สร้าง upload batch ใหม่
    */
   async createUploadBatch(data: Omit<IUploadBatch, 'id' | 'uploadDate'>): Promise<IUploadBatch> {
@@ -102,6 +111,8 @@ export class DatabaseService {
           totalRecords: data.totalRecords,
           totalSize: data.totalSize,
           status: data.status,
+          processingStatus: data.processingStatus || BatchProcessingStatus.PENDING,
+          exportStatus: data.exportStatus || ExportStatus.NOT_EXPORTED,
           userId: data.userId || null,
           ipAddress: data.ipAddress || null,
           userAgent: data.userAgent || null,
@@ -109,7 +120,7 @@ export class DatabaseService {
       });
 
       logInfo('Upload batch created', { id: batch.id, batchName: batch.batchName });
-      return batch;
+      return batch as IUploadBatch;
     } catch (error) {
       logError('Failed to create upload batch', error as Error);
       throw error;
@@ -127,9 +138,66 @@ export class DatabaseService {
       });
 
       logInfo('Upload batch updated', { id: batch.id, batchName: batch.batchName });
-      return batch;
+      return batch as IUploadBatch;
     } catch (error) {
       logError('Failed to update upload batch', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดต successFiles ใน upload batch โดยนับจากไฟล์ที่มี status เป็น success หรือ validation_completed
+   */
+  async updateBatchSuccessFiles(batchId: string): Promise<void> {
+    try {
+      // นับไฟล์ที่มี status เป็น success, validation_completed, imported ใน batch  
+      const completedFiles = await this.prisma.uploadRecord.count({
+        where: {
+          batchId: batchId,
+          status: {
+            in: [FileProcessingStatus.SUCCESS, FileProcessingStatus.VALIDATION_COMPLETED, 'imported']
+          }
+        }
+      });
+
+      // นับไฟล์ที่มี status เป็น validation_failed, validation_error หรือ error
+      const failedFiles = await this.prisma.uploadRecord.count({
+        where: {
+          batchId: batchId,
+          status: {
+            in: [FileProcessingStatus.FAILED, FileProcessingStatus.VALIDATION_FAILED, FileProcessingStatus.VALIDATION_ERROR, 'error', 'failed']
+          }
+        }
+      });
+
+      // นับไฟล์ที่มี status เป็น pending หรือ processing
+      const processingFiles = await this.prisma.uploadRecord.count({
+        where: {
+          batchId: batchId,
+          status: {
+            in: [FileProcessingStatus.PENDING, FileProcessingStatus.PROCESSING]
+          }
+        }
+      });
+
+      // อัปเดต batch statistics
+      await this.prisma.uploadBatch.update({
+        where: { id: batchId },
+        data: {
+          successFiles: completedFiles,
+          errorFiles: failedFiles,
+          processingFiles: processingFiles
+        }
+      });
+
+      logInfo('Batch statistics updated', { 
+        batchId, 
+        successFiles: completedFiles,
+        errorFiles: failedFiles,
+        processingFiles: processingFiles
+      });
+    } catch (error) {
+      logError('Failed to update batch success files', error as Error, { batchId });
       throw error;
     }
   }
@@ -146,7 +214,7 @@ export class DatabaseService {
         },
       });
 
-      return batch;
+      return batch as IUploadBatch | null;
     } catch (error) {
       logError('Failed to get upload batch', error as Error);
       throw error;
@@ -191,7 +259,7 @@ export class DatabaseService {
       ]);
 
       return {
-        batches,
+        batches: batches as IUploadBatch[],
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -285,7 +353,7 @@ export class DatabaseService {
     page?: number;
     limit?: number;
     fileType?: FileType;
-    status?: ProcessingStatus;
+    status?: FileProcessingStatus;
     userId?: string;
     batchId?: string;
     startDate?: Date;
@@ -445,6 +513,114 @@ export class DatabaseService {
       logInfo('System config updated', { key, value });
     } catch (error) {
       logError('Failed to update system config', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * ค้นหา upload record ตามชื่อไฟล์
+   */
+  async findUploadRecordByFilename(filename: string): Promise<IUploadRecord | null> {
+    try {
+      logInfo('Finding upload record by filename', { filename });
+
+      const record = await this.prisma.uploadRecord.findFirst({
+        where: { filename },
+        orderBy: { uploadDate: 'desc' } // เอา record ล่าสุด
+      });
+
+      if (record) {
+        logInfo('Upload record found', { id: record.id, filename });
+      } else {
+        logInfo('Upload record not found', { filename });
+      }
+
+      return record;
+    } catch (error) {
+      logError('Failed to find upload record by filename', error as Error, { filename });
+      throw error;
+    }
+  }
+
+  /**
+   * ลบ upload batch และไฟล์ที่เกี่ยวข้อง
+   */
+  async deleteUploadBatch(id: string): Promise<void> {
+    try {
+      logInfo('Deleting upload batch', { id });
+
+      // ลบ records ที่เกี่ยวข้องกับ batch ก่อน
+      await this.prisma.uploadRecord.deleteMany({
+        where: { batchId: id },
+      });
+
+      // ลบ batch
+      await this.prisma.uploadBatch.delete({
+        where: { id },
+      });
+
+      logInfo('Upload batch deleted successfully', { id });
+    } catch (error) {
+      logError('Failed to delete upload batch', error as Error, { id });
+      throw error;
+    }
+  }
+
+  /**
+   * ลบ upload record
+   */
+  async deleteUploadRecord(id: string): Promise<void> {
+    try {
+      logInfo('Deleting upload record', { id });
+
+      await this.prisma.uploadRecord.delete({
+        where: { id },
+      });
+
+      logInfo('Upload record deleted successfully', { id });
+    } catch (error) {
+      logError('Failed to delete upload record', error as Error, { id });
+      throw error;
+    }
+  }
+
+  /**
+   * ลบ upload records ตามเงื่อนไข
+   */
+  async deleteUploadRecords(params: {
+    batchId?: string;
+    userId?: string;
+    status?: FileProcessingStatus;
+    fileType?: FileType;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<number> {
+    try {
+      logInfo('Deleting upload records', params);
+
+      const where: any = {};
+      if (params.batchId) where.batchId = params.batchId;
+      if (params.userId) where.userId = params.userId;
+      if (params.status) where.status = params.status;
+      if (params.fileType) where.fileType = params.fileType;
+      if (params.startDate || params.endDate) {
+        where.uploadDate = {};
+        if (params.startDate) where.uploadDate.gte = params.startDate;
+        if (params.endDate) where.uploadDate.lte = params.endDate;
+      }
+
+      const result = await this.prisma.uploadRecord.deleteMany({
+        where,
+      });
+
+      logInfo('Upload records deleted successfully', { 
+        deletedCount: result.count,
+        params 
+      });
+
+      return result.count;
+    } catch (error) {
+      logError('Failed to delete upload records', error as Error, params);
       throw error;
     }
   }

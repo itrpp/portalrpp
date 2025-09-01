@@ -341,7 +341,16 @@ router.post(
   ValidationMiddleware.validateSessionToken,
   async (req: Request, res: Response) => {
     try {
-      const { sessionToken } = req.body;
+      // รับ session token จาก body หรือ header
+      const sessionToken = req.body.sessionToken || (req.headers['x-session-token'] || req.headers['X-Session-Token']) as string;
+
+      if (!sessionToken) {
+        logger.warn('Session validation failed - no session token provided');
+        return res.status(401).json({
+          success: false,
+          message: 'ไม่พบ session token',
+        });
+      }
 
       logger.info('Session validation attempt');
 
@@ -404,7 +413,16 @@ router.post(
   ValidationMiddleware.validateSessionToken,
   async (req: Request, res: Response) => {
     try {
-      const { sessionToken } = req.body;
+      // รับ session token จาก body หรือ header
+      const sessionToken = req.body.sessionToken || (req.headers['x-session-token'] || req.headers['X-Session-Token']) as string;
+
+      if (!sessionToken) {
+        logger.warn('Session status check failed - no session token provided');
+        return res.status(401).json({
+          success: false,
+          message: 'ไม่พบ session token',
+        });
+      }
 
       logger.info('Session status check attempt');
 
@@ -514,6 +532,34 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
   try {
     // ตรวจสอบว่า req.user มีค่าหรือไม่
     if (!req.user) {
+      // ลองตรวจสอบ session token จาก header
+      const sessionToken = (req.headers['x-session-token'] || req.headers['X-Session-Token']) as string;
+      
+      if (sessionToken) {
+        // ตรวจสอบ session
+        const sessionResult = await AuthService.validateSession(sessionToken);
+        if (sessionResult.success && sessionResult.user) {
+          // ใช้ข้อมูลจาก session แทน
+          const userResponse = {
+            id: sessionResult.user.id,
+            email: sessionResult.user.email,
+            username: sessionResult.user.email,
+            name: sessionResult.user.name ?? sessionResult.user.email,
+            role: sessionResult.user.role ?? 'user',
+            isActive: sessionResult.user.isActive !== undefined ? sessionResult.user.isActive : true,
+            authMethod: 'local',
+            department: '',
+            displayName: sessionResult.user.name ?? sessionResult.user.email,
+            createdAt: sessionResult.user.createdAt,
+            updatedAt: sessionResult.user.updatedAt,
+            lastLoginAt: new Date(),
+          };
+
+          logger.auth('User info retrieved successfully via session', sessionResult.user.id);
+          return ErrorHandler.createSuccessResponse(res, userResponse, 'ข้อมูลผู้ใช้');
+        }
+      }
+
       return ErrorHandler.createAuthError(res, 'ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
     }
 

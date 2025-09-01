@@ -55,3 +55,20 @@ export interface IconSvgProps {
   className?: string;
   [key: string]: unknown;
 }
+
+// Revenue Service Types
+export enum BatchStatus {
+  SUCCESS = 'success',
+  COMPLETED = 'completed',
+  ERROR = 'error',
+  PROCESSING = 'processing',
+  PARTIAL = 'partial',
+  PARTIAL_SUCCESS = 'partial_success',
+}
+
+export enum ProcessingStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}

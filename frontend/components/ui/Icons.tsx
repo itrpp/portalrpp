@@ -1564,3 +1564,72 @@ export const ChevronUpIcon = ({
     />
   );
 };
+
+// Cog Icon สำหรับการตั้งค่าหรือการประมวลผล
+export const CogIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:cog-6-tooth'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Document Check Icon สำหรับไฟล์ที่ตรวจสอบแล้ว
+export const DocumentCheckIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:document-check'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};
+
+// Database Icon สำหรับฐานข้อมูล
+export const DatabaseIcon = ({
+  size,
+  width,
+  height,
+  className,
+  ...props
+}: IconSvgProps) => {
+  const iconHeight = size ?? height;
+  const iconWidth = size ?? width;
+  const iconProps: any = {};
+  if (iconHeight !== undefined) iconProps.height = iconHeight;
+  if (iconWidth !== undefined) iconProps.width = iconWidth;
+  return (
+    <Icon
+      icon='heroicons:circle-stack'
+      className={className}
+      {...iconProps}
+      {...props}
+    />
+  );
+};

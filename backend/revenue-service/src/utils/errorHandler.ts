@@ -146,7 +146,7 @@ export const errorHandler = (
     success: false,
     message,
     error: config.server.nodeEnv === 'development' ? error.message : undefined,
-    timestamp: new Date(),
+    timestamp: new Date(), // Keep as Date for error objects
     requestId: req.headers['x-request-id'] as string,
   };
 
@@ -165,7 +165,7 @@ export const notFoundHandler = (req: Request, res: Response) => {
   const errorResponse: ErrorResponse = {
     success: false,
     message: 'ไม่พบ API endpoint นี้',
-    timestamp: new Date(),
+    timestamp: new Date(), // Keep as Date for error objects
     requestId: req.headers['x-request-id'] as string,
   };
 

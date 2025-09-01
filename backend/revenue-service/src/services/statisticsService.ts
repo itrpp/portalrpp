@@ -15,9 +15,11 @@ import {
   // BatchProgress,
   SystemMetrics,
   BatchStatus,
+  FileProcessingStatus,
 } from '@/types';
 import { DatabaseService } from './databaseService';
 // import { BatchService } from './batchService';
+import { DateHelper } from '@/utils/dateHelper';
 import { logInfo, logError } from '@/utils/logger';
 import config from '@/config';
 
@@ -58,7 +60,7 @@ export class StatisticsService implements IStatisticsService {
       
       stats.totalUploads++;
       stats.totalFileSize += fileSize;
-      stats.lastUploadDate = new Date();
+      stats.lastUploadDate = DateHelper.toDate(DateHelper.now());
       
       if (success) {
         stats.successfulUploads++;
@@ -115,7 +117,7 @@ export class StatisticsService implements IStatisticsService {
 
         // เพิ่ม lastUploadDate ถ้ามี
         if (data.lastUploadDate) {
-          result.lastUploadDate = new Date(data.lastUploadDate);
+          result.lastUploadDate = DateHelper.toDate(DateHelper.fromDate(new Date(data.lastUploadDate)));
         }
 
         return result;
@@ -152,7 +154,7 @@ export class StatisticsService implements IStatisticsService {
         filename: result.fileId, // จะต้องอัปเดตจากข้อมูลจริง
         uploadDate: result.processedAt,
         processedDate: result.processedAt,
-        status: result.success ? 'completed' : 'failed',
+        status: result.success ? FileProcessingStatus.SUCCESS : FileProcessingStatus.FAILED,
         statistics: result.statistics,
         fileSize: result.statistics.totalRecords, // ใช้จำนวน records เป็น fileSize ชั่วคราว
         filePath: path.join(config.upload.processedPath, result.fileId),
@@ -187,8 +189,8 @@ export class StatisticsService implements IStatisticsService {
         const data = await fs.readJson(this.historyFile);
         return data.map((item: any) => ({
           ...item,
-          uploadDate: new Date(item.uploadDate),
-          processedDate: item.processedDate ? new Date(item.processedDate) : undefined,
+          uploadDate: DateHelper.toDate(DateHelper.fromDate(new Date(item.uploadDate))),
+          processedDate: item.processedDate ? DateHelper.toDate(DateHelper.fromDate(new Date(item.processedDate))) : undefined,
         }));
       }
     } catch (error) {
@@ -261,6 +263,7 @@ export class StatisticsService implements IStatisticsService {
       let activeBatches = 0;
       let completedBatches = 0;
       let failedBatches = 0;
+      let partialBatches = 0;
       let totalFiles = 0;
       let totalRecords = 0;
       let totalSize = 0;
@@ -280,6 +283,10 @@ export class StatisticsService implements IStatisticsService {
             break;
           case BatchStatus.ERROR:
             failedBatches++;
+            break;
+          case BatchStatus.PARTIAL:
+          case BatchStatus.PARTIAL_SUCCESS:
+            partialBatches++;
             break;
         }
 
@@ -331,6 +338,7 @@ export class StatisticsService implements IStatisticsService {
         activeBatches,
         completedBatches,
         failedBatches,
+        partialBatches,
         totalFiles,
         totalRecords,
         totalSize,
@@ -353,6 +361,7 @@ export class StatisticsService implements IStatisticsService {
         activeBatches: 0,
         completedBatches: 0,
         failedBatches: 0,
+        partialBatches: 0,
         totalFiles: 0,
         totalRecords: 0,
         totalSize: 0,
@@ -387,12 +396,12 @@ export class StatisticsService implements IStatisticsService {
       let processingCount = 0;
 
       for (const file of batchFiles.records) {
-        if (file.status === 'completed') {
+        if (file.status === FileProcessingStatus.SUCCESS) {
           processedFiles++;
           processedRecords += file.processedRecords || 0;
           totalProcessingTime += file.processingTime || 0;
           processingCount++;
-        } else if (file.status === 'failed') {
+        } else if (file.status === FileProcessingStatus.FAILED) {
           failedFiles++;
           failedRecords += file.invalidRecords || 0;
         }
@@ -400,9 +409,9 @@ export class StatisticsService implements IStatisticsService {
 
       const startTime = batch.uploadDate;
       const endTime = batch.status === BatchStatus.SUCCESS || batch.status === BatchStatus.ERROR 
-        ? new Date() 
+        ? DateHelper.toDate(DateHelper.now()) 
         : undefined;
-      const duration = endTime ? endTime.getTime() - startTime.getTime() : undefined;
+      const duration = endTime ? DateHelper.toTimestamp(DateHelper.fromDate(endTime)) - DateHelper.toTimestamp(DateHelper.fromDate(startTime)) : undefined;
       const averageProcessingTime = processingCount > 0 ? Math.round(totalProcessingTime / processingCount) : 0;
 
       // ประมาณการ memory และ CPU usage
@@ -452,31 +461,63 @@ export class StatisticsService implements IStatisticsService {
     processingTime: number
   ): Promise<void> {
     try {
+      // คำนวณสถิติใหม่จากข้อมูลไฟล์จริงๆ ในฐานข้อมูล
+      // เพื่อป้องกันการนับซ้ำ
       const batch = await this.databaseService.getUploadBatch(batchId);
       if (!batch) {
         throw new Error(`Batch not found: ${batchId}`);
       }
 
-      // อัปเดต batch statistics
+      // ดึงไฟล์ทั้งหมดใน batch เพื่อนับสถิติที่ถูกต้อง
+      const batchFilesResult = await this.databaseService.getUploadRecords({ 
+        batchId, 
+        limit: 1000 // ดึงทั้งหมด
+      });
+      const batchFiles = batchFilesResult.records;
+
+      // นับสถิติจากข้อมูลจริง
+      const actualSuccessFiles = batchFiles.filter((f: any) => 
+        f.status === FileProcessingStatus.SUCCESS || 
+        f.status === 'imported' ||
+        f.status === FileProcessingStatus.VALIDATION_COMPLETED
+      ).length;
+      const actualErrorFiles = batchFiles.filter((f: any) => 
+        f.status === FileProcessingStatus.FAILED ||
+        f.status === FileProcessingStatus.VALIDATION_FAILED ||
+        f.status === FileProcessingStatus.VALIDATION_ERROR
+      ).length;
+      const actualProcessingFiles = batchFiles.filter((f: any) => 
+        f.status === FileProcessingStatus.PROCESSING || 
+        f.status === FileProcessingStatus.PENDING
+      ).length;
+
+      const actualTotalRecords = batchFiles.reduce((sum: number, f: any) => sum + (f.totalRecords || 0), 0);
+      const actualTotalSize = batchFiles.reduce((sum: number, f: any) => sum + (f.fileSize || 0), 0);
+
+      // อัปเดต batch statistics ด้วยข้อมูลที่ถูกต้อง
       const updateData: any = {
-        totalFiles: batch.totalFiles + fileCount,
-        totalRecords: batch.totalRecords + recordCount,
-        totalSize: batch.totalSize + (recordCount * 100), // ประมาณการขนาดไฟล์
+        totalFiles: batchFiles.length,
+        successFiles: actualSuccessFiles,
+        errorFiles: actualErrorFiles,
+        processingFiles: actualProcessingFiles,
+        totalRecords: actualTotalRecords,
+        totalSize: actualTotalSize,
       };
 
-      if (success) {
-        updateData.successFiles = batch.successFiles + fileCount;
+      // อัปเดตสถานะ batch ตาม success/error files เทียบกับ totalFiles
+      const totalProcessed = updateData.successFiles + updateData.errorFiles;
+      if (totalProcessed >= updateData.totalFiles) {
+        // ประมวลผลครบแล้ว
+        if (updateData.errorFiles === 0) {
+          updateData.status = BatchStatus.SUCCESS; // เสร็จสิ้นทั้งหมดสำเร็จ
+        } else if (updateData.successFiles === 0) {
+          updateData.status = BatchStatus.ERROR; // เสร็จสิ้นทั้งหมดผิดพลาด
+        } else {
+          updateData.status = BatchStatus.PARTIAL_SUCCESS; // เสร็จสิ้นแบบบางส่วนสำเร็จ
+        }
       } else {
-        updateData.errorFiles = batch.errorFiles + fileCount;
-      }
-
-      // อัปเดตสถานะ batch
-      if (updateData.successFiles === batch.totalFiles) {
-        updateData.status = BatchStatus.SUCCESS;
-      } else if (updateData.errorFiles === batch.totalFiles) {
-        updateData.status = BatchStatus.ERROR;
-      } else {
-        updateData.status = BatchStatus.PARTIAL;
+        // ยังประมวลผลไม่ครบ
+        updateData.status = BatchStatus.PROCESSING;
       }
 
       await this.databaseService.updateUploadBatch(batchId, updateData);
@@ -536,7 +577,7 @@ export class StatisticsService implements IStatisticsService {
         successRate: batchStats.successRate,
         errorRate,
         systemHealth,
-        lastUpdated: new Date(),
+        lastUpdated: DateHelper.toDate(DateHelper.now()),
       };
 
     } catch (error) {
@@ -549,7 +590,7 @@ export class StatisticsService implements IStatisticsService {
         successRate: 0,
         errorRate: 0,
         systemHealth: 'unhealthy',
-        lastUpdated: new Date(),
+        lastUpdated: DateHelper.toDate(DateHelper.now()),
       };
     }
   }
@@ -566,7 +607,7 @@ export class StatisticsService implements IStatisticsService {
       const history = await this.getProcessingHistory();
       
       const report = {
-        generatedAt: new Date(),
+        generatedAt: DateHelper.toDate(DateHelper.now()),
         uploadStatistics: uploadStats,
         processingStatistics: processingStats,
         batchStatistics: batchStats,
