@@ -2,14 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   Navbar,
   NavbarBrand,
   NavbarContent,
   NavbarItem,
   NavbarMenu,
-  NavbarMenuItem,
   NavbarMenuToggle,
   Button,
   Dropdown,
@@ -32,7 +31,6 @@ import { useSession, signOut } from 'next-auth/react';
 
 export function NavigationBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const pathname = usePathname();
   const { data: session } = useSession();
 
   const handleLogout = async () => {
@@ -57,10 +55,13 @@ export function NavigationBar() {
         <NavbarBrand>
           <Link href='/' className='flex items-center space-x-2'>
             <div className='w-8 h-8 relative'>
-              <img
+              <Image
                 src='/images/logo.png'
                 alt='RPP Logo'
+                width={32}
+                height={32}
                 className='w-full h-full object-cover rounded-full'
+                priority
               />
             </div>
             <span className='font-bold text-inherit'>RPP Portal</span>

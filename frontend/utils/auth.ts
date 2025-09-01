@@ -15,7 +15,7 @@ export interface AuthState {
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
-    session: any;
+    session: unknown;
 }
 
 // ========================================
@@ -92,8 +92,8 @@ export function useAuth() {
                 redirect: false 
             });
             router.push('/login');
-        } catch (error) {
-            console.error('Error during logout:', error);
+        } catch {
+            // Handle logout error silently
         }
     };
 
@@ -118,8 +118,8 @@ error: 'ไม่มีการเข้าสู่ระบบ' };
                 redirect: false 
             });
             router.push('/login');
-        } catch (error) {
-            console.error('Error refreshing session:', error);
+        } catch {
+            // Handle refresh error silently
         }
     };
 
@@ -163,14 +163,12 @@ error: 'Session ไม่ถูกต้อง' };
     /**
      * ฟังก์ชันสำหรับจัดการ API error
      */
-    const handleApiError = (error: any) => {
-        if (error?.status === 401) {
+    const handleApiError = (error: unknown) => {
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
             // Session หมดอายุ
             router.push('/login');
             return;
         }
-
-        console.error('API Error:', error);
     };
 
     return {
@@ -197,7 +195,7 @@ export function isTokenExpired(token: string): boolean {
         const currentTime = Date.now() / 1000;
         
         return tokenData.exp < currentTime;
-    } catch (error) {
+    } catch {
         return true;
     }
 }
@@ -215,7 +213,7 @@ export function isTokenExpiringSoon(token: string, bufferMinutes: number = 5): b
         const bufferTime = bufferMinutes * 60;
         
         return tokenData.exp < (currentTime + bufferTime);
-    } catch (error) {
+    } catch {
         return true;
     }
 }
@@ -239,7 +237,7 @@ export function formatTokenExpiration(token: string): string {
             minute: '2-digit',
             second: '2-digit',
         }).format(expirationDate);
-    } catch (error) {
+    } catch {
         return 'ไม่ทราบ';
     }
 } 

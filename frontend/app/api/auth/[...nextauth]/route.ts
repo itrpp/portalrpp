@@ -5,7 +5,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 // NEXT AUTH CONFIGURATION
 // ========================================
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -28,55 +28,50 @@ export const authOptions: NextAuthOptions = {
           throw new Error('กรุณากรอกอีเมลและรหัสผ่าน');
         }
 
-        try {
-          const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-          const endpoint = credentials.authMethod === 'ldap'
-            ? '/api/auth/login-ldap'
-            : '/api/auth/login';
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const endpoint = credentials.authMethod === 'ldap'
+          ? '/api/auth/login-ldap'
+          : '/api/auth/login';
 
-          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(
-              credentials.authMethod === 'ldap'
-                ? {
-                  username: credentials.email,
-                  password: credentials.password,
-                }
-                : {
-                  email: credentials.email,
-                  password: credentials.password,
-                  authMethod: credentials.authMethod || 'local',
-                }
-            ),
-          });
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(
+            credentials.authMethod === 'ldap'
+              ? {
+                username: credentials.email,
+                password: credentials.password,
+              }
+              : {
+                email: credentials.email,
+                password: credentials.password,
+                authMethod: credentials.authMethod || 'local',
+              }
+          ),
+        });
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-          }
-
-          const data = await response.json();
-
-          if (data.success && data.user) {
-            return {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.name,
-              role: data.user.role,
-              accessToken: data.accessToken || data.data?.token,
-              refreshToken: data.refreshToken || data.data?.refreshToken,
-              sessionToken: data.sessionToken,
-            };
-          }
-
-          throw new Error('การเข้าสู่ระบบไม่สำเร็จ');
-        } catch (error) {
-          console.error('Auth error:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
         }
+
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          return {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            role: data.user.role,
+            accessToken: data.accessToken || data.data?.token,
+            refreshToken: data.refreshToken || data.data?.refreshToken,
+            sessionToken: data.sessionToken,
+          };
+        }
+
+        throw new Error('การเข้าสู่ระบบไม่สำเร็จ');
       },
     }),
   ],
@@ -130,8 +125,7 @@ export const authOptions: NextAuthOptions = {
               delete token.sessionToken;
             }
           }
-        } catch (error) {
-          console.error('Token refresh error:', error);
+        } catch {
           // ถ้าเกิด error ให้ clear tokens
           delete token.accessToken;
           delete token.refreshToken;

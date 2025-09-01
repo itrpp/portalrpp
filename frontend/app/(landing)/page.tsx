@@ -20,7 +20,7 @@ import { siteConfig } from '@/config/site';
 
 function HomeContent() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isClient, setIsClient] = useState(false);
 

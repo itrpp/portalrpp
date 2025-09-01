@@ -101,8 +101,7 @@ export default function LoginPage() {
       } else {
         setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       }
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch {
       setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setIsLoading(false);

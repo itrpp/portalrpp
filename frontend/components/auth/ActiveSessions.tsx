@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Card,
@@ -46,13 +46,7 @@ export function ActiveSessions() {
   const [revoking, setRevoking] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  useEffect(() => {
-    if (session) {
-      loadSessions();
-    }
-  }, [session]);
-
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.getActiveSessions(session);
@@ -60,13 +54,18 @@ export function ActiveSessions() {
       if (response.success && response.data) {
         setSessions(response.data.sessions);
       }
-    } catch (error) {
-      console.error('Error loading sessions:', error);
+    } catch {
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล session');
     } finally {
       setLoading(false);
     }
-  };
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      loadSessions();
+    }
+  }, [session, loadSessions]);
 
   const handleRevokeOtherSessions = async () => {
     try {
@@ -80,8 +79,7 @@ export function ActiveSessions() {
       } else {
         toast.error(response.message || 'เกิดข้อผิดพลาดในการลบ session');
       }
-    } catch (error) {
-      console.error('Error revoking sessions:', error);
+    } catch {
       toast.error('เกิดข้อผิดพลาดในการลบ session');
     } finally {
       setRevoking(false);

@@ -407,7 +407,7 @@ class ApiClient {
                 }
             }
         } catch (error) {
-            console.error('Error refreshing token:', error);
+            // Handle token refresh error silently
         }
 
         return false;
@@ -633,7 +633,7 @@ class ApiClient {
                 session
             );
             return response;
-        } catch {
+        } catch (error) {
             return { success: false };
         }
     }
@@ -648,7 +648,7 @@ class ApiClient {
                 session
             );
             return response;
-        } catch {
+        } catch (error) {
             return { success: false };
         }
     }
@@ -807,7 +807,6 @@ class ApiClient {
             
             // ตรวจสอบว่าเป็น error response หรือไม่
             if (!response.success && response.error === 'UNAUTHORIZED') {
-                console.error('Session expired when getting revenue batches');
                 return { 
                     success: false,
                     data: { 
@@ -819,7 +818,6 @@ class ApiClient {
             
             return response;
         } catch (error) {
-            console.error('Error getting revenue batches:', error);
             
             // ถ้าเป็น 401 error ให้ return success: false แทนการ throw
             if (error instanceof ApiError && error.status === 401) {
@@ -862,7 +860,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error creating revenue batch:', error);
             return { success: false };
         }
     }
@@ -878,7 +875,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error getting revenue batch:', error);
             return { success: false };
         }
     }
@@ -914,7 +910,6 @@ class ApiClient {
                 data: blob
             };
         } catch (error) {
-            console.error('Error exporting revenue batch:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -936,7 +931,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error deleting revenue batch:', error);
             return { success: false };
         }
     }
@@ -955,7 +949,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error deleting revenue file:', error);
             return { success: false };
         }
     }
@@ -975,7 +968,6 @@ class ApiClient {
             );
             return response;
         } catch (error: any) {
-            console.error('Error getting revenue file status:', error);
             return {
                 success: false,
                 data: {
@@ -1020,7 +1012,6 @@ class ApiClient {
                 data
             };
         } catch (error) {
-            console.error('Error validating revenue file:', error);
             if (error instanceof ApiError) {
                 throw error;
             }
@@ -1063,7 +1054,6 @@ class ApiClient {
                 attempts++;
 
             } catch (error: any) {
-                console.error('Error polling validation status:', error);
                 attempts++;
                 
                 // ถ้าลองครบแล้วยังไม่ได้
@@ -1113,7 +1103,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error getting revenue batch files:', error);
             return { success: false };
         }
     }
@@ -1132,7 +1121,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error processing revenue batch:', error);
             return { success: false };
         }
     }
@@ -1141,24 +1129,19 @@ class ApiClient {
      * อัปโหลดไฟล์เดี่ยว
      */
     async uploadRevenueFile(session: Session | null, file: File, batchId?: string): Promise<{ success: boolean; data?: FileUploadResult }> {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            if (batchId) {
-                formData.append('batchId', batchId);
-            }
-
-            const response = await this.uploadRequest<{ success: boolean; data?: FileUploadResult }>(
-                '/api/revenue/upload',
-                formData,
-                session
-            );
-
-            return response;
-        } catch (error) {
-            console.error('Error uploading revenue file:', error);
-            throw error;
+        const formData = new FormData();
+        formData.append('file', file);
+        if (batchId) {
+            formData.append('batchId', batchId);
         }
+
+        const response = await this.uploadRequest<{ success: boolean; data?: FileUploadResult }>(
+            '/api/revenue/upload',
+            formData,
+            session
+        );
+
+        return response;
     }
 
     async uploadRevenueFileWithProgress(
@@ -1183,7 +1166,7 @@ class ApiClient {
             if (onProgress) {
                 try {
                     onProgress(0);
-                } catch (_err) {
+                } catch (error) {
                     void 0;
                 }
             }
@@ -1194,7 +1177,7 @@ class ApiClient {
                     const progress = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
                     try {
                         onProgress(progress);
-                    } catch (_err) {
+                    } catch (error) {
                         void 0;
                     }
                 }
@@ -1202,19 +1185,15 @@ class ApiClient {
 
             // จัดการ response
             xhr.addEventListener('load', () => {
-                console.log('XHR Response Status:', xhr.status);
-                console.log('XHR Response Text:', xhr.responseText);
                 
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const response = JSON.parse(xhr.responseText);
-                        console.log('Parsed response:', response);
                         if (onProgress) {
-                            try { onProgress(100); } catch (_err) { void 0; }
+                            try { onProgress(100); } catch (error) { void 0; }
                         }
                         resolve(response);
                     } catch (error) {
-                        console.error('JSON parse error:', error);
                         reject(new Error(`Invalid JSON response: ${xhr.responseText}`));
                     }
                 } else {
@@ -1228,7 +1207,7 @@ class ApiClient {
                         if (errorResponse.error) {
                             errorMessage += `: ${errorResponse.error}`;
                         }
-                    } catch (parseError) {
+                    } catch (error) {
                         // ถ้าไม่สามารถ parse ได้ ใช้ response text
                         if (xhr.responseText) {
                             errorMessage += `: ${xhr.responseText}`;
@@ -1240,16 +1219,14 @@ class ApiClient {
 
             // จัดการ error
             xhr.addEventListener('error', () => {
-                console.error('XHR Network error');
                 if (onProgress) {
-                    try { onProgress(0); } catch (_err) { void 0; }
+                    try { onProgress(0); } catch (error) { void 0; }
                 }
                 reject(new Error('Network error during upload'));
             });
 
             // จัดการ timeout
             xhr.addEventListener('timeout', () => {
-                console.error('XHR Timeout');
                 reject(new Error('Upload timeout'));
             });
 
@@ -1271,9 +1248,6 @@ class ApiClient {
             // ตั้งค่า timeout
             xhr.timeout = 60000; // 60 seconds
 
-            console.log('Sending upload request to:', uploadUrl);
-            console.log('File size:', file.size);
-            console.log('Headers:', headers);
 
             // ส่ง request
             xhr.send(formData);
@@ -1301,7 +1275,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error uploading revenue batch:', error);
             return { success: false };
         }
         */
@@ -1327,7 +1300,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error validating revenue file:', error);
             return { success: false };
         }
         */
@@ -1346,7 +1318,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error getting revenue statistics:', error);
             return { success: false };
         }
     }
@@ -1375,7 +1346,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error getting revenue history:', error);
             return { success: false };
         }
     }
@@ -1404,7 +1374,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error getting DBF records:', error);
             return { success: false };
         }
     }
@@ -1420,7 +1389,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error getting DBF status:', error);
             return { success: false };
         }
     }
@@ -1439,7 +1407,6 @@ class ApiClient {
             );
             return response;
         } catch (error) {
-            console.error('Error processing DBF file:', error);
             return { success: false };
         }
     }
@@ -1485,7 +1452,6 @@ class ApiClient {
 
             return response;
         } catch (error) {
-            console.error('Error getting active sessions:', error);
             throw new ApiError('เกิดข้อผิดพลาดในการดึงรายการ session', 500, error);
         }
     }
@@ -1515,7 +1481,6 @@ class ApiClient {
 
             return response;
         } catch (error) {
-            console.error('Error revoking other sessions:', error);
             throw new ApiError('เกิดข้อผิดพลาดในการลบ session อื่นๆ', 500, error);
         }
     }

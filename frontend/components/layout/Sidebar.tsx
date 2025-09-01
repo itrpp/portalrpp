@@ -34,9 +34,8 @@ interface SidebarSection {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Auto-expand parent items when on sub-items
@@ -58,17 +57,9 @@ export default function Sidebar() {
 
   // ตรวจสอบ theme เมื่อ component mount
   useEffect(() => {
-    const savedTheme =
-      (localStorage.getItem('portalrpp-theme') as 'light' | 'dark') || 'light';
-    setCurrentTheme(savedTheme);
-
     // ฟังก์ชันสำหรับติดตามการเปลี่ยนแปลง theme
     const handleThemeChange = () => {
-      const theme =
-        (document.documentElement.getAttribute('data-theme') as
-          | 'light'
-          | 'dark') || 'light';
-      setCurrentTheme(theme);
+      // Handle theme change
     };
 
     // ใช้ MutationObserver เพื่อติดตามการเปลี่ยนแปลง data-theme
@@ -396,9 +387,9 @@ export default function Sidebar() {
         )}
 
         {/* Render sub-items */}
-        {hasSubItems && isExpanded && !isCollapsed && (
+        {hasSubItems && isExpanded && (
           <div className='mt-1 space-y-1'>
-            {item.subItems!.map((subItem) => renderSidebarItem(subItem, true))}
+            {item.subItems?.map((subItem) => renderSidebarItem(subItem, true))}
           </div>
         )}
       </div>
@@ -475,15 +466,13 @@ export default function Sidebar() {
 
           {/* Navigation - รองรับการ scroll และ theme */}
           <div className='sidebar-navigation flex-1 overflow-y-auto'>
-            {navigationSections.map((section, sectionIndex) => (
+            {navigationSections.map((section) => (
               <div key={section.title} className='py-2'>
-                {!isCollapsed && (
-                  <div className='px-4 py-2'>
-                    <h3 className='text-xs font-semibold text-default-500 uppercase tracking-wider'>
-                      {section.title}
-                    </h3>
-                  </div>
-                )}
+                <div className='px-4 py-2'>
+                  <h3 className='text-xs font-semibold text-default-500 uppercase tracking-wider'>
+                    {section.title}
+                  </h3>
+                </div>
 
                 <div className='space-y-1'>
                   {section.items.map((item) => renderSidebarItem(item))}

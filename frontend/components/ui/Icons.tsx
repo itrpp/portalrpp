@@ -26,7 +26,7 @@ export const DiscordIcon: React.FC<IconSvgProps> = ({
 }) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -44,7 +44,7 @@ export const TwitterIcon: React.FC<IconSvgProps> = ({
 }) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -62,7 +62,7 @@ export const GithubIcon: React.FC<IconSvgProps> = ({
 }) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -80,7 +80,7 @@ export const MoonFilledIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -103,7 +103,7 @@ export const SunFilledIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -126,7 +126,7 @@ export const HeartFilledIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -149,7 +149,7 @@ export const SearchIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -172,7 +172,7 @@ export const ShieldCheckIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -194,7 +194,7 @@ export const UserGroupIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -216,7 +216,7 @@ export const ChartBarIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -238,7 +238,7 @@ export const ClockIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -260,7 +260,7 @@ export const ServerIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -282,7 +282,7 @@ export const CpuChipIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -304,7 +304,7 @@ export const SignalIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -326,7 +326,7 @@ export const HeartIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -348,7 +348,7 @@ export const BuildingOfficeIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -370,7 +370,7 @@ export const Cog6ToothIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -392,7 +392,7 @@ export const BellIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -414,7 +414,7 @@ export const MagnifyingGlassIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -436,7 +436,7 @@ export const SunIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -458,7 +458,7 @@ export const MoonIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -481,7 +481,7 @@ export const UserIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -503,7 +503,7 @@ export const KeyIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -525,7 +525,7 @@ export const ArrowRightOnRectangleIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -547,7 +547,7 @@ export const HomeIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -569,7 +569,7 @@ export const UsersIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -592,7 +592,7 @@ export const LockClosedIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -614,7 +614,7 @@ export const ArrowLeftIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -636,7 +636,7 @@ export const EyeIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -658,7 +658,7 @@ export const EyeSlashIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -681,7 +681,7 @@ export const CheckCircleIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -703,7 +703,7 @@ export const ExclamationTriangleIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -725,7 +725,7 @@ export const ArrowRightIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -748,7 +748,7 @@ export const PaintBrushIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -771,7 +771,7 @@ export const ArrowPathIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -793,7 +793,7 @@ export const RefreshIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -816,7 +816,7 @@ export const Bars3Icon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -839,7 +839,7 @@ export const XMarkIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -862,7 +862,7 @@ export const BuildingOffice2Icon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -885,7 +885,7 @@ export const PhoneIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -908,7 +908,7 @@ export const EnvelopeIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -931,7 +931,7 @@ export const MapPinIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -954,7 +954,7 @@ export const GlobeAltIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -977,7 +977,7 @@ export const ClipboardDocumentListIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1000,7 +1000,7 @@ export const GiftIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1023,7 +1023,7 @@ export const DocumentTextIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1046,7 +1046,7 @@ export const InformationCircleIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1069,7 +1069,7 @@ export const PlusIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1092,7 +1092,7 @@ export const Squares2X2Icon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1115,7 +1115,7 @@ export const ChevronRightIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1138,7 +1138,7 @@ export const ArrowDownTrayIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1161,7 +1161,7 @@ export const ArrowUpTrayIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1184,7 +1184,7 @@ export const CalendarIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1207,7 +1207,7 @@ export const FilterIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1230,7 +1230,7 @@ export const TrendingUpIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1253,7 +1253,7 @@ export const CurrencyDollarIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1276,7 +1276,7 @@ export const FileTextIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1299,7 +1299,7 @@ export const UploadIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1322,7 +1322,7 @@ export const DownloadIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1345,7 +1345,7 @@ export const SettingsIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1368,7 +1368,7 @@ export const PlayIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1391,7 +1391,7 @@ export const XCircleIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1414,7 +1414,7 @@ export const AlertCircleIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1437,7 +1437,7 @@ export const DocumentArrowUpIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1460,7 +1460,7 @@ export const DocumentArrowDownIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1483,7 +1483,7 @@ export const TrashIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1506,7 +1506,7 @@ export const PencilIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1529,7 +1529,7 @@ export const ChevronDownIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1552,7 +1552,7 @@ export const ChevronUpIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1575,7 +1575,7 @@ export const CogIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1598,7 +1598,7 @@ export const DocumentCheckIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
@@ -1621,7 +1621,7 @@ export const DatabaseIcon = ({
 }: IconSvgProps) => {
   const iconHeight = size ?? height;
   const iconWidth = size ?? width;
-  const iconProps: any = {};
+  const iconProps: Record<string, unknown> = {};
   if (iconHeight !== undefined) iconProps.height = iconHeight;
   if (iconWidth !== undefined) iconProps.width = iconWidth;
   return (
