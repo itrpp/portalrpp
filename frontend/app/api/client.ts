@@ -884,6 +884,45 @@ class ApiClient {
     }
 
     /**
+     * ส่งออกไฟล์จาก batch
+     */
+    async exportRevenueBatch(session: Session | null, batchId: string, exportType: 'opd' | 'ipd' = 'opd'): Promise<{ success: boolean; data?: Blob; error?: string }> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/revenue/batches/${batchId}/export`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.accessToken}`,
+                    'x-session-token': session?.sessionToken || '',
+                },
+                body: JSON.stringify({ exportType }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                return {
+                    success: false,
+                    error: errorData.message || `HTTP ${response.status}: ${response.statusText}`
+                };
+            }
+
+            // ดึงไฟล์ ZIP เป็น Blob
+            const blob = await response.blob();
+            
+            return {
+                success: true,
+                data: blob
+            };
+        } catch (error) {
+            console.error('Error exporting revenue batch:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            };
+        }
+    }
+
+    /**
      * ลบ batch
      */
     async deleteRevenueBatch(session: Session | null, id: string): Promise<{ success: boolean; message?: string }> {

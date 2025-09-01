@@ -200,6 +200,7 @@ async function setupDirectories() {
       config.upload.processedPath,
       config.upload.backupPath,
       config.upload.tempPath,
+      config.upload.exportPath,
       config.logging.filePath,
     ];
     
@@ -227,8 +228,9 @@ app.get('/health', async (_req: Request, res: Response) => {
     const processedDirExists = await fs.pathExists(config.upload.processedPath);
     const backupDirExists = await fs.pathExists(config.upload.backupPath);
     const tempDirExists = await fs.pathExists(config.upload.tempPath);
+    const exportDirExists = await fs.pathExists(config.upload.exportPath);
     
-    const isHealthy = uploadDirExists && processedDirExists && backupDirExists && tempDirExists;
+    const isHealthy = uploadDirExists && processedDirExists && backupDirExists && tempDirExists && exportDirExists;
     
     res.status(isHealthy ? 200 : 503).json({
       status: isHealthy ? 'OK' : 'DEGRADED',
@@ -244,6 +246,7 @@ app.get('/health', async (_req: Request, res: Response) => {
         processedDirectory: processedDirExists,
         backupDirectory: backupDirExists,
         tempDirectory: tempDirExists,
+        exportDirectory: exportDirExists,
       },
     });
   } catch (error) {
@@ -319,6 +322,7 @@ async function startServer() {
       logInfo(`📁 Processed directory: ${config.upload.processedPath}`);
       logInfo(`📁 Backup directory: ${config.upload.backupPath}`);
       logInfo(`📁 Temp directory: ${config.upload.tempPath}`);
+      logInfo(`📁 Export directory: ${config.upload.exportPath}`);
       logInfo(`📁 Log directory: ${config.logging.filePath}`);
     });
   } catch (error) {

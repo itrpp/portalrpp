@@ -397,4 +397,197 @@ export class DBFReaderService {
       return { isProcessed: false, recordCount: 0 };
     }
   }
+
+  /**
+   * ดึงข้อมูล DBF records ทั้งหมดจากฐานข้อมูลสำหรับ OPD
+   */
+  async getAllDBFRecordsFromDatabaseForOPD(fileId: string): Promise<DBFRecord[]> {
+    try {
+      const dbfRecords = await this.prisma.dBF_Record.findMany({
+        where: { fileId },
+        orderBy: { recordIndex: 'asc' }
+      });
+
+      // แปลงข้อมูลกลับเป็น objects
+      const records: DBFRecord[] = dbfRecords.map(dbfRecord => 
+        JSON.parse(dbfRecord.data)
+      );
+
+      logInfo(`📊 ดึงข้อมูล DBF records ทั้งหมดสำหรับ OPD: ${records.length} รายการ`);
+      return records;
+
+    } catch (error) {
+      logError('Error getting all DBF records from database for OPD', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * ดึงข้อมูล DBF records ทั้งหมดจากฐานข้อมูลสำหรับ IPD
+   */
+  async getAllDBFRecordsFromDatabaseForIPD(fileId: string): Promise<DBFRecord[]> {
+    try {
+      const dbfRecords = await this.prisma.dBF_Record.findMany({
+        where: { fileId },
+        orderBy: { recordIndex: 'asc' }
+      });
+
+      // แปลงข้อมูลกลับเป็น objects
+      const records: DBFRecord[] = dbfRecords.map(dbfRecord => 
+        JSON.parse(dbfRecord.data)
+      );
+
+      logInfo(`📊 ดึงข้อมูล DBF records ทั้งหมดสำหรับ IPD: ${records.length} รายการ`);
+      return records;
+
+    } catch (error) {
+      logError('Error getting all DBF records from database for IPD', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * สร้างไฟล์ DBF ใหม่จากข้อมูลในฐานข้อมูล
+   */
+  async createDBFFileFromRecords(
+    records: DBFRecord[], 
+    outputPath: string, 
+    _originalFileName: string
+  ): Promise<void> {
+    try {
+      logInfo(`📝 เริ่มสร้างไฟล์ DBF: ${path.basename(outputPath)}`);
+
+      // สร้าง schema จากข้อมูลแรก (ถ้ามี)
+      let schema: DBFField[] = [];
+      if (records.length > 0) {
+        const firstRecord = records[0];
+        if (firstRecord) {
+          schema = Object.keys(firstRecord).map(fieldName => {
+            const value = firstRecord[fieldName];
+            const valueStr = String(value || '');
+            
+            return {
+              name: fieldName,
+              type: 'C', // Character type เป็นค่าเริ่มต้น
+              length: Math.max(valueStr.length, 10), // ความยาวขั้นต่ำ 10
+              decimalPlaces: 0
+            };
+          });
+        }
+      }
+
+      // สร้าง header
+      const header = this.createDBFHeader(records.length, schema);
+      
+      // สร้างไฟล์ DBF
+      const buffer = this.createDBFBuffer(header, records, schema);
+      
+      // เขียนไฟล์
+      await fs.writeFile(outputPath, buffer);
+      
+      logInfo(`✅ สร้างไฟล์ DBF สำเร็จ: ${path.basename(outputPath)} (${records.length} records)`);
+
+    } catch (error) {
+      logError('Error creating DBF file from records', error as Error);
+      throw new Error(`ไม่สามารถสร้างไฟล์ DBF ได้: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * สร้าง DBF header
+   */
+  private createDBFHeader(recordCount: number, fields: DBFField[]): DBFHeader {
+    const now = new Date();
+    const headerLength = 32 + (fields.length * 32) + 1; // 32 bytes header + field definitions + terminator
+    const recordLength = fields.reduce((sum, field) => sum + field.length, 1); // +1 for deletion flag
+
+    return {
+      version: 3, // dBASE III
+      year: now.getFullYear() - 1900, // DBF ใช้ปี 1900 เป็นฐาน
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+      recordCount,
+      headerLength,
+      recordLength,
+      fields
+    };
+  }
+
+  /**
+   * สร้าง DBF buffer
+   */
+  private createDBFBuffer(header: DBFHeader, records: DBFRecord[], fields: DBFField[]): Buffer {
+    // คำนวณขนาด buffer
+    const headerSize = header.headerLength;
+    const recordSize = header.recordLength;
+    const totalSize = headerSize + (records.length * recordSize);
+    
+    const buffer = Buffer.alloc(totalSize);
+    let offset = 0;
+
+    // เขียน header
+    buffer[offset++] = header.version;
+    buffer[offset++] = header.year;
+    buffer[offset++] = header.month;
+    buffer[offset++] = header.day;
+    buffer.writeUInt32LE(header.recordCount, offset);
+    offset += 4;
+    buffer.writeUInt16LE(header.headerLength, offset);
+    offset += 2;
+    buffer.writeUInt16LE(header.recordLength, offset);
+    offset += 2;
+    
+    // เขียน reserved bytes (10 bytes)
+    for (let i = 0; i < 10; i++) {
+      buffer[offset++] = 0;
+    }
+    
+    // เขียน field definitions
+    for (const field of fields) {
+      // Field name (11 bytes)
+      const nameBuffer = Buffer.from(field.name.padEnd(11, '\0'));
+      nameBuffer.copy(buffer, offset);
+      offset += 11;
+      
+      // Field type (1 byte)
+      buffer[offset++] = field.type.charCodeAt(0);
+      
+      // Reserved (4 bytes)
+      for (let i = 0; i < 4; i++) {
+        buffer[offset++] = 0;
+      }
+      
+      // Field length (1 byte)
+      buffer[offset++] = field.length;
+      
+      // Decimal places (1 byte)
+      buffer[offset++] = field.decimalPlaces;
+      
+      // Reserved (14 bytes)
+      for (let i = 0; i < 14; i++) {
+        buffer[offset++] = 0;
+      }
+    }
+    
+    // Header terminator
+    buffer[offset++] = 0x0D;
+    
+    // เขียน records
+    for (const record of records) {
+      // Deletion flag
+      buffer[offset++] = 0x20; // Space = not deleted
+      
+      // Record data
+      for (const field of fields) {
+        const value = record[field.name] || '';
+        const valueStr = String(value);
+        const paddedValue = valueStr.padEnd(field.length, ' ');
+        const valueBuffer = Buffer.from(paddedValue.substring(0, field.length));
+        valueBuffer.copy(buffer, offset);
+        offset += field.length;
+      }
+    }
+
+    return buffer;
+  }
 }

@@ -318,14 +318,79 @@ export default function RevenueExportPage() {
         }
     };
 
-    const handleExport = (batchId: string) => {
+    const handleExport = async (batchId: string) => {
         console.log('Export batch:', batchId);
-        // TODO: ดำเนินการส่งออกข้อมูล
-        // ควรตรวจสอบก่อนว่า batch นี้ปรับปรุงแล้วและยังไม่ได้ส่งออก
+        
+        // ตรวจสอบก่อนว่า batch นี้ปรับปรุงแล้วและยังไม่ได้ส่งออก
         const batch = uploadBatches.find((b) => b.id === batchId);
-        if (batch && isProcessed(batch) && !isExported(batch)) {
-            // ดำเนินการส่งออก
-            toast.success('เริ่มกระบวนการส่งออกข้อมูล...');
+        if (!batch) {
+            toast.error('ไม่พบข้อมูล batch');
+            return;
+        }
+
+        // if (!isProcessed(batch)) {
+        //     toast.error('ต้องปรับปรุงข้อมูลก่อนส่งออก');
+        //     return;
+        // }
+
+        // if (isExported(batch)) {
+        //     toast.error('ส่งออกแล้ว');
+        //     return;
+        // }
+
+        if (isExporting(batch)) {
+            toast.error('กำลังส่งออกอยู่ กรุณารอสักครู่');
+            return;
+        }
+
+        try {
+            // แสดง loading
+            toast.loading('กำลังส่งออกข้อมูล...', { id: 'export-loading' });
+
+            // เรียก API สำหรับส่งออก
+            const response = await api.exportRevenueBatch(session, batchId, 'opd');
+
+            if (response.success && response.data) {
+                // สร้าง link สำหรับดาวน์โหลด
+                const url = window.URL.createObjectURL(response.data);
+                const link = document.createElement('a');
+                link.href = url;
+                
+                // ใช้ชื่อไฟล์จาก batch และ exportType
+                const batch = uploadBatches.find((b) => b.id === batchId);
+                if (batch) {
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    const zipFileName = `${batch.batchName}_OPD.zip`;
+                    link.download = zipFileName;
+                } else {
+                    // fallback ถ้าไม่พบ batch
+                    link.download = `DBF_Batch_${batchId}_OPD.zip`;
+                }
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                // อัปเดตสถานะใน UI
+                // อัปเดตสถานะใน UI (แต่ละ property ต้องขึ้นบรรทัดใหม่)
+                const updatedBatches = uploadBatches.map((b) =>
+                    b.id === batchId
+                        ? {
+                            ...b,
+                            exportStatus: 'exported' as const,
+                        }
+                        : b
+                );
+                setUploadBatches(updatedBatches);
+
+                toast.success('ส่งออกข้อมูลสำเร็จ', { id: 'export-loading' });
+            } else {
+                toast.error(response.error || 'เกิดข้อผิดพลาดในการส่งออก', { id: 'export-loading' });
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            toast.error('เกิดข้อผิดพลาดในการส่งออกข้อมูล', { id: 'export-loading' });
         }
     };
 
@@ -493,16 +558,19 @@ export default function RevenueExportPage() {
                                                         title={
                                                             !isProcessed(batch) ? "ต้องปรับปรุงข้อมูลก่อน" :
                                                                 isExported(batch) ? "ส่งออกแล้ว" :
+                                                                    isExporting(batch) ? "กำลังส่งออก..." :
                                                                     "ส่งออกข้อมูล"
                                                         }
-                                                        isDisabled={
-                                                            isProcessing(batch) ||
-                                                            isExporting(batch) ||
-                                                            batch.status === 'error' ||
-                                                            !isProcessed(batch)
-                                                        }
+                                                        // isDisabled={
+                                                        //     isProcessing(batch) ||
+                                                        //     isExporting(batch) ||
+                                                        //     batch.status === 'error' ||
+                                                        //     !isProcessed(batch) ||
+                                                        //     isExported(batch)
+                                                        // }
+                                                        isLoading={isExporting(batch)}
                                                     >
-                                                        ส่งออกข้อมูล
+                                                        {isExporting(batch) ? "กำลังส่งออก..." : "ส่งออกข้อมูล"}
                                                     </Button>
                                                 </div>
                                             </TableCell>

@@ -54,6 +54,7 @@ export const config = {
     tempPath: process.env.TEMP_DIR || './uploads/temp',
     processedPath: process.env.PROCESSED_DIR || './uploads/processed',
     backupPath: process.env.BACKUP_DIR || './uploads/backup',
+    exportPath: process.env.EXPORT_DIR || './exports',
   } as FileUploadConfig,
 
   // Validation Configuration

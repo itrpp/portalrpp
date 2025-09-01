@@ -6,6 +6,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import * as path from 'path';
 import * as fs from 'fs-extra';
+import archiver from 'archiver';
 import { DateHelper, DateFormatter, createTimer } from '@/utils/dateHelper';
 import {
   FileUploadResult,
@@ -30,9 +31,11 @@ const router = Router();
 
 // Helper: สร้างชื่อ batch ตามประเภทไฟล์ที่นำเข้า
 const generateBatchNameByFileType = (files: Express.Multer.File[]): string => {
-  if (!files || files.length === 0) {
-    return `Batch ${DateHelper.toISO(DateHelper.now())}`;
-  }
+  // if (!files || files.length === 0) {
+  //   return `Batch ${DateHelper.toISO(DateHelper.now())}`;
+  // }
+
+  console.log('files', files);
 
   // ตรวจสอบประเภทไฟล์หลักใน batch
   const fileTypes = new Set<string>();
@@ -59,6 +62,18 @@ const generateBatchNameByFileType = (files: Express.Multer.File[]): string => {
   // สร้างชื่อ batch ตามประเภทไฟล์
   if (fileTypes.size === 1) {
     const fileType = Array.from(fileTypes)[0];
+    // ถ้าเป็น DBF ให้ใช้รูปแบบ DBF_Batch_yyMMdd_hhmm (เวลาไทย)
+    if (fileType === 'DBF') {
+      const thNow = DateHelper.nowInThailand();
+      const thaiYear = thNow.year + 543;
+      const yyThai = String(thaiYear % 100).padStart(2, '0');
+      const MM = thNow.toFormat('LL');
+      const dd = thNow.toFormat('dd');
+      const HH = thNow.toFormat('HH');
+      const mm = thNow.toFormat('mm');
+      const timestamp = `${yyThai}${MM}${dd}_${HH}${mm}`;
+      return `DBF_Batch_${timestamp}`;
+    }
     return `${fileType} Files Upload - ${monthYear}`;
   } else if (fileTypes.size > 1) {
     const fileTypesList = Array.from(fileTypes).sort().join('/');
@@ -761,7 +776,17 @@ router.post('/batches',
 
     try {
       const batch = await getServices(req).batchService.createBatch({
-        batchName: batchName || `Batch ${DateHelper.toISO(DateHelper.now())}`,
+        batchName: batchName || (() => {
+          const thNow = DateHelper.nowInThailand();
+          const thaiYear = thNow.year + 543;
+          const yyThai = String(thaiYear % 100).padStart(2, '0');
+          const MM = thNow.toFormat('LL');
+          const dd = thNow.toFormat('dd');
+          const HH = thNow.toFormat('HH');
+          const mm = thNow.toFormat('mm');
+          const timestamp = `${yyThai}${MM}${dd}_${HH}${mm}`;
+          return `DBF_Batch_${timestamp}`;
+        })(),
         userId: userId || (req.ip || 'unknown'),
         ipAddress: ipAddress || (req.ip || 'unknown'),
         userAgent: userAgent || (req.get('User-Agent') || 'unknown'),
@@ -1010,12 +1035,13 @@ router.get('/health', asyncHandler(async (req: Request, res: Response) => {
       fs.pathExists(config.upload.processedPath),
       fs.pathExists(config.upload.backupPath),
       fs.pathExists(config.upload.tempPath),
+      fs.pathExists(config.upload.exportPath),
       fs.pathExists(config.upload.dbfPath),
       fs.pathExists(config.upload.repPath),
       fs.pathExists(config.upload.stmPath),
     ]);
 
-    const [uploadDir, processedDir, backupDir, tempDir, dbfDir, repDir, stmDir] = fileSystemChecks.map(
+    const [uploadDir, processedDir, backupDir, tempDir, exportDir, dbfDir, repDir, stmDir] = fileSystemChecks.map(
       result => result.status === 'fulfilled' ? result.value : false
     );
 
@@ -1084,7 +1110,7 @@ router.get('/health', asyncHandler(async (req: Request, res: Response) => {
     }
 
     // กำหนดสถานะรวม
-    const allDirectoriesExist = uploadDir && processedDir && backupDir && tempDir && dbfDir && repDir && stmDir;
+    const allDirectoriesExist = uploadDir && processedDir && backupDir && tempDir && exportDir && dbfDir && repDir && stmDir;
     const allServicesAvailable = Object.values(servicesStatus).every(status => status === true);
     const memoryHealthy = memoryUsageMB.heapUsed < 500; // น้อยกว่า 500MB
     
@@ -1120,6 +1146,7 @@ router.get('/health', asyncHandler(async (req: Request, res: Response) => {
           processedDirectory: processedDir,
           backupDirectory: backupDir,
           tempDirectory: tempDir,
+          exportDirectory: exportDir,
           dbfDirectory: dbfDir,
           repDirectory: repDir,
           stmDirectory: stmDir,
@@ -3263,6 +3290,339 @@ router.post('/statistics/export',
       });
     }
   })
+);
+
+// ========================================
+// BATCH EXPORT ENDPOINTS
+// ========================================
+
+// POST /api/revenue/batches/:id/export - ส่งออกไฟล์จาก batch
+router.post('/batches/:id/export',
+  apiRateLimiter,
+  authenticateSession,
+  requireUser,
+  validateBatchId,
+  asyncHandler(async (req: Request, res: Response) => {
+    const timer = createTimer();
+    const { id } = req.params;
+    const { exportType = 'opd' } = req.body; // รองรับ opd และ ipd
+
+    try {
+      logInfo(`📦 เริ่มต้นการส่งออก batch ID: ${id} (ประเภท: ${exportType.toUpperCase()})`);
+
+      // ตรวจสอบ batch
+      const batch = await getServices(req).batchService.getBatch(id!);
+      if (!batch) {
+        return res.status(404).json({
+          success: false,
+          message: 'ไม่พบ batch ที่ระบุ',
+          timestamp: DateHelper.toDate(DateHelper.now()),
+        });
+      }
+
+      // ตรวจสอบสถานะ batch
+      // if (batch.processingStatus !== 'completed') {
+      //   return res.status(400).json({
+      //     success: false,
+      //     message: 'batch ยังไม่ได้ประมวลผลเสร็จสิ้น กรุณารอให้ประมวลผลเสร็จก่อนส่งออก',
+      //     timestamp: DateHelper.toDate(DateHelper.now()),
+      //   });
+      // }
+
+      // อัปเดตสถานะเป็น exporting
+      // await getServices(req).batchService.updateBatch(id!, {
+      //   exportStatus: 'exporting',
+      // });
+
+      // ดึงไฟล์ทั้งหมดใน batch
+      const batchFiles = await getServices(req).batchService.getBatchFiles(id!, {
+        limit: 1000, // ดึงไฟล์ทั้งหมด
+      });
+
+
+      if (!batchFiles.files || batchFiles.files.length === 0) {
+        // อัปเดตสถานะเป็น export_failed
+        await getServices(req).batchService.updateBatch(id!, {
+          exportStatus: 'export_failed',
+        });
+        console.log('ไม่พบไฟล์ใน batch นี้');
+
+        return res.status(400).json({
+          success: false,
+          message: 'ไม่พบไฟล์ใน batch นี้',
+          timestamp: DateHelper.toDate(DateHelper.now()),
+        });
+      }
+
+      // สร้างโฟลเดอร์สำหรับ export
+      const exportDir = path.join(config.upload.exportPath, 'temp', id!);
+      await fs.ensureDir(exportDir);
+
+      const exportedFiles: string[] = [];
+      const errors: string[] = [];
+
+      // ประมวลผลไฟล์แต่ละไฟล์
+      for (const fileRecord of batchFiles.files) {
+        try {
+          // ตรวจสอบว่าเป็นไฟล์ DBF หรือไม่
+          const fileExtension = path.extname(fileRecord.originalName).toLowerCase();
+          if (fileExtension !== '.dbf') {
+            logInfo(`⏭️ ข้ามไฟล์ที่ไม่ใช่ DBF: ${fileRecord.originalName}`);
+            continue;
+          }
+
+          // ดึงข้อมูล DBF records จากฐานข้อมูลตามประเภทการส่งออก
+          let dbfRecords;
+          if (exportType.toLowerCase() === 'ipd') {
+            dbfRecords = await getServices(req).dbfReaderService.getAllDBFRecordsFromDatabaseForIPD(fileRecord.id);
+          } else {
+            // ค่าเริ่มต้นเป็น OPD
+            dbfRecords = await getServices(req).dbfReaderService.getAllDBFRecordsFromDatabaseForOPD(fileRecord.id);
+          }
+          
+          
+          if (!dbfRecords || dbfRecords.length === 0) {
+            logInfo(`⚠️ ไม่พบข้อมูล DBF records สำหรับไฟล์: ${fileRecord.originalName} - ใช้ไฟล์ต้นฉบับแทน`);
+            
+            // ใช้ไฟล์ต้นฉบับจากโฟลเดอร์ upload แทน
+            const originalFilePath = fileRecord.filePath;
+            console.log('originalFilePath', originalFilePath);
+
+            const exportFilePath = path.join(exportDir, fileRecord.originalName);
+            
+            // ตรวจสอบว่าไฟล์ต้นฉบับมีอยู่จริงหรือไม่
+            if (await fs.pathExists(originalFilePath)) {
+              // คัดลอกไฟล์ต้นฉบับไปยังโฟลเดอร์ export
+              await fs.copy(originalFilePath, exportFilePath);
+              
+              // ตรวจสอบว่าไฟล์ที่คัดลอกมีอยู่จริง
+              if (await fs.pathExists(exportFilePath)) {
+                const fileStats = await fs.stat(exportFilePath);
+                if (fileStats.size > 0) {
+                  exportedFiles.push(fileRecord.originalName);
+                  logInfo(`📋 ใช้ไฟล์ต้นฉบับ: ${fileRecord.originalName} (${fileStats.size} bytes)`);
+                } else {
+                  logError('Copied file is empty', new Error(`File is empty: ${exportFilePath}`), {
+                    fileId: fileRecord.id,
+                    fileName: fileRecord.originalName,
+                    originalPath: originalFilePath,
+                    exportPath: exportFilePath
+                  });
+                  errors.push(`ไฟล์ต้นฉบับว่างเปล่า: ${fileRecord.originalName}`);
+                }
+              } else {
+                logError('Failed to copy file', new Error(`Copy failed: ${originalFilePath} -> ${exportFilePath}`), {
+                  fileId: fileRecord.id,
+                  fileName: fileRecord.originalName,
+                  originalPath: originalFilePath,
+                  exportPath: exportFilePath
+                });
+                errors.push(`ไม่สามารถคัดลอกไฟล์: ${fileRecord.originalName}`);
+              }
+            } else {
+              logError('Original file not found', new Error(`File not found: ${originalFilePath}`), {
+                fileId: fileRecord.id,
+                fileName: fileRecord.originalName,
+                originalPath: originalFilePath
+              });
+              errors.push(`ไม่พบไฟล์ต้นฉบับ: ${fileRecord.originalName}`);
+            }
+            continue;
+          }
+
+          // สร้างไฟล์ DBF ใหม่จากข้อมูลในฐานข้อมูล
+          const dbfFilePath = path.join(exportDir, fileRecord.originalName);
+          await getServices(req).dbfReaderService.createDBFFileFromRecords(
+            dbfRecords,
+            dbfFilePath,
+            fileRecord.originalName
+          );
+
+          // ตรวจสอบว่าไฟล์ที่สร้างมีอยู่จริงและมีขนาด > 0
+          if (await fs.pathExists(dbfFilePath)) {
+            const fileStats = await fs.stat(dbfFilePath);
+            if (fileStats.size > 0) {
+              exportedFiles.push(fileRecord.originalName);
+              logInfo(`✅ สร้างไฟล์ DBF สำเร็จ: ${fileRecord.originalName} (${dbfRecords.length} records, ${fileStats.size} bytes)`);
+            } else {
+              logError('Created DBF file is empty', new Error(`DBF file is empty: ${dbfFilePath}`), {
+                fileId: fileRecord.id,
+                fileName: fileRecord.originalName,
+                dbfPath: dbfFilePath,
+                recordCount: dbfRecords.length
+              });
+              errors.push(`ไฟล์ DBF ที่สร้างว่างเปล่า: ${fileRecord.originalName}`);
+            }
+          } else {
+            logError('Failed to create DBF file', new Error(`DBF file not created: ${dbfFilePath}`), {
+              fileId: fileRecord.id,
+              fileName: fileRecord.originalName,
+              dbfPath: dbfFilePath,
+              recordCount: dbfRecords.length
+            });
+            errors.push(`ไม่สามารถสร้างไฟล์ DBF: ${fileRecord.originalName}`);
+          }
+
+        } catch (error) {
+          const errorMsg = `เกิดข้อผิดพลาดในการประมวลผลไฟล์ ${fileRecord.originalName}: ${(error as Error).message}`;
+          errors.push(errorMsg);
+          logError('Error processing file for export', error as Error, { 
+            fileId: fileRecord.id, 
+            fileName: fileRecord.originalName 
+          });
+        }
+      }
+
+      if (exportedFiles.length === 0) {
+        // อัปเดตสถานะเป็น export_failed
+        await getServices(req).batchService.updateBatch(id!, {
+          exportStatus: 'export_failed',
+        });
+
+        return res.status(500).json({
+          success: false,
+          message: 'ไม่สามารถส่งออกไฟล์ได้',
+          errors,
+          timestamp: DateHelper.toDate(DateHelper.now()),
+        });
+      }
+
+      // สร้างไฟล์ ZIP
+      // const zipFileName = `exports_batch_${id}_${exportType.toUpperCase()}.zip`;
+      const zipFileName = `${batch.batchName}_${exportType.toUpperCase()}.zip`;
+      const zipFilePath = path.join(config.upload.exportPath, zipFileName);
+
+      try {
+        // ใช้ archiver สำหรับสร้าง ZIP
+        const output = fs.createWriteStream(zipFilePath);
+        const archive = archiver('zip', {
+          zlib: { level: 9 } // ระดับการบีบอัดสูงสุด
+        });
+
+        // รอให้ ZIP สร้างเสร็จก่อนส่ง response
+        await new Promise<void>((resolve, reject) => {
+          output.on('close', async () => {
+            logInfo(`📦 สร้างไฟล์ ZIP สำเร็จ: ${zipFileName} (${archive.pointer()} bytes) - ประเภท: ${exportType.toUpperCase()}`);
+            resolve();
+          });
+
+          archive.on('error', (err: any) => {
+            logError('Error creating ZIP archive', err);
+            reject(err);
+          });
+
+          archive.pipe(output);
+
+          // เพิ่มไฟล์ทั้งหมดในโฟลเดอร์ export ลงใน ZIP
+          (async () => {
+            for (const fileName of exportedFiles) {
+              const filePath = path.join(exportDir, fileName);
+              // ตรวจสอบว่าไฟล์มีอยู่จริงก่อนเพิ่ม
+              if (await fs.pathExists(filePath)) {
+                archive.file(filePath, { name: fileName });
+                logInfo(`📁 เพิ่มไฟล์ใน ZIP: ${fileName}`);
+              } else {
+                logError('File not found for ZIP', new Error(`File not found: ${filePath}`));
+              }
+            }
+            archive.finalize();
+          })();
+        });
+
+        // อัปเดตสถานะเป็น exported
+        await getServices(req).batchService.updateBatch(id!, {
+          exportStatus: 'exported',
+        });
+
+        // ตรวจสอบว่าไฟล์ ZIP สร้างสำเร็จและมีขนาด > 0
+        const zipStats = await fs.stat(zipFilePath);
+        if (zipStats.size === 0) {
+          throw new Error('ZIP file is empty');
+        }
+
+        logInfo(`📦 ZIP file created successfully: ${zipFilePath} (${zipStats.size} bytes)`);
+
+        // ส่งไฟล์ ZIP ให้ดาวน์โหลด
+        res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Length', zipStats.size);
+
+        const stream = fs.createReadStream(zipFilePath);
+        stream.pipe(res);
+
+        // ลบไฟล์ชั่วคราวหลังส่งเสร็จ
+        stream.on('end', async () => {
+          const responseTime = timer.elapsed();
+          logApiRequest('POST', `/batches/${id!}/export`, 200, responseTime);
+          logInfo(`📤 ส่งออก batch สำเร็จ: ${exportedFiles.length} ไฟล์ (ประเภท: ${exportType.toUpperCase()}, ใช้เวลา ${responseTime.toFixed(2)}ms)`);
+          
+          // ลบโฟลเดอร์ชั่วคราว
+          try {
+            await fs.remove(exportDir);
+            logInfo(`🧹 ลบโฟลเดอร์ชั่วคราวเรียบร้อย: ${exportDir}`);
+          } catch (cleanupError) {
+            logError('Failed to cleanup temporary directory', cleanupError as Error);
+          }
+        });
+
+        stream.on('error', async (error) => {
+          const responseTime = timer.elapsed();
+          logApiRequest('POST', `/batches/${id!}/export`, 500, responseTime);
+          logError('Error streaming export file', error);
+
+          // อัปเดตสถานะเป็น export_failed
+          await getServices(req).batchService.updateBatch(id!, {
+            exportStatus: 'export_failed',
+          });
+
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              message: 'เกิดข้อผิดพลาดในการส่งออกไฟล์',
+              timestamp: DateHelper.toDate(DateHelper.now()),
+            });
+          }
+        });
+
+        // Return undefined for streaming response
+        return;
+
+      } catch (zipError) {
+        logError('Error creating ZIP file', zipError as Error);
+
+        // อัปเดตสถานะเป็น export_failed
+        await getServices(req).batchService.updateBatch(id!, {
+          exportStatus: 'export_failed',
+        });
+
+        return res.status(500).json({
+          success: false,
+          message: 'เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP',
+          timestamp: DateHelper.toDate(DateHelper.now()),
+        });
+      }
+
+    } catch (error) {
+      const responseTime = timer.elapsed();
+      logApiRequest('POST', `/batches/${id!}/export`, 500, responseTime);
+      logError('Error during batch export', error as Error);
+
+      // อัปเดตสถานะเป็น export_failed
+      try {
+        await getServices(req).batchService.updateBatch(id!, {
+          exportStatus: 'export_failed',
+        });
+      } catch (updateError) {
+        logError('Failed to update batch export status', updateError as Error);
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการส่งออก batch',
+        timestamp: DateHelper.toDate(DateHelper.now()),
+      });
+    }
+  }),
 );
 
 export default router;

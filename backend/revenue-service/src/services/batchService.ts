@@ -33,6 +33,9 @@ import {
   logError,
   logBatchCreation
 } from '@/utils/logger';
+import fs from 'fs-extra';
+import path from 'path';
+import { config } from '@/config';
 
 export class BatchService {
   private databaseService: DatabaseService;
@@ -193,6 +196,15 @@ export class BatchService {
         if (firstPath && typeof firstPath === 'string') {
           await this.fileStorageService.deleteBatchFolderFromFilePath(firstPath);
         }
+      }
+
+      // ลบไฟล์ Export ที่เกี่ยวข้องกับ batch นี้
+      try {
+        await this.deleteBatchExportFiles(id, batch.batchName);
+        logInfo('Batch export files deleted', { batchId: id });
+      } catch (exportError) {
+        logError('Failed to delete batch export files', exportError as Error, { batchId: id });
+        // ดำเนินการต่อแม้จะลบไฟล์ export ไม่สำเร็จ
       }
 
       // ลบ batch และ records จาก database
@@ -824,6 +836,74 @@ export class BatchService {
       canRetry: retryableErrors > 0,
       retryableErrors,
     };
+  }
+
+  /**
+   * ลบไฟล์ Export ที่เกี่ยวข้องกับ batch
+   */
+  async deleteBatchExportFiles(batchId: string, batchName: string): Promise<void> {
+    try {
+      logInfo('Deleting batch export files', { batchId, batchName });
+
+      // ใช้ config ที่ import ไว้แล้ว
+      const exportPath = config.upload.exportPath;
+      
+      logInfo('Export path configuration', { exportPath });
+      
+      if (!await fs.pathExists(exportPath)) {
+        logInfo('Export directory does not exist', { exportPath });
+        return;
+      }
+
+      // ลบไฟล์ ZIP ที่เกี่ยวข้องกับ batch นี้
+      const files = await fs.readdir(exportPath);
+      logInfo('Files found in export directory', { exportPath, fileCount: files.length, files });
+      
+      let deletedFiles = 0;
+
+      for (const file of files) {
+        const filePath = path.join(exportPath, file);
+        const stats = await fs.stat(filePath);
+
+        if (stats.isFile() && file.endsWith('.zip')) {
+          // ตรวจสอบว่าไฟล์ ZIP เกี่ยวข้องกับ batch นี้หรือไม่
+          if (file.includes(batchName) || file.includes(batchId)) {
+            try {
+              await fs.remove(filePath);
+              deletedFiles++;
+              logInfo('Export file deleted', { filePath, batchId });
+            } catch (error) {
+              logError('Failed to delete export file', error as Error, { filePath, batchId });
+            }
+          } else {
+            logInfo('File not related to batch, skipping', { file, batchName, batchId });
+          }
+        } else {
+          logInfo('File is not a ZIP file, skipping', { file, isFile: stats.isFile(), extension: path.extname(file) });
+        }
+      }
+
+      // ลบโฟลเดอร์ temp ที่เกี่ยวข้องกับ batch นี้ (ถ้ามี)
+      const tempExportPath = path.join(exportPath, 'temp', batchId);
+      if (await fs.pathExists(tempExportPath)) {
+        try {
+          await fs.remove(tempExportPath);
+          logInfo('Temp export directory deleted', { tempExportPath, batchId });
+        } catch (error) {
+          logError('Failed to delete temp export directory', error as Error, { tempExportPath, batchId });
+        }
+      }
+
+      logInfo('Batch export files cleanup completed', { 
+        batchId, 
+        batchName, 
+        deletedFiles 
+      });
+
+    } catch (error) {
+      logError('Failed to delete batch export files', error as Error, { batchId, batchName });
+      throw error;
+    }
   }
 }
 

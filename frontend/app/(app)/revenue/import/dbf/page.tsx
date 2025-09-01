@@ -344,8 +344,20 @@ export default function DBFImportPage() {
 
     // 🚀 ฟังก์ชันสำหรับสร้าง batch ใหม่
     const createBatch = useCallback(async (): Promise<string> => {
+        // ตั้งชื่อเป็น DBF_Batch_yyMMdd_HHmm (เวลาไทย)
+        const now = new Date();
+        const thNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        // ปีไทย (พ.ศ.)
+        const thaiYear = thNow.getFullYear() + 543;
+        const yy = String(thaiYear % 100).padStart(2, '0');
+        const MM = String(thNow.getMonth() + 1).padStart(2, '0');
+        const dd = String(thNow.getDate()).padStart(2, '0');
+        const HH = String(thNow.getHours()).padStart(2, '0');
+        const mm = String(thNow.getMinutes()).padStart(2, '0');
+        const dbfBatchName = `DBF_Batch_${yy}${MM}${dd}_${HH}${mm}`;
+
         const batchResponse = await api.createRevenueBatch(session, {
-            batchName: `Batch ${formatDate(new Date())}`,
+            batchName: dbfBatchName,
             userId: session?.user?.email || 'unknown',
             ipAddress: 'unknown',
             userAgent: navigator.userAgent

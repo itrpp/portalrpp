@@ -136,7 +136,6 @@ export class DatabaseService {
         where: { id },
         data,
       });
-
       logInfo('Upload batch updated', { id: batch.id, batchName: batch.batchName });
       return batch as IUploadBatch;
     } catch (error) {

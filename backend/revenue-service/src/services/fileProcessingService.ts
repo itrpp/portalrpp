@@ -2,7 +2,6 @@
 // FILE PROCESSING SERVICE
 // ========================================
 
-import * as ExcelJS from 'exceljs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as iconv from 'iconv-lite';
@@ -12,13 +11,7 @@ import { DateHelper, createTimer } from '@/utils/dateHelper';
 import {
   FileValidationResult,
   FileProcessingResult,
-  RevenueReport,
-  BatchProcessingResult,
-  ProcessingError,
-  BatchStatus,
-  FileProcessingStatus,
 } from '@/types';
-import { DatabaseService } from './databaseService';
 import { logFileProcessing } from '@/utils/logger';
 import config from '@/config';
 
@@ -30,10 +23,9 @@ export interface IFileProcessingService {
 }
 
 export class FileProcessingService implements IFileProcessingService {
-  private databaseService: DatabaseService;
 
   constructor() {
-    this.databaseService = new DatabaseService();
+    // Constructor implementation
   }
 
   /**
@@ -55,11 +47,11 @@ export class FileProcessingService implements IFileProcessingService {
           result = await this.processDBF(filePath, filename);
           break;
         case 'rep':
-          result = await this.processREP(filePath, filename);
-          break;
+          // TODO: Implement REP processing
+          throw new Error(`การประมวลผลไฟล์ REP ยังไม่รองรับ`);
         case 'statement':
-          result = await this.processStatement(filePath, filename);
-          break;
+          // TODO: Implement Statement processing
+          throw new Error(`การประมวลผลไฟล์ Statement ยังไม่รองรับ`);
         default:
           throw new Error(`ประเภทไฟล์ไม่รองรับ: ${validationResult.fileType}`);
       }

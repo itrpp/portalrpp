@@ -433,6 +433,7 @@ export interface FileUploadConfig {
   tempPath: string;
   processedPath: string;
   backupPath: string;
+  exportPath: string;
 }
 
 export interface ValidationConfig {
