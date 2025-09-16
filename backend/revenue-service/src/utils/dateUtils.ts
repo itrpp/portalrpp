@@ -389,6 +389,66 @@ export function createTimer(): {
 }
 
 // Export ทั้งหมดเป็น default object สำหรับความสะดวก
+// ========================================
+// CONVENIENCE FUNCTIONS (from dateManager)
+// ========================================
+
+/**
+ * สร้าง timestamp ปัจจุบัน
+ */
+export function createTimestamp(): Date {
+  return DateHelper.toDate(DateHelper.now());
+}
+
+/**
+ * สร้าง timestamp ปัจจุบันในประเทศไทย
+ */
+export function createTimestampThailand(): Date {
+  return DateHelper.toDate(DateHelper.nowInThailand());
+}
+
+/**
+ * สร้าง folder format (yyyyMMdd) จากวันที่ปัจจุบัน
+ */
+export function createFolderFormat(): string {
+  return DateFormatter.toFolderFormat(DateHelper.now());
+}
+
+/**
+ * สร้าง folder format (yyyyMMdd) จากวันที่ที่กำหนด
+ */
+export function createFolderFormatFromDate(date: Date): string {
+  return DateFormatter.toFolderFormat(DateHelper.fromDate(date));
+}
+
+/**
+ * สร้าง ISO string จากวันที่ปัจจุบัน
+ */
+export function createISOString(): string {
+  return DateHelper.toISO(DateHelper.now());
+}
+
+/**
+ * สร้าง ISO string จากวันที่ที่กำหนด
+ */
+export function createISOStringFromDate(date: Date): string {
+  return DateHelper.toISO(DateHelper.fromDate(date));
+}
+
+/**
+ * สร้าง month-year format (YYYY-MM) จากวันที่ปัจจุบัน
+ */
+export function createMonthYearFormat(): string {
+  return DateHelper.toISO(DateHelper.now()).substring(0, 7);
+}
+
+/**
+ * สร้าง month-year format (YYYY-MM) จากวันที่ที่กำหนด
+ */
+export function createMonthYearFormatFromDate(date: Date): string {
+  return DateHelper.toISO(DateHelper.fromDate(date)).substring(0, 7);
+}
+
 export default {
   DateHelper,
   DateFormatter,
@@ -401,4 +461,13 @@ export default {
   safeFromDate,
   safeToDate,
   createTimer,
+  // Convenience functions
+  createTimestamp,
+  createTimestampThailand,
+  createFolderFormat,
+  createFolderFormatFromDate,
+  createISOString,
+  createISOStringFromDate,
+  createMonthYearFormat,
+  createMonthYearFormatFromDate,
 };

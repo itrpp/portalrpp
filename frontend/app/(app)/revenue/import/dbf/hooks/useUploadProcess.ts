@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { toast } from 'react-hot-toast';
+// No direct toast here; feedback is handled by callers via addToast.
 import { api, type UploadedFile } from '@/app/api/client';
 
 export const useUploadProcess = () => {

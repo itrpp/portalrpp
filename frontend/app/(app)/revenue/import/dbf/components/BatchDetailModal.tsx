@@ -18,7 +18,7 @@ import { type UploadBatch, api } from '@/app/api/client';
 import {
     TrashIcon,
 } from '@/components/ui/Icons';
-import { toast } from 'react-hot-toast';
+// Removed unused toast import
 import { useSession } from 'next-auth/react';
 
 interface BatchDetailModalProps {

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Button } from '@heroui/react';
-import { toast } from 'react-hot-toast';
+import { Button, addToast } from '@heroui/react';
 import {
     PlusIcon,
 } from '@/components/ui/Icons';
@@ -110,9 +109,9 @@ export default function DBFImportPage() {
 
             if (result.success) {
                 if (result.successCount > 0) {
-                    toast.success(`อัปโหลดและตรวจสอบไฟล์เสร็จสิ้น! สำเร็จ ${result.successCount} ไฟล์${result.errorCount > 0 ? `, ล้มเหลว ${result.errorCount} ไฟล์` : ''}`);
+                    addToast({ title: `อัปโหลดและตรวจสอบไฟล์เสร็จสิ้น! สำเร็จ ${result.successCount} ไฟล์${result.errorCount > 0 ? `, ล้มเหลว ${result.errorCount} ไฟล์` : ''}`, color: 'success' });
                 } else {
-                    toast.error(`อัปโหลดไฟล์ล้มเหลว: ${result.errorCount} ไฟล์`);
+                    addToast({ title: `อัปโหลดไฟล์ล้มเหลว: ${result.errorCount} ไฟล์`, color: 'danger' });
                 }
                 setIsUploadCompleted(true);
             }

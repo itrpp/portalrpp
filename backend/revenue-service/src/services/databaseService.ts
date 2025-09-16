@@ -4,83 +4,19 @@
 
 import { PrismaClient } from '@prisma/client';
 import { logInfo, logError } from '@/utils/logger';
-import { FileType, FileProcessingStatus, BatchStatus, ExportStatus, BatchProcessingStatus } from '@/types';
+import { 
+  FileType, 
+  FileProcessingStatus, 
+  BatchStatus, 
+  ExportStatus, 
+  BatchProcessingStatus,
+  IUploadRecord,
+  IUploadBatch,
+  IProcessingHistory,
+  IUploadStatistics
+} from '@/types';
 
-export interface IUploadRecord {
-  id: string;
-  filename: string;
-  originalName: string;
-  fileType: string; // DBF, REP, STM
-  fileSize: number;
-  filePath: string;
-  uploadDate: Date;
-  processedAt?: Date | null;
-  status: string; // PENDING, PROCESSING, SUCCESS, FAILED, VALIDATION_FAILED
-  batchId?: string | null;
-  userId?: string | null;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-  isValid?: boolean | null;
-  errors?: string | null;
-  warnings?: string | null;
-  totalRecords?: number | null;
-  validRecords?: number | null;
-  invalidRecords?: number | null;
-  processedRecords?: number | null;
-  skippedRecords?: number | null;
-  processingTime?: number | null;
-  errorMessage?: string | null;
-  metadata?: string | null;
-}
-
-export interface IUploadBatch {
-  id: string;
-  batchName: string;
-  uploadDate: Date;
-  totalFiles: number;
-  successFiles: number;
-  errorFiles: number;
-  processingFiles: number;
-  totalRecords: number;
-  totalSize: number;
-  status: BatchStatus;
-  processingStatus: BatchProcessingStatus;
-  exportStatus: ExportStatus;
-  userId?: string | null;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-}
-
-export interface IProcessingHistory {
-  id: string;
-  uploadId: string;
-  action: string; // VALIDATE, PROCESS, BACKUP, CLEANUP
-  status: string; // STARTED, SUCCESS, FAILED, CANCELLED
-  message?: string | null;
-  startTime: Date;
-  endTime?: Date | null;
-  duration?: number | null;
-  error?: string | null;
-  stackTrace?: string | null;
-}
-
-export interface IUploadStatistics {
-  id: string;
-  date: Date;
-  totalUploads: number;
-  successfulUploads: number;
-  failedUploads: number;
-  dbfUploads: number;
-  repUploads: number;
-  stmUploads: number;
-  totalFileSize: number;
-  averageFileSize: number;
-  totalProcessingTime: number;
-  averageProcessingTime: number;
-  totalRecords: number;
-  validRecords: number;
-  invalidRecords: number;
-}
+// Interfaces moved to @/types
 
 export class DatabaseService {
   private prisma: PrismaClient;
@@ -132,9 +68,12 @@ export class DatabaseService {
    */
   async updateUploadBatch(id: string, data: Partial<IUploadBatch>): Promise<IUploadBatch> {
     try {
+      // Remove files field from data as it's not part of the update input
+      const { files, ...updateData } = data;
+      
       const batch = await this.prisma.uploadBatch.update({
         where: { id },
-        data,
+        data: updateData,
       });
       logInfo('Upload batch updated', { id: batch.id, batchName: batch.batchName });
       return batch as IUploadBatch;

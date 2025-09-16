@@ -1,53 +1,37 @@
 // ========================================
-// REVENUE SERVICE VALIDATION SERVICE
+// REVENUE SERVICE VALIDATION SERVICE (CONSOLIDATED)
 // ========================================
 
 import * as fs from 'fs-extra';
 import * as crypto from 'crypto';
 import * as path from 'path';
-import { ValidationError, ProcessingError, ValidationResult, BatchValidationResult, FileValidationRule } from '@/types';
+import * as ExcelJS from 'exceljs';
+import { 
+  ValidationError, 
+  ProcessingError, 
+  ValidationResult, 
+  BatchValidationResult, 
+  FileValidationRule,
+  FileValidationResult,
+  DBFValidationResult,
+  REPValidationResult,
+  StatementValidationResult,
+  IValidationService
+} from '@/types';
 import { FileValidationError } from '@/utils/errorHandler';
-import { DateHelper } from '@/utils/dateHelper';
-import { logError, logInfo } from '@/utils/logger';
+import { DateHelper } from '@/utils/dateUtils';
+import { logError, logInfo, logFileValidation } from '@/utils/logger';
+import { parseDBFWithSchema } from '@/services/dbfService';
+import { DatabaseService } from './databaseService';
+import config from '@/config';
 
-export interface IValidationService {
-  validateFile(file: Express.Multer.File): Promise<ValidationResult>;
-  validateBatch(batchId: string, files: Express.Multer.File[]): Promise<BatchValidationResult>;
-  validateField(value: any, rule: FileValidationRule): ValidationResult;
-  validateRequired(value: any, fieldName: string): ValidationError[];
-  validateType(value: any, expectedType: string, fieldName: string): ValidationError[];
-  validateLength(value: string, minLength?: number, maxLength?: number, fieldName?: string): ValidationError[];
-  validateRange(value: number, minValue?: number, maxValue?: number, fieldName?: string): ValidationError[];
-  validatePattern(value: string, pattern: string, fieldName?: string): ValidationError[];
-  validateCustom(value: any, validator: (value: any) => boolean, fieldName?: string): ValidationError[];
-  validateChecksum(filePath: string, expectedChecksum?: string): Promise<ValidationResult>;
-  validateFileIntegrity(filePath: string): Promise<ValidationResult>;
-  validateFileSecurity(file: Express.Multer.File): Promise<ValidationResult>;
-  generateChecksum(filePath: string, algorithm?: string): Promise<string>;
-  validateBatchSecurity(batchId: string, files: Express.Multer.File[]): Promise<ValidationResult>;
-}
-
-export interface IChecksumValidation {
-  algorithm: string;
-  expectedChecksum?: string;
-  actualChecksum: string;
-  isValid: boolean;
-}
-
-export interface ISecurityValidation {
-  fileSize: number;
-  fileType: string;
-  fileName: string;
-  hasVirus: boolean;
-  isMalicious: boolean;
-  securityScore: number;
-  warnings: string[];
-}
+// Interfaces moved to @/types
 
 export class ValidationService implements IValidationService {
   private rules: Map<string, FileValidationRule[]>;
   private allowedAlgorithms: string[] = ['md5', 'sha1', 'sha256', 'sha512'];
   private maxFileSize: number = 52428800; // 50MB
+  private databaseService: DatabaseService;
   private allowedFileTypes: string[] = ['.dbf', '.xls', '.xlsx'];
   private maliciousPatterns: RegExp[] = [
     /\.(exe|bat|cmd|com|pif|scr|vbs|js)$/i,
@@ -58,8 +42,10 @@ export class ValidationService implements IValidationService {
     /onerror/i,
   ];
 
-  constructor() {
+  constructor(databaseService?: DatabaseService) {
     this.rules = new Map();
+    // ใช้ dependency injection หรือสร้าง instance ใหม่ถ้าไม่ได้ส่งมา
+    this.databaseService = databaseService || new DatabaseService();
     this.initializeRules();
   }
 
@@ -720,7 +706,7 @@ export class ValidationService implements IValidationService {
         errors.push(...batchSecurity.errors.map(error => ({
           type: 'validation' as const,
           message: error.message,
-          code: error.code,
+          code: 'PROCESSING_ERROR' as const,
           details: error.value,
           timestamp: DateHelper.toDate(DateHelper.now()),
           retryable: false,
@@ -739,7 +725,7 @@ export class ValidationService implements IValidationService {
             errors.push(...fileValidation.errors.map(error => ({
               type: 'validation' as const,
               message: error.message,
-              code: error.code,
+              code: 'PROCESSING_ERROR' as const,
               details: { filename: file!.originalname, field: error.field },
               timestamp: DateHelper.toDate(DateHelper.now()),
               retryable: false,
@@ -1058,6 +1044,584 @@ export class ValidationService implements IValidationService {
         return file.encoding;
       default:
         return undefined;
+    }
+  }
+
+  // ========================================
+  // FILE TYPE VALIDATION METHODS (from FileValidationService)
+  // ========================================
+
+  /**
+   * ตรวจสอบไฟล์ตามประเภท
+   */
+  async validateFileByType(filePath: string, filename: string): Promise<FileValidationResult> {
+    const fileExtension = path.extname(filename).toLowerCase();
+    
+    try {
+      // ตรวจสอบขนาดไฟล์
+      const stats = await fs.stat(filePath);
+      const fileSize = stats.size;
+      
+      if (fileSize > config.validation.maxFileSize) {
+        throw new FileValidationError(
+          `ไฟล์มีขนาดใหญ่เกินไป (${fileSize} bytes > ${config.validation.maxFileSize} bytes)`,
+        );
+      }
+
+      // ตรวจสอบ file integrity
+      const integrityValidation = await this.validateFileIntegrity(filePath);
+      if (!integrityValidation.isValid) {
+        throw new FileValidationError(
+          'ไฟล์ไม่สมบูรณ์หรือเสียหาย',
+          { 
+            errors: integrityValidation.errors 
+          }
+        );
+      }
+
+      // ตรวจสอบประเภทไฟล์
+      if (fileExtension === '.dbf') {
+        return await this.validateDBF(filePath, filename);
+      } else if (fileExtension === '.xls' || fileExtension === '.xlsx') {
+        // ตรวจสอบว่าเป็น REP หรือ Statement ตามชื่อไฟล์
+        if (filename.toLowerCase().includes('rep')) {
+          return await this.validateREP(filePath, filename);
+        } else if (filename.toLowerCase().includes('statement') || filename.toLowerCase().includes('stm')) {
+          return await this.validateStatement(filePath, filename);
+        } else {
+          // ถ้าไม่สามารถระบุประเภทได้ ให้ถือว่าเป็น REP
+          console.log('Cannot determine file type, treating as REP file');
+          return await this.validateREP(filePath, filename);
+        }
+      } else {
+        throw new FileValidationError(`ประเภทไฟล์ไม่ถูกต้อง: ${fileExtension}`);
+      }
+    } catch (error) {
+      if (error instanceof FileValidationError) {
+        throw error;
+      }
+      throw new FileValidationError(`เกิดข้อผิดพลาดในการตรวจสอบไฟล์: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * ตรวจสอบไฟล์ DBF
+   */
+  async validateDBF(filePath: string, filename: string): Promise<DBFValidationResult> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    try {
+      // ตรวจสอบขนาดไฟล์ก่อนโหลด
+      const fileStats = await fs.stat(filePath);
+      const fileSize = fileStats.size;
+      
+      // ถ้าไฟล์ใหญ่มาก (> 50MB) ให้อ่านเฉพาะ header
+      const MAX_SAFE_SIZE = 50 * 1024 * 1024; // 50MB
+      let buffer: Buffer;
+      
+      if (fileSize > MAX_SAFE_SIZE) {
+        // อ่านเฉพาะ header (first 1KB) สำหรับไฟล์ใหญ่
+        const headerSize = 1024;
+        const fd = await fs.open(filePath, 'r');
+        try {
+          const headerBuffer = Buffer.allocUnsafe(headerSize);
+          const readResult = await fs.read(fd, headerBuffer, 0, headerSize, 0);
+          buffer = headerBuffer.slice(0, readResult.bytesRead);
+          warnings.push(`ไฟล์มีขนาดใหญ่ (${(fileSize / 1024 / 1024).toFixed(2)} MB) - ตรวจสอบเฉพาะ header`);
+        } finally {
+          await fs.close(fd);
+        }
+      } else {
+        // อ่านไฟล์ทั้งหมดสำหรับไฟล์ขนาดปกติ
+        buffer = await fs.readFile(filePath);
+      }
+      
+      // ตรวจสอบขนาดไฟล์
+      if (buffer.length === 0) {
+        errors.push('ไฟล์ DBF ว่างเปล่า');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'dbf',
+          fileSize: 0,
+          recordCount: 0,
+        };
+      }
+
+      // ตรวจสอบ header ของไฟล์ DBF
+      if (buffer.length < 32) {
+        errors.push('ไฟล์ DBF ไม่สมบูรณ์ (header สั้นเกินไป)');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'dbf',
+          fileSize: fileSize,
+          recordCount: 0,
+        };
+      }
+
+      // ตรวจสอบ signature ของไฟล์ DBF
+      const signature = buffer[0];
+      if (signature && signature !== 0x03 && signature !== 0x83 && signature !== 0x8B && signature !== 0x30) {
+        errors.push(`ไฟล์ DBF ไม่ถูกต้อง (signature: 0x${signature.toString(16)})`);
+      }
+
+      // อ่าน header information
+      const recordCount = buffer.readUInt32LE(4);
+      const headerLength = buffer.readUInt16LE(8);
+      const recordLength = buffer.readUInt16LE(10);
+
+      // ตรวจสอบความสมเหตุสมผลของข้อมูล
+      if (recordCount < 0) {
+        errors.push('จำนวน record ไม่ถูกต้อง');
+      }
+
+      if (headerLength < 32 || headerLength > buffer.length) {
+        errors.push('ความยาว header ไม่ถูกต้อง');
+      }
+
+      if (recordLength <= 0) {
+        errors.push('ความยาว record ไม่ถูกต้อง');
+      }
+
+      // ตรวจสอบ field definitions
+      const fieldCount = (headerLength - 33) / 32;
+      if (fieldCount <= 0 || fieldCount > 255) {
+        errors.push('จำนวน field ไม่ถูกต้อง');
+      }
+
+      // ตรวจสอบ field definitions
+      const fields: any[] = [];
+      for (let i = 0; i < fieldCount; i++) {
+        const fieldStart = 32 + (i * 32);
+        if (fieldStart + 32 > buffer.length) {
+          errors.push(`Field ${i + 1} ไม่สมบูรณ์`);
+          break;
+        }
+
+        const fieldName = buffer.slice(fieldStart, fieldStart + 11).toString('ascii').replace(/\0/g, '');
+        const fieldType = String.fromCharCode(buffer[fieldStart + 11] || 0);
+        const fieldLength = buffer[fieldStart + 16] || 0;
+        const fieldDecimal = buffer[fieldStart + 17] || 0;
+
+        // ตรวจสอบ field name
+        if (!fieldName || fieldName.length === 0) {
+          errors.push(`Field ${i + 1} ไม่มีชื่อ`);
+        }
+
+        // ตรวจสอบ field type
+        const validTypes = ['C', 'N', 'L', 'D', 'M', 'F', 'B', 'G', 'P', 'Y', 'T', 'I', 'V', 'X', 'O', '+', '@'];
+        if (!validTypes.includes(fieldType)) {
+          errors.push(`Field ${fieldName} มี type ไม่ถูกต้อง: ${fieldType}`);
+        }
+
+        // ตรวจสอบ field length
+        if (fieldLength <= 0 || fieldLength > 255) {
+          errors.push(`Field ${fieldName} มีความยาวไม่ถูกต้อง: ${fieldLength}`);
+        }
+
+        fields.push({
+          name: fieldName,
+          type: fieldType,
+          length: fieldLength,
+          decimalPlaces: fieldDecimal
+        });
+      }
+
+      // ตรวจสอบว่าเป็นไฟล์ประเภทไหน
+      let fileType = 'unknown';
+      if (filename.toLowerCase().includes('adp')) {
+        fileType = 'ADP';
+      } else if (filename.toLowerCase().includes('opd')) {
+        fileType = 'OPD';
+      } else if (filename.toLowerCase().includes('cht')) {
+        fileType = 'CHT';
+      } else if (filename.toLowerCase().includes('cha')) {
+        fileType = 'CHA';
+      } else if (filename.toLowerCase().includes('ins')) {
+        fileType = 'INS';
+      } else if (filename.toLowerCase().includes('dru')) {
+        fileType = 'DRU';
+      } else if (filename.toLowerCase().includes('odx')) {
+        fileType = 'ODX';
+      }
+
+      // ตรวจสอบ schema ของไฟล์
+      if (fields.length > 0) {
+        try {
+          // ใช้ parseDBFWithSchema function
+          parseDBFWithSchema(buffer);
+          
+          // ตรวจสอบ required fields ตามประเภทไฟล์
+          if (fileType === 'ADP') {
+            const requiredFields = ['HN', 'DATE_SERV', 'DIAG'];
+            for (const field of requiredFields) {
+              if (!fields.find(f => f.name === field)) {
+                errors.push(`ไฟล์ ADP ต้องมี field: ${field}`);
+              }
+            }
+          } else if (fileType === 'OPD') {
+            const requiredFields = ['HN', 'DATE_SERV', 'DIAG'];
+            for (const field of requiredFields) {
+              if (!fields.find(f => f.name === field)) {
+                errors.push(`ไฟล์ OPD ต้องมี field: ${field}`);
+              }
+            }
+          }
+        } catch (parseError) {
+          errors.push(`ไม่สามารถ parse schema ของไฟล์ได้: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        }
+      }
+
+      // บันทึก log
+      logFileValidation(filename, errors.length === 0, errors, warnings);
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        fileType: 'dbf',
+        fileSize: fileSize,
+        recordCount: recordCount,
+        fields: fields
+      };
+
+    } catch (error) {
+      const errorMessage = `เกิดข้อผิดพลาดในการตรวจสอบไฟล์ DBF: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      errors.push(errorMessage);
+      
+      logError('DBF Validation Error', new Error(errorMessage));
+
+      return {
+        isValid: false,
+        errors,
+        warnings,
+        fileType: 'dbf',
+        fileSize: 0,
+        recordCount: 0,
+      };
+    }
+  }
+
+  /**
+   * ตรวจสอบไฟล์ REP
+   */
+  async validateREP(filePath: string, filename: string): Promise<REPValidationResult> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    try {
+      // ตรวจสอบขนาดไฟล์
+      const fileStats = await fs.stat(filePath);
+      const fileSize = fileStats.size;
+      
+      if (fileSize === 0) {
+        errors.push('ไฟล์ REP ว่างเปล่า');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'rep',
+          fileSize: 0,
+          sheetCount: 0,
+        };
+      }
+
+      // ตรวจสอบว่าเป็นไฟล์ Excel
+      const fileExtension = path.extname(filename).toLowerCase();
+      if (fileExtension !== '.xls' && fileExtension !== '.xlsx') {
+        errors.push('ไฟล์ REP ต้องเป็นไฟล์ Excel (.xls หรือ .xlsx)');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'rep',
+          fileSize: fileSize,
+          sheetCount: 0,
+        };
+      }
+
+      // อ่านไฟล์ Excel
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
+      
+      const sheetCount = workbook.worksheets.length;
+      
+      if (sheetCount === 0) {
+        errors.push('ไฟล์ REP ไม่มี worksheet');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'rep',
+          fileSize: fileSize,
+          sheetCount: 0,
+        };
+      }
+
+      // ตรวจสอบ worksheet แรก
+      const firstSheet = workbook.worksheets[0];
+      if (!firstSheet) {
+        errors.push('ไม่พบ worksheet แรกในไฟล์ REP');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'rep',
+          fileSize: fileSize,
+          sheetCount: 0,
+        };
+      }
+      const rowCount = firstSheet.rowCount;
+      const columnCount = firstSheet.columnCount;
+      
+      if (rowCount === 0) {
+        errors.push('ไฟล์ REP ไม่มีข้อมูล');
+      }
+
+      if (columnCount === 0) {
+        errors.push('ไฟล์ REP ไม่มีคอลัมน์');
+      }
+
+      // ตรวจสอบ header row
+      const headerRow = firstSheet.getRow(1);
+      const headerValues = headerRow.values as any[];
+      
+      if (!headerValues || headerValues.length === 0) {
+        errors.push('ไฟล์ REP ไม่มี header row');
+      }
+
+      // ตรวจสอบ required columns สำหรับ REP
+      const requiredColumns = ['HN', 'DATE_SERV', 'DIAG', 'TOTAL'];
+      const headerTexts = headerValues.map(v => String(v).toUpperCase());
+      
+      for (const requiredCol of requiredColumns) {
+        if (!headerTexts.includes(requiredCol)) {
+          errors.push(`ไฟล์ REP ต้องมีคอลัมน์: ${requiredCol}`);
+        }
+      }
+
+      // ตรวจสอบข้อมูลในแต่ละ row
+      let validRowCount = 0;
+      for (let rowNum = 2; rowNum <= Math.min(rowCount, 100); rowNum++) { // ตรวจสอบแค่ 100 rows แรก
+        const row = firstSheet.getRow(rowNum);
+        const values = row.values as any[];
+        
+        if (values && values.length > 0) {
+          // ตรวจสอบว่า row ไม่ว่างเปล่า
+          const hasData = values.some(v => v !== null && v !== undefined && String(v).trim() !== '');
+          if (hasData) {
+            validRowCount++;
+          }
+        }
+      }
+
+      if (validRowCount === 0) {
+        errors.push('ไฟล์ REP ไม่มีข้อมูลที่ถูกต้อง');
+      }
+
+      // บันทึก log
+      logFileValidation(filename, errors.length === 0, errors, warnings);
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        fileType: 'rep',
+        fileSize: fileSize,
+        sheetCount: sheetCount
+      };
+
+    } catch (error) {
+      const errorMessage = `เกิดข้อผิดพลาดในการตรวจสอบไฟล์ REP: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      errors.push(errorMessage);
+      
+      logError('REP Validation Error', new Error(errorMessage));
+
+      return {
+        isValid: false,
+        errors,
+        warnings,
+        fileType: 'rep',
+        fileSize: 0,
+        sheetCount: 0,
+      };
+    }
+  }
+
+  /**
+   * ตรวจสอบไฟล์ Statement
+   */
+  async validateStatement(filePath: string, filename: string): Promise<StatementValidationResult> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    try {
+      // ตรวจสอบขนาดไฟล์
+      const fileStats = await fs.stat(filePath);
+      const fileSize = fileStats.size;
+      
+      if (fileSize === 0) {
+        errors.push('ไฟล์ Statement ว่างเปล่า');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'statement',
+          fileSize: 0,
+          sheetCount: 0,
+        };
+      }
+
+      // ตรวจสอบว่าเป็นไฟล์ Excel
+      const fileExtension = path.extname(filename).toLowerCase();
+      if (fileExtension !== '.xls' && fileExtension !== '.xlsx') {
+        errors.push('ไฟล์ Statement ต้องเป็นไฟล์ Excel (.xls หรือ .xlsx)');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'statement',
+          fileSize: fileSize,
+          sheetCount: 0,
+        };
+      }
+
+      // อ่านไฟล์ Excel
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
+      
+      const sheetCount = workbook.worksheets.length;
+      
+      if (sheetCount === 0) {
+        errors.push('ไฟล์ Statement ไม่มี worksheet');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'statement',
+          fileSize: fileSize,
+          sheetCount: 0,
+        };
+      }
+
+      // ตรวจสอบ worksheet แรก
+      const firstSheet = workbook.worksheets[0];
+      if (!firstSheet) {
+        errors.push('ไม่พบ worksheet แรกในไฟล์ Statement');
+        return {
+          isValid: false,
+          errors,
+          warnings,
+          fileType: 'statement',
+          fileSize: fileSize,
+          sheetCount: 0,
+        };
+      }
+      const rowCount = firstSheet.rowCount;
+      const columnCount = firstSheet.columnCount;
+      
+      if (rowCount === 0) {
+        errors.push('ไฟล์ Statement ไม่มีข้อมูล');
+      }
+
+      if (columnCount === 0) {
+        errors.push('ไฟล์ Statement ไม่มีคอลัมน์');
+      }
+
+      // ตรวจสอบ header row
+      const headerRow = firstSheet.getRow(1);
+      const headerValues = headerRow.values as any[];
+      
+      if (!headerValues || headerValues.length === 0) {
+        errors.push('ไฟล์ Statement ไม่มี header row');
+      }
+
+      // ตรวจสอบ required columns สำหรับ Statement
+      const requiredColumns = ['HN', 'DATE_SERV', 'TOTAL', 'STATUS'];
+      const headerTexts = headerValues.map(v => String(v).toUpperCase());
+      
+      for (const requiredCol of requiredColumns) {
+        if (!headerTexts.includes(requiredCol)) {
+          errors.push(`ไฟล์ Statement ต้องมีคอลัมน์: ${requiredCol}`);
+        }
+      }
+
+      // ตรวจสอบข้อมูลในแต่ละ row
+      let validRowCount = 0;
+      for (let rowNum = 2; rowNum <= Math.min(rowCount, 100); rowNum++) { // ตรวจสอบแค่ 100 rows แรก
+        const row = firstSheet.getRow(rowNum);
+        const values = row.values as any[];
+        
+        if (values && values.length > 0) {
+          // ตรวจสอบว่า row ไม่ว่างเปล่า
+          const hasData = values.some(v => v !== null && v !== undefined && String(v).trim() !== '');
+          if (hasData) {
+            validRowCount++;
+          }
+        }
+      }
+
+      if (validRowCount === 0) {
+        errors.push('ไฟล์ Statement ไม่มีข้อมูลที่ถูกต้อง');
+      }
+
+      // บันทึก log
+      logFileValidation(filename, errors.length === 0, errors, warnings);
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        fileType: 'statement',
+        fileSize: fileSize,
+        sheetCount: sheetCount
+      };
+
+    } catch (error) {
+      const errorMessage = `เกิดข้อผิดพลาดในการตรวจสอบไฟล์ Statement: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      errors.push(errorMessage);
+      
+      logError('Statement Validation Error', new Error(errorMessage));
+
+      return {
+        isValid: false,
+        errors,
+        warnings,
+        fileType: 'statement',
+        fileSize: 0,
+        sheetCount: 0,
+      };
+    }
+  }
+
+  /**
+   * อัปเดตจำนวนไฟล์ที่สำเร็จใน batch
+   */
+  async updateBatchSuccessFiles(batchId: string): Promise<void> {
+    try {
+      // ใช้ method ที่มีอยู่จริงใน DatabaseService
+      const records = await this.databaseService.getUploadRecords({
+        batchId: batchId,
+        status: 'COMPLETED' as any
+      });
+
+      const successCount = records.records.length;
+
+      await this.databaseService.updateUploadBatch(batchId, {
+        successFiles: successCount
+      });
+
+      logInfo('Batch Success Files Updated', {
+        batchId,
+        successCount
+      });
+    } catch (error) {
+      logError('Failed to update batch success files', error instanceof Error ? error : new Error('Unknown error'));
+      throw error;
     }
   }
 

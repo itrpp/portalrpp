@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { toast } from 'react-hot-toast';
+import { addToast } from '@heroui/react';
 import { api, type UploadBatch, type UploadedFile } from '@/app/api/client';
 
 // ค่าคงที่สำหรับการจำกัด
@@ -28,12 +28,12 @@ export const useDBFImport = () => {
     // ฟังก์ชันโหลด batches จาก API
     const loadBatches = useCallback(async () => {
         if (!session || !session.accessToken) {
-            toast.error('Session ไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่');
+            addToast({ title: 'Session ไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่', color: 'danger' });
             return;
         }
 
         if (!session.user?.id) {
-            toast.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+            addToast({ title: 'ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่', color: 'danger' });
             return;
         }
 
@@ -105,11 +105,11 @@ export const useDBFImport = () => {
             }
         } catch (error: any) {
             if (error.status === 401) {
-                toast.error('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                addToast({ title: 'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่', color: 'danger' });
                 return;
             }
 
-            toast.error('ไม่สามารถโหลดข้อมูล DBF batches ได้ กรุณาลองใหม่อีกครั้ง');
+            addToast({ title: 'ไม่สามารถโหลดข้อมูล DBF batches ได้ กรุณาลองใหม่อีกครั้ง', color: 'danger' });
             setUploadBatches([]);
         } finally {
             setIsLoading(false);
@@ -129,9 +129,9 @@ export const useDBFImport = () => {
         try {
             setIsRefreshing(true);
             await loadBatches();
-            toast.success('รีเฟรชข้อมูลเรียบร้อย');
+            addToast({ title: 'รีเฟรชข้อมูลเรียบร้อย', color: 'success' });
         } catch {
-            toast.error('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
+            addToast({ title: 'เกิดข้อผิดพลาดในการรีเฟรชข้อมูล', color: 'danger' });
         } finally {
             setIsRefreshing(false);
         }
@@ -144,14 +144,14 @@ export const useDBFImport = () => {
 
             if (response.success) {
                 setUploadBatches((prev) => prev.filter((batch) => batch.id !== batchId));
-                toast.success('ลบ batch เรียบร้อยแล้ว');
+                addToast({ title: 'ลบ batch เรียบร้อยแล้ว', color: 'success' });
                 return true;
             } else {
-                toast.error('ไม่สามารถลบ batch ได้');
+                addToast({ title: 'ไม่สามารถลบ batch ได้', color: 'danger' });
                 return false;
             }
         } catch {
-            toast.error('ไม่สามารถลบ batch ได้');
+            addToast({ title: 'ไม่สามารถลบ batch ได้', color: 'danger' });
             return false;
         }
     }, [session]);

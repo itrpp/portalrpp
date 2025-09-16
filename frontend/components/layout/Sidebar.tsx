@@ -134,15 +134,15 @@ export default function Sidebar() {
           icon: ArrowUpTrayIcon,
           subItems: [
             {
+              name: 'ข้อมูล 16 แฟ้ม IPD',
+              href: '/revenue/export/ipd',
+              icon: DocumentTextIcon,
+            },
+            {
               name: 'ข้อมูล 16 แฟ้ม OPD',
               href: '/revenue/export/opd',
               icon: DocumentTextIcon,
             },
-            {
-              name: 'ข้อมูล 16 แฟ้ม IPD',
-              href: '#',
-              icon: DocumentTextIcon,
-            },            
           ],
         },
       ],

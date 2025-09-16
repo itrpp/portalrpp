@@ -83,22 +83,22 @@ export const UploadHistory: React.FC<UploadHistoryProps> = ({
                 ) : (
                     <Table aria-label='ประวัติการอัปโหลด Batch'>
                         <TableHeader>
-                            <TableColumn>ชื่อ Batch</TableColumn>
-                            <TableColumn>วันที่อัปโหลด</TableColumn>
-                            <TableColumn>ไฟล์ทั้งหมด</TableColumn>
-                            <TableColumn>สำเร็จ</TableColumn>
-                            <TableColumn>ผิดพลาด</TableColumn>
-                            <TableColumn>รายการทั้งหมด</TableColumn>
-                            <TableColumn>ขนาดรวม</TableColumn>
-                            <TableColumn>สถานะ</TableColumn>
-                            <TableColumn>การดำเนินการ</TableColumn>
+                            <TableColumn width={250}>ชื่อ Batch</TableColumn>
+                            <TableColumn width={150}>วันที่อัปโหลด</TableColumn>
+                            <TableColumn align="center">ไฟล์ทั้งหมด</TableColumn>
+                            <TableColumn align="center">สำเร็จ</TableColumn>
+                            <TableColumn align="center">ผิดพลาด</TableColumn>
+                            <TableColumn align="center">รายการทั้งหมด</TableColumn>
+                            <TableColumn align="center">ขนาดรวม</TableColumn>
+                            <TableColumn align="center">สถานะ</TableColumn>
+                            <TableColumn align="center">การจัดการ</TableColumn>
                         </TableHeader>
                         <TableBody items={uploadBatches} emptyContent={"ยังไม่มีประวัติการอัปโหลด DBF Files"}>
                             {(batch) => (
                                 <TableRow key={batch.id}>
                                     <TableCell className="whitespace-nowrap overflow-hidden text-ellipsis max-w-32">
                                         <div className='flex items-center space-x-2' aria-label={`ชื่อ batch: ${batch.batchName}`}>
-                                            <FileTextIcon className='h-4 w-4 text-primary-600 dark:text-primary-400' />
+                                            {/* <FileTextIcon className='h-4 w-4 text-primary-600 dark:text-primary-400' /> */}
                                             <span className='font-medium text-foreground'>{batch.batchName}</span>
                                         </div>
                                     </TableCell>
@@ -123,6 +123,7 @@ export const UploadHistory: React.FC<UploadHistoryProps> = ({
                                     <TableCell className="whitespace-nowrap">
                                         <Chip
                                             className={
+                                                
                                                 batch.status === BatchStatus.SUCCESS ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-300' :
                                                     batch.status === BatchStatus.ERROR ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-300' :
                                                         batch.status === BatchStatus.PROCESSING ? 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-300' :
@@ -144,26 +145,24 @@ export const UploadHistory: React.FC<UploadHistoryProps> = ({
                                         </Chip>
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap">
-                                        <div className='flex items-center space-x-2' aria-label="การดำเนินการกับ batch">
+                                        <div className="flex gap-2 justify-center">
                                             <Button
-                                                isIconOnly
-                                                size='sm'
-                                                variant='light'
-                                                color='primary'
-                                                aria-label="ดูรายละเอียด batch"
+                                                size="sm"
+                                                variant="ghost"
+                                                color="primary"
                                                 onPress={() => onViewDetails(batch)}
+                                                title="ดูรายละเอียด"
                                             >
-                                                <EyeIcon className='h-4 w-4' />
+                                                ดูรายละเอียด
                                             </Button>
                                             <Button
-                                                isIconOnly
-                                                size='sm'
-                                                variant='light'
-                                                color='danger'
-                                                aria-label="ลบ batch"
+                                                size="sm"
+                                                variant="ghost"
+                                                color="danger"
                                                 onPress={() => onDeleteBatch(batch)}
+                                                title="ลบ batch"
                                             >
-                                                <TrashIcon className='h-4 w-4' />
+                                                ลบ DBF batch
                                             </Button>
                                         </div>
                                     </TableCell>

@@ -21,13 +21,13 @@ import {
   BatchProcessingStatus,
   ExportStatus
 } from '@/types';
-import { DateHelper, createTimer } from '@/utils/dateHelper';
+import { DateHelper, createTimer } from '@/utils/dateUtils';
 import { DatabaseService } from './databaseService';
 import { FileProcessingService } from './fileProcessingService';
 import { FileStorageService } from './fileStorageService';
 import { ValidationService } from './validationService';
 import { StatisticsService } from './statisticsService';
-import { BatchError, ResourceNotFoundError, FileValidationError } from '@/utils/errorHandler';
+import { ResourceNotFoundError, FileValidationError, BatchError } from '@/utils/errorHandler';
 import {
   logInfo,
   logError,
@@ -44,12 +44,19 @@ export class BatchService {
   private validationService: ValidationService;
   private statisticsService: StatisticsService;
 
-  constructor() {
-    this.databaseService = new DatabaseService();
-    this.fileProcessingService = new FileProcessingService();
-    this.fileStorageService = new FileStorageService();
-    this.validationService = new ValidationService();
-    this.statisticsService = new StatisticsService();
+  constructor(
+    databaseService?: DatabaseService,
+    fileProcessingService?: FileProcessingService,
+    fileStorageService?: FileStorageService,
+    validationService?: ValidationService,
+    statisticsService?: StatisticsService
+  ) {
+    // ใช้ dependency injection หรือสร้าง instance ใหม่ถ้าไม่ได้ส่งมา
+    this.databaseService = databaseService || new DatabaseService();
+    this.fileProcessingService = fileProcessingService || new FileProcessingService();
+    this.fileStorageService = fileStorageService || new FileStorageService();
+    this.validationService = validationService || new ValidationService();
+    this.statisticsService = statisticsService || new StatisticsService();
   }
 
   /**
@@ -73,6 +80,8 @@ export class BatchService {
         userId: data.userId || null,
         ipAddress: data.ipAddress || null,
         userAgent: data.userAgent || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       // ใช้ logBatchCreation แทน logInfo
@@ -224,7 +233,7 @@ export class BatchService {
   /**
    * อัปเดตสถานะ batch
    */
-  async updateBatchStatus(id: string, status: BatchStatus): Promise<void> {
+  async updateBatchStatusById(id: string, status: BatchStatus): Promise<void> {
     try {
       logInfo('Updating batch status', { id, status });
 
@@ -305,7 +314,7 @@ export class BatchService {
 
       // อัปเดตสถานะ batch ถ้าเปลี่ยนแปลง
       if (batch.status !== newBatchStatus) {
-        await this.updateBatchStatus(batchId, newBatchStatus);
+        await this.updateBatchStatusById(batchId, newBatchStatus);
         
         // อัปเดต statistics ใน batch
         await this.databaseService.updateUploadBatch(batchId, {
@@ -420,7 +429,7 @@ export class BatchService {
       }
 
       // อัปเดตสถานะเป็น processing
-      await this.updateBatchStatus(batchId, BatchStatus.PROCESSING);
+      await this.updateBatchStatusById(batchId, BatchStatus.PROCESSING);
 
       // ดึงไฟล์ใน batch
       const filesResult = await this.getBatchFiles(batchId, { limit: 1000 });
@@ -546,7 +555,7 @@ export class BatchService {
       logError('Batch processing failed', error as Error, { batchId, processingTime });
 
       // อัปเดตสถานะเป็น error
-      await this.updateBatchStatus(batchId, BatchStatus.ERROR);
+      await this.updateBatchStatusById(batchId, BatchStatus.ERROR);
 
       throw new BatchError(`เกิดข้อผิดพลาดในการประมวลผล batch: ${errorMessage}`);
     }
@@ -622,7 +631,7 @@ export class BatchService {
 
       // อัปเดตสถิติ batch หลังจากประมวลผลไฟล์เสร็จ
       try {
-        await this.statisticsService.updateBatchStatistics(
+        await this.statisticsService.updateBatchStatisticsById(
           batchId,
           processingResult.success,
           1, // fileCount
@@ -820,7 +829,7 @@ export class BatchService {
     let retryableErrors = 0;
 
     errors.forEach(error => {
-      if (error.type in errorTypes) {
+      if (error.type && error.type in errorTypes) {
         errorTypes[error.type as keyof typeof errorTypes]++;
       }
       if (error.retryable) {
@@ -831,10 +840,12 @@ export class BatchService {
     return {
       batchId,
       totalErrors: errors.length,
-      errors,
+      errors: errors as any[],
       errorTypes,
       canRetry: retryableErrors > 0,
       retryableErrors,
+      warnings: [],
+      timestamp: new Date(),
     };
   }
 
@@ -902,6 +913,48 @@ export class BatchService {
 
     } catch (error) {
       logError('Failed to delete batch export files', error as Error, { batchId, batchName });
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดตจำนวนไฟล์ที่สำเร็จใน batch
+   */
+  async updateBatchSuccessFiles(batchId: string): Promise<void> {
+    try {
+      logInfo('Updating batch success files', { batchId });
+
+      // ดึงข้อมูล batch ปัจจุบัน
+      const batch = await this.databaseService.getUploadBatch(batchId);
+      if (!batch) {
+        throw new Error(`Batch not found: ${batchId}`);
+      }
+
+      // นับจำนวนไฟล์ที่ประมวลผลสำเร็จ
+      const successFilesResult = await this.databaseService.getUploadRecords({
+        batchId,
+        status: FileProcessingStatus.SUCCESS,
+        limit: 1000
+      });
+
+      const successCount = successFilesResult.records.length;
+      const totalCount = batch.totalFiles || 0;
+
+      // อัปเดต batch
+      await this.databaseService.updateUploadBatch(batchId, {
+        successFiles: successCount,
+        updatedAt: new Date()
+      });
+
+      logInfo('Batch success files updated', { 
+        batchId, 
+        successCount, 
+        totalCount,
+        successRate: totalCount > 0 ? (successCount / totalCount) * 100 : 0
+      });
+
+    } catch (error) {
+      logError('Failed to update batch success files', error as Error, { batchId });
       throw error;
     }
   }

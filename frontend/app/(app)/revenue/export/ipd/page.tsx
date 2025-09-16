@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { addToast } from '@heroui/react';
-import { useOPDExport } from './hooks';
+import { useIPDExport } from './hooks';
 import {
     DataManagementTable,
     ConditionsTab,
@@ -25,7 +25,7 @@ export default function RevenueExportPage() {
         isProcessed,
         isExported,
         isExporting,
-    } = useOPDExport();
+    } = useIPDExport();
 
     // Event handlers
     const handleTabChange = useCallback((tab: 'data-management' | 'conditions' | 'solutions') => {
@@ -33,7 +33,9 @@ export default function RevenueExportPage() {
     }, []);
 
     const handleView = useCallback(() => {
-        addToast({ title: 'แสดงรายละเอียด batch...' });
+        addToast({
+            title: 'แสดงรายละเอียด batch...',
+        });
     }, []);
 
     // ฟังก์ชันสำหรับ format วันที่
@@ -52,7 +54,7 @@ export default function RevenueExportPage() {
             {/* Header */}
             <div className='flex items-center justify-between'>
                 <div>
-                    <h1 className='text-3xl font-bold text-foreground'>ส่งออกข้อมูล 16 แฟ้ม OPD</h1>
+                    <h1 className='text-3xl font-bold text-foreground'>ส่งออกข้อมูล 16 แฟ้ม IPD</h1>
                     <p className='text-default-600 mt-2'>ปรับปรุงและจัดการข้อมูลก่อนส่งเบิก</p>
                 </div>
             </div>
@@ -90,4 +92,4 @@ export default function RevenueExportPage() {
             )}
         </div>
     );
-} 
+}

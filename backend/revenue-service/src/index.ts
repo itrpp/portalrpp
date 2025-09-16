@@ -16,9 +16,8 @@ import FileStorageService from '@/services/fileStorageService';
 import BatchService from '@/services/batchService';
 import StatisticsService from '@/services/statisticsService';
 import ValidationService from '@/services/validationService';
-import FileValidationService from '@/services/fileValidationService';
 import FileProcessingService from '@/services/fileProcessingService';
-import { DBFReaderService } from '@/services/dbfReaderService';
+import { DBFService } from '@/services/dbfService';
 
 // ========================================
 // MEMORY OPTIMIZATION
@@ -61,22 +60,20 @@ const PORT = config.server.port;
 const databaseService = new DatabaseService();
 const fileStorageService = new FileStorageService();
 const validationService = new ValidationService();
-const fileValidationService = new FileValidationService();
 const fileProcessingService = new FileProcessingService();
 const statisticsService = new StatisticsService();
 const batchService = new BatchService();
-const dbfReaderService = new DBFReaderService(databaseService.getPrismaClient());
+const dbfService = new DBFService(databaseService.getPrismaClient());
 
 // แชร์ services ไปยัง routes
 app.locals.services = {
   databaseService,
   fileStorageService,
   validationService,
-  fileValidationService,
   fileProcessingService,
   statisticsService,
   batchService,
-  dbfReaderService,
+  dbfService,
 };
 
 // ========================================

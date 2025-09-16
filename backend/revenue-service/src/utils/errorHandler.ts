@@ -4,7 +4,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { logError } from './logger';
-import { ErrorResponse, ValidationError, ProcessingError, BatchErrorSummary } from '@/types';
+import { ErrorResponse, ValidationError, ProcessingError, BatchErrorSummary, BatchError as BatchErrorType } from '@/types';
 import config from '@/config';
 
 export class RevenueServiceError extends Error {
@@ -259,7 +259,7 @@ export const createBatchErrorSummary = (batchId: string, errors: ProcessingError
   let retryableErrors = 0;
 
   errors.forEach(error => {
-    if (error.type in errorTypes) {
+    if (error.type && error.type in errorTypes) {
       errorTypes[error.type as keyof typeof errorTypes]++;
     }
     if (error.retryable) {
@@ -270,10 +270,12 @@ export const createBatchErrorSummary = (batchId: string, errors: ProcessingError
   return {
     batchId,
     totalErrors: errors.length,
-    errors,
+    errors: errors as BatchErrorType[],
     errorTypes,
     canRetry: retryableErrors > 0,
     retryableErrors,
+    warnings: [],
+    timestamp: new Date(),
   };
 };
 

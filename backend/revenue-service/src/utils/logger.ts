@@ -6,7 +6,7 @@ import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import config from '@/config';
-import { getLogTimestamp } from './dateHelper';
+import { getLogTimestamp } from './dateUtils';
 
 // สร้าง log directory ถ้ายังไม่มี
 const logDir = path.resolve(config.logging.filePath);

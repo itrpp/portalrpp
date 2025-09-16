@@ -6,43 +6,11 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { DateTime } from 'luxon';
-import { DateHelper, DateFormatter } from '@/utils/dateHelper';
+import { DateHelper, DateFormatter } from '@/utils/dateUtils';
 import { logInfo, logError } from '@/utils/logger';
+import { IFileStorageConfig, IFileStorageResult, IBatchStorageResult, FileType } from '@/types';
 
-// กำหนด FileType enum เอง
-export enum FileType {
-  DBF = 'DBF',
-  REP = 'REP',
-  STM = 'STM',
-}
-
-export interface IFileStorageConfig {
-  basePath: string;
-  uploadPath: string;
-  dbfPath: string;
-  repPath: string;
-  stmPath: string;
-  tempPath: string;
-  backupPath: string;
-  processedPath: string;
-}
-
-export interface IFileStorageResult {
-  success: boolean;
-  filePath: string;
-  relativePath: string;
-  filename: string;
-  uuid: string;
-  dateFolder: string;
-  batchFolder?: string;
-  message?: string;
-  error?: string;
-}
-
-export interface IBatchStorageResult extends IFileStorageResult {
-  batchId: string;
-  batchFolder: string;
-}
+// Interfaces moved to @/types
 
 export class FileStorageService {
   private config: IFileStorageConfig;
@@ -63,7 +31,7 @@ export class FileStorageService {
   /**
    * แปลงวันที่เป็น format yyyyMMdd
    */
-  private formatDateToYYYYMMDD(date: DateTime): string {
+  private formatDateToFolderFormat(date: DateTime): string {
     return DateFormatter.toFolderFormat(date);
   }
 
@@ -98,7 +66,7 @@ export class FileStorageService {
    * /uploads/{fileType}/{date}/
    */
   async createDateFolder(fileType: FileType, date: DateTime = DateHelper.now()): Promise<string> {
-    const dateStr = this.formatDateToYYYYMMDD(date); // yyyyMMdd
+    const dateStr = this.formatDateToFolderFormat(date); // yyyyMMdd
     const typePath = this.getTypePath(fileType);
     const datePath = path.join(typePath, dateStr || '');
     
@@ -294,7 +262,7 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = this.formatDateToYYYYMMDD(date);
+      const dateStr = this.formatDateToFolderFormat(date);
       const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
       const processedDatePath = path.join(processedTypePath, dateStr || "");
       const processedBatchPath = path.join(processedDatePath, batchId);
@@ -370,7 +338,7 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = this.formatDateToYYYYMMDD(date);
+      const dateStr = this.formatDateToFolderFormat(date);
       const processedTypePath = path.join(this.config.processedPath, fileType.toLowerCase());
       const processedDatePath = path.join(processedTypePath, dateStr || "");
       const processedUuidPath = path.join(processedDatePath, uuid);
@@ -442,7 +410,7 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = this.formatDateToYYYYMMDD(date);
+      const dateStr = this.formatDateToFolderFormat(date);
       const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
       const backupDatePath = path.join(backupTypePath, dateStr || "");
       const backupBatchPath = path.join(backupDatePath, batchId);
@@ -518,7 +486,7 @@ export class FileStorageService {
     }
     
     try {
-      const dateStr = this.formatDateToYYYYMMDD(date);
+      const dateStr = this.formatDateToFolderFormat(date);
       const backupTypePath = path.join(this.config.backupPath, fileType.toLowerCase());
       const backupDatePath = path.join(backupTypePath, dateStr || "");
       const backupUuidPath = path.join(backupDatePath, uuid);
@@ -665,7 +633,7 @@ export class FileStorageService {
         return this.config.dbfPath;
       case FileType.REP:
         return this.config.repPath;
-      case FileType.STM:
+      case FileType.STATEMENT:
         return this.config.stmPath;
       default:
         return this.config.tempPath;

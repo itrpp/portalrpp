@@ -2,8 +2,9 @@
 // AUTHENTICATION MIDDLEWARE FOR REVENUE SERVICE
 // ========================================
 
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { logInfo, logError } from '@/utils/logger';
+import { AuthenticatedRequest } from '@/types';
 
 // Token cache เพื่อลดการเรียก API Gateway
 const tokenCache = new Map<string, { user: any; expires: number }>();
@@ -34,12 +35,7 @@ export function cleanupAuthMiddleware() {
   tokenCache.clear();
 }
 
-export interface AuthenticatedRequest extends Request {
-  userId?: string;
-  userEmail?: string;
-  userRole?: string;
-  sessionToken?: string;
-}
+// Interface moved to @/types
 
 /**
  * ตรวจสอบ sessionToken จาก header

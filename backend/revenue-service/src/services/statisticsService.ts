@@ -16,25 +16,15 @@ import {
   SystemMetrics,
   BatchStatus,
   FileProcessingStatus,
+  IStatisticsService,
 } from '@/types';
 import { DatabaseService } from './databaseService';
 // import { BatchService } from './batchService';
-import { DateHelper } from '@/utils/dateHelper';
+import { DateHelper } from '@/utils/dateUtils';
 import { logInfo, logError } from '@/utils/logger';
 import config from '@/config';
 
-export interface IStatisticsService {
-  updateUploadStatistics(fileType: string, fileSize: number, success: boolean): Promise<void>;
-  getUploadStatistics(): Promise<UploadStatistics>;
-  saveProcessingResult(result: FileProcessingResult): Promise<void>;
-  getProcessingHistory(): Promise<RevenueReport[]>;
-  getProcessingStatistics(): Promise<ProcessingStatistics>;
-  generateSystemReport(): Promise<any>;
-  getBatchStatistics(): Promise<BatchStatistics>;
-  getBatchMetrics(batchId: string): Promise<BatchMetrics>;
-  getSystemMetrics(): Promise<SystemMetrics>;
-  updateBatchStatistics(batchId: string, success: boolean, fileCount: number, recordCount: number, processingTime: number): Promise<void>;
-}
+// Interface moved to @/types
 
 export class StatisticsService implements IStatisticsService {
   private statisticsFile: string;
@@ -43,11 +33,12 @@ export class StatisticsService implements IStatisticsService {
   private databaseService: DatabaseService;
   // private batchService: BatchService;
 
-  constructor() {
+  constructor(databaseService?: DatabaseService) {
     this.statisticsFile = path.join(config.upload.backupPath, 'upload-statistics.json');
     this.historyFile = path.join(config.upload.backupPath, 'processing-history.json');
     this.reportsFile = path.join(config.upload.backupPath, 'reports.json');
-    this.databaseService = new DatabaseService();
+    // ใช้ dependency injection หรือสร้าง instance ใหม่ถ้าไม่ได้ส่งมา
+    this.databaseService = databaseService || new DatabaseService();
     // this.batchService = new BatchService();
   }
 
@@ -451,9 +442,16 @@ export class StatisticsService implements IStatisticsService {
   }
 
   /**
+   * อัปเดตสถิติ Batch (interface method)
+   */
+  async updateBatchStatistics(batchId: string, success: boolean, fileCount: number, recordCount: number, processingTime: number): Promise<void> {
+    return this.updateBatchStatisticsById(batchId, success, fileCount, recordCount, processingTime);
+  }
+
+  /**
    * อัปเดตสถิติ Batch
    */
-  async updateBatchStatistics(
+  async updateBatchStatisticsById(
     batchId: string, 
     success: boolean, 
     fileCount: number, 

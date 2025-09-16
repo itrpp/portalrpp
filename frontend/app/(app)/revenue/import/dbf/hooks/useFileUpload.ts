@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { toast } from 'react-hot-toast';
+// Removed react-hot-toast in favor of HeroUI addToast. No direct toasts here.
 import { api, type UploadedFile } from '@/app/api/client';
 
 export const useFileUpload = (maxFileSize: number, maxFiles: number) => {

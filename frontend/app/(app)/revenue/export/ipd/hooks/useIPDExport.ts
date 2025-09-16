@@ -3,7 +3,7 @@ import { useSession } from 'next-auth/react';
 import { addToast } from '@heroui/react';
 import { api, type UploadBatch } from '@/app/api/client';
 
-export const useOPDExport = () => {
+export const useIPDExport = () => {
     const { data: session, status } = useSession();
     const [uploadBatches, setUploadBatches] = useState<UploadBatch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -64,8 +64,8 @@ export const useOPDExport = () => {
                     files: b.files?.length || 0 
                 })));
 
-                // กรองเฉพาะ DBF batches ที่มีไฟล์ .dbf จริงๆ
-                const dbfBatches = allBatches.filter((batch) => {
+                // กรองเฉพาะ IPD batches ที่มีไฟล์ .dbf จริงๆ
+                const ipdBatches = allBatches.filter((batch) => {
                     // ตรวจสอบว่ามีไฟล์ .dbf จริงๆ หรือไม่
                     if (batch.files && batch.files.length > 0) {
                         const dbfFileCount = batch.files.filter((file) =>
@@ -84,12 +84,12 @@ export const useOPDExport = () => {
                     return false;
                 });
 
-                console.log('Filtered DBF batches:', dbfBatches.length, dbfBatches.map((b) => ({ 
+                console.log('Filtered IPD batches:', ipdBatches.length, ipdBatches.map((b) => ({ 
                     id: b.id, 
                     name: b.batchName 
                 })));
 
-                setUploadBatches(dbfBatches);
+                setUploadBatches(ipdBatches);
                 setLastUpdated(new Date());
             } else {
                 setUploadBatches([]);
@@ -104,7 +104,7 @@ export const useOPDExport = () => {
             }
 
             addToast({
-                title: 'ไม่สามารถโหลดข้อมูล DBF batches ได้ กรุณาลองใหม่อีกครั้ง',
+                title: 'ไม่สามารถโหลดข้อมูล IPD batches ได้ กรุณาลองใหม่อีกครั้ง',
                 color: 'danger',
             });
             setUploadBatches([]);
@@ -178,7 +178,7 @@ export const useOPDExport = () => {
                 color: 'primary',
             });
 
-            const response = await api.exportRevenueBatch(session, batchId, 'opd');
+            const response = await api.exportRevenueBatch(session, batchId, 'ipd');
 
             if (response.success && response.data) {
                 const url = window.URL.createObjectURL(response.data);
@@ -186,10 +186,10 @@ export const useOPDExport = () => {
                 link.href = url;
                 
                 if (batch) {
-                    const zipFileName = `${batch.batchName}_OPD.zip`;
+                    const zipFileName = `${batch.batchName}_IPD.zip`;
                     link.download = zipFileName;
                 } else {
-                    link.download = `DBF_Batch_${batchId}_OPD.zip`;
+                    link.download = `IPD_Batch_${batchId}_IPD.zip`;
                 }
                 
                 document.body.appendChild(link);
