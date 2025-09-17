@@ -33,13 +33,7 @@ const authOptions: NextAuthOptions = {
           ? '/api-gateway/auth/login-ldap'
           : '/api-gateway/auth/login';
 
-        // Debug: แสดงปลายทางที่ NextAuth จะเรียก (ดูได้ใน server logs)
-        try {
-          console.log('[NextAuth][authorize] calling', {
-            method: credentials.authMethod || 'local',
-            url: `${API_BASE_URL}${endpoint}`,
-          });
-        } catch {}
+        // Debug logs ถูกปิดเพื่อหลีกเลี่ยงคำเตือน linter
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           method: 'POST',
@@ -60,18 +54,18 @@ const authOptions: NextAuthOptions = {
           ),
         });
 
-        // Debug: แสดงผลลัพธ์การเรียก API (status/endpoint)
-        try {
-          console.log('[NextAuth][authorize] response', {
-            status: response.status,
-            ok: response.ok,
-            endpoint,
-          });
-        } catch {}
+        // Debug logs ถูกปิดเพื่อหลีกเลี่ยงคำเตือน linter
 
         if (!response.ok) {
-          // ให้ NextAuth จัดการเป็น CredentialsSignin โดยคืนค่า null (ไม่ throw)
-          return null;
+          // อ่านข้อความ error จาก backend เพื่อส่งกลับไปแสดงบนหน้า login
+          try {
+            const errData = await response.json().catch(() => null);
+            const message = errData?.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+            throw new Error(message);
+          } catch {
+            // หาก parse ไม่ได้ ให้โยนข้อความ generic
+            throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+          }
         }
 
         const data = await response.json();
