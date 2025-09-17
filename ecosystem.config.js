@@ -17,7 +17,9 @@ module.exports = {
       args: 'dist/index.js',
       env: {
         NODE_ENV: 'production',
-        PORT: '3001'
+        PORT: '3001',
+        // อนุญาต origin สำหรับ production portal
+        CORS_ORIGIN: 'https://portal.rpphosp.go.th,http://localhost:3000,http://localhost:3001'
       }
     },
     {
@@ -37,7 +39,9 @@ module.exports = {
       args: '--max-old-space-size=4096 --expose-gc dist/index.js',
       env: {
         NODE_ENV: 'production',
-        PORT: '3003'
+        PORT: '3003',
+        // สอดคล้องกับ CORS origin
+        CORS_ORIGIN: 'https://portal.rpphosp.go.th'
       }
     }
   ]

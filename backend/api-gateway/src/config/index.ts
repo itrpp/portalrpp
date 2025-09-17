@@ -84,6 +84,7 @@ const security: SecurityConfig = {
   corsOrigins: process.env.CORS_ORIGIN 
     ? process.env.CORS_ORIGIN.split(',') 
     : [
+      'https://portal.rpphosp.go.th',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',

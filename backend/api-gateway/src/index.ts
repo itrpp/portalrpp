@@ -333,6 +333,24 @@ app.use(cors({
   ],
 }));
 
+// จัดการ Preflight (OPTIONS) สำหรับทุกเส้นทาง
+app.options('*', cors({
+  origin: config.security.corsOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Origin',
+    'X-API-Key',
+    'x-session-token',
+    'X-Session-Token',
+  ],
+}));
+
 // ตั้งค่า trust proxy เพื่อให้ได้ IP address ที่ถูกต้อง
 app.set('trust proxy', true);
 

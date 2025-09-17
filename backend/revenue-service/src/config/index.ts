@@ -96,6 +96,8 @@ export const config = {
   security: {
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     allowedOrigins: [
+      process.env.CORS_ORIGIN || 'http://localhost:3000',
+      'https://portal.rpphosp.go.th',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
