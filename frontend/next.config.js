@@ -3,6 +3,11 @@ const nextConfig = {
   // Server external packages (moved from experimental)
   serverExternalPackages: ['@prisma/client'],
 
+  // อนุญาต Origin ภายนอกสำหรับ Development เท่านั้น (แก้คำเตือน Cross origin ของ Next.js)
+  // อ้างอิง: allowedDevOrigins ใน next.config.js
+  // หมายเหตุ: ใช้เฉพาะระหว่างพัฒนา ไม่ส่งผลกับ Production
+  allowedDevOrigins: ['portal.rpphosp.go.th'],
+
   // Turbopack configuration (moved from experimental)
   turbopack: {
     rules: {
