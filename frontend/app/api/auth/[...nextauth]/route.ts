@@ -33,6 +33,14 @@ const authOptions: NextAuthOptions = {
           ? '/api-gateway/auth/login-ldap'
           : '/api-gateway/auth/login';
 
+        // Debug: แสดงปลายทางที่ NextAuth จะเรียก (ดูได้ใน server logs)
+        try {
+          console.log('[NextAuth][authorize] calling', {
+            method: credentials.authMethod || 'local',
+            url: `${API_BASE_URL}${endpoint}`,
+          });
+        } catch {}
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           method: 'POST',
           headers: {
@@ -51,6 +59,15 @@ const authOptions: NextAuthOptions = {
               }
           ),
         });
+
+        // Debug: แสดงผลลัพธ์การเรียก API (status/endpoint)
+        try {
+          console.log('[NextAuth][authorize] response', {
+            status: response.status,
+            ok: response.ok,
+            endpoint,
+          });
+        } catch {}
 
         if (!response.ok) {
           // ให้ NextAuth จัดการเป็น CredentialsSignin โดยคืนค่า null (ไม่ throw)
