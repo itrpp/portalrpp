@@ -53,8 +53,8 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // อนุญาตให้เข้าถึงหน้า login/signin และหน้าแรกได้เสมอ (ป้องกันลูป redirect ของ NextAuth)
-        if (pathname === '/login' || pathname === '/' || pathname === '/signin') {
+        // อนุญาตให้เข้าถึงหน้า login/signin/error และหน้าแรกได้เสมอ (ป้องกันลูป redirect ของ NextAuth)
+        if (pathname === '/login' || pathname === '/' || pathname === '/signin' || pathname === '/error') {
           return true;
         }
 
