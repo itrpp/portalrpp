@@ -20,6 +20,18 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Origin',
+    'X-API-Key',
+    'x-session-token',
+    'X-Session-Token',
+  ],
 }));
 app.use(morgan('combined'));
 app.use(express.json());
@@ -38,14 +50,17 @@ app.use(express.static('public'));
 export function getClientIP(req: express.Request): string {
   // Try multiple sources for IP address
   let clientIP = req.headers['x-forwarded-for'] as string ||
-                 req.headers['x-real-ip'] as string ||
-                 req.ip ||
-                 req.connection.remoteAddress ||
-                 'unknown';
+    req.headers['x-real-ip'] as string ||
+    req.ip ||
+    req.connection.remoteAddress ||
+    'unknown';
 
   // If x-forwarded-for contains multiple IPs, take the first one
   if (clientIP && clientIP.includes(',')) {
-    clientIP = clientIP.split(',')[0].trim();
+    const firstIP = clientIP.split(',')[0];
+    if (firstIP) {
+      clientIP = firstIP.trim();
+    }
   }
 
   // Handle IPv6 format
@@ -120,7 +135,7 @@ app.get('/health', async (req, res) => {
         bindDN: ldapConfig.bindDN,
       },
     });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   } catch (_error) {
     // Import LDAP config
     const { ldapConfig } = await import('./config/ldap');

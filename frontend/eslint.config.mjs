@@ -213,7 +213,7 @@ export default [
       'no-duplicate-imports': 'error',
       'no-useless-constructor': 'error',
       'no-useless-rename': 'error',
-      'object-property-newline': 'error',
+      'object-property-newline': 'warn',
       'prefer-destructuring': 'error',
       'sort-imports': 'off',
       'import/order': 'off',

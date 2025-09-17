@@ -67,7 +67,7 @@ export class AuthService {
    */
   static async login(credentials: LoginCredentials, ipAddress?: string, userAgent?: string): Promise<AuthResponse> {
     const startTime = Date.now();
-    
+
     try {
       // ตรวจสอบ authentication method
       const authMethod = credentials.authMethod ?? 'local';
@@ -93,7 +93,7 @@ export class AuthService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const duration = Date.now() - startTime;
-      
+
       logger.error('Login error', { error: errorMessage, email: credentials.email });
       logger.performance(`Login ${credentials.authMethod || 'local'} failed`, duration, 'authentication', {
         email: credentials.email,
@@ -121,7 +121,7 @@ export class AuthService {
     userAgent?: string,
   ): Promise<AuthResponse> {
     const startTime = Date.now();
-    
+
     try {
       logger.auth('LDAP login attempt', undefined, undefined, { username: credentials.username });
 
@@ -173,20 +173,20 @@ export class AuthService {
       if (user) {
         await this.recordLoginAttempt(user.email, true, 'ldap', ipAddress, userAgent);
         const result = await this.createUserSession(user, ipAddress, userAgent);
-        
+
         // บันทึก performance metrics
         const duration = Date.now() - startTime;
-        logger.performance('LDAP login completed', duration, 'ldapAuthentication', { 
-          username: credentials.username, 
-          success: result.success, 
+        logger.performance('LDAP login completed', duration, 'ldapAuthentication', {
+          username: credentials.username,
+          success: result.success,
         });
-        
+
         return result;
       }
 
       const duration = Date.now() - startTime;
-      logger.performance('LDAP login failed - user not found', duration, 'ldapAuthentication', { 
-        username: credentials.username, 
+      logger.performance('LDAP login failed - user not found', duration, 'ldapAuthentication', {
+        username: credentials.username,
       });
 
       return {
@@ -196,11 +196,11 @@ export class AuthService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const duration = Date.now() - startTime;
-      
+
       logger.error('LDAP login error', { error: errorMessage, username: credentials.username });
-      logger.performance('LDAP login error', duration, 'ldapAuthentication', { 
-        username: credentials.username, 
-        error: errorMessage, 
+      logger.performance('LDAP login error', duration, 'ldapAuthentication', {
+        username: credentials.username,
+        error: errorMessage,
       });
 
       // ตรวจสอบว่าเป็น unique constraint error หรือไม่
@@ -552,14 +552,14 @@ export class AuthService {
    * สร้าง session สำหรับผู้ใช้
    */
   private static async createUserSession(user: UserWithRelations, ipAddress?: string, userAgent?: string): Promise<AuthResponse> {
-    // ลบ session เก่าที่หมดอายุ
-    await this.cleanupExpiredSessions(user.id);
+    // ลบ session เก่าทั้งหมดของ user นี้ (ไม่ใช่แค่ session หมดอายุ)
+    await this.cleanupAllUserSessions(user.id);
 
     // สร้าง JWT tokens
     const accessToken = this.generateAccessToken(user);
     const refreshToken = await this.generateRefreshToken(user.id);
 
-    // สร้าง session
+    // สร้าง session ใหม่
     const sessionToken = uuidv4();
     await prisma.session.create({
       data: {
@@ -663,7 +663,10 @@ export class AuthService {
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
         include: {
-          sessions: true,
+          sessions: {
+            orderBy: { expires: 'desc' },
+            take: 1, // เอาแค่ session ล่าสุด
+          },
           accounts: true,
         },
       });
@@ -1245,6 +1248,19 @@ export class AuthService {
       });
     } catch (error) {
       console.error('Cleanup expired sessions error:', error);
+    }
+  }
+
+  /**
+   * ล้างทุก session ของผู้ใช้
+   */
+  private static async cleanupAllUserSessions(userId: string): Promise<void> {
+    try {
+      await prisma.session.deleteMany({
+        where: { userId },
+      });
+    } catch (error) {
+      console.error('Cleanup all user sessions error:', error);
     }
   }
 

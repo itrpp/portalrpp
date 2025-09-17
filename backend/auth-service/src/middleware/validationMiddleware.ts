@@ -19,7 +19,7 @@ export class ValidationMiddleware {
 
     if (!validation.isValid) {
       logger.warn('Login validation failed', { email, errors: validation.errors });
-      return ErrorHandler.createValidationError(res, validation.errors[0]);
+      return ErrorHandler.createValidationError(res, validation.errors[0] || 'Validation failed');
     }
 
     // ทำความสะอาดข้อมูล
@@ -39,7 +39,7 @@ export class ValidationMiddleware {
 
     if (!validation.isValid) {
       logger.warn('Registration validation failed', { email, errors: validation.errors });
-      return ErrorHandler.createValidationError(res, validation.errors[0]);
+      return ErrorHandler.createValidationError(res, validation.errors[0] || 'Registration validation failed');
     }
 
     // ตรวจสอบ role ถ้ามี
@@ -47,7 +47,7 @@ export class ValidationMiddleware {
       const roleValidation = ValidationUtils.validateRole(role);
       if (!roleValidation.isValid) {
         logger.warn('Role validation failed', { role, errors: roleValidation.errors });
-        return ErrorHandler.createValidationError(res, roleValidation.errors[0]);
+        return ErrorHandler.createValidationError(res, roleValidation.errors[0] || 'Role validation failed');
       }
     }
 
@@ -70,7 +70,7 @@ export class ValidationMiddleware {
 
     if (!validation.isValid) {
       logger.warn('Password change validation failed', { errors: validation.errors });
-      return ErrorHandler.createValidationError(res, validation.errors[0]);
+      return ErrorHandler.createValidationError(res, validation.errors[0] || 'Password change validation failed');
     }
 
     // ทำความสะอาดข้อมูล
@@ -90,7 +90,7 @@ export class ValidationMiddleware {
 
     if (!validation.isValid) {
       logger.warn('Session token validation failed', { errors: validation.errors });
-      return ErrorHandler.createValidationError(res, validation.errors[0]);
+      return ErrorHandler.createValidationError(res, validation.errors[0] || 'Session token validation failed');
     }
 
     next();
@@ -106,7 +106,7 @@ export class ValidationMiddleware {
 
     if (!validation.isValid) {
       logger.warn('Access token validation failed', { errors: validation.errors });
-      return ErrorHandler.createValidationError(res, validation.errors[0]);
+      return ErrorHandler.createValidationError(res, validation.errors[0] || 'Access token validation failed');
     }
 
     next();
@@ -122,7 +122,7 @@ export class ValidationMiddleware {
 
     if (!validation.isValid) {
       logger.warn('Refresh token validation failed', { errors: validation.errors });
-      return ErrorHandler.createValidationError(res, validation.errors[0]);
+      return ErrorHandler.createValidationError(res, validation.errors[0] || 'Refresh token validation failed');
     }
 
     next();
@@ -139,7 +139,7 @@ export class ValidationMiddleware {
       const nameValidation = ValidationUtils.validateName(name);
       if (!nameValidation.isValid) {
         logger.warn('Name validation failed', { name, errors: nameValidation.errors });
-        return ErrorHandler.createValidationError(res, nameValidation.errors[0]);
+        return ErrorHandler.createValidationError(res, nameValidation.errors[0] || 'Name validation failed');
       }
     }
 

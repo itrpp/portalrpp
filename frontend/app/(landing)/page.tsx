@@ -11,16 +11,16 @@ import {
   ServerIcon,
   ArrowRightIcon,
   UserIcon,
-} from '@/components/icons';
+} from '@/components/ui/Icons';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 import { siteConfig } from '@/config/site';
 
 function HomeContent() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { data: session } = useSession();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -71,7 +71,7 @@ function HomeContent() {
             </p>
 
             {/* Action Buttons */}
-            {isAuthenticated ? (
+            {session ? (
               <div className='flex justify-center mb-8'>
                 <Button
                   color='secondary'
@@ -117,14 +117,14 @@ function HomeContent() {
               >
                 {isClient && currentTime
                   ? currentTime.toLocaleString('th-TH', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })
                   : 'กำลังโหลด...'}
               </span>
             </div>
@@ -132,7 +132,7 @@ function HomeContent() {
 
           {/* Features Section */}
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16'>
-            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-background/90 backdrop-blur-lg hover:shadow-2xl transition-all duration-300'>
+            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-default hover:shadow-2xl transition-all duration-300'>
               <CardHeader className='pb-0'>
                 <div
                   className='w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto'
@@ -157,7 +157,7 @@ function HomeContent() {
               </CardBody>
             </Card>
 
-            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-background/90 backdrop-blur-lg hover:shadow-2xl transition-all duration-300'>
+            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-default hover:shadow-2xl transition-all duration-300'>
               <CardHeader className='pb-0'>
                 <div
                   className='w-16 h-16 bg-secondary-100 dark:bg-secondary-900/20 rounded-full flex items-center justify-center mx-auto'
@@ -182,7 +182,7 @@ function HomeContent() {
               </CardBody>
             </Card>
 
-            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-background/90 backdrop-blur-lg hover:shadow-2xl transition-all duration-300'>
+            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-default hover:shadow-2xl transition-all duration-300'>
               <CardHeader className='pb-0'>
                 <div
                   className='w-16 h-16 bg-warning-100 dark:bg-warning-900/20 rounded-full flex items-center justify-center mx-auto'
@@ -207,7 +207,7 @@ function HomeContent() {
               </CardBody>
             </Card>
 
-            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-background/90 backdrop-blur-lg hover:shadow-2xl transition-all duration-300'>
+            <Card className='shadow-xl border border-default-200 dark:border-default-700 bg-default hover:shadow-2xl transition-all duration-300'>
               <CardHeader className='pb-0'>
                 <div
                   className='w-16 h-16 bg-danger-100 dark:bg-danger-900/20 rounded-full flex items-center justify-center mx-auto'

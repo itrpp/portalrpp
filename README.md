@@ -67,7 +67,6 @@ npm run dev:auth          # http://localhost:3002
 - **API Gateway**: http://localhost:3001
 - **Auth Service**: http://localhost:3002
 - **User Service**: http://localhost:3003
-- **Database Service**: http://localhost:3004
 
 ## 🛠️ Scripts
 
@@ -173,7 +172,6 @@ npm run db:seed
 - **API Gateway**: `GET /health`
 - **Auth Service**: `GET /health`
 - **User Service**: `GET /health`
-- **Database Service**: `GET /health`
 
 ## 🔐 Security Features
 

@@ -115,7 +115,7 @@ export class LDAPService {
       console.log('🔍 ค้นหาผู้ใช้ใน Windows AD ด้วย filter:', searchFilter);
       console.log('🔍 ค้นหาจาก baseDN:', ldapConfig.baseDN);
 
-      this.client.search(ldapConfig.baseDN, searchOptions, (err: Error | null, res: ldap.SearchResponse) => {
+      this.client.search(ldapConfig.baseDN, searchOptions, (err: Error | null, res: any) => {
         if (err) {
           console.error('🔴 Windows AD Search Error:', err);
           reject(new Error(`เกิดข้อผิดพลาดในการค้นหา Windows AD: ${err.message}`));

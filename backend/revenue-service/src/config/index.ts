@@ -1,58 +1,140 @@
-import dotenv from 'dotenv';
+// ========================================
+// REVENUE SERVICE CONFIGURATION
+// ========================================
 
-dotenv.config();
+import { FileUploadConfig, ValidationConfig, ProcessingConfig } from '@/types';
+
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      PORT?: string;
+      NODE_ENV?: string;
+      MAX_FILE_SIZE?: string;
+      ALLOWED_FILE_TYPES?: string;
+      UPLOAD_PATH?: string;
+      DBF_PATH?: string;
+      REP_PATH?: string;
+      STM_PATH?: string;
+      TEMP_DIR?: string;
+      PROCESSED_DIR?: string;
+      BACKUP_DIR?: string;
+      LOG_LEVEL?: string;
+      LOG_FILE_PATH?: string;
+      LOG_MAX_SIZE?: string;
+      LOG_MAX_FILES?: string;
+      RATE_LIMIT_WINDOW_MS?: string;
+      RATE_LIMIT_MAX_REQUESTS?: string;
+      RATE_LIMIT_UPLOAD_MAX_FILES?: string;
+      CORS_ORIGIN?: string;
+      DATABASE_URL?: string;
+    }
+  }
+}
+
+declare const process: any;
 
 export const config = {
-  // Server configuration
-  port: parseInt(process.env.PORT || '3005', 10),
-  nodeEnv: process.env.NODE_ENV || 'development',
-  
-  // API Gateway URLs
-  apiGatewayUrl: process.env.API_GATEWAY_URL || 'http://localhost:3001',
-  databaseServiceUrl: process.env.DATABASE_SERVICE_URL || 'http://localhost:3001/api/db',
-  authServiceUrl: process.env.AUTH_SERVICE_URL || 'http://localhost:3001/api/auth',
-  
-  // Rate limiting
-  rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-  rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
-  
-  // Logging
-  logLevel: process.env.LOG_LEVEL || 'info',
-  logFile: process.env.LOG_FILE || 'logs/revenue-service.log',
-  
-  // Security
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  helmetEnabled: process.env.HELMET_ENABLED === 'true',
-  
-  // Revenue Collection Settings
-  revenueCategories: (process.env.REVENUE_CATEGORIES || 'TAX,FEE,FINE,LICENSE,OTHER').split(','),
-  currency: process.env.CURRENCY || 'THB',
-  defaultPaymentMethods: (process.env.DEFAULT_PAYMENT_METHODS || 'CASH,TRANSFER,CREDIT_CARD,DEBIT_CARD').split(','),
-  
-  // Database settings (สำหรับการเรียกใช้ผ่าน API Gateway)
-  revenueTableName: 'revenue_collections',
-  revenueCategoriesTableName: 'revenue_categories',
-  revenueReportsTableName: 'revenue_reports',
-  
-  // JWT settings
-  jwtSecret: process.env.JWT_SECRET || 'revenue-service-secret',
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
-  
-  // Validation settings
-  maxRevenueAmount: 1000000000, // 1 พันล้านบาท
-  minRevenueAmount: 0.01, // 1 สตางค์
-  
-  // Report settings
-  maxReportPeriodDays: 365, // 1 ปี
-  defaultReportPeriodDays: 30, // 30 วัน
-  
-  // File upload settings
-  maxFileSize: 10 * 1024 * 1024, // 10MB
-  allowedFileTypes: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-  
-  // Notification settings
-  enableNotifications: process.env.ENABLE_NOTIFICATIONS === 'true',
-  notificationWebhook: process.env.NOTIFICATION_WEBHOOK || '',
-} as const;
+  // Server Configuration
+  server: {
+    port: process.env.PORT || 3003,
+    nodeEnv: process.env.NODE_ENV || 'development',
+    // ตั้งค่า trust proxy ให้ปลอดภัย: 1 = เชื่อถือ proxy ชั้นนอกสุด (เช่น API Gateway)
+    // หลีกเลี่ยงการตั้งค่าเป็น true เพราะไม่ปลอดภัยและทำให้ express-rate-limit แจ้งเตือน
+    trustProxy: Number(process.env.TRUST_PROXY || 1),
+  },
 
-export type Config = typeof config; 
+  // File Upload Configuration
+  upload: {
+    maxFileSize: process.env.MAX_FILE_SIZE || '50mb',
+    allowedFileTypes: (process.env.ALLOWED_FILE_TYPES || '.dbf,.xls,.xlsx').split(','),
+    uploadPath: process.env.UPLOAD_PATH || './uploads',
+    dbfPath: process.env.DBF_PATH || './uploads/dbf',
+    repPath: process.env.REP_PATH || './uploads/rep',
+    stmPath: process.env.STM_PATH || './uploads/stm',
+    tempPath: process.env.TEMP_DIR || './uploads/temp',
+    processedPath: process.env.PROCESSED_DIR || './uploads/processed',
+    backupPath: process.env.BACKUP_DIR || './uploads/backup',
+    exportPath: process.env.EXPORT_DIR || './exports',
+  } as FileUploadConfig,
+
+  // Validation Configuration
+  validation: {
+    maxRecordCount: 1000000, // 1 ล้าน records
+    maxFileSize: 100 * 1024 * 1024, // 100MB
+    allowedEncodings: ['utf8', 'tis620', 'cp874'],
+    requiredFields: {
+      dbf: ['HN', 'AN', 'DATE', 'DIAG'],
+      rep: ['HN', 'AN', 'DATE', 'DIAG'],
+      statement: ['HN', 'AN', 'DATE', 'DIAG'],
+    },
+  } as ValidationConfig,
+
+  // Processing Configuration
+  processing: {
+    batchSize: 1000,
+    timeout: 300000, // 5 minutes
+    retryAttempts: 3,
+    parallelProcessing: true,
+  } as ProcessingConfig,
+
+  // Logging Configuration
+  logging: {
+    level: process.env.LOG_LEVEL || 'info',
+    filePath: process.env.LOG_FILE_PATH || './logs',
+    maxSize: process.env.LOG_MAX_SIZE || '20m',
+    maxFiles: parseInt(process.env.LOG_MAX_FILES || '14'),
+  },
+
+  // Rate Limiting
+  rateLimit: {
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+    uploadMaxFiles: parseInt(process.env.RATE_LIMIT_UPLOAD_MAX_FILES || '100'),
+  },
+
+  // Security
+  security: {
+    corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    allowedOrigins: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:3003',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3002',
+      'http://127.0.0.1:3003',
+    ],
+  },
+
+  // File Processing Rules
+  fileRules: {
+    dbf: {
+      maxFileSize: 50 * 1024 * 1024, // 50MB
+      requiredExtensions: ['.dbf'],
+      encoding: 'cp874', // Thai Windows encoding
+      fieldValidation: true,
+    },
+    rep: {
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      requiredExtensions: ['.xls', '.xlsx'],
+      sheetValidation: true,
+    },
+    statement: {
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      requiredExtensions: ['.xls', '.xlsx'],
+      sheetValidation: true,
+    },
+  },
+
+  // Database Configuration (ถ้ามี)
+  database: {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    name: process.env.DB_NAME || 'revenue_db',
+    user: process.env.DB_USER || 'revenue_user',
+    password: process.env.DB_PASSWORD || 'revenue_password',
+  },
+};
+
+export default config; 

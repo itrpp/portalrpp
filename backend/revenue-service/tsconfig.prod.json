@@ -2,8 +2,19 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "sourceMap": false,
-    "declaration": false,
     "declarationMap": false,
-    "removeComments": true
-  }
+    "removeComments": true,
+    "noEmit": false,
+    "outDir": "./dist",
+    "target": "ES2022",
+    "module": "commonjs"
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts"
+  ]
 } 

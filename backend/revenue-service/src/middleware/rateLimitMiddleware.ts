@@ -1,110 +1,88 @@
-import rateLimit from 'express-rate-limit';
-import { config } from '../config';
-import { logger } from '../utils/logger';
+// ========================================
+// RATE LIMITING MIDDLEWARE
+// ========================================
 
-// Rate limiting configuration
-export const rateLimitMiddleware = rateLimit({
-  windowMs: config.rateLimitWindowMs, // 15 นาที
-  max: config.rateLimitMaxRequests, // จำกัด 100 requests ต่อ window
+import rateLimit from 'express-rate-limit';
+import config from '@/config';
+import { logWarn } from '@/utils/logger';
+
+// สร้าง rate limiter สำหรับ API ทั่วไป
+export const apiRateLimiter = rateLimit({
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.maxRequests,
   message: {
-    error: 'เกินขีดจำกัดการเรียกใช้ API กรุณาลองใหม่อีกครั้งในภายหลัง',
-    retryAfter: Math.ceil(config.rateLimitWindowMs / 1000),
+    success: false,
+    message: 'คุณส่งคำขอมากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง',
+    timestamp: new Date(),
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
   handler: (req, res) => {
-    logger.warn('Rate limit exceeded', {
+    logWarn('Rate limit exceeded', {
       ip: req.ip,
-      path: req.path,
-      method: req.method,
+      url: req.url,
       userAgent: req.get('User-Agent'),
     });
-    
     res.status(429).json({
       success: false,
-      error: 'เกินขีดจำกัดการเรียกใช้ API กรุณาลองใหม่อีกครั้งในภายหลัง',
-      retryAfter: Math.ceil(config.rateLimitWindowMs / 1000),
-      timestamp: new Date().toISOString(),
+      message: 'คุณส่งคำขอมากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง',
+      timestamp: new Date(),
     });
-  },
-  skip: (req) => {
-    // ข้าม rate limiting สำหรับ health check
-    return req.path === '/health';
   },
 });
 
-// Specific rate limiters for different endpoints
-export const revenueCreateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 นาที
-  max: 10, // จำกัด 10 requests ต่อนาที
+// สร้าง rate limiter สำหรับการอัปโหลดไฟล์
+export const uploadRateLimiter = rateLimit({
+  windowMs: config.rateLimit.windowMs, // ใช้ค่าเดียวกับ API เพื่อความยืดหยุ่น
+  max: config.rateLimit.uploadMaxFiles, // ควบคุมจำนวนไฟล์ต่อช่วงเวลา ผ่าน ENV
   message: {
-    error: 'เกินขีดจำกัดการสร้างรายการรายได้ กรุณาลองใหม่อีกครั้งในภายหลัง',
-    retryAfter: 60,
+    success: false,
+    message: 'คุณอัปโหลดไฟล์มากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง',
+    timestamp: new Date(),
   },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    logger.warn('Revenue create rate limit exceeded', {
+    logWarn('Upload rate limit exceeded', {
       ip: req.ip,
-      path: req.path,
-      method: req.method,
+      url: req.url,
+      userAgent: req.get('User-Agent'),
     });
-    
     res.status(429).json({
       success: false,
-      error: 'เกินขีดจำกัดการสร้างรายการรายได้ กรุณาลองใหม่อีกครั้งในภายหลัง',
-      retryAfter: 60,
-      timestamp: new Date().toISOString(),
+      message: 'คุณอัปโหลดไฟล์มากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง',
+      timestamp: new Date(),
     });
   },
 });
 
-export const reportGenerationLimiter = rateLimit({
+// สร้าง rate limiter สำหรับการตรวจสอบไฟล์
+export const validationRateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 นาที
-  max: 5, // จำกัด 5 requests ต่อ 5 นาที
+  max: 50, // สูงสุด 50 ครั้งต่อ 5 นาที
   message: {
-    error: 'เกินขีดจำกัดการสร้างรายงาน กรุณาลองใหม่อีกครั้งในภายหลัง',
-    retryAfter: 300,
+    success: false,
+    message: 'คุณตรวจสอบไฟล์มากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง',
+    timestamp: new Date(),
   },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    logger.warn('Report generation rate limit exceeded', {
+    logWarn('Validation rate limit exceeded', {
       ip: req.ip,
-      path: req.path,
-      method: req.method,
+      url: req.url,
+      userAgent: req.get('User-Agent'),
     });
-    
     res.status(429).json({
       success: false,
-      error: 'เกินขีดจำกัดการสร้างรายงาน กรุณาลองใหม่อีกครั้งในภายหลัง',
-      retryAfter: 300,
-      timestamp: new Date().toISOString(),
+      message: 'คุณตรวจสอบไฟล์มากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง',
+      timestamp: new Date(),
     });
   },
 });
 
-export const searchLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 นาที
-  max: 30, // จำกัด 30 requests ต่อนาที
-  message: {
-    error: 'เกินขีดจำกัดการค้นหา กรุณาลองใหม่อีกครั้งในภายหลัง',
-    retryAfter: 60,
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    logger.warn('Search rate limit exceeded', {
-      ip: req.ip,
-      path: req.path,
-      method: req.method,
-    });
-    
-    res.status(429).json({
-      success: false,
-      error: 'เกินขีดจำกัดการค้นหา กรุณาลองใหม่อีกครั้งในภายหลัง',
-      retryAfter: 60,
-      timestamp: new Date().toISOString(),
-    });
-  },
-}); 
+export default {
+  apiRateLimiter,
+  uploadRateLimiter,
+  validationRateLimiter,
+}; 

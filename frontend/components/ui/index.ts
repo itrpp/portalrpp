@@ -1,6 +1,4 @@
 // UI Components
-export {
-  default as ThemeToggle,
-  ThemeProvider,
-  useCustomTheme,
-} from './ThemeToggle';
+export * from './Icons';
+export { ThemeToggle } from './ThemeToggle';
+export { LoadingSpinner } from './LoadingSpinner';

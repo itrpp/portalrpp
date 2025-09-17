@@ -1,32 +1,56 @@
 'use client';
 
-import * as React from 'react';
-import { HeroUIProvider } from '@heroui/react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { ThemeProvider } from 'next-themes';
+import { SessionProvider } from 'next-auth/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastProvider } from '@heroui/react';
 
-import { AuthProvider } from '@/contexts/AuthContext';
-import { ThemeProvider } from '@/components/ui';
+// ========================================
+// PROVIDERS COMPONENT
+// ========================================
 
-export interface ProvidersProps {
-  children: React.ReactNode;
-}
-
-declare module '@react-types/shared' {
-  interface RouterConfig {
-    routerOptions: NonNullable<
-      Parameters<ReturnType<typeof useRouter>['push']>[1]
-    >;
-  }
-}
-
-export function Providers({ children }: ProvidersProps) {
-  const router = useRouter();
+export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minute
+            retry: 1,
+          },
+        },
+      })
+  );
 
   return (
-    <HeroUIProvider navigate={router.push}>
-      <ThemeProvider>
-        <AuthProvider>{children}</AuthProvider>
-      </ThemeProvider>
-    </HeroUIProvider>
+    <SessionProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ToastProvider
+            placement="top-right"
+            maxVisibleToasts={3}
+            toastProps={{
+              timeout: 5000,
+              color: 'default',
+              variant: 'flat',
+              radius: 'md',
+              classNames: {
+                base: 'bg-background border border-default-300 dark:border-default-600 shadow-lg',
+                title: 'text-foreground font-medium',
+                description: 'text-default-600 dark:text-default-400',
+                closeButton: 'text-default-400 hover:text-foreground',
+              }
+            }}
+          />
+          {children}
+        </ThemeProvider>
+      </QueryClientProvider>
+    </SessionProvider>
   );
 }

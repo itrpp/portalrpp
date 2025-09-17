@@ -1,0 +1,217 @@
+// ========================================
+// REVENUE SERVICE PRISMA SCHEMA
+// ========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// UPLOAD BATCHES
+// ========================================
+
+model UploadBatch {
+  id         String   @id @default(cuid())
+  batchName  String
+  uploadDate DateTime @default(now())
+
+  // File counts
+  totalFiles      Int @default(0)
+  successFiles    Int @default(0)
+  errorFiles      Int @default(0)
+  processingFiles Int @default(0)
+
+  // Statistics
+  totalRecords Int @default(0)
+  totalSize    Int @default(0) // bytes
+
+  // Status
+  status String @default("processing") // SUCCESS, ERROR, PROCESSING, PARTIAL
+  
+  // Processing and Export Status
+  processingStatus String @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED
+  exportStatus     String @default("not_exported") // NOT_EXPORTED, EXPORTING, EXPORTED, EXPORT_FAILED
+  // แยกสถานะสำหรับ IPD/OPD เพื่อลดความสับสน
+  processingStatusIpd String @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingStatusOpd String @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED
+  exportStatusIpd     String @default("not_exported") // NOT_EXPORTED, EXPORTING, EXPORTED, EXPORT_FAILED
+  exportStatusOpd     String @default("not_exported") // NOT_EXPORTED, EXPORTING, EXPORTED, EXPORT_FAILED
+
+  // Relations
+  files     UploadRecord[]
+  userId    String?
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("upload_batches")
+}
+
+// ========================================
+// UPLOAD RECORDS
+// ========================================
+
+model UploadRecord {
+  id           String    @id @default(cuid())
+  filename     String
+  originalName String
+  fileType     String // DBF, REP, STM
+  fileSize     Int
+  filePath     String
+  uploadDate   DateTime  @default(now())
+  processedAt  DateTime?
+  status       String    @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED, VALIDATION_FAILED, VALIDATION_COMPLETED, VALIDATION_ERROR
+
+  // Batch relation
+  batchId String?
+  batch   UploadBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  // User info
+  userId    String?
+  ipAddress String?
+  userAgent String?
+
+  // Validation results
+  isValid  Boolean?
+  errors   String? // JSON string of errors
+  warnings String? // JSON string of warnings
+
+  // Processing results
+  totalRecords     Int?
+  validRecords     Int?
+  invalidRecords   Int?
+  processedRecords Int?
+  skippedRecords   Int?
+  processingTime   Int? // milliseconds
+
+  // Error message for frontend
+  errorMessage String?
+
+  // Metadata
+  metadata  String? // JSON string of additional data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  processingHistory ProcessingHistory[]
+  dbfRecords      DBF_Record[]
+
+  @@map("upload_records")
+}
+
+// ========================================
+// PROCESSING HISTORY
+// ========================================
+
+model ProcessingHistory {
+  id       String       @id @default(cuid())
+  uploadId String
+  upload   UploadRecord @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  action  String // VALIDATE, PROCESS, BACKUP, CLEANUP
+  status  String // STARTED, COMPLETED, FAILED, CANCELLED
+  message String?
+
+  // Processing details
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  duration  Int? // milliseconds
+
+  // Error details
+  error      String?
+  stackTrace String?
+
+  createdAt DateTime @default(now())
+
+  @@map("processing_history")
+}
+
+// ========================================
+// STATISTICS
+// ========================================
+
+model UploadStatistics {
+  id   String   @id @default(cuid())
+  date DateTime @unique // Date only (YYYY-MM-DD)
+
+  // Upload counts
+  totalUploads      Int @default(0)
+  successfulUploads Int @default(0)
+  failedUploads     Int @default(0)
+
+  // File type breakdown
+  dbfUploads Int @default(0)
+  repUploads Int @default(0)
+  stmUploads Int @default(0)
+
+  // File size statistics
+  totalFileSize   Int @default(0) // bytes
+  averageFileSize Int @default(0) // bytes
+
+  // Processing statistics
+  totalProcessingTime   Int @default(0) // milliseconds
+  averageProcessingTime Int @default(0) // milliseconds
+
+  // Records statistics
+  totalRecords   Int @default(0)
+  validRecords   Int @default(0)
+  invalidRecords Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("upload_statistics")
+}
+
+// ========================================
+// SYSTEM CONFIGURATION
+// ========================================
+
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model DBF_Record {
+  id              String   @id @default(cuid())
+  fileId          String   // รหัสไฟล์ที่อัปโหลด
+  recordIndex     Int      // ลำดับรายการในไฟล์ (0-based)
+  data            String   // ข้อมูลรายการในรูปแบบ JSON string
+  data_ipd        String?  // ข้อมูลรายการหลังปรับสำหรับ IPD (JSON string)
+  data_opd        String?  // ข้อมูลรายการหลังปรับสำหรับ OPD (JSON string)
+  createdAt       DateTime @default(now())
+  
+  // ความสัมพันธ์กับ UploadRecord
+  uploadRecord    UploadRecord @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  @@index([fileId])
+  @@index([recordIndex])
+  @@index([createdAt])
+}
+
+model ProcessingStatistics {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  fileType        String
+  totalFiles      Int      @default(0)
+  successFiles    Int      @default(0)
+  errorFiles      Int      @default(0)
+  totalRecords    Int      @default(0)
+  processingTime  Int      @default(0)
+  
+  @@index([date])
+  @@index([fileType])
+}

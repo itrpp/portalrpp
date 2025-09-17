@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { siteConfig } from '@/config/site';
-import { NavigationBar } from '@/components/navigation';
-import { LandingFooter } from '@/components/layout';
+
+import { NavigationBar, LandingFooter } from '@/components/layout';
 
 export default function LandingLayout({
   children,

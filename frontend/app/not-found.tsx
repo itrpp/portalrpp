@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button, Card, CardBody } from '@heroui/react';
-import { HomeIcon, ArrowLeftIcon } from '@/components/icons';
+import { HomeIcon, ArrowLeftIcon } from '@/components/ui/Icons';
 
 export default function NotFound() {
   return (

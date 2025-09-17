@@ -31,7 +31,7 @@ frontend/
 - **เรียก API ผ่าน API Gateway เท่านั้น** - ห้ามเรียก service โดยตรง
 - ใช้ URL: `http://localhost:3001` สำหรับทุก API calls
 - ตัวอย่าง: `/api/auth/login` → `http://localhost:3001/api/auth/login`
-- **ห้ามเรียก**: `http://localhost:3002`, `http://localhost:3003`, `http://localhost:3004` โดยตรง
+- **ห้ามเรียก**: `http://localhost:3002`, `http://localhost:3003` โดยตรง
 
 ## 🎨 UI/UX Guidelines
 
@@ -40,6 +40,46 @@ frontend/
 - ใช้ **Tailwind CSS** สำหรับ styling
 - ใช้ **Font Prompt** สำหรับภาษาไทย
 - ใช้ **Color Scheme**: Blue (#2563eb) เป็น primary color
+- **ใช้ Iconify เป็นไลบรารีไอคอนเท่านั้น ห้ามใช้ไลบรารีอื่น เช่น lucide-react, react-icons, heroicons**
+- **ต้องใช้ code color จาก theme (Tailwind/Theme) เท่านั้น ห้าม hardcode สีใน component หรือ style ใด ๆ**
+
+### 🎨 HeroUI Design System Rules
+
+#### 1. CSS Classes ที่ถูกต้องตาม HeroUI Design System
+- **Text Colors**: ใช้ `text-foreground`, `text-default-600`, `text-default-400` แทน `text-gray-*`, `text-muted-foreground`
+- **Border Colors**: ใช้ `border-default-300 dark:border-default-600` แทน `border-gray-*`
+- **Background Colors**: ใช้ `bg-primary-100 dark:bg-primary-900/20` แทน `bg-primary/10`
+- **Icon Colors**: ใช้ `text-primary-600 dark:text-primary-400` แทน `text-primary`
+- **State Colors**: ใช้ `text-success-600`, `text-danger-600`, `text-warning-600` สำหรับสถานะต่างๆ
+
+#### 2. HeroUI Components Usage
+- **Card**: ใช้ `Card`, `CardBody`, `CardHeader` จาก `@heroui/react`
+- **Button**: ใช้ `Button` พร้อม props `color`, `variant`, `size`, `isDisabled`, `isLoading`
+- **Progress**: ใช้ `Progress` สำหรับแสดงความคืบหน้า
+- **Chip**: ใช้ `Chip` สำหรับแสดงสถานะหรือ tags
+- **Alert**: ใช้ `Alert` สำหรับแสดงข้อความแจ้งเตือน
+- **Divider**: ใช้ `Divider` สำหรับแยกส่วน
+- **Input**: ใช้ `Input` สำหรับ form inputs
+- **Select**: ใช้ `Select` สำหรับ dropdown
+- **Modal**: ใช้ `Modal` สำหรับ dialogs
+
+#### 3. Icon Usage Rules
+- **ใช้ Icons Component**: ใช้ icons จาก `@/components/ui/Icons` แทน `@iconify/react` โดยตรง
+- **Icon Sizing**: ใช้ `className` สำหรับกำหนดขนาด เช่น `h-5 w-5`, `h-4 w-4`
+- **Icon Colors**: ใช้ HeroUI color tokens เช่น `text-primary-600 dark:text-primary-400`
+
+#### 4. Color System Guidelines
+- **Primary Colors**: `text-primary-600 dark:text-primary-400`, `bg-primary-100 dark:bg-primary-900/20`
+- **Default Colors**: `text-default-600`, `border-default-300 dark:border-default-600`
+- **Success Colors**: `text-success-600`, `bg-success-100 dark:bg-success-900/20`
+- **Danger Colors**: `text-danger-600`, `bg-danger-100 dark:bg-danger-900/20`
+- **Warning Colors**: `text-warning-600`, `bg-warning-100 dark:bg-warning-900/20`
+
+#### 5. Component Props Guidelines
+- **Button Props**: `color='primary'`, `variant='solid'`, `size='sm'`, `isDisabled`, `isLoading`
+- **Card Props**: `shadow='sm'`, `variant='flat'`, `color='primary'`
+- **Chip Props**: `size='sm'`, `variant='flat'`, `color='success'`
+- **Progress Props**: `size='sm'`, `value={progress}`, `color='primary'`
 
 ### 📱 Responsive Design
 - **Mobile First** approach
@@ -182,6 +222,9 @@ frontend/
 - **สร้างไฟล์ README.md** เพื่ออธิบายการทำงานของ components หรือ functions
 - **สร้างไฟล์เอกสารแยก** แทนการใช้ comments ในโค้ด
 - **ไม่ใช้ JSDoc comments** สำหรับอธิบายการทำงานของ functions
+- **การใช้ CSS classes ที่ไม่ถูกต้อง** เช่น `text-gray-*`, `border-gray-*` แทน HeroUI tokens
+- **การใช้ Iconify โดยตรง** แทนการใช้ Icons component
+- **การ hardcode สี** ใน components แทนการใช้ color tokens
 
 ## 📚 Documentation
 
@@ -279,7 +322,6 @@ npm run test:coverage   # รัน tests พร้อม coverage report
 - **API Gateway**: http://localhost:3001
 - **Auth Service**: http://localhost:3002
 - **User Service**: http://localhost:3003
-- **Database Service**: http://localhost:3004
 
 ---
 

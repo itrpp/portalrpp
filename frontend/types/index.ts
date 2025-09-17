@@ -55,3 +55,26 @@ export interface IconSvgProps {
   className?: string;
   [key: string]: unknown;
 }
+
+export enum BatchStatus {
+  SUCCESS = 'success',
+  COMPLETED = 'completed',
+  ERROR = 'error',
+  PROCESSING = 'processing',
+  PARTIAL = 'partial',
+  PARTIAL_SUCCESS = 'partial_success',
+}
+
+export enum ProcessingStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+export enum ExportStatus {
+  NOT_EXPORTED = 'not_exported',
+  EXPORTING = 'exporting',
+  EXPORTED = 'exported',
+  EXPORT_FAILED = 'export_failed',
+}

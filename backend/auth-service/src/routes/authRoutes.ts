@@ -341,7 +341,16 @@ router.post(
   ValidationMiddleware.validateSessionToken,
   async (req: Request, res: Response) => {
     try {
-      const { sessionToken } = req.body;
+      // รับ session token จาก body หรือ header
+      const sessionToken = req.body.sessionToken || (req.headers['x-session-token'] || req.headers['X-Session-Token']) as string;
+
+      if (!sessionToken) {
+        logger.warn('Session validation failed - no session token provided');
+        return res.status(401).json({
+          success: false,
+          message: 'ไม่พบ session token',
+        });
+      }
 
       logger.info('Session validation attempt');
 
@@ -404,7 +413,16 @@ router.post(
   ValidationMiddleware.validateSessionToken,
   async (req: Request, res: Response) => {
     try {
-      const { sessionToken } = req.body;
+      // รับ session token จาก body หรือ header
+      const sessionToken = req.body.sessionToken || (req.headers['x-session-token'] || req.headers['X-Session-Token']) as string;
+
+      if (!sessionToken) {
+        logger.warn('Session status check failed - no session token provided');
+        return res.status(401).json({
+          success: false,
+          message: 'ไม่พบ session token',
+        });
+      }
 
       logger.info('Session status check attempt');
 
@@ -514,6 +532,34 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
   try {
     // ตรวจสอบว่า req.user มีค่าหรือไม่
     if (!req.user) {
+      // ลองตรวจสอบ session token จาก header
+      const sessionToken = (req.headers['x-session-token'] || req.headers['X-Session-Token']) as string;
+      
+      if (sessionToken) {
+        // ตรวจสอบ session
+        const sessionResult = await AuthService.validateSession(sessionToken);
+        if (sessionResult.success && sessionResult.user) {
+          // ใช้ข้อมูลจาก session แทน
+          const userResponse = {
+            id: sessionResult.user.id,
+            email: sessionResult.user.email,
+            username: sessionResult.user.email,
+            name: sessionResult.user.name ?? sessionResult.user.email,
+            role: sessionResult.user.role ?? 'user',
+            isActive: sessionResult.user.isActive !== undefined ? sessionResult.user.isActive : true,
+            authMethod: 'local',
+            department: '',
+            displayName: sessionResult.user.name ?? sessionResult.user.email,
+            createdAt: sessionResult.user.createdAt,
+            updatedAt: sessionResult.user.updatedAt,
+            lastLoginAt: new Date(),
+          };
+
+          logger.auth('User info retrieved successfully via session', sessionResult.user.id);
+          return ErrorHandler.createSuccessResponse(res, userResponse, 'ข้อมูลผู้ใช้');
+        }
+      }
+
       return ErrorHandler.createAuthError(res, 'ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
     }
 
@@ -791,6 +837,124 @@ router.post(
       return res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาดในการยกเลิก session',
+      });
+    }
+  },
+);
+
+/**
+ * GET /auth/active-sessions
+ * ดึงรายการ session ที่ใช้งานอยู่
+ */
+router.get('/active-sessions', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return ErrorHandler.createAuthError(res, 'ไม่พบข้อมูลผู้ใช้');
+    }
+
+    logger.info('Get active sessions attempt', { userId });
+
+    // ดึง session ที่ใช้งานอยู่ทั้งหมด
+    const sessions = await prisma.session.findMany({
+      where: {
+        userId,
+        expires: { gt: new Date() },
+      },
+      orderBy: { expires: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    // แปลงข้อมูล session
+    const activeSessions = sessions.map(session => ({
+      id: session.id,
+      sessionToken: session.sessionToken,
+      ipAddress: session.ipAddress,
+      userAgent: session.userAgent,
+      expires: session.expires,
+      isCurrentSession: session.sessionToken === req.headers['x-session-token'],
+    }));
+
+    logger.auth('Active sessions retrieved successfully', userId);
+    return res.status(200).json({
+      success: true,
+      message: 'ดึงรายการ session สำเร็จ',
+      data: {
+        sessions: activeSessions,
+        totalSessions: activeSessions.length,
+      },
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Get active sessions error', { error: errorMessage, userId: req.user?.id });
+    return res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงรายการ session',
+    });
+  }
+});
+
+/**
+ * POST /auth/revoke-other-sessions
+ * ลบ session อื่นๆ ยกเว้น session ปัจจุบัน
+ */
+router.post(
+  '/revoke-other-sessions',
+  authenticateToken,
+  ValidationMiddleware.validateContentType,
+  ValidationMiddleware.validateBodySize,
+  ValidationMiddleware.sanitizeInput,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      const currentSessionToken = req.headers['x-session-token'] as string;
+
+      if (!userId) {
+        return ErrorHandler.createAuthError(res, 'ไม่พบข้อมูลผู้ใช้');
+      }
+
+      if (!currentSessionToken) {
+        return ErrorHandler.createValidationError(res, 'ไม่พบ session token ปัจจุบัน');
+      }
+
+      logger.info('Revoke other sessions attempt', { userId });
+
+      // ลบ session อื่นๆ ยกเว้น session ปัจจุบัน
+      const result = await prisma.session.deleteMany({
+        where: {
+          userId,
+          sessionToken: { not: currentSessionToken },
+        },
+      });
+
+      logger.auth('Other sessions revoked successfully', userId, undefined, {
+        deletedCount: result.count,
+        currentSessionToken,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'ลบ session อื่นๆ สำเร็จ',
+        data: {
+          deletedCount: result.count,
+          remainingSessions: 1, // เหลือแค่ session ปัจจุบัน
+        },
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Revoke other sessions error', { error: errorMessage, userId: req.user?.id });
+      return res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการลบ session อื่นๆ',
       });
     }
   },
