@@ -60,11 +60,19 @@
     "db:migrate": "cd backend/auth-service && npm run db:migrate",
     "db:studio": "cd backend/auth-service && npm run db:studio",
     "db:reset": "cd backend/auth-service && npm run db:reset",
-    "db:seed": "cd backend/auth-service && npm run db:seed"
+    "db:seed": "cd backend/auth-service && npm run db:seed",
+    "pm2:start": "npm run build && npx pm2 start ecosystem.config.js",
+    "pm2:restart": "npx pm2 restart ecosystem.config.js",
+    "pm2:stop": "npx pm2 stop ecosystem.config.js",
+    "pm2:status": "npx pm2 ls",
+    "pm2:logs": "npx pm2 logs",
+    "pm2:save": "npx pm2 save",
+    "pm2:startup": "npx pm2 startup"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "concurrently": "^9.1.0",
+    "pm2": "^6.0.11",
     "prisma": "^6.14.0"
   },
   "keywords": [
