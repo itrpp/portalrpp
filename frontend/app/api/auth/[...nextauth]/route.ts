@@ -53,8 +53,8 @@ const authOptions: NextAuthOptions = {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+          // ให้ NextAuth จัดการเป็น CredentialsSignin โดยคืนค่า null (ไม่ throw)
+          return null;
         }
 
         const data = await response.json();
@@ -71,7 +71,8 @@ const authOptions: NextAuthOptions = {
           };
         }
 
-        throw new Error('การเข้าสู่ระบบไม่สำเร็จ');
+        // ให้ NextAuth จัดการเป็น CredentialsSignin โดยคืนค่า null (ไม่ throw)
+        return null;
       },
     }),
   ],
@@ -151,6 +152,20 @@ const authOptions: NextAuthOptions = {
         session.sessionToken = token.sessionToken as string;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      try {
+        const target = new URL(url, baseUrl);
+        // ถ้าถูกชี้ไป /error ให้กลับมาที่ /login พร้อมพารามิเตอร์เดิม
+        if (target.pathname === '/error') {
+          return `${baseUrl}/login${target.search}`;
+        }
+        // อนุญาตเฉพาะภายในโดเมน
+        if (target.origin === baseUrl) return target.toString();
+        return baseUrl;
+      } catch {
+        return baseUrl;
+      }
     },
   },
   pages: {
