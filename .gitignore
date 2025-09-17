@@ -176,7 +176,6 @@ public
 *.sqlite
 *.sqlite3
 dev.db
-data/
 prisma/migrations/
 
 # ===========================================
