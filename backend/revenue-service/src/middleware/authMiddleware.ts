@@ -94,7 +94,7 @@ export const authenticateSession = async (
       }
 
       const apiGatewayUrl = process.env.API_GATEWAY_URL || 'http://localhost:3001';
-      const validateUrl = `${apiGatewayUrl}/api/auth/verify-token`;
+      const validateUrl = `${apiGatewayUrl}/api-gateway/auth/verify-token`;
 
       logInfo('Calling API Gateway verify-token', { 
         apiGatewayUrl,
@@ -216,7 +216,7 @@ export const authenticateSession = async (
       }
 
       const apiGatewayUrl = process.env.API_GATEWAY_URL || 'http://localhost:3001';
-      const validateUrl = `${apiGatewayUrl}/api/auth/validate-session`;
+      const validateUrl = `${apiGatewayUrl}/api-gateway/auth/validate-session`;
 
       logInfo('Calling API Gateway validate-session', { 
         apiGatewayUrl,

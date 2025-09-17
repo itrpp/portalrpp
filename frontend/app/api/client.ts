@@ -393,7 +393,7 @@ class ApiClient {
         }
 
         try {
-            const response = await fetch(`${this.baseURL}/api/auth/refresh`, {
+            const response = await fetch(`${this.baseURL}/api-gateway/auth/refresh`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -635,7 +635,7 @@ class ApiClient {
     async getCurrentUser(session: Session | null): Promise<{ success: boolean; data?: User }> {
         try {
             const response = await this.request<{ success: boolean; data?: User }>(
-                '/api/auth/me',
+                '/api-gateway/auth/me',
                 session
             );
             return response;
@@ -650,7 +650,7 @@ class ApiClient {
     async getProfile(session: Session | null): Promise<{ success: boolean; data?: unknown }> {
         try {
             const response = await this.request<{ success: boolean; data?: unknown }>(
-                '/api/auth/profile',
+                '/api-gateway/auth/profile',
                 session
             );
             return response;
@@ -667,7 +667,7 @@ class ApiClient {
         data: ProfileUpdateRequest
     ): Promise<{ success: boolean; message: string }> {
         const response = await this.request<{ success: boolean; message: string }>(
-            '/api/auth/profile',
+            '/api-gateway/auth/profile',
             session,
             {
                 method: 'PUT',
@@ -686,7 +686,7 @@ class ApiClient {
         data: ChangePasswordRequest
     ): Promise<{ success: boolean; message: string }> {
         const response = await this.request<{ success: boolean; message: string }>(
-            '/api/auth/change-password',
+            '/api-gateway/auth/change-password',
             session,
             {
                 method: 'PUT',
@@ -1490,7 +1490,7 @@ class ApiClient {
                     }>;
                     totalSessions: number;
                 };
-            }>('/api/auth/active-sessions', session);
+            }>('/api-gateway/auth/active-sessions', session);
 
             return response;
         } catch (error) {
@@ -1517,7 +1517,7 @@ class ApiClient {
                     deletedCount: number;
                     remainingSessions: number;
                 };
-            }>('/api/auth/revoke-other-sessions', session, {
+            }>('/api-gateway/auth/revoke-other-sessions', session, {
                 method: 'POST',
             });
 

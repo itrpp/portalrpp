@@ -30,8 +30,8 @@ const authOptions: NextAuthOptions = {
 
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
         const endpoint = credentials.authMethod === 'ldap'
-          ? '/api/auth/login-ldap'
-          : '/api/auth/login';
+          ? '/api-gateway/auth/login-ldap'
+          : '/api-gateway/auth/login';
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           method: 'POST',
@@ -101,7 +101,7 @@ const authOptions: NextAuthOptions = {
             // Token จะหมดอายุใน 5 นาที หรือหมดอายุแล้ว
             const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-            const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+            const response = await fetch(`${API_BASE_URL}/api-gateway/auth/refresh`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

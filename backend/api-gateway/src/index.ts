@@ -1697,7 +1697,7 @@ const authServiceProxy = createProxyMiddleware({
   timeout: config.services.auth?.timeout || 30000,
   proxyTimeout: config.services.auth?.timeout || 30000,
   pathRewrite: {
-    '^/api/auth': '/auth',
+    '^/api-gateway/auth': '/auth',
     '^/api/admin': '/admin',
   },
   onProxyReq: (proxyReq, req) => {
@@ -1754,6 +1754,36 @@ const authServiceProxy = createProxyMiddleware({
     // Add response headers for monitoring
     proxyRes.headers['X-Proxy-By'] = 'API-Gateway';
     proxyRes.headers['X-Service'] = 'auth-service';
+
+    // Override CORS headers to reflect the browser origin (avoid upstream overriding)
+    try {
+      const requestOrigin = (req.headers['origin'] || req.headers['Origin']) as string | undefined;
+      // Remove upstream CORS headers to prevent conflicts
+      delete (proxyRes.headers as any)['access-control-allow-origin'];
+      delete (proxyRes.headers as any)['access-control-allow-credentials'];
+      delete (proxyRes.headers as any)['access-control-expose-headers'];
+      delete (proxyRes.headers as any)['access-control-allow-headers'];
+
+      if (requestOrigin && config.security.corsOrigins.includes(requestOrigin)) {
+        proxyRes.headers['Access-Control-Allow-Origin'] = requestOrigin;
+        proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+        // Ensure Vary includes Origin
+        const varyHeader = proxyRes.headers['Vary'] || proxyRes.headers['vary'];
+        if (typeof varyHeader === 'string') {
+          if (!varyHeader.split(/,\s*/).includes('Origin')) {
+            proxyRes.headers['Vary'] = `${varyHeader}, Origin`;
+          }
+        } else {
+          proxyRes.headers['Vary'] = 'Origin';
+        }
+      }
+    } catch (error) {
+      if (isDev()) {
+        logger.debug('Skip CORS header override for auth-service response', {
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+      }
+    }
   },
   onError: (err, req, res) => {
     // จัดการ error เมื่อ Auth Service ไม่พร้อมใช้งาน
@@ -1834,6 +1864,36 @@ const revenueServiceProxy = createProxyMiddleware({
     // Add response headers for monitoring
     proxyRes.headers['X-Proxy-By'] = 'API-Gateway';
     proxyRes.headers['X-Service'] = 'revenue-service';
+
+    // Override CORS headers to reflect the browser origin (avoid upstream overriding)
+    try {
+      const requestOrigin = (req.headers['origin'] || req.headers['Origin']) as string | undefined;
+      // Remove upstream CORS headers to prevent conflicts
+      delete (proxyRes.headers as any)['access-control-allow-origin'];
+      delete (proxyRes.headers as any)['access-control-allow-credentials'];
+      delete (proxyRes.headers as any)['access-control-expose-headers'];
+      delete (proxyRes.headers as any)['access-control-allow-headers'];
+
+      if (requestOrigin && config.security.corsOrigins.includes(requestOrigin)) {
+        proxyRes.headers['Access-Control-Allow-Origin'] = requestOrigin;
+        proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+        // Ensure Vary includes Origin
+        const varyHeader = proxyRes.headers['Vary'] || proxyRes.headers['vary'];
+        if (typeof varyHeader === 'string') {
+          if (!varyHeader.split(/,\s*/).includes('Origin')) {
+            proxyRes.headers['Vary'] = `${varyHeader}, Origin`;
+          }
+        } else {
+          proxyRes.headers['Vary'] = 'Origin';
+        }
+      }
+    } catch (error) {
+      if (isDev()) {
+        logger.debug('Skip CORS header override for revenue-service response', {
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+      }
+    }
   },
   onError: (err, req, res) => {
     // จัดการ error เมื่อ Revenue Service ไม่พร้อมใช้งาน
@@ -1860,14 +1920,14 @@ const revenueServiceProxy = createProxyMiddleware({
 // ========================================
 
 // Auth Service routes (with rate limiting)
-app.use('/api/auth', authRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
+app.use('/api-gateway/auth', authRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
 app.use('/api/admin', adminRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
 
 // Special rate limiting for validate-session endpoint
-app.post('/api/auth/validate-session', validateSessionRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
+app.post('/api-gateway/auth/validate-session', validateSessionRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
 
 // Special rate limiting for verify-token endpoint
-app.post('/api/auth/verify-token', authRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
+app.post('/api-gateway/auth/verify-token', authRateLimiter, circuitBreakerMiddleware('auth-service'), authServiceProxy);
 
 // Revenue Service routes (with rate limiting)
 app.use('/api/revenue', generalRateLimiter, circuitBreakerMiddleware('revenue-service'), revenueServiceProxy);
@@ -1936,7 +1996,7 @@ app.get('/', (req, res) => {
       health: 'GET /health',
       metrics: 'GET /metrics',
       swagger: 'GET /api-docs',
-      auth: '/api/auth/*',
+      auth: '/api-gateway/auth/*',
       admin: '/api/admin/*',
       revenue: '/api/revenue/*',
       reports: '/api/reports/*',
@@ -1974,7 +2034,7 @@ app.use('*', (req, res) => {
       health: 'GET /health',
       metrics: 'GET /metrics',
       swagger: 'GET /api-docs',
-      auth: '/api/auth/*',
+      auth: '/api-gateway/auth/*',
       admin: '/api/admin/*',
       revenue: '/api/revenue/*',
       reports: '/api/reports/*',
@@ -1996,7 +2056,7 @@ const server = app.listen(config.port, () => {
   console.log(`📍 Health check: http://localhost:${config.port}/health`);
   console.log(`📊 Metrics: http://localhost:${config.port}/metrics`);
   console.log(`📖 Swagger UI: http://localhost:${config.port}/api-docs`);
-  console.log(`🔐 Auth Service Proxy: http://localhost:${config.port}/api/auth/*`);
+  console.log(`🔐 Auth Service Proxy: http://localhost:${config.port}/api-gateway/auth/*`);
   console.log(`👨‍💼 Admin Service Proxy: http://localhost:${config.port}/api/admin/*`);
   console.log(`💰 Revenue Service Proxy: http://localhost:${config.port}/api/revenue/*`);
   console.log(`📊 Reports Service Proxy: http://localhost:${config.port}/api/reports/*`);
