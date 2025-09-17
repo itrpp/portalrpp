@@ -45,8 +45,8 @@ export const useOPDExport = () => {
                     totalRecords: batch.totalRecords,
                     totalSize: batch.totalSize,
                     status: batch.status,
-                    processingStatus: batch.processingStatus || 'pending',
-                    exportStatus: batch.exportStatus || 'not_exported',
+                    processingStatus: (batch.processingStatusOpd || batch.processingStatus) || 'pending',
+                    exportStatus: (batch.exportStatusOpd || batch.exportStatus) || 'not_exported',
                     files: (batch.files || []).map((f: any) => ({
                         id: f.id,
                         fileName: f.originalName || f.filename || f.filename,
@@ -129,30 +129,49 @@ export const useOPDExport = () => {
 
     // ฟังก์ชันยูทิลิตี้สำหรับตรวจสอบสถานะ
     const isProcessed = useCallback((batch: UploadBatch): boolean => {
-        const processingStatus = batch.processingStatus || 'pending';
+        const processingStatus = (batch as any).processingStatusOpd || batch.processingStatus || 'pending';
         return processingStatus.toLowerCase() === 'completed';
     }, []);
 
     const isExported = useCallback((batch: UploadBatch): boolean => {
-        const exportStatus = batch.exportStatus || 'not_exported';
+        const exportStatus = (batch as any).exportStatusOpd || batch.exportStatus || 'not_exported';
         return exportStatus.toLowerCase() === 'exported';
     }, []);
 
     const isExporting = useCallback((batch: UploadBatch): boolean => {
-        const exportStatus = batch.exportStatus || 'not_exported';
+        const exportStatus = (batch as any).exportStatusOpd || batch.exportStatus || 'not_exported';
         return exportStatus.toLowerCase() === 'exporting';
     }, []);
 
     // ฟังก์ชันสำหรับการจัดการข้อมูล
-    const handleEdit = useCallback((batchId: string) => {
+    const handleEdit = useCallback(async (batchId: string) => {
         const batch = uploadBatches.find((b) => b.id === batchId);
-        if (batch && !isProcessed(batch)) {
-            addToast({
-                title: 'เปิดหน้าปรับปรุงข้อมูล...',
-                color: 'success',
-            });
+        if (!batch) {
+            addToast({ title: 'ไม่พบข้อมูล batch', color: 'danger' });
+            return;
         }
-    }, [uploadBatches, isProcessed]);
+
+        if (!session || !session.accessToken) {
+            addToast({ title: 'Session ไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่', color: 'danger' });
+            return;
+        }
+
+        try {
+            addToast({ title: 'กำลังประมวลผลปรับปรุงข้อมูล OPD...', color: 'primary' });
+            const resp = await api.processRevenueBatchOPD(session, batchId);
+            if (resp.success) {
+                // อัปเดตสถานะในตารางให้เป็น completed
+                const updated = uploadBatches.map((b) => b.id === batchId ? { ...b, processingStatus: 'completed' as const, processingStatusOpd: 'completed' as const } : b);
+                setUploadBatches(updated);
+                setLastUpdated(new Date());
+                addToast({ title: 'ปรับปรุงข้อมูล OPD สำเร็จ', color: 'success' });
+            } else {
+                addToast({ title: 'ปรับปรุงข้อมูล OPD ล้มเหลว', color: 'danger' });
+            }
+        } catch (e) {
+            addToast({ title: 'เกิดข้อผิดพลาดระหว่างการประมวลผล', color: 'danger' });
+        }
+    }, [uploadBatches, session]);
 
     const handleExport = useCallback(async (batchId: string) => {
         const batch = uploadBatches.find((b) => b.id === batchId);
@@ -178,6 +197,18 @@ export const useOPDExport = () => {
                 color: 'primary',
             });
 
+            // อัปเดตสถานะเป็นกำลังส่งออก
+            const exportingBatches = uploadBatches.map((b) =>
+                b.id === batchId
+                    ? {
+                        ...b,
+                        exportStatus: 'exporting' as const,
+                        exportStatusOpd: 'exporting' as const,
+                    }
+                    : b
+            );
+            setUploadBatches(exportingBatches);
+
             const response = await api.exportRevenueBatch(session, batchId, 'opd');
 
             if (response.success && response.data) {
@@ -201,7 +232,8 @@ export const useOPDExport = () => {
                     b.id === batchId
                         ? {
                             ...b,
-                            exportStatus: 'exported' as const
+                            exportStatus: 'exported' as const,
+                            exportStatusOpd: 'exported' as const
                         }
                         : b
                 );
@@ -212,12 +244,32 @@ export const useOPDExport = () => {
                     color: 'success',
                 });
             } else {
+                const failedBatches = uploadBatches.map((b) =>
+                    b.id === batchId
+                        ? {
+                            ...b,
+                            exportStatus: 'export_failed' as const,
+                            exportStatusOpd: 'export_failed' as const,
+                        }
+                        : b
+                );
+                setUploadBatches(failedBatches);
                 addToast({
                     title: response.error || 'เกิดข้อผิดพลาดในการส่งออก',
                     color: 'danger',
                 });
             }
         } catch {
+            const failedBatches = uploadBatches.map((b) =>
+                b.id === batchId
+                    ? {
+                        ...b,
+                        exportStatus: 'export_failed' as const,
+                        exportStatusOpd: 'export_failed' as const,
+                    }
+                    : b
+            );
+            setUploadBatches(failedBatches);
             addToast({
                 title: 'เกิดข้อผิดพลาดในการส่งออกข้อมูล',
                 color: 'danger',

@@ -45,8 +45,8 @@ export const useIPDExport = () => {
                     totalRecords: batch.totalRecords,
                     totalSize: batch.totalSize,
                     status: batch.status,
-                    processingStatus: batch.processingStatus || 'pending',
-                    exportStatus: batch.exportStatus || 'not_exported',
+                    processingStatus: (batch.processingStatusIpd || batch.processingStatus) || 'pending',
+                    exportStatus: (batch.exportStatusIpd || batch.exportStatus) || 'not_exported',
                     files: (batch.files || []).map((f: any) => ({
                         id: f.id,
                         fileName: f.originalName || f.filename || f.filename,
@@ -58,10 +58,10 @@ export const useIPDExport = () => {
                     }))
                 }));
 
-                console.log('All batches from API:', allBatches.length, allBatches.map((b) => ({ 
-                    id: b.id, 
-                    name: b.batchName, 
-                    files: b.files?.length || 0 
+                console.log('All batches from API:', allBatches.length, allBatches.map((b) => ({
+                    id: b.id,
+                    name: b.batchName,
+                    files: b.files?.length || 0
                 })));
 
                 // กรองเฉพาะ IPD batches ที่มีไฟล์ .dbf จริงๆ
@@ -71,22 +71,22 @@ export const useIPDExport = () => {
                         const dbfFileCount = batch.files.filter((file) =>
                             file.fileName.toLowerCase().endsWith('.dbf')
                         ).length;
-                        
+
                         // ต้องมีไฟล์ .dbf อย่างน้อย 1 ไฟล์
                         if (dbfFileCount > 0) {
                             console.log(`Batch ${batch.batchName}: มีไฟล์ .dbf ${dbfFileCount} ไฟล์`);
                             return true;
                         }
                     }
-                    
+
                     // ถ้าไม่มีไฟล์หรือไม่มีไฟล์ .dbf ให้แสดง log
                     console.log(`Batch ${batch.batchName}: ไม่มีไฟล์ .dbf หรือไม่มีไฟล์`);
                     return false;
                 });
 
-                console.log('Filtered IPD batches:', ipdBatches.length, ipdBatches.map((b) => ({ 
-                    id: b.id, 
-                    name: b.batchName 
+                console.log('Filtered IPD batches:', ipdBatches.length, ipdBatches.map((b) => ({
+                    id: b.id,
+                    name: b.batchName
                 })));
 
                 setUploadBatches(ipdBatches);
@@ -129,30 +129,48 @@ export const useIPDExport = () => {
 
     // ฟังก์ชันยูทิลิตี้สำหรับตรวจสอบสถานะ
     const isProcessed = useCallback((batch: UploadBatch): boolean => {
-        const processingStatus = batch.processingStatus || 'pending';
+        const processingStatus = (batch as any).processingStatusIpd || batch.processingStatus || 'pending';
         return processingStatus.toLowerCase() === 'completed';
     }, []);
 
     const isExported = useCallback((batch: UploadBatch): boolean => {
-        const exportStatus = batch.exportStatus || 'not_exported';
+        const exportStatus = (batch as any).exportStatusIpd || batch.exportStatus || 'not_exported';
         return exportStatus.toLowerCase() === 'exported';
     }, []);
 
     const isExporting = useCallback((batch: UploadBatch): boolean => {
-        const exportStatus = batch.exportStatus || 'not_exported';
+        const exportStatus = (batch as any).exportStatusIpd || batch.exportStatus || 'not_exported';
         return exportStatus.toLowerCase() === 'exporting';
     }, []);
 
     // ฟังก์ชันสำหรับการจัดการข้อมูล
-    const handleEdit = useCallback((batchId: string) => {
+    const handleEdit = useCallback(async (batchId: string) => {
         const batch = uploadBatches.find((b) => b.id === batchId);
-        if (batch && !isProcessed(batch)) {
-            addToast({
-                title: 'เปิดหน้าปรับปรุงข้อมูล...',
-                color: 'success',
-            });
+        if (!batch) {
+            addToast({ title: 'ไม่พบข้อมูล batch', color: 'danger' });
+            return;
         }
-    }, [uploadBatches, isProcessed]);
+
+        try {
+            addToast({ title: 'เริ่มปรับปรุงข้อมูล IPD...', color: 'primary' });
+
+            const resp = await api.processRevenueBatchIPD(session, batchId);
+            if (!resp.success) {
+                addToast({ title: 'ปรับปรุงข้อมูล IPD ล้มเหลว', color: 'danger' });
+                return;
+            }
+
+            // อัปเดตสถานะใน UI ว่า processing เสร็จสิ้น
+            const updated = uploadBatches.map((b) =>
+                b.id === batchId ? { ...b, processingStatus: 'completed' as const, processingStatusIpd: 'completed' as const } : b
+            );
+            setUploadBatches(updated);
+
+            addToast({ title: 'ปรับปรุงข้อมูล IPD สำเร็จ', color: 'success' });
+        } catch {
+            addToast({ title: 'เกิดข้อผิดพลาดระหว่างปรับปรุงข้อมูล IPD', color: 'danger' });
+        }
+    }, [uploadBatches, session]);
 
     const handleExport = useCallback(async (batchId: string) => {
         const batch = uploadBatches.find((b) => b.id === batchId);
@@ -178,20 +196,32 @@ export const useIPDExport = () => {
                 color: 'primary',
             });
 
+            // อัปเดตสถานะเป็นกำลังส่งออก
+            const exportingBatches = uploadBatches.map((b) =>
+                b.id === batchId
+                    ? {
+                        ...b,
+                        exportStatus: 'exporting' as const,
+                        exportStatusIpd: 'exporting' as const,
+                    }
+                    : b
+            );
+            setUploadBatches(exportingBatches);
+
             const response = await api.exportRevenueBatch(session, batchId, 'ipd');
 
             if (response.success && response.data) {
                 const url = window.URL.createObjectURL(response.data);
                 const link = document.createElement('a');
                 link.href = url;
-                
+
                 if (batch) {
                     const zipFileName = `${batch.batchName}_IPD.zip`;
                     link.download = zipFileName;
                 } else {
                     link.download = `IPD_Batch_${batchId}_IPD.zip`;
                 }
-                
+
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -201,7 +231,8 @@ export const useIPDExport = () => {
                     b.id === batchId
                         ? {
                             ...b,
-                            exportStatus: 'exported' as const
+                            exportStatus: 'exported' as const,
+                            exportStatusIpd: 'exported' as const
                         }
                         : b
                 );
@@ -212,12 +243,32 @@ export const useIPDExport = () => {
                     color: 'success',
                 });
             } else {
+                const failedBatches = uploadBatches.map((b) =>
+                    b.id === batchId
+                        ? {
+                            ...b,
+                            exportStatus: 'export_failed' as const,
+                            exportStatusIpd: 'export_failed' as const,
+                        }
+                        : b
+                );
+                setUploadBatches(failedBatches);
                 addToast({
                     title: response.error || 'เกิดข้อผิดพลาดในการส่งออก',
                     color: 'danger',
                 });
             }
         } catch {
+            const failedBatches = uploadBatches.map((b) =>
+                b.id === batchId
+                    ? {
+                        ...b,
+                        exportStatus: 'export_failed' as const,
+                        exportStatusIpd: 'export_failed' as const,
+                    }
+                    : b
+            );
+            setUploadBatches(failedBatches);
             addToast({
                 title: 'เกิดข้อผิดพลาดในการส่งออกข้อมูล',
                 color: 'danger',
@@ -231,13 +282,13 @@ export const useIPDExport = () => {
         isLoading,
         isRefreshing,
         lastUpdated,
-        
+
         // Actions
         loadBatches,
         handleRefresh,
         handleEdit,
         handleExport,
-        
+
         // Utility functions
         isProcessed,
         isExported,

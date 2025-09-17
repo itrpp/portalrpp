@@ -46,7 +46,7 @@ const generateBatchNameByFileType = (files: Express.Multer.File[]): string => {
   for (const file of files) {
     const fileExtension = path.extname(file.originalname).toLowerCase();
     let fileType = 'TEMP';
-    
+
     if (fileExtension === '.dbf') {
       fileType = 'DBF';
     } else if (fileExtension === '.xls' || fileExtension === '.xlsx') {
@@ -56,7 +56,7 @@ const generateBatchNameByFileType = (files: Express.Multer.File[]): string => {
         fileType = 'STM';
       }
     }
-    
+
     fileTypes.add(fileType);
   }
 
@@ -108,36 +108,36 @@ const getClientIp = (req: Request): string => {
 // Helper: คำนวณ progress percentage จาก validation steps
 const calculateValidationProgress = (validationSteps: any): number => {
   if (!validationSteps) return 0;
-  
+
   let progress = 0;
   const stepWeight = 100 / 3; // แต่ละขั้นตอนคิด 33.33%
-  
+
   // Step 1: Checksum
   if (validationSteps.checksum?.success) {
     progress += stepWeight;
   } else if (validationSteps.checksum?.running) {
     progress += stepWeight * 0.5; // กำลังทำงานได้ครึ่งหนึ่ง
   }
-  
+
   // Step 2: Integrity
   if (validationSteps.integrity?.success) {
     progress += stepWeight;
   } else if (validationSteps.integrity?.running) {
     progress += stepWeight * 0.5;
   }
-  
+
   // Step 3: Structure
   if (validationSteps.structure?.success) {
     progress += stepWeight;
   } else if (validationSteps.structure?.running) {
     progress += stepWeight * 0.5;
   }
-  
+
   return Math.round(progress);
 };
 
 // Helper: ดึงข้อมูล metadata และ original checksum
-const extractMetadata = (metadataString: string | null): { originalChecksum?: string; [key: string]: any } => {
+const extractMetadata = (metadataString: string | null): { originalChecksum?: string;[key: string]: any } => {
   if (!metadataString) return {};
   try {
     return JSON.parse(metadataString);
@@ -153,14 +153,14 @@ const logFileInfo = async (filePath: string, filename: string, metadata: any): P
   try {
     const fileStats = await fs.stat(filePath);
     const fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(2);
-    
+
     let checksumInfo = '';
     if (metadata.originalChecksum) {
       checksumInfo = ` | SHA256: ${metadata.originalChecksum.substring(0, 16)}...`;
     }
-    
+
     logInfo(`📊 ไฟล์: ${filename} (${fileSizeMB} MB${checksumInfo}) - เริ่มตรวจสอบความถูกต้อง...`);
-    
+
     // แสดงข้อมูลเพิ่มเติมถ้าไฟล์ใหญ่
     if (fileStats.size > 50 * 1024 * 1024) { // > 50MB
       logInfo(`⚠️ ไฟล์ขนาดใหญ่ (${fileSizeMB} MB) - การตรวจสอบอาจใช้เวลานานกว่าปกติ`);
@@ -177,7 +177,7 @@ const createUpdatedMetadata = (
   checksumIsValid?: boolean
 ): string => {
   let metadata = extractMetadata(originalMetadata);
-  
+
   // เพิ่มข้อมูล checksum ใหม่
   if (checksum) {
     metadata.verifiedChecksum = checksum;
@@ -185,7 +185,7 @@ const createUpdatedMetadata = (
     metadata.verificationTime = new Date().toISOString();
     metadata.checksumMatch = checksumIsValid;
   }
-  
+
   return JSON.stringify(metadata);
 };
 
@@ -198,7 +198,7 @@ const processDBFFileAndSaveToDatabase = async (
 ): Promise<{ success: boolean; recordCount: number; error?: string }> => {
   try {
     logInfo(`🔍 เริ่มประมวลผลไฟล์ DBF: ${filename} (ID: ${fileId})`);
-    
+
     // ตรวจสอบว่าเป็นไฟล์ DBF หรือไม่
     const fileExtension = path.extname(filename).toLowerCase();
     if (fileExtension !== '.dbf') {
@@ -212,7 +212,7 @@ const processDBFFileAndSaveToDatabase = async (
     // อ่านและแปลงข้อมูลจากไฟล์ DBF
     const dbfService = getServices(req).dbfService;
     const parseResult = await dbfService.parseDBFFile(filePath);
-    
+
     logInfo(`📊 อ่านไฟล์ DBF สำเร็จ: ${parseResult.records.length} รายการ, ${parseResult.schema.length} ฟิลด์`);
 
     // บันทึกข้อมูลลงในฐานข้อมูล
@@ -264,11 +264,11 @@ const validateFileWithThreeSteps = async (
   _fileRecord: any,
   batchId?: string
 ): Promise<any> => {
-  let validationResult: { 
-    isValid: boolean; 
-    errors: string[]; 
-    warnings: string[]; 
-    recordCount: number; 
+  let validationResult: {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    recordCount: number;
   } = { isValid: false, errors: [], warnings: [], recordCount: 0 };
   let integrityValidation = { isValid: false, errors: [] };
   let checksumValidation = { isValid: false, error: '', checksum: '' };
@@ -280,12 +280,12 @@ const validateFileWithThreeSteps = async (
     logInfo(`🔍 ขั้นตอนที่ 1: ตรวจสอบ checksum ไฟล์...`);
 
     checksumValidation = await getServices(req).validationService.validateChecksum(filePath, metadata?.originalChecksum, metadata?.algorithm);
-    
+
     // อัปเดต metadata สำหรับขั้นตอนที่ 1
     currentMetadata.checksumCompleted = true;
     currentMetadata.checksumPassed = checksumValidation.isValid;
     currentMetadata.generatedChecksum = checksumValidation.checksum;
-    
+
     await getServices(req).databaseService.updateUploadRecord(fileId, {
       status: FileProcessingStatus.PROCESSING,
       metadata: JSON.stringify(currentMetadata),
@@ -295,13 +295,13 @@ const validateFileWithThreeSteps = async (
 
     // ขั้นตอนที่ 2: ตรวจสอบความสมบูรณ์ของไฟล์
     logInfo(`🔍 ขั้นตอนที่ 2: ตรวจสอบความสมบูรณ์ไฟล์...`);
-    
+
     integrityValidation = await getServices(req).validationService.validateFileIntegrity(filePath);
-    
+
     // อัปเดต metadata สำหรับขั้นตอนที่ 2
     currentMetadata.integrityCompleted = true;
     currentMetadata.integrityPassed = integrityValidation.isValid;
-    
+
     await getServices(req).databaseService.updateUploadRecord(fileId, {
       status: FileProcessingStatus.PROCESSING,
       metadata: JSON.stringify(currentMetadata),
@@ -329,17 +329,17 @@ const validateFileWithThreeSteps = async (
 
     // ขั้นตอนที่ 3: ตรวจสอบโครงสร้างไฟล์และประมวลผล DBF (ถ้าเป็นไฟล์ DBF)
     logInfo(`🔍 ขั้นตอนที่ 3: ตรวจสอบโครงสร้างไฟล์และประมวลผล DBF...`);
-    
+
     const fileExtension = path.extname(_filename).toLowerCase();
     let structureValidation = { isValid: true, errors: [] as string[], warnings: [] as string[], recordCount: 0 };
-    
+
     if (fileExtension === '.dbf') {
       try {
         logInfo(`📊 ไฟล์เป็น DBF - เริ่มประมวลผลและบันทึกลงฐานข้อมูล...`);
-        
+
         // ประมวลผลไฟล์ DBF และบันทึกลงฐานข้อมูล
         const dbfResult = await processDBFFileAndSaveToDatabase(req, fileId, filePath, _filename);
-        
+
         if (dbfResult.success) {
           structureValidation = {
             isValid: true,
@@ -347,16 +347,16 @@ const validateFileWithThreeSteps = async (
             warnings: [`ประมวลผล DBF สำเร็จ: บันทึก ${dbfResult.recordCount} รายการลงในฐานข้อมูล`],
             recordCount: dbfResult.recordCount
           };
-          
+
           currentMetadata.structureCompleted = true;
           currentMetadata.structurePassed = true;
           currentMetadata.structureSkipped = false;
           currentMetadata.structureRecordCount = dbfResult.recordCount;
           currentMetadata.dbfProcessed = true;
           currentMetadata.dbfRecordCount = dbfResult.recordCount;
-          
+
           logInfo(`✅ ประมวลผล DBF สำเร็จ: บันทึก ${dbfResult.recordCount} รายการลงในฐานข้อมูล`);
-          
+
           // อัปเดต UploadRecord status เป็น "success" เมื่อประมวลผล DBF สำเร็จ
           await getServices(req).databaseService.updateUploadRecord(fileId, {
             status: FileProcessingStatus.SUCCESS, // เปลี่ยนจาก processing เป็น success เพื่อให้นับเป็น successFiles
@@ -366,18 +366,18 @@ const validateFileWithThreeSteps = async (
             processedRecords: dbfResult.recordCount,
             metadata: JSON.stringify(currentMetadata)
           });
-          
+
           logInfo(`✅ อัปเดต UploadRecord status เป็น success สำหรับไฟล์ ${_filename}`);
-          
+
           // อัปเดต batch statistics หลังจากประมวลผล DBF สำเร็จ (ถ้ามี batchId)
           if (batchId) {
             try {
               await getServices(req).batchService.updateBatchSuccessFiles(batchId);
               logInfo(`📊 อัปเดต batch statistics หลังประมวลผล DBF: batch ${batchId}`);
             } catch (batchUpdateError) {
-              logError('Failed to update batch statistics after DBF processing in 3-step validation', batchUpdateError as Error, { 
+              logError('Failed to update batch statistics after DBF processing in 3-step validation', batchUpdateError as Error, {
                 batchId,
-                fileId 
+                fileId
               });
               // ไม่ throw error เพราะการอัปเดต batch stats ไม่ใช่ critical
             }
@@ -389,14 +389,14 @@ const validateFileWithThreeSteps = async (
             warnings: [],
             recordCount: 0
           };
-          
+
           currentMetadata.structureCompleted = true;
           currentMetadata.structurePassed = false;
           currentMetadata.structureSkipped = false;
           currentMetadata.structureRecordCount = 0;
           currentMetadata.dbfProcessed = false;
           currentMetadata.dbfError = dbfResult.error;
-          
+
           // อัปเดต UploadRecord status เป็น "failed" เมื่อประมวลผล DBF ไม่สำเร็จ
           await getServices(req).databaseService.updateUploadRecord(fileId, {
             status: FileProcessingStatus.FAILED, // เปลี่ยนจาก processing เป็น failed เพื่อให้นับเป็น errorFiles
@@ -405,39 +405,39 @@ const validateFileWithThreeSteps = async (
             errors: JSON.stringify([dbfResult.error || 'ไม่สามารถประมวลผลไฟล์ DBF ได้']),
             metadata: JSON.stringify(currentMetadata)
           });
-          
+
           logError(`❌ ประมวลผล DBF ล้มเหลว: ${dbfResult.error}`);
-          
+
           // อัปเดต batch statistics หลังจากประมวลผล DBF ล้มเหลว (ถ้ามี batchId)
           if (batchId) {
             try {
               await getServices(req).batchService.updateBatchSuccessFiles(batchId);
               logInfo(`📊 อัปเดต batch statistics หลังประมวลผล DBF ล้มเหลว: batch ${batchId}`);
             } catch (batchUpdateError) {
-              logError('Failed to update batch statistics after DBF processing failure in 3-step validation', batchUpdateError as Error, { 
+              logError('Failed to update batch statistics after DBF processing failure in 3-step validation', batchUpdateError as Error, {
                 batchId,
-                fileId 
+                fileId
               });
             }
           }
         }
       } catch (dbfError) {
         logError('Error during DBF processing', dbfError as Error);
-        
+
         structureValidation = {
           isValid: false,
           errors: [`เกิดข้อผิดพลาดในการประมวลผล DBF: ${(dbfError as Error).message}`],
           warnings: [],
           recordCount: 0
         };
-        
+
         currentMetadata.structureCompleted = true;
         currentMetadata.structurePassed = false;
         currentMetadata.structureSkipped = false;
         currentMetadata.structureRecordCount = 0;
         currentMetadata.dbfProcessed = false;
         currentMetadata.dbfError = (dbfError as Error).message;
-        
+
         // อัปเดต UploadRecord status เป็น "failed" เมื่อเกิด exception ในการประมวลผล DBF
         await getServices(req).databaseService.updateUploadRecord(fileId, {
           status: FileProcessingStatus.FAILED, // เปลี่ยนจาก processing เป็น failed เพื่อให้นับเป็น errorFiles
@@ -446,16 +446,16 @@ const validateFileWithThreeSteps = async (
           errors: JSON.stringify([`เกิดข้อผิดพลาดในการประมวลผล DBF: ${(dbfError as Error).message}`]),
           metadata: JSON.stringify(currentMetadata)
         });
-        
+
         // อัปเดต batch statistics หลังจากเกิด exception ในการประมวลผล DBF (ถ้ามี batchId)
         if (batchId) {
           try {
             await getServices(req).fileValidationService.updateBatchSuccessFiles(batchId);
             logInfo(`📊 อัปเดต batch statistics หลังเกิด exception ในการประมวลผล DBF: batch ${batchId}`);
           } catch (batchUpdateError) {
-            logError('Failed to update batch statistics after DBF processing exception in 3-step validation', batchUpdateError as Error, { 
+            logError('Failed to update batch statistics after DBF processing exception in 3-step validation', batchUpdateError as Error, {
               batchId,
-              fileId 
+              fileId
             });
           }
         }
@@ -463,47 +463,47 @@ const validateFileWithThreeSteps = async (
     } else {
       // ไม่ใช่ไฟล์ DBF - ข้ามการตรวจสอบโครงสร้าง
       logInfo(`⏭️ ไฟล์ไม่ใช่ DBF - ข้ามการตรวจสอบโครงสร้างไฟล์ไว้ก่อน`);
-      
-      structureValidation = { 
-        isValid: true, 
-        errors: [] as string[], 
-        warnings: ['ข้ามการตรวจสอบโครงสร้างไฟล์ไว้ก่อน (ไม่ใช่ไฟล์ DBF)'] as string[], 
-        recordCount: 0 
+
+      structureValidation = {
+        isValid: true,
+        errors: [] as string[],
+        warnings: ['ข้ามการตรวจสอบโครงสร้างไฟล์ไว้ก่อน (ไม่ใช่ไฟล์ DBF)'] as string[],
+        recordCount: 0
       };
-      
+
       currentMetadata.structureCompleted = true;
       currentMetadata.structurePassed = true;
       currentMetadata.structureSkipped = true;
       currentMetadata.structureRecordCount = 0;
-      
+
       // อัปเดต UploadRecord status เป็น "validation_completed" สำหรับไฟล์ที่ไม่ใช่ DBF
       await getServices(req).databaseService.updateUploadRecord(fileId, {
         status: FileProcessingStatus.VALIDATION_COMPLETED, // เปลี่ยนจาก processing เป็น validation_completed เพื่อให้นับเป็น successFiles
         processedAt: new Date(),
         metadata: JSON.stringify(currentMetadata)
       });
-      
+
       logInfo(`✅ อัปเดต UploadRecord status เป็น validation_completed สำหรับไฟล์ ${_filename} (ไม่ใช่ DBF)`);
-      
+
       // อัปเดต batch statistics สำหรับไฟล์ที่ไม่ใช่ DBF (ถ้ามี batchId)
       if (batchId) {
         try {
           await getServices(req).fileValidationService.updateBatchSuccessFiles(batchId);
           logInfo(`📊 อัปเดต batch statistics สำหรับไฟล์ที่ไม่ใช่ DBF: batch ${batchId}`);
         } catch (batchUpdateError) {
-          logError('Failed to update batch statistics for non-DBF file in 3-step validation', batchUpdateError as Error, { 
+          logError('Failed to update batch statistics for non-DBF file in 3-step validation', batchUpdateError as Error, {
             batchId,
-            fileId 
+            fileId
           });
         }
       }
     }
-    
+
     // Status และ metadata ได้อัปเดตไปแล้วในแต่ละกรณี (DBF สำเร็จ/ล้มเหลว หรือ non-DBF)
     // ไม่จำเป็นต้องอัปเดตซ้ำ
-    
+
     logInfo(`✅ ขั้นตอนที่ 3 เสร็จสิ้น`);
-    
+
     // อัปเดต validationResult ด้วยผลลัพธ์จากโครงสร้าง
     validationResult = structureValidation;
 
@@ -523,16 +523,16 @@ const validateFileWithThreeSteps = async (
       errorMessage: 'เกิดข้อผิดพลาดในกระบวนการตรวจสอบ',
       processedAt: new Date()
     });
-    
+
     // อัปเดต batch statistics หลังจากเกิด exception (ถ้ามี batchId)
     if (batchId) {
       try {
         await getServices(req).fileValidationService.updateBatchSuccessFiles(batchId);
         logInfo(`📊 อัปเดต batch statistics หลังเกิด exception: batch ${batchId}`);
       } catch (batchUpdateError) {
-        logError('Failed to update batch statistics after validation exception', batchUpdateError as Error, { 
+        logError('Failed to update batch statistics after validation exception', batchUpdateError as Error, {
           batchId,
-          fileId 
+          fileId
         });
       }
     }
@@ -552,7 +552,7 @@ const validateFileWithThreeSteps = async (
     ...(integrityValidation.isValid ? [] : integrityValidation.errors.map((e: { message: string }) => e.message)),
     ...(checksumValidation.isValid ? [] : [checksumValidation.error]),
   ].filter(error => error && error.trim() !== '');
-  
+
   const combinedWarnings = [
     ...validationResult.warnings,
     ...(checksumValidation.error && checksumValidation.isValid ? [checksumValidation.error] : []),
@@ -650,10 +650,10 @@ const storage = multer.diskStorage({
     // const date = DateHelper.now();
     const dateStr = createFolderFormat(); // yyyyMMdd
     const fileExtension = path.extname(file.originalname).toLowerCase();
-    
+
     // รับ batchId จาก request body หรือ query
     const batchId = req.body.batchId || req.query.batchId;
-    
+
     let basePath: string;
     if (fileExtension === '.dbf') {
       basePath = config.upload.dbfPath!;
@@ -668,7 +668,7 @@ const storage = multer.diskStorage({
     } else {
       basePath = config.upload.tempPath!;
     }
-    
+
     // สร้าง path ตามโครงสร้าง: basePath/dateStr/batchId/
     let uploadPath: string;
     if (batchId) {
@@ -676,7 +676,7 @@ const storage = multer.diskStorage({
     } else {
       uploadPath = path.join(basePath, dateStr as string);
     }
-    
+
     // สร้าง directory อัตโนมัติ
     fs.ensureDirSync(uploadPath);
     cb(null, uploadPath);
@@ -1018,6 +1018,102 @@ router.post('/batches/:id/process',
   }),
 );
 
+// POST /api/revenue/batches/:id/process-ipd - ประมวลผล batch สำหรับ IPD
+router.post('/batches/:id/process-ipd',
+  apiRateLimiter,
+  authenticateSession,
+  requireUser,
+  validateBatchId,
+  asyncHandler(async (req: Request, res: Response) => {
+    const timer = createTimer();
+    const { id } = req.params;
+
+    try {
+      const batch = await getServices(req).batchService.getBatch(id!);
+
+      if (!batch) {
+        return res.status(404).json({
+          success: false,
+          message: 'ไม่พบ batch ที่ระบุ',
+          timestamp: DateHelper.toDate(DateHelper.now()),
+        });
+      }
+
+      const processingResult = await getServices(req).batchService.processBatchIPD(id!);
+
+      const response: SuccessResponse = {
+        success: true,
+        data: processingResult,
+        message: `ประมวลผลข้อมูล IPD สำเร็จ (${processingResult.processedFiles}/${processingResult.totalFiles} ไฟล์)`,
+        timestamp: DateHelper.toDate(DateHelper.now()),
+      };
+
+      const responseTime = timer.elapsed();
+      logApiRequest('POST', `/batches/${id!}/process-ipd`, 200, responseTime);
+
+      return res.status(200).json(response);
+
+    } catch (error) {
+      const responseTime = timer.elapsed();
+      logApiRequest('POST', `/batches/${id!}/process-ipd`, 500, responseTime);
+
+      return res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการประมวลผลข้อมูล IPD',
+        timestamp: DateHelper.toDate(DateHelper.now()),
+      });
+    }
+  }),
+);
+
+// POST /api/revenue/batches/:id/process-opd - ประมวลผล batch สำหรับ OPD
+router.post('/batches/:id/process-opd',
+  apiRateLimiter,
+  authenticateSession,
+  requireUser,
+  validateBatchId,
+  asyncHandler(async (req: Request, res: Response) => {
+    const timer = createTimer();
+    const { id } = req.params;
+
+    try {
+      const batch = await getServices(req).batchService.getBatch(id!);
+
+      if (!batch) {
+        return res.status(404).json({
+          success: false,
+          message: 'ไม่พบ batch ที่ระบุ',
+          timestamp: DateHelper.toDate(DateHelper.now()),
+        });
+      }
+
+      const processingResult = await getServices(req).batchService.processBatchOPD(id!);
+
+      const response: SuccessResponse = {
+        success: true,
+        data: processingResult,
+        message: `ประมวลผลข้อมูล OPD สำเร็จ (${processingResult.processedFiles}/${processingResult.totalFiles} ไฟล์)`,
+        timestamp: DateHelper.toDate(DateHelper.now()),
+      };
+
+      const responseTime = timer.elapsed();
+      logApiRequest('POST', `/batches/${id!}/process-opd`, 200, responseTime);
+
+      return res.status(200).json(response);
+
+    } catch (error) {
+      const responseTime = timer.elapsed();
+      logApiRequest('POST', `/batches/${id!}/process-opd`, 500, responseTime);
+
+      return res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการประมวลผลข้อมูล OPD',
+        timestamp: DateHelper.toDate(DateHelper.now()),
+      });
+    }
+  }),
+);
+
 // ========================================
 // HEALTH CHECK
 // ========================================
@@ -1071,7 +1167,7 @@ router.get('/health', asyncHandler(async (req: Request, res: Response) => {
     };
     try {
       // อ่านสถิติเบื้องต้นเพื่อทดสอบการเชื่อมต่อ database
-      await getServices(req).statisticsService.getOverviewStatistics({ 
+      await getServices(req).statisticsService.getOverviewStatistics({
         startDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 ชั่วโมงที่แล้ว
         endDate: new Date()
       });
@@ -1112,7 +1208,7 @@ router.get('/health', asyncHandler(async (req: Request, res: Response) => {
     const allDirectoriesExist = uploadDir && processedDir && backupDir && tempDir && exportDir && dbfDir && repDir && stmDir;
     const allServicesAvailable = Object.values(servicesStatus).every(status => status === true);
     const memoryHealthy = memoryUsageMB.heapUsed < 500; // น้อยกว่า 500MB
-    
+
     const isHealthy = allDirectoriesExist && allServicesAvailable && databaseStatus.status === 'healthy' && memoryHealthy;
     const overallStatus = isHealthy ? 'healthy' : 'unhealthy';
 
@@ -1125,7 +1221,7 @@ router.get('/health', asyncHandler(async (req: Request, res: Response) => {
         timestamp: DateHelper.toDate(DateHelper.now()),
         uptime: Math.round(uptime),
         environment: process.env.NODE_ENV || 'development',
-        
+
         // System metrics
         system: {
           nodeVersion: process.version,
@@ -1301,7 +1397,7 @@ router.post('/upload',
         errors: null,
         warnings: null,
         totalRecords: 0,
-        metadata: checksumFromReq ? JSON.stringify({ 
+        metadata: checksumFromReq ? JSON.stringify({
           originalChecksum: checksumFromReq,
           algorithm: 'sha256',
           source: 'frontend'
@@ -1435,7 +1531,7 @@ router.post('/upload/batch',
           // ตรวจสอบประเภทไฟล์
           const fileExtension = path.extname(originalname).toLowerCase();
           let fileType = 'temp';
-          
+
           if (fileExtension === '.dbf') {
             fileType = 'dbf';
           } else if (fileExtension === '.xls' || fileExtension === '.xlsx') {
@@ -1680,7 +1776,7 @@ router.post('/files/:id/validate',
 
     try {
       logInfo(`🔍 เริ่มต้นการตรวจสอบไฟล์ ID: ${id} (POST method - fallback)`);
-      
+
       // ดึงข้อมูลไฟล์
       const fileRecord = await getServices(req).databaseService.getUploadRecord(id!);
 
@@ -1717,7 +1813,7 @@ router.post('/files/:id/validate',
       // Monitor memory usage ก่อน validation
       const memoryBefore = process.memoryUsage();
       logInfo(`💾 Memory ก่อน validation: ${Math.round(memoryBefore.heapUsed / 1024 / 1024)} MB`);
-      
+
       // ทำการ validation ครบชุด พร้อม memory management และ status updates
       const validation = await performFullValidation(req, filePath, filename, metadata, id!, fileRecord, fileRecord.batchId);
       const {
@@ -1757,10 +1853,10 @@ router.post('/files/:id/validate',
         const recordCount = validationResult.recordCount || 0;
         const processingTime = timer.elapsed();
         await getServices(req).statisticsService.updateBatchStatistics(
-          fileRecord.batchId, 
-          isValidFile, 
+          fileRecord.batchId,
+          isValidFile,
           1, // fileCount
-          recordCount, 
+          recordCount,
           processingTime
         );
         logInfo(`📊 อัปเดต batch statistics: ${isValidFile ? 'success' : 'error'} count +1, records: ${recordCount}`);
@@ -1958,14 +2054,14 @@ router.delete('/history',
           try {
             await getServices(req).fileStorageService.deleteFile(record.filePath);
             deletedFiles++;
-            logInfo('File deleted from file system', { 
-              fileId: record.id, 
-              filePath: record.filePath 
+            logInfo('File deleted from file system', {
+              fileId: record.id,
+              filePath: record.filePath
             });
           } catch (error) {
-            logError('Failed to delete file from file system', error as Error, { 
-              fileId: record.id, 
-              filePath: record.filePath 
+            logError('Failed to delete file from file system', error as Error, {
+              fileId: record.id,
+              filePath: record.filePath
             });
             // ดำเนินการต่อแม้จะลบไฟล์ไม่สำเร็จ
           }
@@ -2396,9 +2492,9 @@ router.post('/files/:id/process-dbf',
             await getServices(req).batchService.updateBatchSuccessFiles(fileRecord.batchId);
             logInfo(`✅ อัปเดต batch statistics หลังประมวลผล DBF: batch ${fileRecord.batchId}`);
           } catch (updateError) {
-            logError('Failed to update batch statistics after DBF processing', updateError as Error, { 
+            logError('Failed to update batch statistics after DBF processing', updateError as Error, {
               batchId: fileRecord.batchId,
-              fileId: id 
+              fileId: id
             });
             // ไม่ throw error เพราะการอัปเดต batch stats ไม่ใช่ critical
           }
@@ -2504,14 +2600,14 @@ router.get('/files',
   validateQueryParams,
   asyncHandler(async (req: Request, res: Response) => {
     const timer = createTimer();
-    const { 
-      page = '1', 
-      limit = '20', 
-      status, 
-      fileType, 
-      batchId, 
-      userId, 
-      startDate, 
+    const {
+      page = '1',
+      limit = '20',
+      status,
+      fileType,
+      batchId,
+      userId,
+      startDate,
       endDate,
       sortBy = 'uploadDate',
       sortOrder = 'desc'
@@ -2653,7 +2749,7 @@ router.get('/files/:id/download',
         const responseTime = timer.elapsed();
         logApiRequest('GET', `/files/${id!}/download`, 500, responseTime);
         logError('Error streaming file', error);
-        
+
         if (!res.headersSent) {
           res.status(500).json({
             success: false,
@@ -2681,7 +2777,7 @@ router.get('/files/:id/download',
           timestamp: DateHelper.toDate(DateHelper.now()),
         });
       }
-      
+
       // เพิ่ม return statement เพื่อแก้ไข TypeScript error
       return res.json({
         success: false,
@@ -2724,7 +2820,7 @@ router.get('/files/:id/preview',
 
       // อ่านตัวอย่างข้อมูลจากไฟล์
       const previewData = await getServices(req).fileProcessingService.previewFile(
-        filePath, 
+        filePath,
         fileRecord.originalName,
         parseInt(limit as string)
       );
@@ -2831,7 +2927,7 @@ router.delete('/files/:id',
     try {
       // ดึงข้อมูลไฟล์
       const fileRecord = await getServices(req).databaseService.getUploadRecord(id!);
-      
+
       if (!fileRecord) {
         return res.status(404).json({
           success: false,
@@ -2844,14 +2940,14 @@ router.delete('/files/:id',
       if (fileRecord.filePath) {
         try {
           await getServices(req).fileStorageService.deleteFile(fileRecord.filePath);
-          logInfo('File deleted from file system', { 
-            fileId: id, 
-            filePath: fileRecord.filePath 
+          logInfo('File deleted from file system', {
+            fileId: id,
+            filePath: fileRecord.filePath
           });
         } catch (error) {
-          logError('Failed to delete file from file system', error as Error, { 
-            fileId: id, 
-            filePath: fileRecord.filePath 
+          logError('Failed to delete file from file system', error as Error, {
+            fileId: id,
+            filePath: fileRecord.filePath
           });
           // ดำเนินการต่อแม้จะลบไฟล์ไม่สำเร็จ
         }
@@ -2875,14 +2971,14 @@ router.delete('/files/:id',
       if (fileRecord.batchId) {
         try {
           await getServices(req).fileValidationService.updateBatchSuccessFiles(fileRecord.batchId);
-          logInfo('Batch statistics updated after file deletion', { 
-            fileId: id, 
-            batchId: fileRecord.batchId 
+          logInfo('Batch statistics updated after file deletion', {
+            fileId: id,
+            batchId: fileRecord.batchId
           });
         } catch (error) {
-          logError('Failed to update batch statistics after file deletion', error as Error, { 
-            fileId: id, 
-            batchId: fileRecord.batchId 
+          logError('Failed to update batch statistics after file deletion', error as Error, {
+            fileId: id,
+            batchId: fileRecord.batchId
           });
           // ไม่ throw error เพราะไฟล์ถูกลบแล้ว
         }
@@ -2890,10 +2986,10 @@ router.delete('/files/:id',
 
       const response: SuccessResponse = {
         success: true,
-        data: { 
+        data: {
           id,
           fileName: fileRecord.filename,
-          batchId: fileRecord.batchId 
+          batchId: fileRecord.batchId
         },
         message: 'ลบไฟล์สำเร็จ',
         timestamp: DateHelper.toDate(DateHelper.now()),
@@ -3186,13 +3282,13 @@ router.post('/statistics/export',
   validateRequestBody,
   asyncHandler(async (req: Request, res: Response) => {
     const timer = createTimer();
-    const { 
-      statisticsType, 
-      format = 'xlsx', 
-      startDate, 
-      endDate, 
-      fileType, 
-      includeDetails = false 
+    const {
+      statisticsType,
+      format = 'xlsx',
+      startDate,
+      endDate,
+      fileType,
+      includeDetails = false
     } = req.body;
 
     try {
@@ -3226,7 +3322,7 @@ router.post('/statistics/export',
         stream.on('end', () => {
           const responseTime = timer.elapsed();
           logApiRequest('POST', '/statistics/export', 200, responseTime);
-          
+
           // ลบไฟล์ชั่วคราวหลังส่งเสร็จ
           fs.remove(exportResult.filePath).catch(err => {
             logError('Failed to cleanup export file', err);
@@ -3237,7 +3333,7 @@ router.post('/statistics/export',
           const responseTime = timer.elapsed();
           logApiRequest('POST', '/statistics/export', 500, responseTime);
           logError('Error streaming export file', error);
-          
+
           if (!res.headersSent) {
             res.status(500).json({
               success: false,
@@ -3281,7 +3377,7 @@ router.post('/statistics/export',
           timestamp: DateHelper.toDate(DateHelper.now()),
         });
       }
-      
+
       // เพิ่ม return statement เพื่อแก้ไข TypeScript error
       return res.json({
         success: false,
@@ -3319,20 +3415,6 @@ router.post('/batches/:id/export',
         });
       }
 
-      // ตรวจสอบสถานะ batch
-      // if (batch.processingStatus !== 'completed') {
-      //   return res.status(400).json({
-      //     success: false,
-      //     message: 'batch ยังไม่ได้ประมวลผลเสร็จสิ้น กรุณารอให้ประมวลผลเสร็จก่อนส่งออก',
-      //     timestamp: DateHelper.toDate(DateHelper.now()),
-      //   });
-      // }
-
-      // อัปเดตสถานะเป็น exporting
-      // await getServices(req).batchService.updateBatch(id!, {
-      //   exportStatus: 'exporting',
-      // });
-
       // ดึงไฟล์ทั้งหมดใน batch
       const batchFiles = await getServices(req).batchService.getBatchFiles(id!, {
         limit: 1000, // ดึงไฟล์ทั้งหมด
@@ -3340,10 +3422,12 @@ router.post('/batches/:id/export',
 
 
       if (!batchFiles.files || batchFiles.files.length === 0) {
-        // อัปเดตสถานะเป็น export_failed
-        await getServices(req).batchService.updateBatch(id!, {
-          exportStatus: 'export_failed',
-        });
+        // อัปเดตสถานะเป็น export_failed ตามประเภท
+        await getServices(req).batchService.updateBatch(id!, (
+          exportType === 'ipd'
+            ? { exportStatusIpd: 'export_failed' }
+            : { exportStatusOpd: 'export_failed' }
+        ) as any);
         console.log('ไม่พบไฟล์ใน batch นี้');
 
         return res.status(400).json({
@@ -3352,6 +3436,13 @@ router.post('/batches/:id/export',
           timestamp: DateHelper.toDate(DateHelper.now()),
         });
       }
+
+      // ตั้งสถานะการส่งออกเป็น exporting ตามประเภท
+      await getServices(req).batchService.updateBatch(id!, (
+        exportType === 'ipd'
+          ? { exportStatusIpd: 'exporting' }
+          : { exportStatusOpd: 'exporting' }
+      ) as any);
 
       // สร้างโฟลเดอร์สำหรับ export
       const exportDir = path.join(config.upload.exportPath, 'temp', id!);
@@ -3369,58 +3460,110 @@ router.post('/batches/:id/export',
             continue;
           }
 
-          const originalFilePath = fileRecord.filePath;
-          const exportFilePath = path.join(exportDir, fileRecord.originalName);
+          // ดึงข้อมูล DBF records จากฐานข้อมูลตามประเภทการส่งออก
+          let dbfRecords;
+          if (exportType.toLowerCase() === 'ipd') {
+            dbfRecords = await getServices(req).dbfService.getAllDBFRecordsFromDatabaseForIPD(fileRecord.id);
+          } else {
+            // ค่าเริ่มต้นเป็น OPD
+            dbfRecords = await getServices(req).dbfService.getAllDBFRecordsFromDatabaseForOPD(fileRecord.id);
+          }
 
-          if (await fs.pathExists(originalFilePath)) {
-            await fs.copy(originalFilePath, exportFilePath);
+          if (!dbfRecords || dbfRecords.length === 0) {
+            logInfo(`⚠️ ไม่พบข้อมูล DBF records สำหรับไฟล์: ${fileRecord.originalName} - ใช้ไฟล์ต้นฉบับแทน`);
 
-            if (await fs.pathExists(exportFilePath)) {
-              const fileStats = await fs.stat(exportFilePath);
-              if (fileStats.size > 0) {
-                exportedFiles.push(fileRecord.originalName);
-                logInfo(`📋 ใช้ไฟล์ต้นฉบับ: ${fileRecord.originalName} (${fileStats.size} bytes)`);
+            // ใช้ไฟล์ต้นฉบับจากโฟลเดอร์ upload แทน
+            const originalFilePath = fileRecord.filePath;
+            const exportFilePath = path.join(exportDir, fileRecord.originalName);
+
+            // คัดลอกไฟล์ต้นฉบับ
+            if (await fs.pathExists(originalFilePath)) {
+              await fs.copy(originalFilePath, exportFilePath);
+
+              // ตรวจสอบว่าไฟล์ที่คัดลอกมีอยู่จริง
+              if (await fs.pathExists(exportFilePath)) {
+                const fileStats = await fs.stat(exportFilePath);
+                if (fileStats.size > 0) {
+                  exportedFiles.push(fileRecord.originalName);
+                  logInfo(`📋 ใช้ไฟล์ต้นฉบับ: ${fileRecord.originalName} (${fileStats.size} bytes)`);
+                } else {
+                  logError('Copied file is empty', new Error(`File is empty: ${exportFilePath}`), {
+                    fileId: fileRecord.id,
+                    fileName: fileRecord.originalName,
+                    originalPath: originalFilePath,
+                    exportPath: exportFilePath
+                  });
+                  errors.push(`ไฟล์ต้นฉบับว่างเปล่า: ${fileRecord.originalName}`);
+                }
               } else {
-                logError('Copied file is empty', new Error(`File is empty: ${exportFilePath}`), {
+                logError('Failed to copy file', new Error(`Copy failed: ${originalFilePath} -> ${exportFilePath}`), {
                   fileId: fileRecord.id,
                   fileName: fileRecord.originalName,
                   originalPath: originalFilePath,
                   exportPath: exportFilePath
                 });
-                errors.push(`ไฟล์ต้นฉบับว่างเปล่า: ${fileRecord.originalName}`);
+                errors.push(`ไม่สามารถคัดลอกไฟล์: ${fileRecord.originalName}`);
               }
             } else {
-              logError('Failed to copy file', new Error(`Copy failed: ${originalFilePath} -> ${exportFilePath}`), {
+              logError('Original file not found', new Error(`File not found: ${originalFilePath}`), {
                 fileId: fileRecord.id,
                 fileName: fileRecord.originalName,
-                originalPath: originalFilePath,
-                exportPath: exportFilePath
+                originalPath: originalFilePath
               });
-              errors.push(`ไม่สามารถคัดลอกไฟล์: ${fileRecord.originalName}`);
+              errors.push(`ไม่พบไฟล์ต้นฉบับ: ${fileRecord.originalName}`);
+            }
+            continue;
+          }
+
+          // สร้างไฟล์ DBF ใหม่จากข้อมูลในฐานข้อมูล
+          const dbfFilePath = path.join(exportDir, fileRecord.originalName);
+          await getServices(req).dbfService.createDBFFileFromRecords(
+            dbfRecords,
+            dbfFilePath,
+            fileRecord.originalName
+          );
+
+          // ตรวจสอบว่าไฟล์ที่สร้าง
+          if (await fs.pathExists(dbfFilePath)) {
+            const fileStats = await fs.stat(dbfFilePath);
+            if (fileStats.size > 0) {
+              exportedFiles.push(fileRecord.originalName);
+              logInfo(`✅ สร้างไฟล์ DBF สำเร็จ: ${fileRecord.originalName} (${dbfRecords.length} records, ${fileStats.size} bytes)`);
+            } else {
+              logError('Created DBF file is empty', new Error(`DBF file is empty: ${dbfFilePath}`), {
+                fileId: fileRecord.id,
+                fileName: fileRecord.originalName,
+                dbfPath: dbfFilePath,
+                recordCount: dbfRecords.length
+              });
+              errors.push(`ไฟล์ DBF ที่สร้างว่างเปล่า: ${fileRecord.originalName}`);
             }
           } else {
-            logError('Original file not found', new Error(`File not found: ${originalFilePath}`), {
+            logError('Failed to create DBF file', new Error(`DBF file not created: ${dbfFilePath}`), {
               fileId: fileRecord.id,
               fileName: fileRecord.originalName,
-              originalPath: originalFilePath
+              dbfPath: dbfFilePath,
+              recordCount: dbfRecords.length
             });
-            errors.push(`ไม่พบไฟล์ต้นฉบับ: ${fileRecord.originalName}`);
+            errors.push(`ไม่สามารถสร้างไฟล์ DBF: ${fileRecord.originalName}`);
           }
         } catch (error) {
           const errorMsg = `เกิดข้อผิดพลาดในการประมวลผลไฟล์ ${fileRecord.originalName}: ${(error as Error).message}`;
           errors.push(errorMsg);
-          logError('Error processing file for export', error as Error, { 
-            fileId: fileRecord.id, 
-            fileName: fileRecord.originalName 
+          logError('Error processing file for export', error as Error, {
+            fileId: fileRecord.id,
+            fileName: fileRecord.originalName
           });
         }
       }
 
       if (exportedFiles.length === 0) {
-        // อัปเดตสถานะเป็น export_failed
-        await getServices(req).batchService.updateBatch(id!, {
-          exportStatus: 'export_failed',
-        });
+        // อัปเดตสถานะเป็น export_failed ตามประเภท
+        await getServices(req).batchService.updateBatch(id!, (
+          exportType === 'ipd'
+            ? { exportStatusIpd: 'export_failed' }
+            : { exportStatusOpd: 'export_failed' }
+        ) as any);
 
         return res.status(500).json({
           success: false,
@@ -3472,11 +3615,6 @@ router.post('/batches/:id/export',
           })();
         });
 
-        // อัปเดตสถานะเป็น exported
-        await getServices(req).batchService.updateBatch(id!, {
-          exportStatus: 'exported',
-        });
-
         // ตรวจสอบว่าไฟล์ ZIP สร้างสำเร็จและมีขนาด > 0
         const zipStats = await fs.stat(zipFilePath);
         if (zipStats.size === 0) {
@@ -3495,10 +3633,21 @@ router.post('/batches/:id/export',
 
         // ลบไฟล์ชั่วคราวหลังส่งเสร็จ
         stream.on('end', async () => {
+          // อัปเดตสถานะเป็น exported ตามประเภท เมื่อสตรีมจบสำเร็จ
+          try {
+            await getServices(req).batchService.updateBatch(id!, (
+              exportType === 'ipd'
+                ? { exportStatusIpd: 'exported' }
+                : { exportStatusOpd: 'exported' }
+            ) as any);
+          } catch (updateError) {
+            logError('Failed to update batch export status to exported', updateError as Error);
+          }
+
           const responseTime = timer.elapsed();
           logApiRequest('POST', `/batches/${id!}/export`, 200, responseTime);
           logInfo(`📤 ส่งออก batch สำเร็จ: ${exportedFiles.length} ไฟล์ (ประเภท: ${exportType.toUpperCase()}, ใช้เวลา ${responseTime.toFixed(2)}ms)`);
-          
+
           // ลบโฟลเดอร์ชั่วคราว
           try {
             await fs.remove(exportDir);
@@ -3513,10 +3662,12 @@ router.post('/batches/:id/export',
           logApiRequest('POST', `/batches/${id!}/export`, 500, responseTime);
           logError('Error streaming export file', error);
 
-          // อัปเดตสถานะเป็น export_failed
-          await getServices(req).batchService.updateBatch(id!, {
-            exportStatus: 'export_failed',
-          });
+          // อัปเดตสถานะเป็น export_failed ตามประเภท
+          await getServices(req).batchService.updateBatch(id!, (
+            exportType === 'ipd'
+              ? { exportStatusIpd: 'export_failed' }
+              : { exportStatusOpd: 'export_failed' }
+          ) as any);
 
           if (!res.headersSent) {
             res.status(500).json({
@@ -3533,10 +3684,12 @@ router.post('/batches/:id/export',
       } catch (zipError) {
         logError('Error creating ZIP file', zipError as Error);
 
-        // อัปเดตสถานะเป็น export_failed
-        await getServices(req).batchService.updateBatch(id!, {
-          exportStatus: 'export_failed',
-        });
+        // อัปเดตสถานะเป็น export_failed ตามประเภท
+        await getServices(req).batchService.updateBatch(id!, (
+          exportType === 'ipd'
+            ? { exportStatusIpd: 'export_failed' }
+            : { exportStatusOpd: 'export_failed' }
+        ) as any);
 
         return res.status(500).json({
           success: false,
@@ -3550,11 +3703,13 @@ router.post('/batches/:id/export',
       logApiRequest('POST', `/batches/${id!}/export`, 500, responseTime);
       logError('Error during batch export', error as Error);
 
-      // อัปเดตสถานะเป็น export_failed
+      // อัปเดตสถานะเป็น export_failed ตามประเภท
       try {
-        await getServices(req).batchService.updateBatch(id!, {
-          exportStatus: 'export_failed',
-        });
+        await getServices(req).batchService.updateBatch(id!, (
+          exportType === 'ipd'
+            ? { exportStatusIpd: 'export_failed' }
+            : { exportStatusOpd: 'export_failed' }
+        ) as any);
       } catch (updateError) {
         logError('Failed to update batch export status', updateError as Error);
       }

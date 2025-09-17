@@ -55,8 +55,14 @@ export interface IUploadBatch {
   totalRecords: number;
   totalSize: number;
   status: BatchStatus;
+  // สถานะรวม (เดิม) - คงไว้เพื่อความเข้ากันได้ย้อนหลัง
   processingStatus: BatchProcessingStatus;
   exportStatus: ExportStatus;
+  // สถานะแยกตามประเภท IPD/OPD
+  processingStatusIpd: BatchProcessingStatus;
+  processingStatusOpd: BatchProcessingStatus;
+  exportStatusIpd: ExportStatus;
+  exportStatusOpd: ExportStatus;
   userId?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;

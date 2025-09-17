@@ -72,6 +72,17 @@ export enum ExportStatus {
   EXPORT_FAILED = 'export_failed',
 }
 
+// Helpers สำหรับ key ของสถานะแยกตามประเภท
+export type ProcessingStatusByType = {
+  processingStatusIpd: BatchProcessingStatus;
+  processingStatusOpd: BatchProcessingStatus;
+};
+
+export type ExportStatusByType = {
+  exportStatusIpd: ExportStatus;
+  exportStatusOpd: ExportStatus;
+};
+
 // ========================================
 // CONFIGURATION
 // ========================================

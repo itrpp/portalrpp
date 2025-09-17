@@ -157,17 +157,17 @@ export class DBFReader {
 
   private parseDate(dateStr: string): Date | null {
     if (!dateStr || dateStr.trim() === '') return null;
-    
+
     try {
       // รูปแบบ YYYYMMDD
       const year = parseInt(dateStr.substring(0, 4));
       const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-based
       const day = parseInt(dateStr.substring(6, 8));
-      
+
       if (year < 1900 || year > 2100) return null;
       if (month < 0 || month > 11) return null;
       if (day < 1 || day > 31) return null;
-      
+
       return new Date(year, month, day);
     } catch (e) {
       return null;
@@ -217,17 +217,17 @@ export class DBFService {
   async parseDBFFile(filePath: string): Promise<DBFParseResult> {
     try {
       logInfo(`🔍 เริ่มอ่านไฟล์ DBF: ${path.basename(filePath)}`);
-      
+
       // อ่านไฟล์เป็น Buffer
       const buffer = await fs.readFile(filePath);
-      
+
       // ใช้ DBFReader class
       const reader = new DBFReader(buffer);
       const header = reader.getHeaderInfo();
       const records = reader.parseRecords();
-      
+
       logInfo(`✅ อ่านไฟล์ DBF สำเร็จ: ${header.recordCount} รายการ, ${header.fields.length} ฟิลด์`);
-      
+
       return {
         header,
         records,
@@ -249,15 +249,15 @@ export class DBFService {
   ): Promise<{ recordCount: number; fieldCount: number }> {
     try {
       logInfo(`🔍 เริ่มประมวลผลไฟล์ DBF แบบ streaming: ${path.basename(filePath)}`);
-      
+
       const buffer = await fs.readFile(filePath);
       const reader = new DBFReader(buffer);
-      
+
       const recordCount = await reader.processRecordsWithStreaming(onRecord, batchSize);
       const fieldCount = reader.getFields().length;
-      
+
       logInfo(`✅ ประมวลผลไฟล์ DBF สำเร็จ: ${recordCount} รายการ, ${fieldCount} ฟิลด์`);
-      
+
       return { recordCount, fieldCount };
     } catch (error) {
       logError('Error processing DBF file streaming', error as Error);
@@ -275,7 +275,7 @@ export class DBFService {
   ): Promise<{ savedCount: number; errorCount: number }> {
     try {
       logInfo(`💾 เริ่มบันทึกข้อมูล DBF ลงฐานข้อมูล: ${records.length} รายการ`);
-      
+
       let savedCount = 0;
       let errorCount = 0;
 
@@ -297,7 +297,7 @@ export class DBFService {
       }
 
       logInfo(`✅ บันทึกข้อมูล DBF สำเร็จ: ${savedCount} รายการ, ${errorCount} ข้อผิดพลาด`);
-      
+
       return { savedCount, errorCount };
     } catch (error) {
       logError('Error saving DBF records to database', error as Error);
@@ -329,6 +329,130 @@ export class DBFService {
       throw new Error(`ไม่สามารถอัปเดตสถานะไฟล์ได้: ${(error as Error).message}`);
     }
   }
+
+  /**
+   * ดึงข้อมูล DBF records จากฐานข้อมูลสำหรับ OPD
+   */
+  public async getAllDBFRecordsFromDatabaseForOPD(fileId: string): Promise<any[]> {
+    try {
+      logInfo('Fetching all DBF records from database for OPD', { fileId });
+  
+      const prisma = new PrismaClient();
+  
+      // ดึงข้อมูลจากตาราง dbf_records ตาม fileId
+      const dbfRecords = await prisma.dBF_Record.findMany({
+        where: {
+          fileId: fileId
+        },
+        orderBy: {
+          id: 'asc'
+        }
+      });
+  
+      const records: DBFRecord[] = dbfRecords.map(dbfRecord =>
+        JSON.parse(dbfRecord.data_ipd || dbfRecord.data)
+      );
+  
+      await prisma.$disconnect();
+  
+      logInfo('DBF records fetched successfully', {
+        fileId,
+        recordCount: records.length
+      });
+  
+      return records;
+  
+    } catch (error) {
+      logError('Failed to fetch DBF records from database', error as Error, { fileId });
+      throw error;
+    }
+  }
+
+  /**
+   * ดึงข้อมูล DBF records จากฐานข้อมูลสำหรับ IPD
+   */
+  public async getAllDBFRecordsFromDatabaseForIPD(fileId: string): Promise<any[]> {
+    try {
+      logInfo('Fetching all DBF records from database for IPD', { fileId });
+  
+      const prisma = new PrismaClient();
+  
+      // ดึงข้อมูลจากตาราง dbf_records ตาม fileId
+      const dbfRecords = await prisma.dBF_Record.findMany({
+        where: {
+          fileId: fileId
+        },
+        orderBy: {
+          id: 'asc'
+        }
+      });
+  
+      // แปลงข้อมูลกลับเป็น objects
+      const records: DBFRecord[] = dbfRecords.map(dbfRecord =>
+        JSON.parse(dbfRecord.data_ipd || dbfRecord.data)
+      );
+  
+      await prisma.$disconnect();
+  
+      logInfo('DBF records fetched successfully', {
+        fileId,
+        recordCount: records.length
+      });
+  
+      return records;
+  
+    } catch (error) {
+      logError('Failed to fetch DBF records from database', error as Error, { fileId });
+      throw error;
+    }
+  }
+
+  /**
+   * สร้างไฟล์ DBF ใหม่จากข้อมูลในฐานข้อมูล (instance method)
+   */
+  public async createDBFFileFromRecords(
+    records: DBFRecord[],
+    outputPath: string,
+    _originalFileName: string
+  ): Promise<void> {
+    try {
+      logInfo(`📝 เริ่มสร้างไฟล์ DBF: ${path.basename(outputPath)}`);
+  
+      // สร้าง schema จากข้อมูลแรก (ถ้ามี)
+      let schema: DBFField[] = [];
+      if (records.length > 0) {
+        const firstRecord = records[0];
+        if (firstRecord) {
+          schema = Object.keys(firstRecord).map(fieldName => {
+            const value = firstRecord[fieldName];
+            const valueStr = String(value || '');
+  
+            return {
+              name: fieldName,
+              type: 'C', // Character type เป็นค่าเริ่มต้น
+              length: Math.max(valueStr.length, 10), // ความยาวขั้นต่ำ 10
+              decimalPlaces: 0
+            };
+          });
+        }
+      }
+  
+      // สร้าง header
+      const header = createDBFHeader(records.length, schema);
+  
+      // สร้างไฟล์ DBF
+      const buffer = createDBFBuffer(header, records, schema);
+  
+      // เขียนไฟล์
+      await fs.writeFile(outputPath, buffer);
+  
+      logInfo(`✅ สร้างไฟล์ DBF สำเร็จ: ${path.basename(outputPath)} (${records.length} records)`);
+  
+    } catch (error) {
+      logError('Error creating DBF file from records', error as Error);
+      throw new Error(`ไม่สามารถสร้างไฟล์ DBF ได้: ${(error as Error).message}`);
+    }
+  }
 }
 
 // ========================================
@@ -342,19 +466,19 @@ export function parseDBFWithSchema(buffer: Buffer): {
   const reader = new DBFReader(buffer);
   const records = reader.parseRecords();
   const schema = reader.getFields();
-  
+
   return { records, schema };
 }
 
 export function isADPFile(filename: string, fields: DBFField[]): boolean {
   const filenameUpper = filename.toUpperCase();
-  const hasADPFields = fields.some(field => 
+  const hasADPFields = fields.some(field =>
     field.name.toUpperCase() === 'CODE' ||
     field.name.toUpperCase() === 'QTY' ||
     field.name.toUpperCase() === 'RATE' ||
     field.name.toUpperCase() === 'TOTAL'
   );
-  
+
   return filenameUpper.includes('ADP') || hasADPFields;
 }
 
@@ -388,76 +512,102 @@ export function isODXFile(filename: string): boolean {
   return filenameUpper.includes('ODX');
 }
 
-// ========================================
-// DATABASE QUERY METHODS
-// ========================================
-
 /**
- * ดึงข้อมูล DBF records ทั้งหมดจากฐานข้อมูลสำหรับ OPD
- */
-export async function getAllDBFRecordsFromDatabaseForOPD(fileId: string): Promise<any[]> {
-  try {
-    logInfo('Fetching all DBF records from database for OPD', { fileId });
+   * สร้าง DBF header
+   */
+export function createDBFHeader(recordCount: number, fields: DBFField[]): DBFHeader {
+  const now = new Date();
+  const headerLength = 32 + (fields.length * 32) + 1; // 32 bytes header + field definitions + terminator
+  const recordLength = fields.reduce((sum, field) => sum + field.length, 1); // +1 for deletion flag
 
-    const prisma = new PrismaClient();
-    
-    // ดึงข้อมูลจากตาราง dbf_records ตาม fileId
-    const records = await prisma.dBF_Record.findMany({
-      where: {
-        fileId: fileId
-      },
-      orderBy: {
-        id: 'asc'
-      }
-    });
-
-    await prisma.$disconnect();
-
-    logInfo('DBF records fetched successfully', { 
-      fileId, 
-      recordCount: records.length 
-    });
-
-    return records;
-
-  } catch (error) {
-    logError('Failed to fetch DBF records from database', error as Error, { fileId });
-    throw error;
-  }
+  return {
+    version: 3, // dBASE III
+    year: now.getFullYear() - 1900, // DBF ใช้ปี 1900 เป็นฐาน
+    month: now.getMonth() + 1,
+    day: now.getDate(),
+    recordCount,
+    headerLength,
+    recordLength,
+    fields
+  };
 }
 
 /**
- * ดึงข้อมูล DBF records ทั้งหมดจากฐานข้อมูลสำหรับ IPD
- */
-export async function getAllDBFRecordsFromDatabaseForIPD(fileId: string): Promise<any[]> {
-  try {
-    logInfo('Fetching all DBF records from database for IPD', { fileId });
+  * สร้าง DBF buffer
+  */
+export function createDBFBuffer(header: DBFHeader, records: DBFRecord[], fields: DBFField[]): Buffer {
+  // คำนวณขนาด buffer
+  const headerSize = header.headerLength;
+  const recordSize = header.recordLength;
+  const totalSize = headerSize + (records.length * recordSize);
 
-    const prisma = new PrismaClient();
-    
-    // ดึงข้อมูลจากตาราง dbf_records ตาม fileId
-    const records = await prisma.dBF_Record.findMany({
-      where: {
-        fileId: fileId
-      },
-      orderBy: {
-        id: 'asc'
-      }
-    });
+  const buffer = Buffer.alloc(totalSize);
+  let offset = 0;
 
-    await prisma.$disconnect();
+  // เขียน header
+  buffer[offset++] = header.version;
+  buffer[offset++] = header.year;
+  buffer[offset++] = header.month;
+  buffer[offset++] = header.day;
+  buffer.writeUInt32LE(header.recordCount, offset);
+  offset += 4;
+  buffer.writeUInt16LE(header.headerLength, offset);
+  offset += 2;
+  buffer.writeUInt16LE(header.recordLength, offset);
+  offset += 2;
 
-    logInfo('DBF records fetched successfully', { 
-      fileId, 
-      recordCount: records.length 
-    });
-
-    return records;
-
-  } catch (error) {
-    logError('Failed to fetch DBF records from database', error as Error, { fileId });
-    throw error;
+  // เขียน reserved bytes (10 bytes)
+  for (let i = 0; i < 10; i++) {
+    buffer[offset++] = 0;
   }
+
+  // เขียน field definitions
+  for (const field of fields) {
+    // Field name (11 bytes)
+    const nameBuffer = Buffer.from(field.name.padEnd(11, '\0'));
+    nameBuffer.copy(buffer, offset);
+    offset += 11;
+
+    // Field type (1 byte)
+    buffer[offset++] = field.type.charCodeAt(0);
+
+    // Reserved (4 bytes)
+    for (let i = 0; i < 4; i++) {
+      buffer[offset++] = 0;
+    }
+
+    // Field length (1 byte)
+    buffer[offset++] = field.length;
+
+    // Decimal places (1 byte)
+    buffer[offset++] = field.decimalPlaces;
+
+    // Reserved (14 bytes)
+    for (let i = 0; i < 14; i++) {
+      buffer[offset++] = 0;
+    }
+  }
+
+  // Header terminator
+  buffer[offset++] = 0x0D;
+
+  // เขียน records
+  for (const record of records) {
+    // Deletion flag
+    buffer[offset++] = 0x20; // Space = not deleted
+
+    // Record data
+    for (const field of fields) {
+      const value = record[field.name] || '';
+      const valueStr = String(value);
+      const paddedValue = valueStr.padEnd(field.length, ' ');
+      const valueBuffer = Buffer.from(paddedValue.substring(0, field.length));
+      valueBuffer.copy(buffer, offset);
+      offset += field.length;
+    }
+  }
+
+  return buffer;
 }
 
 export default DBFService;

@@ -134,8 +134,14 @@ export interface UploadBatch {
     totalRecords: number;
     totalSize: number;
     status: 'success' | 'error' | 'processing' | 'partial';
+    // คง field เดิมเพื่อความเข้ากันได้ แต่จะไม่ใช้สำหรับแยก IPD/OPD
     processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
     exportStatus: 'not_exported' | 'exporting' | 'exported' | 'export_failed';
+    // เพิ่มสถานะแยกสำหรับ IPD/OPD
+    processingStatusIpd?: 'pending' | 'processing' | 'completed' | 'failed';
+    processingStatusOpd?: 'pending' | 'processing' | 'completed' | 'failed';
+    exportStatusIpd?: 'not_exported' | 'exporting' | 'exported' | 'export_failed';
+    exportStatusOpd?: 'not_exported' | 'exporting' | 'exported' | 'export_failed';
     files?: UploadHistory[];
 }
 
@@ -1114,6 +1120,42 @@ class ApiClient {
         try {
             const response = await this.request<{ success: boolean; data?: any }>(
                 `/api/revenue/batches/${id}/process`,
+                session,
+                {
+                    method: 'POST',
+                }
+            );
+            return response;
+        } catch (error) {
+            return { success: false };
+        }
+    }
+
+    /**
+     * ประมวลผล batch สำหรับ IPD
+     */
+    async processRevenueBatchIPD(session: Session | null, id: string): Promise<{ success: boolean; data?: any }> {
+        try {
+            const response = await this.request<{ success: boolean; data?: any }>(
+                `/api/revenue/batches/${id}/process-ipd`,
+                session,
+                {
+                    method: 'POST',
+                }
+            );
+            return response;
+        } catch (error) {
+            return { success: false };
+        }
+    }
+
+    /**
+     * ประมวลผล batch สำหรับ OPD
+     */
+    async processRevenueBatchOPD(session: Session | null, id: string): Promise<{ success: boolean; data?: any }> {
+        try {
+            const response = await this.request<{ success: boolean; data?: any }>(
+                `/api/revenue/batches/${id}/process-opd`,
                 session,
                 {
                     method: 'POST',

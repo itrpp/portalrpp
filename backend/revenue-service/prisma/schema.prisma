@@ -36,6 +36,11 @@ model UploadBatch {
   // Processing and Export Status
   processingStatus String @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED
   exportStatus     String @default("not_exported") // NOT_EXPORTED, EXPORTING, EXPORTED, EXPORT_FAILED
+  // แยกสถานะสำหรับ IPD/OPD เพื่อลดความสับสน
+  processingStatusIpd String @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingStatusOpd String @default("pending") // PENDING, PROCESSING, COMPLETED, FAILED
+  exportStatusIpd     String @default("not_exported") // NOT_EXPORTED, EXPORTING, EXPORTED, EXPORT_FAILED
+  exportStatusOpd     String @default("not_exported") // NOT_EXPORTED, EXPORTING, EXPORTED, EXPORT_FAILED
 
   // Relations
   files     UploadRecord[]
@@ -185,6 +190,8 @@ model DBF_Record {
   fileId          String   // รหัสไฟล์ที่อัปโหลด
   recordIndex     Int      // ลำดับรายการในไฟล์ (0-based)
   data            String   // ข้อมูลรายการในรูปแบบ JSON string
+  data_ipd        String?  // ข้อมูลรายการหลังปรับสำหรับ IPD (JSON string)
+  data_opd        String?  // ข้อมูลรายการหลังปรับสำหรับ OPD (JSON string)
   createdAt       DateTime @default(now())
   
   // ความสัมพันธ์กับ UploadRecord

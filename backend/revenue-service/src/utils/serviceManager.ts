@@ -9,7 +9,7 @@ import { BatchService } from '@/services/batchService';
 import { FileProcessingService } from '@/services/fileProcessingService';
 import { StatisticsService } from '@/services/statisticsService';
 import { ValidationService } from '@/services/validationService';
-import { DBFService, getAllDBFRecordsFromDatabaseForOPD, getAllDBFRecordsFromDatabaseForIPD } from '@/services/dbfService';
+import { DBFService } from '@/services/dbfService';
 import { ServiceContainer } from '@/types';
 
 // ========================================
@@ -45,11 +45,7 @@ class ServiceManager {
       const fileStorageService = new FileStorageService();
       const statisticsService = new StatisticsService(databaseService);
       const validationService = new ValidationService(databaseService);
-      const dbfServiceInstance = new DBFService(databaseService.getPrismaClient());
-      const dbfService = Object.assign(dbfServiceInstance, {
-        getAllDBFRecordsFromDatabaseForOPD,
-        getAllDBFRecordsFromDatabaseForIPD
-      });
+      const dbfService = new DBFService(databaseService.getPrismaClient());
       const fileProcessingService = new FileProcessingService(databaseService, dbfService);
       const batchService = new BatchService(
         databaseService,

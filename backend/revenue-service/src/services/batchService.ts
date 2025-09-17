@@ -77,6 +77,10 @@ export class BatchService {
         status: BatchStatus.PROCESSING,
         processingStatus: BatchProcessingStatus.PENDING,
         exportStatus: ExportStatus.NOT_EXPORTED,
+        processingStatusIpd: BatchProcessingStatus.PENDING,
+        processingStatusOpd: BatchProcessingStatus.PENDING,
+        exportStatusIpd: ExportStatus.NOT_EXPORTED,
+        exportStatusOpd: ExportStatus.NOT_EXPORTED,
         userId: data.userId || null,
         ipAddress: data.ipAddress || null,
         userAgent: data.userAgent || null,
@@ -558,6 +562,568 @@ export class BatchService {
       await this.updateBatchStatusById(batchId, BatchStatus.ERROR);
 
       throw new BatchError(`เกิดข้อผิดพลาดในการประมวลผล batch: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * ประมวลผล batch สำหรับ IPD โดยอ่าน DBF_Record.data แล้วบันทึกผลลง DBF_Record.data_ipd
+   * และอัปเดต UploadBatch.processingStatus
+   */
+  async processBatchIPD(batchId: string): Promise<BatchProcessingResult> {
+    const timer = createTimer();
+
+    try {
+      logInfo('Starting IPD batch processing', { batchId });
+
+      // ตรวจสอบว่า batch มีอยู่หรือไม่
+      const batch = await this.databaseService.getUploadBatch(batchId);
+      if (!batch) {
+        throw new ResourceNotFoundError('batch', batchId);
+      }
+
+      // ตั้งสถานะการประมวลผล IPD
+      await this.databaseService.updateUploadBatch(batchId, {
+        processingStatusIpd: BatchProcessingStatus.PROCESSING
+      } as any);
+
+      // ดึงไฟล์ทั้งหมดใน batch
+      const filesResult = await this.getBatchFiles(batchId, { limit: 1000 });
+      const files = filesResult.files;
+
+      const prisma = this.databaseService.getPrismaClient();
+
+      let processedFiles = 0;
+      let failedFiles = 0;
+      let totalRecords = 0;
+      let processedRecords = 0;
+      const errors: ProcessingError[] = [];
+
+      // ช่วยฟอร์แมตวันที่ DD/MM/YYYY ถ้าเป็นรูปแบบที่พอแปลงได้
+      const toDDMMYYYY = (value: unknown): string | unknown => {
+        if (typeof value !== 'string') return value;
+        const s = value.trim();
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+        if (/^\d{8}$/.test(s)) {
+          // YYYYMMDD
+          const yyyy = s.slice(0, 4);
+          const mm = s.slice(4, 6);
+          const dd = s.slice(6, 8);
+          return `${dd}/${mm}/${yyyy}`;
+        }
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+          const datePart = (s.split('T')[0] || s);
+          const [yyyy, mm, dd] = datePart.split('-');
+          if (yyyy && mm && dd) {
+            return `${dd}/${mm}/${yyyy}`;
+          }
+        }
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const yyyy = d.getFullYear();
+          return `${dd}/${mm}/${yyyy}`;
+        }
+        return value;
+      };
+
+      for (const file of files) {
+        try {
+          // สนใจเฉพาะไฟล์ DBF ที่เกี่ยวกับ IPD
+          if ((file.fileType || '').toUpperCase() !== 'DBF') {
+            continue;
+          }
+
+          const filenameUpper = (file.filename || '').toUpperCase();
+          const isADP = filenameUpper.includes('ADP');
+          const isDRU = filenameUpper.includes('DRU');
+
+          // ดึง DBF records ของไฟล์นี้
+          const records = await prisma.dBF_Record.findMany({
+            where: { fileId: file.id },
+            orderBy: { recordIndex: 'asc' }
+          });
+
+          if (records.length === 0) {
+            processedFiles++;
+            continue;
+          }
+
+          // ประมวลผลทีละ record
+          for (const rec of records) {
+            try {
+              const raw = rec.data ? JSON.parse(rec.data) : {};
+              let output: any = { ...raw };
+
+              if (isADP) {
+                // เพิ่ม SP_ITEM ถ้าไม่มี และแก้ DATEOPD เป็น DD/MM/YYYY ถ้ามี
+                if (output.SP_ITEM === undefined) output.SP_ITEM = '';
+                if (output.DATEOPD !== undefined) {
+                  const formatted = toDDMMYYYY(String(output.DATEOPD));
+                  output.DATEOPD = formatted;
+                }
+              } else if (isDRU) {
+                // เพิ่ม SP_ITEM ถ้าไม่มี ห้ามแก้ DATE_SERV
+                if (output.SP_ITEM === undefined) output.SP_ITEM = '';
+                // ไม่แปลงวันที่หรือ field อื่นๆ สำหรับ DRU
+              } else {
+                // OTHER: คัดลอกตามเดิม ไม่แก้ไขใดๆ
+              }
+
+              await prisma.dBF_Record.update({
+                where: { id: rec.id },
+                data: { data_ipd: JSON.stringify(output) }
+              });
+
+              processedRecords++;
+              totalRecords++;
+            } catch (e) {
+              errors.push({
+                type: 'processing',
+                message: `Record processing error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                code: 'PROCESSING_ERROR',
+                timestamp: DateHelper.toDate(DateHelper.now()),
+                retryable: true
+              });
+              totalRecords++;
+            }
+          }
+
+          processedFiles++;
+        } catch (e) {
+          failedFiles++;
+          errors.push({
+            type: 'processing',
+            message: `File processing error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+            code: 'FILE_PROCESSING_ERROR',
+            timestamp: DateHelper.toDate(DateHelper.now()),
+            retryable: true
+          });
+        }
+      }
+
+      const processingTime = timer.elapsed();
+      const finalStatus = failedFiles === 0 ? BatchStatus.SUCCESS : (processedFiles === 0 ? BatchStatus.ERROR : BatchStatus.PARTIAL);
+
+      // อัปเดตสถานะการประมวลผล IPD ใน batch
+      await this.databaseService.updateUploadBatch(batchId, {
+        processingStatusIpd: BatchProcessingStatus.COMPLETED,
+        totalRecords: typeof batch.totalRecords === 'number' ? batch.totalRecords : totalRecords
+      } as any);
+
+      const result: BatchProcessingResult = {
+        batchId,
+        success: finalStatus === BatchStatus.SUCCESS,
+        totalFiles: files.length,
+        processedFiles,
+        failedFiles,
+        totalRecords,
+        processedRecords,
+        failedRecords: totalRecords - processedRecords,
+        processingTime,
+        errors,
+        progress: {
+          batchId,
+          batchName: batch.batchName,
+          totalFiles: files.length,
+          completedFiles: processedFiles + failedFiles,
+          failedFiles,
+          processingFiles: 0,
+          progress: 100,
+          status: finalStatus,
+        },
+      };
+
+      logInfo('IPD batch processing completed', {
+        batchId,
+        processedFiles,
+        failedFiles,
+        processedRecords,
+        processingTime
+      });
+
+      return result;
+
+    } catch (error) {
+      const processingTime = timer.elapsed();
+      logError('IPD batch processing failed', error as Error, { batchId, processingTime });
+
+      // อัปเดตสถานะการประมวลผล IPD เป็น FAILED
+      try {
+        await this.databaseService.updateUploadBatch(batchId, {
+          processingStatusIpd: BatchProcessingStatus.FAILED
+        } as any);
+      } catch {
+        // ignore
+      }
+
+      throw new BatchError(`เกิดข้อผิดพลาดในการประมวลผล IPD: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * ประมวลผล batch สำหรับ OPD โดยอ่าน DBF_Record.data แล้วบันทึกผลลง DBF_Record.data_opd
+   * และอัปเดต UploadBatch.processingStatus ตามเงื่อนไขในหน้าจอ OPD
+   */
+  async processBatchOPD(batchId: string): Promise<BatchProcessingResult> {
+    const timer = createTimer();
+
+    try {
+      logInfo('Starting OPD batch processing', { batchId });
+
+      // ตรวจสอบว่า batch มีอยู่หรือไม่
+      const batch = await this.databaseService.getUploadBatch(batchId);
+      if (!batch) {
+        throw new ResourceNotFoundError('batch', batchId);
+      }
+
+      // ตั้งสถานะการประมวลผล OPD
+      await this.databaseService.updateUploadBatch(batchId, {
+        processingStatusOpd: BatchProcessingStatus.PROCESSING
+      } as any);
+
+      // ดึงไฟล์ทั้งหมดใน batch
+      const filesResult = await this.getBatchFiles(batchId, { limit: 1000 });
+      const files = filesResult.files;
+
+      const prisma = this.databaseService.getPrismaClient();
+
+      // คัดเฉพาะไฟล์ DBF และแยกตามประเภทจากชื่อไฟล์
+      const toUpper = (s: unknown) => (typeof s === 'string' ? s.toUpperCase() : '');
+      const dbfFiles = files.filter(f => toUpper(f.fileType) === 'DBF');
+      const byType: Record<string, typeof dbfFiles> = {
+        ADP: [], DRU: [], OPD: [], CHT: [], CHA: [], INS: [], ODX: []
+      } as any;
+      for (const f of dbfFiles) {
+        const name = toUpper(f.filename || '')
+          .replace(/\.DBF$/, '')
+          .replace(/\d/g, '');
+        const keys = Object.keys(byType);
+        const matched = keys.find(k => name.includes(k));
+        if (matched) {
+          (byType as any)[matched].push(f);
+        }
+      }
+
+      // โหลด records ทั้งหมดเข้าหน่วยความจำสำหรับการอ้างอิงข้ามไฟล์
+      const safeParseJson = (s: string) => {
+        try { return JSON.parse(s); } catch { return {}; }
+      };
+      type Rec = { id: string; fileId: string; recordIndex: number; raw: any };
+      const loadRecords = async (fileIds: string[]): Promise<Rec[]> => {
+        if (fileIds.length === 0) return [];
+        const recs = await prisma.dBF_Record.findMany({
+          where: { fileId: { in: fileIds } },
+          orderBy: { recordIndex: 'asc' }
+        });
+        return recs.map(r => ({
+          id: r.id,
+          fileId: r.fileId,
+          recordIndex: r.recordIndex,
+          raw: r.data ? safeParseJson(r.data) : {}
+        }));
+      };
+
+      const fileIds = (arr: typeof dbfFiles) => (arr || []).map(f => f.id);
+
+      const [adpRecs, druRecs, opdRecs, chtRecs, chaRecs, insRecs, odxRecs] = await Promise.all([
+        loadRecords(fileIds(byType.ADP || [])),
+        loadRecords(fileIds(byType.DRU || [])),
+        loadRecords(fileIds(byType.OPD || [])),
+        loadRecords(fileIds(byType.CHT || [])),
+        loadRecords(fileIds(byType.CHA || [])),
+        loadRecords(fileIds(byType.INS || [])),
+        loadRecords(fileIds(byType.ODX || [])),
+      ]);
+
+      // สร้าง helper สำหรับ key กลุ่มและอัปเดตวันที่
+      const toKey = (r: any, name: string) => String((r[name] ?? '')).trim().toUpperCase();
+      const toNum = (v: any) => {
+        const n = Number(v);
+        return isFinite(n) ? n : 0;
+      };
+      const toInt = (v: any) => {
+        const n = parseInt(String(v), 10);
+        return isFinite(n) ? n : 0;
+      };
+      const formatDate = (value: unknown): string | unknown => {
+        if (typeof value !== 'string') return value as any;
+        const s = value.trim();
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+        if (/^\d{8}$/.test(s)) {
+          const yyyy = s.slice(0, 4);
+          const mm = s.slice(4, 6);
+          const dd = s.slice(6, 8);
+          return `${dd}/${mm}/${yyyy}`;
+        }
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+          const datePart = (s.split('T')[0] || s);
+          const parts = datePart.split('-');
+          if (parts.length === 3) {
+            const [yyyy, mm, dd] = parts;
+            return `${dd}/${mm}/${yyyy}`;
+          }
+        }
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const yyyy = d.getFullYear();
+          return `${dd}/${mm}/${yyyy}`;
+        }
+        return value;
+      };
+
+      const safeGetUpper = (obj: any, key: string) => obj[key] ?? obj[key.toUpperCase()] ?? obj[key.toLowerCase()];
+      const setField = (obj: any, key: string, val: any) => { obj[key] = val; };
+
+      
+
+      // เตรียมข้อมูลอ้างอิงสำหรับ INS และ OPD
+      const insBySeqEmptyDoc = new Set<number>();
+      for (const r of insRecs) {
+        const docno = String(safeGetUpper(r.raw, 'DOCNO') ?? '').trim();
+        const seq = toInt(safeGetUpper(r.raw, 'SEQ'));
+        if (!docno) insBySeqEmptyDoc.add(seq);
+      }
+
+      // ประมวลผล CHT: รวม TOTAL ตาม HN,DATE คง SEQ น้อยสุด ไฟล์อื่นลบ
+      const deletedSeqs = new Set<number>();
+      const aggregateBy = (recs: Rec[], amountField: string) => {
+        const groups = new Map<string, Rec[]>();
+        for (const r of recs) {
+          const key = `${toKey(r.raw, 'HN')}|${toKey(r.raw, 'DATE')}`;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(r);
+        }
+        const updates: Array<{ id: string; data: any }> = [];
+        for (const [, arr] of groups) {
+          if (arr.length === 0) continue;
+          const minSeq = Math.min(...arr.map(r => toInt(safeGetUpper(r.raw, 'SEQ'))));
+          let sum = 0;
+          const keep = arr.find(r => toInt(safeGetUpper(r.raw, 'SEQ')) === minSeq) || arr[0];
+          for (const r of arr) {
+            if (keep && r.id === keep.id) continue;
+            sum += toNum(safeGetUpper(r.raw, amountField));
+            deletedSeqs.add(toInt(safeGetUpper(r.raw, 'SEQ')));
+          }
+          if (keep) {
+            const out = { ...keep.raw };
+            setField(out, 'SEQ', minSeq);
+            setField(out, amountField, toNum(safeGetUpper(out, amountField)) + sum);
+            updates.push({ id: keep.id, data: out });
+          }
+          for (const r of arr) {
+            if (keep && r.id === keep.id) continue;
+            const outDel = { ...r.raw };
+            setField(outDel, 'SEQ', minSeq);
+            setField(outDel, amountField, 0);
+            setField(outDel, '_DELETED', true);
+            updates.push({ id: r.id, data: outDel });
+          }
+        }
+        return updates;
+      };
+
+      const chtUpdates = aggregateBy(chtRecs, 'TOTAL');
+      const chaUpdates = aggregateBy(chaRecs, 'AMOUNT');
+
+      // ประมวลผล INS: ลบ record ที่มี SEQ ถูกลบใน CHT/CHA
+      const insUpdates: Array<{ id: string; data: any }> = [];
+      for (const r of insRecs) {
+        const out = { ...r.raw };
+        const seq = toInt(safeGetUpper(out, 'SEQ'));
+        if (deletedSeqs.has(seq)) {
+          setField(out, '_DELETED', true);
+        }
+        insUpdates.push({ id: r.id, data: out });
+      }
+
+      // ประมวลผล OPD: OPTYPE 5->7, คลินิกพิเศษ -> 9, INS ไม่มี DOCNO และ OPD OPTYPE=1 -> 3, แปลงวันที่
+      const opdUpdates: Array<{ id: string; data: any }> = [];
+      for (const r of opdRecs) {
+        const out = { ...r.raw };
+        const clinic = String(safeGetUpper(out, 'CLINIC') ?? '').trim();
+        const seq = toInt(safeGetUpper(out, 'SEQ'));
+        const optype = toInt(safeGetUpper(out, 'OPTYPE'));
+        if (optype === 5) setField(out, 'OPTYPE', 7);
+        if (clinic === '09900' || clinic === '01400') setField(out, 'OPTYPE', 9);
+        if (optype === 1 && insBySeqEmptyDoc.has(seq)) setField(out, 'OPTYPE', 3);
+        // แปลงรูปแบบวันที่ที่พบบ่อย
+        if (safeGetUpper(out, 'DATE')) setField(out, 'DATE', formatDate(String(safeGetUpper(out, 'DATE'))));
+        if (safeGetUpper(out, 'DATEOPD')) setField(out, 'DATEOPD', formatDate(String(safeGetUpper(out, 'DATEOPD'))));
+        if (safeGetUpper(out, 'DATE_SERV')) setField(out, 'DATE_SERV', formatDate(String(safeGetUpper(out, 'DATE_SERV'))));
+        opdUpdates.push({ id: r.id, data: out });
+      }
+
+      // อ้างอิง OPD หลังปรับปรุง เพื่อใช้กับ ADP เงื่อนไข TYPE 20/19 + CLINIC 01300 + OPTYPE=7
+      const opdOptype7Seq = new Set<number>();
+      for (const u of opdUpdates) {
+        const seq = toInt(safeGetUpper(u.data, 'SEQ'));
+        const optype = toInt(safeGetUpper(u.data, 'OPTYPE'));
+        if (optype === 7) opdOptype7Seq.add(seq);
+      }
+
+      // ประมวลผล DRU: กลุ่ม HN,DATE ปรับ SEQ เป็นค่าน้อยสุด, ลบ TOTAL=0
+      const druUpdates: Array<{ id: string; data: any }> = [];
+      const druGroups = new Map<string, number>();
+      for (const r of druRecs) {
+        const key = `${toKey(r.raw, 'HN')}|${toKey(r.raw, 'DATE')}`;
+        const seq = toInt(safeGetUpper(r.raw, 'SEQ'));
+        if (!druGroups.has(key)) druGroups.set(key, seq);
+        else druGroups.set(key, Math.min(druGroups.get(key)!, seq));
+      }
+      for (const r of druRecs) {
+        const out = { ...r.raw };
+        const key = `${toKey(out, 'HN')}|${toKey(out, 'DATE')}`;
+        const minSeq = druGroups.get(key) || toInt(safeGetUpper(out, 'SEQ'));
+        setField(out, 'SEQ', minSeq);
+        const total = toNum(safeGetUpper(out, 'TOTAL'));
+        if (total === 0) setField(out, '_DELETED', true);
+        druUpdates.push({ id: r.id, data: out });
+      }
+
+      // ประมวลผล ODX: กลุ่ม HN,DATE ปรับ SEQ เป็นค่าน้อยสุด, กฎ DXTYPE และ DIAG ซ้ำ
+      const odxUpdates: Array<{ id: string; data: any }> = [];
+      const odxGroups = new Map<string, Rec[]>();
+      for (const r of odxRecs) {
+        const key = `${toKey(r.raw, 'HN')}|${toKey(r.raw, 'DATE')}|${toInt(safeGetUpper(r.raw, 'SEQ'))}`;
+        if (!odxGroups.has(key)) odxGroups.set(key, []);
+        odxGroups.get(key)!.push(r);
+      }
+      for (const [, arr] of odxGroups) {
+        const minSeq = Math.min(...arr.map(r => toInt(safeGetUpper(r.raw, 'SEQ'))));
+        // ให้มี DXTYPE=1 ได้เพียง 1 รายการ
+        let dx1Kept = false;
+        const diagSeen = new Set<string>();
+        for (const r of arr) {
+          const out = { ...r.raw };
+          setField(out, 'SEQ', minSeq);
+          let dxtype = toInt(safeGetUpper(out, 'DXTYPE'));
+          const diag = String(safeGetUpper(out, 'DIAG') ?? '').trim().toUpperCase();
+          if (dxtype === 1) {
+            if (dx1Kept) dxtype = 2;
+            dx1Kept = true;
+          }
+          // ลบ DIAG ที่ซ้ำถ้ามี DXTYPE=2
+          if (diag) {
+            if (diagSeen.has(diag) && dxtype === 2) {
+              setField(out, '_DELETED', true);
+            } else {
+              diagSeen.add(diag);
+            }
+          }
+          setField(out, 'DXTYPE', dxtype);
+          odxUpdates.push({ id: r.id, data: out });
+        }
+      }
+
+      // ประมวลผล ADP: TELMED Telel -> TELMED, เงื่อนไข TYPE20/19 & CLINIC01300 & OPTYPE=7, และกลุ่ม TYPE=15
+      const adpUpdates: Array<{ id: string; data: any }> = [];
+      const inRange = (x: number, a: number, b: number) => x >= a && x <= b;
+      for (const r of adpRecs) {
+        const out = { ...r.raw };
+        // Normalize TELMED
+        const code = String(safeGetUpper(out, 'CODE') ?? '').trim();
+        if (code === 'TELMED TELEL') setField(out, 'CODE', 'TELMED');
+
+        const typeVal = toInt(safeGetUpper(out, 'TYPE'));
+        const clinic = String(safeGetUpper(out, 'CLINIC') ?? '').trim();
+        const seq = toInt(safeGetUpper(out, 'SEQ'));
+        if ((typeVal === 20 || typeVal === 19) && clinic === '01300' && opdOptype7Seq.has(seq)) {
+          setField(out, 'TYPE', 20);
+          setField(out, 'CODE', 'H9339');
+          setField(out, 'QTY', 1);
+          setField(out, 'RATE', 150);
+          setField(out, 'TOTAL', 150);
+        }
+
+        // TYPE 15 mapping group
+        if (typeVal === 15) {
+          const numCode = toInt(code);
+          if (inRange(numCode, 32501, 32504)) setField(out, 'CODE', '32004');
+          else if (inRange(numCode, 32102, 32105)) setField(out, 'CODE', '32001');
+          else if (inRange(numCode, 32208, 32311)) setField(out, 'CODE', '32003');
+        }
+
+        adpUpdates.push({ id: r.id, data: out });
+      }
+
+      // รวมรายการอัปเดตทั้งหมด
+      const allUpdates = [
+        ...chtUpdates,
+        ...chaUpdates,
+        ...insUpdates,
+        ...opdUpdates,
+        ...druUpdates,
+        ...odxUpdates,
+        ...adpUpdates,
+      ];
+
+      // บันทึกลงฐานข้อมูล
+      let processedRecords = 0;
+      for (const u of allUpdates) {
+        await prisma.dBF_Record.update({ where: { id: u.id }, data: { data_opd: JSON.stringify(u.data) } as any });
+        processedRecords++;
+      }
+
+      const processedFiles = dbfFiles.length;
+      const failedFiles = 0;
+      const totalRecords = allUpdates.length;
+      const processingTime = timer.elapsed();
+      const finalStatus = failedFiles === 0 ? BatchStatus.SUCCESS : (processedFiles === 0 ? BatchStatus.ERROR : BatchStatus.PARTIAL);
+
+      // อัปเดตสถานะการประมวลผล OPD ใน batch
+      await this.databaseService.updateUploadBatch(batchId, {
+        processingStatusOpd: BatchProcessingStatus.COMPLETED,
+        totalRecords: typeof batch.totalRecords === 'number' ? batch.totalRecords : totalRecords
+      } as any);
+
+      const result: BatchProcessingResult = {
+        batchId,
+        success: finalStatus === BatchStatus.SUCCESS,
+        totalFiles: processedFiles,
+        processedFiles,
+        failedFiles,
+        totalRecords,
+        processedRecords,
+        failedRecords: totalRecords - processedRecords,
+        processingTime,
+        errors: [],
+        progress: {
+          batchId,
+          batchName: batch.batchName,
+          totalFiles: processedFiles,
+          completedFiles: processedFiles,
+          failedFiles,
+          processingFiles: 0,
+          progress: 100,
+          status: finalStatus,
+        },
+      };
+
+      logInfo('OPD batch processing completed', {
+        batchId,
+        processedFiles,
+        processedRecords,
+        processingTime
+      });
+
+      return result;
+
+    } catch (error) {
+      const processingTime = timer.elapsed();
+      logError('OPD batch processing failed', error as Error, { batchId, processingTime });
+
+      try {
+        await this.databaseService.updateUploadBatch(batchId, {
+          processingStatusOpd: BatchProcessingStatus.FAILED
+        } as any);
+      } catch {
+        // ignore
+      }
+
+      throw new BatchError(`เกิดข้อผิดพลาดในการประมวลผล OPD: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
