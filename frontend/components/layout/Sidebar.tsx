@@ -8,11 +8,6 @@ import { Button, Chip, Link as HeroUILink } from "@heroui/react";
 import {
   HomeIcon,
   Squares2X2Icon,
-  ChartBarIcon,
-  ArrowDownTrayIcon,
-  DocumentTextIcon,
-  ArrowUpTrayIcon,
-  UserIcon,
   ChevronRightIcon,
   Bars3Icon,
   XMarkIcon,
@@ -147,7 +142,7 @@ export default function Sidebar() {
       //       },
       //     ],
       //   },
-      // ],      
+      // ],
     },
     {
       title: "ระบบการจัดการเวรเปล",

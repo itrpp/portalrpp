@@ -34,7 +34,6 @@ export const useUploadProcess = () => {
     const mm = String(thNow.getMinutes()).padStart(2, "0");
     const dbfBatchName = `DBF_Batch_${yy}${MM}${dd}_${HH}${mm}`;
 
-
     const batchResponse = await api.createRevenueBatch(session, {
       batchName: dbfBatchName,
       userId: session?.user?.id || "unknown",

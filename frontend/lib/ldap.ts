@@ -108,7 +108,6 @@ export class LDAPService {
       const { searchEntries } = await client.search(this.config.baseDN, {
         scope: "sub",
         filter: searchFilter,
-        attributes: this.config.attributes,
       });
 
       if (searchEntries.length === 0) {
@@ -200,15 +199,6 @@ export class LDAPService {
   }
 
   /**
-   * ถอดรหัส objectGUID จาก binary format เป็น UUID string
-   * @param objectGUID - objectGUID ในรูปแบบ binary
-   * @returns UUID string ในรูปแบบ xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-   */
-  private decodeObjectGUID(objectGUID: string): string {
-    return decodeObjectGUID(objectGUID);
-  }
-
-  /**
    * แปลง LDAP search result เป็น user data
    */
   private parseUserData(
@@ -243,16 +233,11 @@ export class LDAPService {
       );
     });
 
-    // ดึง objectGUID และถอดรหัสเป็น UUID format
-    const rawObjectGUID = getAttributeValues("objectGUID")[0];
-    const UserId = decodeObjectGUID(rawObjectGUID);
-
     return {
-      id: UserId,
-      name: getAttribute("displayName") || getAttribute("cn") || username,
-      email: getAttribute("mail") || `${username}@rpphosp.local`,
-      department:
-        getAttribute("department") || getAttribute("departmentNumber") || "",
+      id: "UserId",
+      name: getAttribute("cn"),
+      email: getAttribute("userPrincipalName"),
+      department: getFirstOU(getAttribute("distinguishedName")) || "",
       title: getAttribute("title") || getAttribute("description") || "",
       groups: groupsString,
       role: isAdmin ? "admin" : "user",
@@ -372,46 +357,6 @@ export class LDAPService {
 }
 
 /**
- * Utility function สำหรับถอดรหัส objectGUID จาก binary format เป็น UUID string
- * ใช้สำหรับการจัดการ objectGUID ที่ได้รับจาก LDAP search results
- * @param objectGUID - objectGUID ในรูปแบบ binary
- * @returns UUID string ในรูปแบบ xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
- */
-export function decodeObjectGUID(objectGUID: string): string {
-  try {
-    // แปลงจาก binary เป็น hex string
-    const hex = Buffer.from(objectGUID, "binary").toString("hex");
-
-    // จัดเรียงไบต์ตามลำดับที่ถูกต้องสำหรับ UUID
-    const p1 =
-      hex.substr(6, 2) + hex.substr(4, 2) + hex.substr(2, 2) + hex.substr(0, 2);
-    const p2 = hex.substr(10, 2) + hex.substr(8, 2);
-    const p3 = hex.substr(14, 2) + hex.substr(12, 2);
-    const p4 = hex.substr(16, 4);
-    const p5 = hex.substr(20, 12);
-
-    return [p1, p2, p3, p4, p5].join("-");
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Error decoding objectGUID:", error);
-
-    return objectGUID; // ส่งคืนค่าเดิมหากถอดรหัสไม่ได้
-  }
-}
-
-/**
- * Utility function สำหรับตรวจสอบว่า string เป็น UUID format หรือไม่
- * @param uuid - string ที่ต้องการตรวจสอบ
- * @returns true หากเป็น UUID format ที่ถูกต้อง
- */
-export function isValidUUID(uuid: string): boolean {
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-  return uuidRegex.test(uuid);
-}
-
-/**
  * สร้าง LDAP Service instance จาก environment variables
  */
 export function createLDAPService(): LDAPService {
@@ -427,19 +372,6 @@ export function createLDAPService(): LDAPService {
       searchFilter:
         optional.LDAP_SEARCH_FILTER ||
         "(|(sAMAccountName={{username}})(userPrincipalName={{username}}))",
-      attributes: optional.LDAP_ATTRIBUTES?.split(",") || [
-        "sAMAccountName",
-        "userPrincipalName",
-        "displayName",
-        "mail",
-        "memberOf",
-        "cn",
-        "userAccountControl",
-        "department",
-        "departmentNumber",
-        "title",
-        "description",
-      ],
       timeout: parseInt(optional.LDAP_TIMEOUT || "5000"),
       connectTimeout: parseInt(optional.LDAP_CONNECT_TIMEOUT || "10000"),
       idleTimeout: parseInt(optional.LDAP_IDLE_TIMEOUT || "30000"),
@@ -454,4 +386,10 @@ export function createLDAPService(): LDAPService {
       "ไม่สามารถเริ่มต้น LDAP service ได้ กรุณาตรวจสอบ environment variables",
     );
   }
+}
+
+function getFirstOU(dn: string): string | null {
+  const parts = dn.split(',').map(s => s.trim());
+  const firstOU = parts.find(p => p.toUpperCase().startsWith('OU='));
+  return firstOU ? firstOU.slice(3) : null; // ตัด "OU=" ออก
 }
