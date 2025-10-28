@@ -8,8 +8,11 @@ import type {
 
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import LineProvider from "next-auth/providers/line";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 
 import { createLDAPService } from "@/lib/ldap";
+import { prisma } from "@/lib/prisma";
 
 /**
  * LDAP Authentication Function - ใช้ LDAPService ใหม่
@@ -45,6 +48,8 @@ async function authenticateLDAP(
 }
 
 export const authOptions: any = {
+  // ใช้ PrismaAdapter เพื่อบันทึก/ซิงค์ข้อมูลผู้ใช้ใน MySQL (ยังใช้ JWT สำหรับ session)
+  adapter: PrismaAdapter(prisma as any),
   providers: [
     CredentialsProvider({
       id: "credentials",
@@ -111,18 +116,83 @@ export const authOptions: any = {
         }
       },
     }),
+    LineProvider({
+      clientId: process.env.LINE_CLIENT_ID!,
+      clientSecret: process.env.LINE_CLIENT_SECRET!,
+    }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // ใช้ JWT strategy เพื่อรองรับ LDAP authentication
     maxAge: 24 * 60 * 60, // 24 hours
   },
   callbacks: {
+    async signIn({
+      user,
+      account,
+      profile: _profile,
+    }: {
+      user: any;
+      account: any;
+      profile: any;
+    }) {
+      // สำหรับ LINE users ให้เพิ่ม provider_type
+      if (account?.provider === "line") {
+        user.provider_type = "line";
+      }
+
+      // สำหรับ LDAP users: กำหนด provider_type และ upsert ผู้ใช้ลงฐานข้อมูล
+      if (account?.provider === "credentials") {
+        user.provider_type = "ldap";
+
+        // upsert โดยอิงจาก email เป็นหลัก (และเก็บ ldapId หากมี)
+        const email = user.email as string | undefined;
+        const ldapId = user.id as string | undefined;
+        const name = user.name as string | undefined;
+        const department = (user.department ?? null) as string | null;
+        const title = (user.title ?? null) as string | null;
+        const groups = (user.groups ?? null) as string | null;
+        const role = (user.role ?? "user") as "admin" | "user";
+
+        // หากไม่มีอีเมล ให้ fallback ใช้ ldapId เพื่อป้องกัน unique constraint
+        const whereEmail = email ?? `ldap-${ldapId}`;
+
+        const dbUser = await prisma.user.upsert({
+          where: { email: whereEmail },
+          update: {
+            name,
+            department,
+            title,
+            groups,
+            role,
+            providerType: "ldap",
+            ldapId,
+          },
+          create: {
+            email: whereEmail,
+            name,
+            department,
+            title,
+            groups,
+            role,
+            providerType: "ldap",
+            ldapId,
+          },
+        });
+
+        // บังคับให้ NextAuth ใช้ id ของเรคคอร์ดในฐานข้อมูลเป็น user.id (จะไปอยู่ใน token.sub)
+        user.id = dbUser.id;
+      }
+
+      return true;
+    },
     async jwt({
       token,
       user,
+      account: _account,
     }: {
       token: any;
       user: any;
+      account: any;
     }): Promise<ExtendedToken> {
       if (user) {
         const extendedUser = user as ExtendedUser;
@@ -131,6 +201,7 @@ export const authOptions: any = {
         token.title = extendedUser.title;
         token.groups = extendedUser.groups;
         token.role = extendedUser.role;
+        token.provider_type = (user as any).provider_type;
       }
 
       return token;
@@ -142,14 +213,14 @@ export const authOptions: any = {
       session: any;
       token: any;
     }): Promise<ExtendedSession> {
+      // สำหรับ JWT session (LDAP และ LINE users)
       if (token) {
-        const extendedSession = session as ExtendedSession;
-
-        extendedSession.user.id = token.sub!;
-        extendedSession.user.department = token.department as string;
-        extendedSession.user.title = token.title as string;
-        extendedSession.user.groups = token.groups as string;
-        extendedSession.user.role = token.role as "admin" | "user";
+        session.user.id = token.sub!;
+        session.user.department = token.department as string;
+        session.user.title = token.title as string;
+        session.user.groups = token.groups as string;
+        session.user.role = token.role as "admin" | "user";
+        session.user.provider_type = token.provider_type as string;
       }
 
       return session as ExtendedSession;

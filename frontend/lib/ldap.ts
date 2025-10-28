@@ -122,12 +122,50 @@ export class LDAPService {
       return {
         objectName: entry.dn,
         attributes: Object.entries(entry)
-          .map(([type, values]) => ({
-            type,
-            values: Array.isArray(values)
-              ? values.map((v) => (typeof v === "string" ? v : v.toString()))
-              : [typeof values === "string" ? values : values.toString()],
-          }))
+          .map(([type, values]) => {
+            const toGuidString = (buf: Buffer): string => {
+              // Active Directory GUID จัดเก็บแบบ little-endian ใน 3 กลุ่มแรก
+              const h = (i: number) => buf[i]!.toString(16).padStart(2, "0");
+
+              return `${h(3)}${h(2)}${h(1)}${h(0)}-${h(5)}${h(4)}-${h(7)}${h(6)}-${h(8)}${h(9)}-${h(10)}${h(11)}${h(12)}${h(13)}${h(14)}${h(15)}`;
+            };
+
+            const convertValue = (val: unknown): string => {
+              if (type === "objectGUID") {
+                const buf = Buffer.isBuffer(val)
+                  ? (val as Buffer)
+                  : Buffer.from(val as any);
+
+                if (buf.length === 16) {
+                  return toGuidString(buf);
+                }
+                // หากไม่ได้ความยาว 16 ไบต์ ให้ลองตีความจากสตริง hex ที่อาจถูกส่งมา
+                const str = typeof val === "string" ? val : String(val);
+                const cleaned = str.replace(/[^0-9a-fA-F]/g, "");
+
+                if (cleaned.length === 32) {
+                  const b = Buffer.from(cleaned, "hex");
+
+                  return toGuidString(b);
+                }
+
+                return str;
+              }
+
+              if (Buffer.isBuffer(val)) {
+                // สำหรับแอตทริบิวต์อื่น แปลงเป็น utf8 ปกติ
+                return (val as Buffer).toString("utf8");
+              }
+
+              return typeof val === "string" ? val : String(val);
+            };
+
+            const convertedValues = Array.isArray(values)
+              ? (values as unknown[]).map((v) => convertValue(v))
+              : [convertValue(values)];
+
+            return { type, values: convertedValues };
+          })
           .filter((attr) => attr.type !== "dn"),
       };
     } catch (error) {
@@ -203,7 +241,7 @@ export class LDAPService {
    */
   private parseUserData(
     searchResult: LDAPSearchResult,
-    username: string,
+    _username: string,
   ): LDAPUserData {
     const { attributes } = searchResult;
 
@@ -234,7 +272,7 @@ export class LDAPService {
     });
 
     return {
-      id: "UserId",
+      id: getAttribute("objectGUID"),
       name: getAttribute("cn"),
       email: getAttribute("userPrincipalName"),
       department: getFirstOU(getAttribute("distinguishedName")) || "",
@@ -389,7 +427,8 @@ export function createLDAPService(): LDAPService {
 }
 
 function getFirstOU(dn: string): string | null {
-  const parts = dn.split(',').map(s => s.trim());
-  const firstOU = parts.find(p => p.toUpperCase().startsWith('OU='));
+  const parts = dn.split(",").map((s) => s.trim());
+  const firstOU = parts.find((p) => p.toUpperCase().startsWith("OU="));
+
   return firstOU ? firstOU.slice(3) : null; // ตัด "OU=" ออก
 }
