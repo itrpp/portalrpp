@@ -12,6 +12,7 @@ declare module "next-auth" {
       department?: string;
       title?: string;
       groups?: string;
+      provider_type?: string;
     };
     accessToken?: string;
     sessionToken?: string;
@@ -26,6 +27,7 @@ declare module "next-auth" {
     department?: string;
     title?: string;
     groups?: string;
+    provider_type?: string;
   }
 }
 
@@ -35,5 +37,6 @@ declare module "next-auth/jwt" {
     department?: string;
     title?: string;
     groups?: string;
+    provider_type?: string;
   }
 }

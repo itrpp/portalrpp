@@ -47,83 +47,89 @@ async function authenticateLDAP(
   }
 }
 
+// เตรียม providers โดยเปิด LINE แบบมีเงื่อนไขตาม env
+const providers: any[] = [
+  CredentialsProvider({
+    id: "credentials",
+    name: "RPP Hospital Login",
+    credentials: {
+      username: { label: "Username", type: "text" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials): Promise<ExtendedUser | null> {
+      if (!credentials?.username || !credentials?.password) {
+        // ข้อความสำหรับผู้ใช้ (UI) เมื่อข้อมูลไม่ครบ
+        throw new Error("กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน");
+      }
+
+      try {
+        // ใช้ LDAP Authentication เท่านั้น
+        const user = await authenticateLDAP(
+          credentials.username,
+          credentials.password,
+        );
+
+        if (!user) {
+          // ใช้ generic error message เพื่อความปลอดภัย
+          throw new Error("การเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
+        }
+
+        return user;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("Authentication error:", error);
+
+        // แปลง error code -> ข้อความภาษาไทยสำหรับผู้ใช้
+        const mapErrorCodeToMessage = (code: LDAPErrorCode): string => {
+          switch (code) {
+            case "MISSING_CREDENTIALS":
+              return "กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน";
+            case "USER_NOT_FOUND":
+              return "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
+            case "ACCOUNT_DISABLED":
+              return "บัญชีผู้ใช้นี้ถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
+            case "USER_NOT_AUTHORIZED":
+              return "ผู้ใช้ไม่อยู่ในกลุ่มที่ได้รับอนุญาต กรุณาติดต่อผู้ดูแลระบบ";
+            case "INVALID_CREDENTIALS":
+              return "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
+            case "CONNECTION_ERROR":
+              return "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ AD ได้ กรุณาติดต่อผู้ดูแลระบบ";
+            case "INTERNAL_ERROR":
+            default:
+              return "เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง";
+          }
+        };
+
+        if (error instanceof Error) {
+          const code = error.message as LDAPErrorCode;
+
+          const message = mapErrorCodeToMessage(code);
+
+          throw new Error(message);
+        }
+
+        throw new Error("เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง");
+      }
+    },
+  }),
+];
+
+if (process.env.LINE_CLIENT_ID && process.env.LINE_CLIENT_SECRET) {
+  providers.push(
+    LineProvider({
+      clientId: process.env.LINE_CLIENT_ID,
+      clientSecret: process.env.LINE_CLIENT_SECRET,
+    }),
+  );
+}
+
 export const authOptions: any = {
   // ใช้ PrismaAdapter เพื่อบันทึก/ซิงค์ข้อมูลผู้ใช้ใน MySQL (ยังใช้ JWT สำหรับ session)
   adapter: PrismaAdapter(prisma as any),
-  providers: [
-    CredentialsProvider({
-      id: "credentials",
-      name: "RPP Hospital Login",
-      credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials): Promise<ExtendedUser | null> {
-        if (!credentials?.username || !credentials?.password) {
-          // ข้อความสำหรับผู้ใช้ (UI) เมื่อข้อมูลไม่ครบ
-          throw new Error("กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน");
-        }
-
-        try {
-          // ใช้ LDAP Authentication เท่านั้น
-          const user = await authenticateLDAP(
-            credentials.username,
-            credentials.password,
-          );
-
-          if (!user) {
-            // ใช้ generic error message เพื่อความปลอดภัย
-            throw new Error(
-              "การเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง",
-            );
-          }
-
-          return user;
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error("Authentication error:", error);
-
-          // แปลง error code -> ข้อความภาษาไทยสำหรับผู้ใช้
-          const mapErrorCodeToMessage = (code: LDAPErrorCode): string => {
-            switch (code) {
-              case "MISSING_CREDENTIALS":
-                return "กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน";
-              case "USER_NOT_FOUND":
-                return "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
-              case "ACCOUNT_DISABLED":
-                return "บัญชีผู้ใช้นี้ถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
-              case "USER_NOT_AUTHORIZED":
-                return "ผู้ใช้ไม่อยู่ในกลุ่มที่ได้รับอนุญาต กรุณาติดต่อผู้ดูแลระบบ";
-              case "INVALID_CREDENTIALS":
-                return "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
-              case "CONNECTION_ERROR":
-                return "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ AD ได้ กรุณาติดต่อผู้ดูแลระบบ";
-              case "INTERNAL_ERROR":
-              default:
-                return "เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง";
-            }
-          };
-
-          if (error instanceof Error) {
-            const code = error.message as LDAPErrorCode;
-
-            const message = mapErrorCodeToMessage(code);
-
-            throw new Error(message);
-          }
-
-          throw new Error("เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง");
-        }
-      },
-    }),
-    LineProvider({
-      clientId: process.env.LINE_CLIENT_ID!,
-      clientSecret: process.env.LINE_CLIENT_SECRET!,
-    }),
-  ],
+  providers,
   session: {
     strategy: "jwt", // ใช้ JWT strategy เพื่อรองรับ LDAP authentication
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 1 * 60 * 60, // 24 hours
   },
   callbacks: {
     async signIn({
@@ -135,15 +141,8 @@ export const authOptions: any = {
       account: any;
       profile: any;
     }) {
-      // สำหรับ LINE users ให้เพิ่ม provider_type
-      if (account?.provider === "line") {
-        user.provider_type = "line";
-      }
-
       // สำหรับ LDAP users: กำหนด provider_type และ upsert ผู้ใช้ลงฐานข้อมูล
       if (account?.provider === "credentials") {
-        user.provider_type = "ldap";
-
         // upsert โดยอิงจาก email เป็นหลัก (และเก็บ ldapId หากมี)
         const email = user.email as string | undefined;
         const ldapId = user.id as string | undefined;
@@ -188,7 +187,7 @@ export const authOptions: any = {
     async jwt({
       token,
       user,
-      account: _account,
+      account,
     }: {
       token: any;
       user: any;
@@ -201,7 +200,11 @@ export const authOptions: any = {
         token.title = extendedUser.title;
         token.groups = extendedUser.groups;
         token.role = extendedUser.role;
-        token.provider_type = (user as any).provider_type;
+        // ตั้งค่า provider_type จาก account เมื่อมีการล็อกอินครั้งนี้
+        if (account?.provider) {
+          token.provider_type =
+            account.provider === "credentials" ? "ldap" : account.provider;
+        }
       }
 
       return token;
@@ -224,6 +227,25 @@ export const authOptions: any = {
       }
 
       return session as ExtendedSession;
+    },
+  },
+  events: {
+    // อัปเดต providerType ใน DB หลังจากเชื่อมบัญชี OAuth/LINE สำเร็จ
+    async linkAccount({ user, account }: { user: any; account: any }) {
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            providerType:
+              account?.provider === "credentials"
+                ? "ldap"
+                : (account?.provider as string | undefined),
+          },
+        });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("Failed to update providerType on linkAccount:", e);
+      }
     },
   },
   pages: {
