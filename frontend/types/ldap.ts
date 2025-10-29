@@ -5,7 +5,6 @@ export interface LDAPConfig {
   bindDN: string;
   bindPassword: string;
   searchFilter: string;
-  attributes: string[];
   timeout: number;
   connectTimeout: number;
   idleTimeout?: number;

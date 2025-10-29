@@ -19,6 +19,8 @@ interface OptionalEnvVars {
   LDAP_CONNECT_TIMEOUT?: string;
   LDAP_IDLE_TIMEOUT?: string;
   LDAP_RECONNECT?: string;
+  LINE_CLIENT_ID?: string;
+  LINE_CLIENT_SECRET?: string;
 }
 
 /**
@@ -69,6 +71,8 @@ function validateOptionalEnvVars(): OptionalEnvVars {
     LDAP_CONNECT_TIMEOUT: process.env.LDAP_CONNECT_TIMEOUT,
     LDAP_IDLE_TIMEOUT: process.env.LDAP_IDLE_TIMEOUT,
     LDAP_RECONNECT: process.env.LDAP_RECONNECT,
+    LINE_CLIENT_ID: process.env.LINE_CLIENT_ID,
+    LINE_CLIENT_SECRET: process.env.LINE_CLIENT_SECRET,
   };
 }
 

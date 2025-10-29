@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
+
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // กำหนด base URL ของ API Gateway จาก env และตัดเครื่องหมาย / ท้ายออกเพื่อป้องกันซ้ำซ้อน
@@ -32,8 +33,10 @@ export async function POST(
     // อ่าน body JSON ที่มี exportType
     let forwardBody: string | undefined = undefined;
     let hasBody = false;
+
     try {
       const rawText = await request.text();
+
       if (rawText && rawText.trim().length > 0) {
         forwardBody = rawText;
         hasBody = true;
@@ -86,10 +89,12 @@ export async function POST(
     if (!res.ok) {
       // พยายามดึงข้อความ error จากปลายทาง
       let errorPayload: any = { success: false };
+
       try {
         errorPayload = await res.json();
       } catch {
         const txt = await res.text().catch(() => "");
+
         if (txt) errorPayload = { success: false, error: txt };
       }
 

@@ -135,6 +135,7 @@ export default function HomePage() {
                   <p>UserID: {session?.user?.id || "ไม่ระบุ"}</p>
                   <p>ชื่อ: {session?.user?.name || "ไม่ระบุ"}</p>
                   <p>อีเมล: {session?.user?.email || "ไม่ระบุ"}</p>
+                  <p>แผนก: {session?.user?.department || "ไม่ระบุ"}</p>
                   <p>บทบาท: {(session?.user as any)?.role || "ไม่ระบุ"}</p>
                 </div>
               </div>
