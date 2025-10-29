@@ -582,6 +582,45 @@ export const BedIcon = (props: IconProps) => (
   />
 );
 
+export const PlayIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:player-play"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const HandStopIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:hand-stop"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const CheckIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:check"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
 // Backward compatibility - ยังคง export Icons object สำหรับการใช้งานแบบเดิม
 export const Icons = {
   home: HomeIcon,
@@ -627,6 +666,9 @@ export const Icons = {
   clipboardList: ClipboardListIcon,
   emergencyBed: EmergencyBedIcon,
   bed: BedIcon,
+  play: PlayIcon,
+  handStop: HandStopIcon,
+  check: CheckIcon,
 };
 
 export default Icons;

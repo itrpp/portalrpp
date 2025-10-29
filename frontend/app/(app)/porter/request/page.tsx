@@ -9,7 +9,6 @@ import {
   ChartBarIcon,
   ShieldCheckIcon,
 } from "@/components/ui/icons";
-import { siteConfig } from "@/config/site";
 
 // ========================================
 // PORTER PAGE
@@ -32,7 +31,7 @@ export default function PorterPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="shadow-xl bg-warning-500 border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
+        <Card className="shadow-xl border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
           <CardHeader className="pb-0">
             <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto">
               <UserGroupIcon
@@ -63,7 +62,7 @@ export default function PorterPage() {
           </CardBody>
         </Card>
 
-        <Card className="shadow-xl bg-danger-500 border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
+        <Card className="shadow-xl border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
           <CardHeader className="pb-0">
             <div className="w-16 h-16 bg-secondary-100 dark:bg-secondary-900/20 rounded-full flex items-center justify-center mx-auto">
               <ChartBarIcon
@@ -90,34 +89,7 @@ export default function PorterPage() {
           </CardBody>
         </Card>
 
-        <Card className="shadow-xl bg-success-500 border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
-          <CardHeader className="pb-0">
-            <div className="w-16 h-16 bg-warning-100 dark:bg-warning-900/20 rounded-full flex items-center justify-center mx-auto">
-              <ShieldCheckIcon
-                aria-hidden="true"
-                className="w-8 h-8 text-warning-600 dark:text-warning-400"
-              />
-            </div>
-          </CardHeader>
-          <CardBody className="text-center">
-            <h3 className="text-xl font-semibold text-foreground mb-1">
-              การตั้งค่า
-            </h3>
-            <p className="text-default-600 mb-4">จัดการระบบ</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-default-600">การตั้งค่า</span>
-                <span className="font-medium">พร้อมใช้งาน</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-default-600">สิทธิ์</span>
-                <span className="font-medium text-success-600">อนุญาต</span>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card className="shadow-xl bg-slate-700 border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
+        <Card className="shadow-xl border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
           <CardHeader className="pb-0">
             <div className="w-16 h-16 bg-warning-100 dark:bg-warning-900/20 rounded-full flex items-center justify-center mx-auto">
               <ShieldCheckIcon

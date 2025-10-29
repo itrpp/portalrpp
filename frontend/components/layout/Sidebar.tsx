@@ -59,6 +59,11 @@ export default function Sidebar() {
       newExpandedItems.add("ส่งออกข้อมูล");
     }
 
+    // Auto-expand "รายการงานที่ต้องดำเนินการ" when on job list pages
+    if (pathname.startsWith("/porter/joblist")) {
+      newExpandedItems.add("ศูนย์เปล");
+    }
+
     setExpandedItems(newExpandedItems);
   }, [pathname]);
 
@@ -112,7 +117,7 @@ export default function Sidebar() {
       items: [
         {
           name: "ขอเปล",
-          href: "/porter",
+          href: "/porter/request",
           icon: EmergencyBedIcon,
         },
 
@@ -133,7 +138,7 @@ export default function Sidebar() {
             },
             {
               name: "รายการ",
-              href: "#",
+              href: "/porter/joblist",
               icon: ClipboardListIcon,
             },
             {
