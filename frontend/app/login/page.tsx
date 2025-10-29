@@ -215,7 +215,7 @@ export default function LoginPage() {
               <Button
                 className="w-full font-semibold shadow-md"
                 color="primary"
-                disabled={!username || !password}
+                // disabled={!username || !password}
                 isLoading={isLoading}
                 size="lg"
                 startContent={<LockClosedIcon className="w-5 h-5" />}

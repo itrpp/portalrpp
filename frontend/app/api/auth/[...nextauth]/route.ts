@@ -37,9 +37,6 @@ async function authenticateLDAP(
 
     return null;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("LDAP authentication error:", error);
-
     // Re-throw error เพื่อให้ NextAuth จัดการต่อ
     throw error;
   } finally {

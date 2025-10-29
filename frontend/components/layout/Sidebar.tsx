@@ -3,14 +3,23 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button, Chip, Link as HeroUILink } from "@heroui/react";
 
 import {
   HomeIcon,
-  Squares2X2Icon,
   ChevronRightIcon,
   Bars3Icon,
   XMarkIcon,
+  UserIcon,
+  ChartBarIcon,
+  ClipboardListIcon,
+  EmergencyBedIcon,
+  BedIcon,
+  SettingsIcon,
+  ArrowDownTrayIcon,
+  DocumentTextIcon,
+  ArrowUpTrayIcon,
 } from "@/components/ui/icons";
 
 interface SidebarItem {
@@ -25,11 +34,13 @@ interface SidebarItem {
 
 interface SidebarSection {
   title: string;
+  isDisabled: boolean;
   items: SidebarItem[];
 }
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [isCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -81,83 +92,120 @@ export default function Sidebar() {
   const navigationSections: SidebarSection[] = [
     {
       title: "ภาพรวม",
+      isDisabled: false,
       items: [
         {
           name: "หน้าแรก",
           href: "/home",
           icon: HomeIcon,
         },
+        // {
+        //   name: "Dashboard",
+        //   href: "#",
+        //   icon: Squares2X2Icon,
+        // },
+      ],
+    },
+    {
+      title: "ระบบการจัดการเวรเปล",
+      isDisabled: false,
+      items: [
         {
-          name: "Dashboard",
+          name: "ขอเปล",
           href: "#",
-          icon: Squares2X2Icon,
+          icon: EmergencyBedIcon,
+        },
+
+        {
+          name: "ศูนย์เปล",
+          href: "#",
+          icon: BedIcon,
+          subItems: [
+            {
+              name: "เจ้าหน้าที่เวรเปล",
+              href: "#",
+              icon: EmergencyBedIcon,
+            },
+            {
+              name: "สถิติการดำเนินการ",
+              href: "#",
+              icon: ChartBarIcon,
+            },
+            {
+              name: "รายการ",
+              href: "#",
+              icon: ClipboardListIcon,
+            },
+            {
+              name: "ตั้งค่า",
+              href: "#",
+              icon: SettingsIcon,
+            },
+          ],
         },
       ],
     },
     {
       title: "ระบบงานจัดเก็บรายได้",
-      items: [],
-      // items: [
-      //   {
-      //     name: "สถิติการดำเนินการ",
-      //     href: "#",
-      //     icon: ChartBarIcon,
-      //   },
-      //   {
-      //     name: "นำเข้าไฟล์",
-      //     href: "#",
-      //     icon: ArrowDownTrayIcon,
-      //     subItems: [
-      //       {
-      //         name: "DBF",
-      //         href: "/revenue/import/dbf",
-      //         icon: DocumentTextIcon,
-      //       },
-      //       {
-      //         name: "REP",
-      //         href: "#",
-      //         icon: DocumentTextIcon,
-      //       },
-      //       {
-      //         name: "Statement",
-      //         href: "#",
-      //         icon: DocumentTextIcon,
-      //       },
-      //     ],
-      //   },
-      //   {
-      //     name: "ส่งออกข้อมูล",
-      //     href: "#",
-      //     icon: ArrowUpTrayIcon,
-      //     subItems: [
-      //       {
-      //         name: "ข้อมูล 16 แฟ้ม IPD",
-      //         href: "/revenue/export/ipd",
-      //         icon: DocumentTextIcon,
-      //       },
-      //       {
-      //         name: "ข้อมูล 16 แฟ้ม OPD",
-      //         href: "/revenue/export/opd",
-      //         icon: DocumentTextIcon,
-      //       },
-      //     ],
-      //   },
-      // ],
+      isDisabled: false,
+      items: [
+        {
+          name: "สถิติการดำเนินการ",
+          href: "#",
+          icon: ChartBarIcon,
+        },
+        {
+          name: "นำเข้าไฟล์",
+          href: "#",
+          icon: ArrowDownTrayIcon,
+          subItems: [
+            {
+              name: "DBF",
+              href: "/revenue/import/dbf",
+              icon: DocumentTextIcon,
+            },
+            {
+              name: "REP",
+              href: "#",
+              icon: DocumentTextIcon,
+            },
+            {
+              name: "Statement",
+              href: "#",
+              icon: DocumentTextIcon,
+            },
+          ],
+        },
+        {
+          name: "ส่งออกข้อมูล",
+          href: "#",
+          icon: ArrowUpTrayIcon,
+          subItems: [
+            {
+              name: "ข้อมูล 16 แฟ้ม IPD",
+              href: "/revenue/export/ipd",
+              icon: DocumentTextIcon,
+            },
+            {
+              name: "ข้อมูล 16 แฟ้ม OPD",
+              href: "/revenue/export/opd",
+              icon: DocumentTextIcon,
+            },
+          ],
+        },
+      ],
     },
-    {
-      title: "ระบบการจัดการเวรเปล",
-      items: [],
-    },
+
     {
       title: "ผู้ดูแลระบบ",
-      items: [],
-      // items: [
-      //   {
-      //     name: "รายชื่อผู้ใช้งาน",
-      //     href: "#",
-      //     icon: UserIcon,
-      //   },
-      // ],
+      isDisabled: session?.user?.role !== "admin",
+      items: [
+        {
+          name: "รายชื่อผู้ใช้งาน",
+          href: "/admin/users",
+          icon: UserIcon,
+        },
+      ],
     },
   ];
 
@@ -484,7 +532,10 @@ export default function Sidebar() {
           {/* Navigation - รองรับการ scroll และ theme */}
           <div className="sidebar-navigation flex-1 overflow-y-auto">
             {navigationSections.map((section) => (
-              <div key={section.title} className="py-2">
+              <div
+                key={section.title}
+                className={`py-2 ${section.isDisabled ? "hidden" : ""}`}
+              >
                 <div className="px-4 py-2">
                   <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider">
                     {section.title}

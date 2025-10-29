@@ -543,6 +543,45 @@ export const ArrowRightOnRectangleIcon = (props: IconProps) => (
   />
 );
 
+export const ClipboardListIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:clipboard-list"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const EmergencyBedIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:emergency-bed"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const BedIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:bed"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
 // Backward compatibility - ยังคง export Icons object สำหรับการใช้งานแบบเดิม
 export const Icons = {
   home: HomeIcon,
@@ -585,6 +624,9 @@ export const Icons = {
   documentCheck: DocumentCheckIcon,
   plus: PlusIcon,
   arrowRightOnRectangle: ArrowRightOnRectangleIcon,
+  clipboardList: ClipboardListIcon,
+  emergencyBed: EmergencyBedIcon,
+  bed: BedIcon,
 };
 
 export default Icons;
