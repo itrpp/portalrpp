@@ -29,3 +29,62 @@ export interface UploadModalProps {
   onUpload: () => void;
   onUploadComplete: () => void;
 }
+
+/**
+ * ประเภทรถเปล
+ */
+export type VehicleType = "รถนั่ง" | "รถนอน";
+
+/**
+ * ระดับความเร่งด่วน
+ */
+export type UrgencyLevel = "ปกติ" | "ด่วน" | "ฉุกเฉิน";
+
+/**
+ * อุปกรณ์ที่ต้องการ
+ */
+export type EquipmentType =
+  | "Oxygen"
+  | "Tube"
+  | "IV Pump"
+  | "Ventilator"
+  | "Monitor"
+  | "Suction";
+
+/**
+ * เพศผู้ป่วย
+ */
+export type PatientGender = "ชาย" | "หญิง" | "ไม่ระบุ";
+
+/**
+ * ข้อมูลฟอร์มขอเปล
+ */
+export interface PorterRequestFormData {
+  // ข้อมูลหน่วยงานและผู้แจ้ง
+  requesterDepartment: string;
+  requesterName: string;
+  requesterPhone: string;
+
+  // ข้อมูลผู้ป่วย
+  patientName: string;
+  patientHN: string;
+  patientAge: number | "";
+  patientGender: PatientGender;
+  patientWeight: number | "";
+
+  // ข้อมูลการเคลื่อนย้าย
+  pickupLocation: string;
+  deliveryLocation: string;
+  requestedDateTime: string;
+  urgencyLevel: UrgencyLevel;
+  vehicleType: VehicleType;
+  equipment: EquipmentType[];
+  assistanceCount: number | "";
+  hasVehicle: "มี" | "ไม่มี" | "";
+
+  // รายละเอียดเพิ่มเติม
+  transportReason: string;
+  medicalAllergies: string;
+  specialNotes: string;
+  patientCondition: string;
+}

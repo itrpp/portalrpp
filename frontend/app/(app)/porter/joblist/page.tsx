@@ -1,40 +1,35 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
+  Button,
   Card,
   CardBody,
   CardHeader,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Chip,
   Pagination,
-  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
   addToast,
 } from "@heroui/react";
 
 import {
-  PlusIcon,
   CheckCircleIcon,
   ClockIcon,
   XMarkIcon,
   ClipboardListIcon,
-  EyeIcon,
-  HandStopIcon,
-  PlayIcon,
-  CheckIcon,
 } from "@/components/ui/icons";
-import { formatDateTimeThai, formatThaiDateTimeShort } from "@/lib/utils";
+import { formatDateTimeThai } from "@/lib/utils";
 
 // ========================================
 // PORTER JOB LIST PAGE
 // ========================================
 
-type JobListTab = "new" | "in-progress" | "completed" | "waiting" | "cancelled";
+type JobListTab = "waiting" | "in-progress" | "completed" | "cancelled";
 
 interface JobItem {
   id: string;
@@ -42,11 +37,14 @@ interface JobItem {
   description: string;
   requestDate: string;
   requester: string;
+  emergency: boolean;
+  pickup: string;
+  delivery: string;
   status: JobListTab;
 }
 
 export default function PorterJobListPage() {
-  const [selectedTab, setSelectedTab] = useState<JobListTab>("new");
+  const [selectedTab, setSelectedTab] = useState<JobListTab>("waiting");
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(5);
@@ -62,119 +60,124 @@ export default function PorterJobListPage() {
     };
   }, []);
 
-  // ตัวอย่างข้อมูลรายการคำขอจำลองการใช้งาน 1 วัน (จะเชื่อมต่อ API ในอนาคต)
+  // ตัวอย่างข้อมูลรายการคำขอจำลอง (สุ่มข้อมูล 1 วัน)
   const [jobList] = useState<JobItem[]>(() => {
     const pad = (n: number) => String(n).padStart(2, "0");
 
-    const base: JobItem[] = [
-      // คำขอใหม่ (เช้า)
-      {
-        id: "1",
-        jobNumber: "REQ-001",
-        description: "รับผู้ป่วยจากห้อง 101 ไป OR-3",
-        requestDate: `2024-01-15 ${pad(6)}:${pad(30)}`,
-        requester: "พยาบาล สมใจ",
-        status: "new",
-      },
-      {
-        id: "2",
-        jobNumber: "REQ-002",
-        description: "ส่งเวชระเบียนไปแผนกฉุกเฉิน (ER)",
-        requestDate: `2024-01-15 ${pad(7)}:${pad(15)}`,
-        requester: "แพทย์ วิไล",
-        status: "new",
-      },
-      {
-        id: "3",
-        jobNumber: "REQ-003",
-        description: "ส่งยาฉุกเฉินจากเภสัชไป ICU",
-        requestDate: `2024-01-15 ${pad(8)}:${pad(0)}`,
-        requester: "เภสัชกร มาลี",
-        status: "new",
-      },
-      // กำลังดำเนินการ
-      {
-        id: "4",
-        jobNumber: "REQ-004",
-        description: "ขนย้ายอุปกรณ์การแพทย์จากคลังไป OPD",
-        requestDate: `2024-01-15 ${pad(6)}:${pad(0)}`,
-        requester: "หัวหน้าแผนกคลัง",
-        status: "in-progress",
-      },
-      {
-        id: "5",
-        jobNumber: "REQ-005",
-        description: "ย้ายเตียงผู้ป่วยจาก 205 ไป 310",
-        requestDate: `2024-01-15 ${pad(7)}:${pad(20)}`,
-        requester: "พยาบาล วิชัย",
-        status: "in-progress",
-      },
-      // เสร็จสิ้น
-      {
-        id: "6",
-        jobNumber: "REQ-006",
-        description: "ส่งเวชระเบียนไป OPD",
-        requestDate: `2024-01-15 ${pad(5)}:${pad(0)}`,
-        requester: "แพทย์ กนก",
-        status: "completed",
-      },
-      // รอรับเรื่อง
-      {
-        id: "7",
-        jobNumber: "REQ-007",
-        description: "ย้ายผู้ป่วยจาก 302 ไป 401",
-        requestDate: `2024-01-15 ${pad(10)}:${pad(30)}`,
-        requester: "พยาบาล สุดา",
-        status: "waiting",
-      },
-      // ยกเลิก
-      {
-        id: "8",
-        jobNumber: "REQ-008",
-        description: "ย้ายผู้ป่วยจากห้อง A ไป B (ยกเลิก)",
-        requestDate: `2024-01-15 ${pad(6)}:${pad(45)}`,
-        requester: "พยาบาล กะกลางคืน",
-        status: "cancelled",
-      },
-    ];
-
-    // ข้อมูลจำลองเพิ่มเติมเพื่อทดสอบการเลื่อนสกอร์ของตาราง
-    const extraCount = 200;
     const statuses: JobListTab[] = [
-      "new",
+      "waiting",
       "in-progress",
       "completed",
-      "waiting",
       "cancelled",
     ];
 
-    const extra: JobItem[] = Array.from({ length: extraCount }, (_, i) => {
+    const requesters = [
+      "พยาบาล สมใจ",
+      "พยาบาล สุดา",
+      "พยาบาล วิชัย",
+      "แพทย์ วิไล",
+      "แพทย์ กนก",
+      "เภสัชกร มาลี",
+      "หัวหน้าแผนกคลัง",
+      "เจ้าหน้าที่ ER",
+    ];
+
+    const pickupPoints = [
+      "ห้อง 101",
+      "ห้อง 205",
+      "ห้อง 302",
+      "ห้อง 310",
+      "วอร์ด 4A",
+      "ICU",
+      "ER",
+      "แผนกเภสัช",
+      "คลังเวชภัณฑ์",
+    ];
+
+    const deliveryPoints = [
+      "X-ray",
+      "OR-3",
+      "OPD",
+      "ICU",
+      "ER",
+      "ห้องตรวจ 2",
+      "คลังเวชภัณฑ์",
+    ];
+
+    const randInt = (min: number, max: number) =>
+      Math.floor(Math.random() * (max - min + 1)) + min;
+    const choice = <T,>(arr: T[]): T => arr[randInt(0, arr.length - 1)];
+
+    const total = 220; // ปริมาณข้อมูลเพื่อทดสอบการเลื่อนตาราง
+
+    const items: JobItem[] = Array.from({ length: total }, (_, i) => {
       const idx = i + 1;
-      const hour = 6 + (idx % 12);
-      const minute = idx % 60;
-      const status = statuses[idx % statuses.length];
+      const hour = randInt(6, 21);
+      const minute = randInt(0, 59);
+      const pickup = choice(pickupPoints);
+      let delivery = choice(deliveryPoints);
+      // หลีกเลี่ยง pickup == delivery ที่ซ้ำกันแบบไม่สมเหตุสมผล
+
+      if (delivery === pickup) {
+        delivery = choice(deliveryPoints);
+      }
+      const emergency = Math.random() < 0.2; // 20% เป็นเคสเร่งด่วน
+      const status = choice(statuses);
 
       return {
-        id: `E${idx}`,
-        jobNumber: `REQ-${pad(100 + idx)}`,
-        description: `คำขอรับเปล ลำดับที่ ${idx} จากวอร์ด ${100 + (idx % 50)}`,
+        id: String(idx),
+        jobNumber: `REQ-${pad(idx)}`,
+        description: `รับผู้ป่วยจาก${pickup}`,
         requestDate: `2024-01-15 ${pad(hour)}:${pad(minute)}`,
-        requester: `หน่วยงาน ${1 + (idx % 20)}`,
+        requester: choice(requesters),
+        emergency,
+        pickup,
+        delivery,
         status,
       };
     });
 
-    return base.concat(extra);
+    return items;
   });
 
   // กรองข้อมูลตามแท็บที่เลือก
   const filteredJobs = jobList.filter((job) => job.status === selectedTab);
 
+  // จัดเรียงตามกติกา: แท็บ 1-2 (emergency ก่อน + เวลา), แท็บ 3-4 (เวลาอย่างเดียว)
+  const sortedJobs = useMemo(() => {
+    const toTime = (s: string) => new Date(s.replace(" ", "T")).getTime();
+
+    if (selectedTab === "waiting" || selectedTab === "in-progress") {
+      return [...filteredJobs].sort((a, b) => {
+        if (a.emergency !== b.emergency) return a.emergency ? -1 : 1;
+
+        return toTime(a.requestDate) - toTime(b.requestDate);
+      });
+    }
+
+    return [...filteredJobs].sort(
+      (a, b) => toTime(a.requestDate) - toTime(b.requestDate),
+    );
+  }, [filteredJobs, selectedTab]);
+
+  // นับจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
+  const waitingCount = useMemo(
+    () => jobList.filter((job) => job.status === "waiting").length,
+    [jobList],
+  );
+  const inProgressCount = useMemo(
+    () => jobList.filter((job) => job.status === "in-progress").length,
+    [jobList],
+  );
+
   // คำนวณข้อมูลสำหรับ pagination
-  const totalPages = Math.ceil(filteredJobs.length / rowsPerPage);
+  const totalPages = Math.ceil(sortedJobs.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
+  const paginatedJobs = sortedJobs.slice(startIndex, endIndex);
+
+  // columns สำหรับ HeroUI Table use-case (ซ่อน header ใช้เซลล์เดียว render layout ทั้งแถว)
+  const columns = useMemo(() => [{ key: "job", label: "รายการ" }], []);
 
   // รีเซ็ตหน้าไปที่ 1 เมื่อเปลี่ยนแท็บ
   useEffect(() => {
@@ -352,15 +355,18 @@ export default function PorterJobListPage() {
               <div className="flex space-x-1 bg-default-100 p-1 rounded-lg w-full overflow-x-auto">
                 <button
                   className={`flex-1 px-4 py-2 rounded-md transition-all text-sm ${
-                    selectedTab === "new"
+                    selectedTab === "waiting"
                       ? "bg-white shadow text-primary font-medium"
                       : "text-default-600 hover:text-default-900"
                   }`}
-                  onClick={() => setSelectedTab("new")}
+                  onClick={() => setSelectedTab("waiting")}
                 >
                   <div className="flex items-center justify-center space-x-2">
-                    <PlusIcon className="w-4 h-4" />
-                    <span>คำขอใหม่</span>
+                    <ClipboardListIcon className="w-4 h-4" />
+                    <span>รอศูนย์เปลรับงาน</span>
+                    <Chip color="danger" size="sm" variant="flat">
+                      {waitingCount}
+                    </Chip>
                   </div>
                 </button>
                 <button
@@ -374,6 +380,9 @@ export default function PorterJobListPage() {
                   <div className="flex items-center justify-center space-x-2">
                     <ClockIcon className="w-4 h-4" />
                     <span>กำลังดำเนินการ</span>
+                    <Chip color="warning" size="sm" variant="flat">
+                      {inProgressCount}
+                    </Chip>
                   </div>
                 </button>
                 <button
@@ -387,19 +396,6 @@ export default function PorterJobListPage() {
                   <div className="flex items-center justify-center space-x-2">
                     <CheckCircleIcon className="w-4 h-4" />
                     <span>เสร็จสิ้น</span>
-                  </div>
-                </button>
-                <button
-                  className={`flex-1 px-4 py-2 rounded-md transition-all text-sm ${
-                    selectedTab === "waiting"
-                      ? "bg-white shadow text-primary font-medium"
-                      : "text-default-600 hover:text-default-900"
-                  }`}
-                  onClick={() => setSelectedTab("waiting")}
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <ClipboardListIcon className="w-4 h-4" />
-                    <span>รอรับเรื่อง</span>
                   </div>
                 </button>
                 <button
@@ -418,158 +414,99 @@ export default function PorterJobListPage() {
               </div>
             </div>
 
-            {/* Tab Content */}
-            {filteredJobs.length === 0 ? (
-              <div className="flex flex-col justify-center items-center py-8 space-y-2">
-                <div className="text-default-600">ไม่พบรายการคำขอในหมวดนี้</div>
-              </div>
-            ) : (
-              <Table aria-label="รายการคำขอ" className="w-full">
-                <TableHeader>
-                  <TableColumn>เลขที่คำขอ</TableColumn>
-                  <TableColumn>รายละเอียดคำขอ</TableColumn>
-                  <TableColumn>วันที่ขอ</TableColumn>
-                  <TableColumn>ผู้ขอ</TableColumn>
-                  <TableColumn align="center">สถานะ</TableColumn>
-                  <TableColumn align="center">การจัดการ</TableColumn>
-                </TableHeader>
-                <TableBody emptyContent="ไม่มีรายการคำขอในหมวดนี้">
-                  {paginatedJobs.map((job) => (
-                    <TableRow key={job.id}>
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {job.jobNumber}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap overflow-hidden text-ellipsis">
-                        {job.description}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatThaiDateTimeShort(
-                          new Date(job.requestDate.replace(" ", "T")),
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {job.requester}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {job.status === "new" && (
-                          <Chip color="primary" size="sm" variant="flat">
-                            คำขอใหม่
-                          </Chip>
-                        )}
-                        {job.status === "in-progress" && (
-                          <Chip color="warning" size="sm" variant="flat">
-                            กำลังดำเนินการ
-                          </Chip>
-                        )}
-                        {job.status === "completed" && (
-                          <Chip color="success" size="sm" variant="flat">
-                            เสร็จสิ้น
-                          </Chip>
-                        )}
-                        {job.status === "waiting" && (
+            {/* Tab Content - HeroUI use-case: ซ่อนหัวตาราง เรนเดอร์เซลล์เดียวแบบ custom */}
+            <Table removeWrapper aria-label="รายการคำขอ" className="w-full">
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn key={column.key} hideHeader>
+                    {column.label}
+                  </TableColumn>
+                )}
+              </TableHeader>
+              <TableBody
+                emptyContent="ไม่มีรายการคำขอในหมวดนี้"
+                items={paginatedJobs}
+              >
+                {(item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div
+                        className={`w-full rounded-md border ${
+                          item.status === "waiting"
+                            ? "bg-success-50/30 border-success-100"
+                            : "bg-content1 border-default-200"
+                        } p-3`}
+                      >
+                        {/* แถวบน: เวลาและแถบ tags หลัก */}
+                        <div className="flex items-center gap-2 text-sm">
                           <Chip color="default" size="sm" variant="flat">
-                            รอรับเรื่อง
+                            {new Date(
+                              item.requestDate.replace(" ", "T"),
+                            ).toLocaleTimeString("th-TH", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            })}
                           </Chip>
-                        )}
-                        {job.status === "cancelled" && (
-                          <Chip color="danger" size="sm" variant="flat">
-                            ยกเลิก
+                          {item.emergency && (
+                            <Chip color="danger" size="sm" variant="flat">
+                              ด่วน
+                            </Chip>
+                          )}
+                          <span className="text-default-700 font-medium">
+                            {item.description}
+                          </span>
+                          <span className="text-default-500">
+                            ➜ {item.delivery}
+                          </span>
+
+                          {/* ตัวอย่างแท็กหน่วยงาน/ความเร่งด่วน (dummy) */}
+                          <Chip color="secondary" size="sm" variant="flat">
+                            {item.requester}
                           </Chip>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex gap-2 justify-center">
-                          <Button
-                            color="primary"
-                            size="sm"
-                            startContent={<EyeIcon className="w-4 h-4" />}
-                            title="ดูรายละเอียด"
-                            variant="ghost"
-                            onPress={() => {
-                              // TODO: เปิด modal หรือหน้าแสดงรายละเอียด
-                            }}
-                          >
-                            ดู
-                          </Button>
-
-                          {job.status === "new" && (
-                            <Button
-                              color="success"
-                              size="sm"
-                              startContent={
-                                <HandStopIcon className="w-4 h-4" />
-                              }
-                              title="รับงาน"
-                              variant="ghost"
-                              onPress={() => {
-                                // TODO: รับงาน
-                              }}
-                            >
-                              รับ
-                            </Button>
-                          )}
-
-                          {job.status === "waiting" && (
-                            <Button
-                              color="warning"
-                              size="sm"
-                              startContent={<PlayIcon className="w-4 h-4" />}
-                              title="เริ่มดำเนินการ"
-                              variant="ghost"
-                              onPress={() => {
-                                // TODO: เริ่มดำเนินการ
-                              }}
-                            >
-                              เริ่ม
-                            </Button>
-                          )}
-
-                          {job.status === "in-progress" && (
-                            <Button
-                              color="success"
-                              size="sm"
-                              startContent={<CheckIcon className="w-4 h-4" />}
-                              title="เสร็จสิ้น"
-                              variant="ghost"
-                              onPress={() => {
-                                // TODO: เสร็จสิ้น
-                              }}
-                            >
-                              เสร็จ
-                            </Button>
-                          )}
-
-                          {(job.status === "new" ||
-                            job.status === "waiting" ||
-                            job.status === "in-progress") && (
-                            <Button
-                              color="danger"
-                              size="sm"
-                              startContent={<XMarkIcon className="w-4 h-4" />}
-                              title="ยกเลิก"
-                              variant="ghost"
-                              onPress={() => {
-                                // TODO: ยกเลิกงาน
-                              }}
-                            >
-                              ยกเลิก
-                            </Button>
-                          )}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+
+                        {/* แถวล่าง: สถานะ + ปุ่มการจัดการตามข้อกำหนดแท็บที่ 1 */}
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            {item.status === "waiting" && (
+                              <Chip color="default" size="sm" variant="flat">
+                                {"รอศูนย์เปลรับงาน ผู้รับงาน "}
+                                {"[นายอริญชย์ ศรีชูเปี่ยม]"}
+                              </Chip>
+                            )}
+                            {item.status === "in-progress" && (
+                              <Chip color="warning" size="sm" variant="flat">
+                                {"กำลังดำเนินการ ผู้ดำเนินการ "}
+                                {"[นายอริญชย์ ศรีชูเปี่ยม]"}
+                              </Chip>
+                            )}
+                            {item.status === "completed" && (
+                              <Chip color="success" size="sm" variant="flat">
+                                เสร็จสิ้น
+                              </Chip>
+                            )}
+                            {item.status === "cancelled" && (
+                              <Chip color="danger" size="sm" variant="flat">
+                                ยกเลิก ผู้ยกเลิก [นายอริญชย์ ศรีชูเปี่ยม]
+                              </Chip>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
 
             {/* Pagination */}
-            {filteredJobs.length > 0 && (
+            {sortedJobs.length > 0 && (
               <div className="flex items-center justify-between mt-4 px-2">
                 <div className="text-sm text-default-600">
-                  แสดง {startIndex + 1} -{" "}
-                  {Math.min(endIndex, filteredJobs.length)} จาก{" "}
-                  {filteredJobs.length} รายการ
+                  แสดง {startIndex + 1} - {""}
+                  {Math.min(endIndex, sortedJobs.length)} จาก {""}
+                  {sortedJobs.length} รายการ
                 </div>
                 <Pagination
                   showControls

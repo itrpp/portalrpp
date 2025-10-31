@@ -137,7 +137,7 @@ export default function Sidebar() {
               icon: ChartBarIcon,
             },
             {
-              name: "รายการ",
+              name: "รายการคำขอ",
               href: "/porter/joblist",
               icon: ClipboardListIcon,
             },
