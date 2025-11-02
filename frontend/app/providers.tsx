@@ -27,7 +27,7 @@ export function Providers({ children, themeProps }: ProvidersProps) {
 
   return (
     <SessionProvider>
-      <HeroUIProvider navigate={router.push}>
+      <HeroUIProvider locale="th" navigate={router.push}>
         <NextThemesProvider {...themeProps}>
           {children}
           <ToastProvider

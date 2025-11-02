@@ -20,8 +20,10 @@ import {
   RadioGroup,
   Radio,
   Form,
+  DatePicker,
   addToast,
 } from "@heroui/react";
+import { CalendarDateTime } from "@internationalized/date";
 
 import {
   AmbulanceIcon,
@@ -261,6 +263,40 @@ export default function PorterRequestPage() {
     }
   };
 
+  // Helper function to convert string to CalendarDateTime
+  const stringToCalendarDateTime = (dateString: string): CalendarDateTime => {
+    try {
+      // Parse string in format "YYYY-MM-DDTHH:mm"
+      const [datePart, timePart] = dateString.split("T");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hour, minute] = (timePart || "00:00").split(":").map(Number);
+
+      return new CalendarDateTime(year, month, day, hour || 0, minute || 0);
+    } catch {
+      // Fallback to current date/time
+      const now = new Date();
+
+      return new CalendarDateTime(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        now.getDate(),
+        now.getHours(),
+        now.getMinutes(),
+      );
+    }
+  };
+
+  // Helper function to convert CalendarDateTime to string
+  const calendarDateTimeToString = (date: CalendarDateTime): string => {
+    const year = date.year.toString().padStart(4, "0");
+    const month = date.month.toString().padStart(2, "0");
+    const day = date.day.toString().padStart(2, "0");
+    const hour = date.hour.toString().padStart(2, "0");
+    const minute = date.minute.toString().padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  };
+
   // Handle input change
   const handleInputChange = (
     field: keyof PorterRequestFormData,
@@ -281,6 +317,18 @@ export default function PorterRequestPage() {
       });
       // Reset scroll flag to prevent scrolling when user fixes errors
       setShouldScrollToError(false);
+    }
+  };
+
+  // Get CalendarDateTime value for DatePicker
+  const getDateTimeValue = (): CalendarDateTime => {
+    return stringToCalendarDateTime(formData.requestedDateTime);
+  };
+
+  // Handle DatePicker change
+  const handleDateTimeChange = (value: CalendarDateTime | null) => {
+    if (value) {
+      handleInputChange("requestedDateTime", calendarDateTimeToString(value));
     }
   };
 
@@ -503,20 +551,14 @@ export default function PorterRequestPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Input
+                  <DatePicker
                     isRequired
+                    granularity="minute"
                     label="วันที่และเวลาที่ต้องการเคลื่อนย้าย"
-                    name="requestedDateTime"
-                    placeholder="เลือกวันที่และเวลา"
-                    startContent={
-                      <CalendarIcon className="w-4 h-4 text-default-400" />
-                    }
-                    type="datetime-local"
-                    value={formData.requestedDateTime}
+                    selectorIcon={<CalendarIcon className="w-4 h-4" />}
+                    value={getDateTimeValue()}
                     variant="bordered"
-                    onChange={(e) => {
-                      handleInputChange("requestedDateTime", e.target.value);
-                    }}
+                    onChange={handleDateTimeChange}
                   />
                   <div className="flex flex-wrap gap-2">
                     <Button
