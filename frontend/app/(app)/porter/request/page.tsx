@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
   Button,
@@ -19,6 +19,7 @@ import {
   Checkbox,
   RadioGroup,
   Radio,
+  Form,
   addToast,
 } from "@heroui/react";
 
@@ -34,10 +35,19 @@ import {
 import {
   PorterRequestFormData,
   VehicleType,
-  UrgencyLevel,
   EquipmentType,
-} from "@/types";
-import { formatThaiDateTimeShort } from "@/lib/utils";
+} from "@/types/porter";
+import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
+import {
+  URGENCY_OPTIONS,
+  VEHICLE_TYPE_OPTIONS,
+  EQUIPMENT_OPTIONS,
+  EQUIPMENT_LABELS,
+  TRANSPORT_REASON_OPTIONS,
+  LOCATION_OPTIONS,
+  DEPARTMENT_OPTIONS,
+  validateForm,
+} from "@/lib/porter";
 
 // ========================================
 // PORTER REQUEST PAGE
@@ -49,160 +59,142 @@ export default function PorterRequestPage() {
   const [formData, setFormData] = useState<PorterRequestFormData>({
     requesterDepartment: session?.user?.department || "",
     requesterName: session?.user?.name || "",
-    requesterPhone: "8807",
+    requesterPhone: "",
 
-    patientName: "สมชาย สมหญิง",
-    patientHN: "00000/00",
-    patientAge: "",
-    patientGender: "ไม่ระบุ",
-    patientWeight: "",
+    patientName: "",
+    patientHN: "",
 
-    pickupLocation: "ER",
-    deliveryLocation: "[188] [อาคารเฉลิมพระเกียรติ] X-ray",
+    pickupLocation: "",
+    deliveryLocation: "",
     requestedDateTime: getDateTimeLocal(),
-    urgencyLevel: "ด่วน",
-    vehicleType: "รถนอน",
-    equipment: ["IV Pump", "Ventilator"],
-    assistanceCount: "",
-    hasVehicle: "ไม่มี",
-    returnTrip: "รับกลับด้วย",
+    urgencyLevel: "ปกติ",
+    vehicleType: "",
+    equipment: [],
+    hasVehicle: "",
+    returnTrip: "",
 
-    transportReason: "ตรวจพิเศษ (CT/MRI/X-Ray)",
-    medicalAllergies: "",
+    transportReason: "",
     specialNotes: "",
     patientCondition: "",
   });
 
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof PorterRequestFormData, string>>
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
   >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // ตัวเลือกสำหรับ dropdown
-  const urgencyOptions: {
-    value: UrgencyLevel;
-    label: string;
-    color: "default" | "warning" | "danger" | "success";
-  }[] = [
-      { value: "ปกติ", label: "ปกติ", color: "success" },
-      { value: "ด่วน", label: "ด่วน", color: "warning" },
-      { value: "ฉุกเฉิน", label: "ฉุกเฉิน", color: "danger" },
-    ];
+  const [shouldScrollToError, setShouldScrollToError] = useState(false);
+  const prevErrorsCountRef = React.useRef(0);
 
-  const vehicleTypeOptions: VehicleType[] = ["รถนั่ง", "รถนอน", "รถกอล์ฟ"];
+  // Scroll to first error field after validation fails (only when submit)
+  useEffect(() => {
+    const currentErrorsCount = Object.keys(validationErrors).length;
 
-  const equipmentOptions: EquipmentType[] = [
-    "Oxygen",
-    "Tube",
-    "IV Pump",
-    "Ventilator",
-    "Monitor",
-    "Suction",
-  ];
-
-  const equipmentLabels: Record<EquipmentType, string> = {
-    Oxygen: "Oxygen (ออกซิเจน)",
-    Tube: "Tube (สายให้อาหาร)",
-    "IV Pump": "IV Pump (เครื่องปั๊มสารน้ำ)",
-    Ventilator: "Ventilator (เครื่องช่วยหายใจ)",
-    Monitor: "Monitor (เครื่องวัดสัญญาณชีพ)",
-    Suction: "Suction (เครื่องดูดเสมหะ)",
-  };
-
-  const transportReasonOptions = [
-    "ผ่าตัด",
-    "ตรวจพิเศษ (CT/MRI/X-Ray)",
-    "รับการรักษา",
-    "ย้ายห้อง/ตึก",
-    "จำหน่ายผู้ป่วย",
-    "ฉุกเฉิน",
-    "อื่นๆ",
-  ];
-
-  // ตัวอย่างสถานที่ (ในระบบจริงควรดึงมาจาก API หรือ database)
-  const locationOptions = [
-    "ห้อง 101",
-    "ห้อง 205",
-    "ห้อง 302",
-    "วอร์ด 4A",
-    "ICU",
-    "ER",
-    "[188] [อาคารเฉลิมพระเกียรติ] X-ray",
-    "[191] [อาคารเมตตาธรรม] X-ray",
-    "OR-3",
-    "OPD",
-    "แผนกเภสัช",
-    "คลังเวชภัณฑ์",
-  ];
-
-  // ตัวอย่างหน่วยงาน (ในระบบจริงควรดึงมาจาก API หรือ database)
-  const departmentOptions = [
-    "แผนกอายุรกรรม",
-    "แผนกศัลยกรรม",
-    "แผนกสูติ-นรีเวช",
-    "แผนกกุมารเวช",
-    "แผนกฉุกเฉิน",
-    "แผนกไอซียู",
-    "แผนกคลัง",
-    "แผนกเภสัชกรรม",
-  ];
-
-  // ใช้ Autocomplete ของ HeroUI ในการค้นหา/กรอง
-
-  // Validation function
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof PorterRequestFormData, string>> = {};
-
-    if (!formData.requesterDepartment.trim()) {
-      newErrors.requesterDepartment = "กรุณากรอกหน่วยงานผู้แจ้ง";
-    }
-
-    if (!formData.requesterName.trim()) {
-      newErrors.requesterName = "กรุณากรอกชื่อผู้แจ้ง";
-    }
-
-    if (!formData.requesterPhone.trim()) {
-      newErrors.requesterPhone = "กรุณากรอกเบอร์โทรติดต่อ";
-    } else if (
-      !/^[0-9]{9,10}$/.test(formData.requesterPhone.replace(/[- ]/g, ""))
+    // Only scroll if:
+    // 1. There are errors
+    // 2. Errors count increased (not decreased - which means user is fixing)
+    // 3. shouldScrollToError flag is true (set when submit fails)
+    if (
+      currentErrorsCount > 0 &&
+      currentErrorsCount > prevErrorsCountRef.current &&
+      shouldScrollToError
     ) {
-      newErrors.requesterPhone = "รูปแบบเบอร์โทรไม่ถูกต้อง";
+      // Small delay to ensure React has updated the DOM
+      const timer = setTimeout(() => {
+        // Find first field with error from validationErrors
+        const requiredFields: Array<keyof PorterRequestFormData> = [
+          "requesterDepartment",
+          "requesterName",
+          "requesterPhone",
+          "patientName",
+          "patientHN",
+          "pickupLocation",
+          "deliveryLocation",
+          "requestedDateTime",
+          "transportReason",
+          "urgencyLevel",
+          "vehicleType",
+          "hasVehicle",
+          "returnTrip",
+        ];
+
+        // Find first field with error
+        const firstErrorKey = requiredFields.find(
+          (field) => validationErrors[field],
+        );
+
+        if (firstErrorKey) {
+          // Map field names to label text
+          const fieldLabels: Partial<
+            Record<keyof PorterRequestFormData, string>
+          > = {
+            requesterDepartment: "หน่วยงานผู้แจ้ง",
+            requesterName: "ชื่อผู้แจ้ง",
+            requesterPhone: "เบอร์โทรติดต่อ",
+            patientHN: "หมายเลข HN",
+            patientName: "ชื่อผู้ป่วย",
+            pickupLocation: "สถานที่รับ",
+            deliveryLocation: "สถานที่ส่ง",
+            requestedDateTime: "วันที่และเวลา",
+            transportReason: "รายการเหตุผล",
+            urgencyLevel: "ความเร่งด่วน",
+            vehicleType: "ประเภทรถ",
+            hasVehicle: "มีรถแล้วหรือยัง",
+            returnTrip: "ส่งกลับหรือไม่",
+          };
+
+          const labelText = fieldLabels[firstErrorKey];
+
+          if (!labelText) {
+            return;
+          }
+
+          // Find the label and scroll to its input
+          const labels = Array.from(document.querySelectorAll("label"));
+
+          for (const label of labels) {
+            if (label.textContent?.includes(labelText)) {
+              const input = label
+                .closest("div")
+                ?.querySelector(
+                  "input, select, [role='combobox'], textarea",
+                ) as HTMLElement | null;
+
+              if (input) {
+                input.scrollIntoView({ behavior: "smooth", block: "center" });
+                // Focus to ensure error is visible
+                setTimeout(() => input.focus(), 100);
+                break;
+              }
+            }
+          }
+        }
+      }, 100);
+
+      // Reset scroll flag after scrolling
+      setShouldScrollToError(false);
+
+      return () => clearTimeout(timer);
     }
 
-    if (!formData.patientName.trim()) {
-      newErrors.patientName = "กรุณากรอกชื่อผู้ป่วย";
-    }
-
-    if (!formData.patientHN.trim()) {
-      newErrors.patientHN = "กรุณากรอกหมายเลข HN";
-    }
-
-    if (!formData.pickupLocation.trim()) {
-      newErrors.pickupLocation = "กรุณาระบุสถานที่รับ";
-    }
-
-    if (!formData.deliveryLocation.trim()) {
-      newErrors.deliveryLocation = "กรุณาระบุสถานที่ส่ง";
-    }
-
-    if (!formData.requestedDateTime.trim()) {
-      newErrors.requestedDateTime =
-        "กรุณาระบุวันที่และเวลาที่ต้องการเคลื่อนย้าย";
-    }
-
-    if (!formData.transportReason.trim()) {
-      newErrors.transportReason = "กรุณากรอกรายการเหตุการเคลื่อนย้าย";
-    }
-
-    setErrors(newErrors);
-
-    return Object.keys(newErrors).length === 0;
-  };
+    // Update previous errors count
+    prevErrorsCountRef.current = currentErrorsCount;
+  }, [validationErrors, shouldScrollToError]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    // Validate form first to get errors
+    const validation = validateForm(formData);
+
+    if (!validation.isValid) {
+      // Set validationErrors - HeroUI Form will automatically display them
+      setValidationErrors(validation.errors);
+
+      // Set flag to scroll to error (only on submit failure)
+      setShouldScrollToError(true);
+
+      // Show toast notification
       addToast({
         title: "ข้อมูลไม่ครบถ้วน",
         description: "กรุณาตรวจสอบข้อมูลที่กรอกแล้วลองอีกครั้ง",
@@ -211,6 +203,9 @@ export default function PorterRequestPage() {
 
       return;
     }
+
+    // Clear errors if form is valid
+    setValidationErrors({});
 
     setIsSubmitting(true);
 
@@ -239,27 +234,22 @@ export default function PorterRequestPage() {
 
         patientName: "",
         patientHN: "",
-        patientAge: "",
-        patientGender: "ไม่ระบุ",
-        patientWeight: "",
 
         pickupLocation: "",
         deliveryLocation: "",
-        requestedDateTime: "",
+        requestedDateTime: getDateTimeLocal(),
         urgencyLevel: "ปกติ",
-        vehicleType: "รถนอน",
+        vehicleType: "",
         equipment: [],
-        assistanceCount: "",
         hasVehicle: "",
         returnTrip: "",
 
         transportReason: "",
-        medicalAllergies: "",
         specialNotes: "",
         patientCondition: "",
       });
 
-      setErrors({});
+      setValidationErrors({});
     } catch {
       addToast({
         title: "เกิดข้อผิดพลาด",
@@ -278,35 +268,20 @@ export default function PorterRequestPage() {
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    // Clear error for this field when user modifies it (HeroUI behavior)
+    // This matches HeroUI's automatic error clearing behavior
+    // Don't scroll when user is fixing errors
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+
+        delete newErrors[field];
+
+        return newErrors;
+      });
+      // Reset scroll flag to prevent scrolling when user fixes errors
+      setShouldScrollToError(false);
     }
-  };
-
-  // Format datetime-local input
-  function getDateTimeLocal(): string {
-    const now = new Date();
-
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-
-    return now.toISOString().slice(0, 16);
-  }
-
-  const getSummaryMissing = (): string[] => {
-    const missing: string[] = [];
-
-    if (!formData.requesterDepartment.trim()) missing.push("หน่วยงานผู้แจ้ง");
-    if (!formData.requesterName.trim()) missing.push("ชื่อผู้แจ้ง");
-    if (!formData.requesterPhone.trim()) missing.push("เบอร์โทรติดต่อ");
-    if (!formData.patientHN.trim()) missing.push("หมายเลข HN/AN");
-    if (!formData.patientName.trim()) missing.push("ชื่อผู้ป่วย");
-    if (!formData.pickupLocation.trim()) missing.push("สถานที่รับ");
-    if (!formData.deliveryLocation.trim()) missing.push("สถานที่ส่ง");
-    if (!formData.requestedDateTime.trim()) missing.push("วันที่และเวลา");
-    if (!formData.transportReason.trim()) missing.push("เหตุผลการเคลื่อนย้าย");
-
-    return missing;
   };
 
   return (
@@ -324,9 +299,14 @@ export default function PorterRequestPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <form className="space-y-6 md:col-span-2" onSubmit={handleSubmit}>
+        <Form
+          className="space-y-6 md:col-span-2"
+          validationBehavior="aria"
+          validationErrors={validationErrors}
+          onSubmit={handleSubmit}
+        >
           {/* การ์ดที่ 1: ข้อมูลหน่วยงานผู้แจ้ง */}
-          <Card className="shadow-lg border border-default-200">
+          <Card className="shadow-lg border border-default-200 w-full">
             <CardHeader className="pb-0">
               <div className="flex items-center gap-2">
                 <BuildingOfficeIcon className="w-6 h-6 text-primary" />
@@ -339,9 +319,8 @@ export default function PorterRequestPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
                   isRequired
-                  errorMessage={errors.requesterDepartment}
-                  isInvalid={!!errors.requesterDepartment}
                   label="หน่วยงานผู้แจ้ง"
+                  name="requesterDepartment"
                   placeholder="เลือกหน่วยงาน"
                   selectedKeys={
                     formData.requesterDepartment
@@ -356,16 +335,15 @@ export default function PorterRequestPage() {
                     handleInputChange("requesterDepartment", selected);
                   }}
                 >
-                  {departmentOptions.map((dept) => (
+                  {DEPARTMENT_OPTIONS.map((dept) => (
                     <SelectItem key={dept}>{dept}</SelectItem>
                   ))}
                 </Select>
 
                 <Input
                   isRequired
-                  errorMessage={errors.requesterName}
-                  isInvalid={!!errors.requesterName}
                   label="ชื่อผู้แจ้ง"
+                  name="requesterName"
                   placeholder="กรอกชื่อผู้แจ้ง"
                   startContent={
                     <UserIcon className="w-4 h-4 text-default-400" />
@@ -379,13 +357,17 @@ export default function PorterRequestPage() {
 
                 <Input
                   isRequired
-                  errorMessage={errors.requesterPhone}
-                  isInvalid={!!errors.requesterPhone}
+                  classNames={{
+                    input:
+                      "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                  }}
                   label="เบอร์โทรติดต่อ"
+                  name="requesterPhone"
                   placeholder="เช่น 0812345678"
                   startContent={
                     <PhoneIcon className="w-4 h-4 text-default-400" />
                   }
+                  type="number"
                   value={formData.requesterPhone}
                   variant="bordered"
                   onChange={(e) => {
@@ -397,7 +379,7 @@ export default function PorterRequestPage() {
           </Card>
 
           {/* การ์ดที่ 2: ข้อมูลผู้ป่วย */}
-          <Card className="shadow-lg border border-default-200">
+          <Card className="shadow-lg border border-default-200 w-full">
             <CardHeader className="pb-0">
               <div className="flex items-center gap-2">
                 <UserIcon className="w-6 h-6 text-primary" />
@@ -410,9 +392,8 @@ export default function PorterRequestPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   isRequired
-                  errorMessage={errors.patientHN}
-                  isInvalid={!!errors.patientHN}
                   label="หมายเลข HN / AN"
+                  name="patientHN"
                   placeholder="เช่น 123456/68"
                   value={formData.patientHN}
                   variant="bordered"
@@ -423,9 +404,8 @@ export default function PorterRequestPage() {
 
                 <Input
                   isRequired
-                  errorMessage={errors.patientName}
-                  isInvalid={!!errors.patientName}
                   label="ชื่อผู้ป่วย"
+                  name="patientName"
                   placeholder="กรอกชื่อผู้ป่วย"
                   value={formData.patientName}
                   variant="bordered"
@@ -451,7 +431,7 @@ export default function PorterRequestPage() {
           </Card>
 
           {/* การ์ดที่ 3: ข้อมูลการเคลื่อนย้าย */}
-          <Card className="shadow-lg border border-default-200">
+          <Card className="shadow-lg border border-default-200 w-full">
             <CardHeader className="pb-0">
               <div className="flex items-center gap-2">
                 <MapPinIcon className="w-6 h-6 text-primary" />
@@ -463,9 +443,8 @@ export default function PorterRequestPage() {
             <CardBody className="pt-4 space-y-4">
               <Select
                 isRequired
-                errorMessage={errors.transportReason}
-                isInvalid={!!errors.transportReason}
                 label="รายการเหตุผลการเคลื่อนย้าย"
+                name="transportReason"
                 placeholder="เลือกเหตุผล"
                 selectedKeys={
                   formData.transportReason ? [formData.transportReason] : []
@@ -477,7 +456,7 @@ export default function PorterRequestPage() {
                   handleInputChange("transportReason", selected);
                 }}
               >
-                {transportReasonOptions.map((r) => (
+                {TRANSPORT_REASON_OPTIONS.map((r) => (
                   <SelectItem key={r}>{r}</SelectItem>
                 ))}
               </Select>
@@ -485,9 +464,8 @@ export default function PorterRequestPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Autocomplete
                   isRequired
-                  errorMessage={errors.pickupLocation}
-                  isInvalid={!!errors.pickupLocation}
                   label="สถานที่รับ"
+                  name="pickupLocation"
                   placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่รับ"
                   selectedKey={formData.pickupLocation || undefined}
                   startContent={<MapPinIcon className="w-4 h-4" />}
@@ -496,7 +474,7 @@ export default function PorterRequestPage() {
                     handleInputChange("pickupLocation", String(key));
                   }}
                 >
-                  {locationOptions.map((location) => (
+                  {LOCATION_OPTIONS.map((location) => (
                     <AutocompleteItem key={location} textValue={location}>
                       {location}
                     </AutocompleteItem>
@@ -505,9 +483,8 @@ export default function PorterRequestPage() {
 
                 <Autocomplete
                   isRequired
-                  errorMessage={errors.deliveryLocation}
-                  isInvalid={!!errors.deliveryLocation}
                   label="สถานที่ส่ง"
+                  name="deliveryLocation"
                   placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่ส่ง"
                   selectedKey={formData.deliveryLocation || undefined}
                   startContent={<MapPinIcon className="w-4 h-4" />}
@@ -516,7 +493,7 @@ export default function PorterRequestPage() {
                     handleInputChange("deliveryLocation", String(key));
                   }}
                 >
-                  {locationOptions.map((location) => (
+                  {LOCATION_OPTIONS.map((location) => (
                     <AutocompleteItem key={location} textValue={location}>
                       {location}
                     </AutocompleteItem>
@@ -528,9 +505,8 @@ export default function PorterRequestPage() {
                 <div className="space-y-2">
                   <Input
                     isRequired
-                    errorMessage={errors.requestedDateTime}
-                    isInvalid={!!errors.requestedDateTime}
                     label="วันที่และเวลาที่ต้องการเคลื่อนย้าย"
+                    name="requestedDateTime"
                     placeholder="เลือกวันที่และเวลา"
                     startContent={
                       <CalendarIcon className="w-4 h-4 text-default-400" />
@@ -562,10 +538,9 @@ export default function PorterRequestPage() {
                         const d = new Date();
 
                         d.setMinutes(d.getMinutes() + 30);
-                        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
                         handleInputChange(
                           "requestedDateTime",
-                          d.toISOString().slice(0, 16),
+                          getDateTimeLocal(d),
                         );
                       }}
                     >
@@ -578,10 +553,9 @@ export default function PorterRequestPage() {
                         const d = new Date();
 
                         d.setHours(d.getHours() + 2);
-                        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
                         handleInputChange(
                           "requestedDateTime",
-                          d.toISOString().slice(0, 16),
+                          getDateTimeLocal(d),
                         );
                       }}
                     >
@@ -592,16 +566,22 @@ export default function PorterRequestPage() {
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2 block">
                     ความเร่งด่วน
+                    <span className="text-danger ml-1">*</span>
                   </div>
+                  {validationErrors.urgencyLevel && (
+                    <div className="text-sm text-danger mb-2">
+                      {validationErrors.urgencyLevel}
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-2">
-                    {urgencyOptions.map((option) => (
+                    {URGENCY_OPTIONS.map((option) => (
                       <Chip
                         key={option.value}
                         className="cursor-pointer"
                         color={option.color}
                         startContent={
                           option.value === "ฉุกเฉิน" ||
-                            option.value === "ด่วน" ? (
+                          option.value === "ด่วน" ? (
                             <AmbulanceIcon className="w-4 h-4" />
                           ) : (
                             <ClipboardListIcon className="w-4 h-4" />
@@ -626,16 +606,24 @@ export default function PorterRequestPage() {
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2 block">
                     ประเภทรถ
+                    <span className="text-danger ml-1">*</span>
                   </div>
+                  {validationErrors.vehicleType && (
+                    <div className="text-sm text-danger mb-2">
+                      {validationErrors.vehicleType}
+                    </div>
+                  )}
                   <RadioGroup
+                    isRequired
                     className="gap-3"
+                    name="vehicleType"
                     orientation="horizontal"
                     value={formData.vehicleType}
                     onValueChange={(val) =>
                       handleInputChange("vehicleType", val as VehicleType)
                     }
                   >
-                    {vehicleTypeOptions.map((type) => (
+                    {VEHICLE_TYPE_OPTIONS.map((type) => (
                       <Radio key={type} size="sm" value={type}>
                         {type}
                       </Radio>
@@ -645,9 +633,17 @@ export default function PorterRequestPage() {
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2 block">
                     มีรถแล้วหรือยัง
+                    <span className="text-danger ml-1">*</span>
                   </div>
+                  {validationErrors.hasVehicle && (
+                    <div className="text-sm text-danger mb-2">
+                      {validationErrors.hasVehicle}
+                    </div>
+                  )}
                   <RadioGroup
+                    isRequired
                     className="gap-3"
+                    name="hasVehicle"
                     orientation="horizontal"
                     value={formData.hasVehicle}
                     onValueChange={(val) =>
@@ -665,9 +661,17 @@ export default function PorterRequestPage() {
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2 block">
                     ส่งกลับหรือไม่
+                    <span className="text-danger ml-1">*</span>
                   </div>
+                  {validationErrors.returnTrip && (
+                    <div className="text-sm text-danger mb-2">
+                      {validationErrors.returnTrip}
+                    </div>
+                  )}
                   <RadioGroup
+                    isRequired
                     className="gap-3"
+                    name="returnTrip"
                     orientation="horizontal"
                     value={formData.returnTrip}
                     onValueChange={(val) =>
@@ -701,9 +705,9 @@ export default function PorterRequestPage() {
                   }}
                 >
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {equipmentOptions.map((equipment) => (
+                    {EQUIPMENT_OPTIONS.map((equipment) => (
                       <Checkbox key={equipment} size="sm" value={equipment}>
-                        {equipmentLabels[equipment]}
+                        {EQUIPMENT_LABELS[equipment]}
                       </Checkbox>
                     ))}
                   </div>
@@ -713,7 +717,7 @@ export default function PorterRequestPage() {
           </Card>
 
           {/* การ์ดที่ 4: รายละเอียดเพิ่มเติม */}
-          <Card className="shadow-lg border border-default-200">
+          <Card className="shadow-lg border border-default-200 w-full">
             <CardHeader className="pb-0">
               <div className="flex items-center gap-2">
                 <ClipboardListIcon className="w-6 h-6 text-primary" />
@@ -724,20 +728,9 @@ export default function PorterRequestPage() {
             </CardHeader>
             <CardBody className="pt-4">
               <Textarea
-                label="ข้อมูลแพ้ยา/สาร (ถ้ามี)"
-                minRows={2}
-                placeholder="กรอกข้อมูลการแพ้ยาหรือสารต่างๆ"
-                value={formData.medicalAllergies}
-                variant="bordered"
-                onChange={(e) => {
-                  handleInputChange("medicalAllergies", e.target.value);
-                }}
-              />
-
-              <Textarea
-                className="mt-4"
+                classNames={{ input: "resize-y min-h-[40px]" }}
                 label="หมายเหตุ / ข้อมูลเพิ่มเติม"
-                minRows={2}
+                minRows={3}
                 placeholder="ระบุข้อมูลเพิ่มเติมที่สำคัญ เช่น ข้อควรระวังพิเศษ, โรคประจำตัว, อาการพิเศษ"
                 value={formData.specialNotes}
                 variant="bordered"
@@ -749,7 +742,7 @@ export default function PorterRequestPage() {
           </Card>
 
           {/* การ์ดปุ่มคำสั่ง */}
-          <Card className="shadow-lg border border-default-200">
+          <Card className="shadow-lg border border-default-200 w-full">
             <CardFooter className="p-3 flex justify-end gap-4">
               <Button
                 size="md"
@@ -763,26 +756,21 @@ export default function PorterRequestPage() {
 
                     patientName: "",
                     patientHN: "",
-                    patientAge: "",
-                    patientGender: "ไม่ระบุ",
-                    patientWeight: "",
 
                     pickupLocation: "",
                     deliveryLocation: "",
                     requestedDateTime: getDateTimeLocal(),
                     urgencyLevel: "ปกติ",
-                    vehicleType: "รถนั่ง",
+                    vehicleType: "",
                     equipment: [],
-                    assistanceCount: "",
                     hasVehicle: "",
                     returnTrip: "",
 
                     transportReason: "",
-                    medicalAllergies: "",
                     specialNotes: "",
                     patientCondition: "",
                   });
-                  setErrors({});
+                  setValidationErrors({});
                 }}
               >
                 ล้างข้อมูล
@@ -800,7 +788,7 @@ export default function PorterRequestPage() {
               </Button>
             </CardFooter>
           </Card>
-        </form>
+        </Form>
 
         {/* Right Summary */}
         <aside className="space-y-4">
@@ -815,7 +803,7 @@ export default function PorterRequestPage() {
                 </div>
                 <Chip
                   color={
-                    (urgencyOptions.find(
+                    (URGENCY_OPTIONS.find(
                       (o) => o.value === formData.urgencyLevel,
                     )?.color as "default" | "warning" | "danger" | "success") ||
                     "default"
@@ -916,37 +904,6 @@ export default function PorterRequestPage() {
                     {formData.returnTrip ? formData.returnTrip : "-"}
                   </div>
                 </div>
-                <div>
-                  {/* <div>
-                    <div className="text-default-600">ความเร่งด่วน</div>
-                    <div>
-                      <Chip
-                        className="h-6"
-                        color={
-                          (urgencyOptions.find(
-                            (o) => o.value === formData.urgencyLevel,
-                          )?.color as
-                            | "default"
-                            | "warning"
-                            | "danger"
-                            | "success") || "default"
-                        }
-                        startContent={
-                          formData.urgencyLevel === "ฉุกเฉิน" ? (
-                            <AmbulanceIcon className="w-4 h-4" />
-                          ) : formData.urgencyLevel === "ด่วน" ? (
-                            <AmbulanceIcon className="w-4 h-4" />
-                          ) : (
-                            <ClipboardListIcon className="w-4 h-4" />
-                          )
-                        }
-                        variant="solid"
-                      >
-                        {formData.urgencyLevel}
-                      </Chip>
-                    </div>
-                  </div> */}
-                </div>
               </div>
               <div>
                 <div className="text-default-600">ผู้ป่วย</div>
@@ -973,8 +930,8 @@ export default function PorterRequestPage() {
                 >
                   {formData.requestedDateTime
                     ? formatThaiDateTimeShort(
-                      new Date(formData.requestedDateTime),
-                    )
+                        new Date(formData.requestedDateTime),
+                      )
                     : "-"}
                 </div>
               </div>

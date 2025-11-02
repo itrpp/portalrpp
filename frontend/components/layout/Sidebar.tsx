@@ -152,7 +152,7 @@ export default function Sidebar() {
     },
     {
       title: "ระบบงานจัดเก็บรายได้",
-      isDisabled: false,
+      isDisabled: true,
       items: [
         {
           name: "สถิติการดำเนินการ",

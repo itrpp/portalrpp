@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
   Card,
@@ -22,12 +22,18 @@ import {
 } from "@/components/ui/icons";
 import { formatDateTimeThai } from "@/lib/utils";
 import {
+  JobListTab,
+  PorterJobItem,
   PorterRequestFormData,
-  UrgencyLevel,
-  VehicleType,
-  EquipmentType,
-} from "@/types";
-import { JobListTab, PorterJobItem } from "@/types/porter";
+} from "@/types/porter";
+import {
+  generateMockPorterJobs,
+  generateSingleDummyJob,
+  generateSingleEmergencyJob,
+  sortJobs,
+  playNotificationSound,
+  playSirenSound,
+} from "@/lib/porter";
 
 // ========================================
 // PORTER JOB LIST PAGE
@@ -54,171 +60,9 @@ export default function PorterJobListPage() {
   }, []);
 
   // ตัวอย่างข้อมูลรายการคำขอจำลอง (สุ่มข้อมูล 1 วัน)
-  const [jobList, setJobList] = useState<PorterJobItem[]>(() => {
-    const statuses: JobListTab[] = [
-      "waiting",
-      "in-progress",
-      "completed",
-      "cancelled",
-    ];
-
-    const departments = [
-      "แผนกอายุรกรรม",
-      "แผนกศัลยกรรม",
-      "แผนกฉุกเฉิน",
-      "แผนกเภสัชกรรม",
-      "แผนกไอซียู",
-    ];
-
-    const requesterNames = [
-      "พยาบาล สมใจ",
-      "พยาบาล สุดา",
-      "พยาบาล วิชัย",
-      "แพทย์ วิไล",
-      "แพทย์ กนก",
-      "เภสัชกร มาลี",
-    ];
-
-    const pickupPoints = [
-      "ห้อง 101",
-      "ห้อง 205",
-      "ห้อง 302",
-      "วอร์ด 4A",
-      "ICU",
-      "ER",
-      "แผนกเภสัช",
-      "คลังเวชภัณฑ์",
-    ];
-
-    const deliveryPoints = [
-      "[188] [อาคารเฉลิมพระเกียรติ] X-ray",
-      "[191] [อาคารเมตตาธรรม] X-ray",
-      "OR-3",
-      "OPD",
-      "ICU",
-      "ER",
-      "ห้องตรวจ 2",
-      "คลังเวชภัณฑ์",
-    ];
-
-    const vehicleTypes: VehicleType[] = ["รถนั่ง", "รถนอน", "รถกอล์ฟ"];
-    const equipmentOptions: EquipmentType[] = [
-      "Oxygen",
-      "Tube",
-      "IV Pump",
-      "Ventilator",
-      "Monitor",
-      "Suction",
-    ];
-
-    const transportReasons = [
-      "ผ่าตัด",
-      "ตรวจพิเศษ (CT/MRI/X-Ray)",
-      "รับการรักษา",
-      "ย้ายห้อง/ตึก",
-      "จำหน่ายผู้ป่วย",
-      "ฉุกเฉิน",
-      "อื่นๆ",
-    ];
-
-    const randInt = (min: number, max: number) =>
-      Math.floor(Math.random() * (max - min + 1)) + min;
-    const choice = <T,>(arr: T[]): T => arr[randInt(0, arr.length - 1)];
-
-    const toDateTimeLocal = (d: Date) => {
-      const dd = new Date(d);
-
-      dd.setMinutes(dd.getMinutes() - dd.getTimezoneOffset());
-
-      return dd.toISOString().slice(0, 16);
-    };
-
-    const total = 100;
-
-    // ตัวนับสำหรับจำกัดจำนวน urgencyLevel
-    let urgentCount = 0; // "ฉุกเฉิน" ไม่เกิน 5
-    let rushCount = 0; // "ด่วน" ไม่เกิน 10
-
-    const items: PorterJobItem[] = Array.from({ length: total }, (_, i) => {
-      const idx = i + 1;
-      const pickup = choice(pickupPoints);
-      let delivery = choice(deliveryPoints);
-
-      if (delivery === pickup) delivery = choice(deliveryPoints);
-
-      const now = new Date();
-
-      now.setHours(randInt(6, 21), randInt(0, 59), 0, 0);
-
-      // เลือก urgencyLevel โดยจำกัดจำนวน
-      let urgencyLevel: UrgencyLevel;
-      const availableOptions: UrgencyLevel[] = [];
-
-      if (urgentCount < 5) {
-        availableOptions.push("ฉุกเฉิน");
-      }
-      if (rushCount < 10) {
-        availableOptions.push("ด่วน");
-      }
-      availableOptions.push("ปกติ"); // "ปกติ" ไม่มีจำกัด
-
-      urgencyLevel = choice(availableOptions);
-
-      // อัพเดทตัวนับ
-      if (urgencyLevel === "ฉุกเฉิน") {
-        urgentCount++;
-      } else if (urgencyLevel === "ด่วน") {
-        rushCount++;
-      }
-      const equipmentCount = randInt(0, 3);
-      const equipment: EquipmentType[] = Array.from(
-        { length: equipmentCount },
-        () => choice(equipmentOptions),
-      ).filter((v, idx2, arr) => arr.indexOf(v) === idx2);
-
-      const form: PorterRequestFormData = {
-        requesterDepartment: choice(departments),
-        requesterName: choice(requesterNames),
-        requesterPhone: `08${randInt(10000000, 99999999)}`,
-
-        patientName: `ผู้ป่วย ${idx}`,
-        patientHN: `${String(randInt(100000, 999999))}/${String(
-          randInt(10, 99),
-        )}`,
-        patientAge: randInt(1, 99),
-        patientGender: choice(["ชาย", "หญิง", "ไม่ระบุ"] as const),
-        patientWeight: randInt(30, 95),
-
-        pickupLocation: pickup,
-        deliveryLocation: delivery,
-        requestedDateTime: toDateTimeLocal(now),
-        urgencyLevel,
-        vehicleType: choice(vehicleTypes),
-        equipment,
-        assistanceCount: randInt(0, 3),
-        hasVehicle: choice(["มี", "ไม่มี", ""] as const),
-        returnTrip: choice([
-          "ไปส่งอย่างเดียว",
-          "รับกลับด้วย",
-          "",
-        ] as const),
-
-        transportReason: choice(transportReasons),
-        medicalAllergies: Math.random() < 0.2 ? "Penicillin" : "",
-        specialNotes: Math.random() < 0.2 ? "เฝ้าระวัง O2 sat" : "",
-        patientCondition:
-          Math.random() < 0.5 ? "เดินไม่ได้ ต้องใช้รถนอน" : "รู้สึกตัวดี",
-      };
-
-      return {
-        id: String(idx),
-        status: choice(statuses),
-        form,
-      };
-    });
-
-    return items;
-  });
+  const [jobList, setJobList] = useState<PorterJobItem[]>(() =>
+    generateMockPorterJobs(100),
+  );
 
   // คำนวณจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
   const waitingCount = useMemo(
@@ -242,22 +86,10 @@ export default function PorterJobListPage() {
   const filteredJobs = jobList.filter((job) => job.status === selectedTab);
 
   // จัดเรียงตามกติกา: แท็บ 1-2 (emergency ก่อน + เวลา), แท็บ 3-4 (เวลาอย่างเดียว)
-  const sortedJobs = useMemo(() => {
-    const toTime = (s: string) => new Date(s).getTime();
-    const urgencyRank = (u: UrgencyLevel) =>
-      u === "ฉุกเฉิน" ? 0 : u === "ด่วน" ? 1 : 2;
-
-    return [...filteredJobs].sort((a, b) => {
-      const rankA = urgencyRank(a.form.urgencyLevel);
-      const rankB = urgencyRank(b.form.urgencyLevel);
-
-      if (rankA !== rankB) return rankA - rankB;
-
-      return (
-        toTime(a.form.requestedDateTime) - toTime(b.form.requestedDateTime)
-      );
-    });
-  }, [filteredJobs, selectedTab]);
+  const sortedJobs = useMemo(
+    () => sortJobs(filteredJobs, selectedTab),
+    [filteredJobs, selectedTab],
+  );
 
   // คำนวณข้อมูลสำหรับ pagination
   const totalPages = Math.ceil(sortedJobs.length / rowsPerPage);
@@ -354,6 +186,22 @@ export default function PorterJobListPage() {
     }
   };
 
+  // Handler สำหรับทำเสร็จสิ้นงาน
+  const handleCompleteJob = (jobId: string) => {
+    setJobList((prevList) =>
+      prevList.map((job) =>
+        job.id === jobId ? { ...job, status: "completed" as JobListTab } : job,
+      ),
+    );
+    // อัปเดต selectedJob ถ้ายังเลือกอยู่
+    if (selectedJob?.id === jobId) {
+      setSelectedJob({
+        ...selectedJob,
+        status: "completed" as JobListTab,
+      });
+    }
+  };
+
   // Handler สำหรับอัปเดตข้อมูลงาน
   const handleUpdateJob = (
     jobId: string,
@@ -372,106 +220,6 @@ export default function PorterJobListPage() {
       });
     }
   };
-
-  // ฟังก์ชันสำหรับเล่นเสียงแจ้งเตือน (เสียงกลิ่ง)
-  const playNotificationSound = useCallback(() => {
-    try {
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-
-      // สร้างเสียงกลิ่งด้วย multiple oscillators (harmonic tones)
-      const createBellTone = (
-        baseFreq: number,
-        time: number,
-        duration: number,
-      ) => {
-        const frequencies = [baseFreq, baseFreq * 2.76, baseFreq * 5.4]; // Harmonic overtones
-        const amplitudes = [0.5, 0.25, 0.15];
-
-        frequencies.forEach((freq, index) => {
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-
-          oscillator.type = "sine";
-          oscillator.frequency.setValueAtTime(freq, time);
-
-          gainNode.gain.setValueAtTime(0, time);
-          gainNode.gain.linearRampToValueAtTime(amplitudes[index], time + 0.01);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
-          oscillator.start(time);
-          oscillator.stop(time + duration);
-        });
-      };
-
-      const now = audioContext.currentTime;
-      const intervalBetweenRounds = 0.2; // เวลาระหว่างรอบ (วินาที)
-
-      // เล่นเสียง 2 รอบ
-      for (let round = 0; round < 2; round++) {
-        const roundStartTime = now + round * (0.1 + intervalBetweenRounds);
-
-        // เสียงกลิ่งครั้งแรก
-        createBellTone(800, roundStartTime, 0.1);
-        // เสียงกลิ่งครั้งที่สอง (ตามหลัง)
-        createBellTone(1000, roundStartTime + 0.15, 0.25);
-      }
-    } catch {
-      // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
-      // จะไม่แสดง error
-    }
-  }, []);
-
-  // ฟังก์ชันสำหรับเล่นเสียงไซเรน (สำหรับเคสเร่งด่วนฉุกเฉิน)
-  const playSirenSound = useCallback(() => {
-    try {
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-
-      const now = audioContext.currentTime;
-      const duration = 1.5; // ความยาวแต่ละรอบ (วินาที)
-      const cycles = 3; // จำนวนรอบไซเรน
-
-      for (let cycle = 0; cycle < cycles; cycle++) {
-        const cycleStartTime = now + cycle * (duration + 0.2);
-
-        // สร้างเสียงไซเรนด้วยการปรับความถี่ขึ้น-ลง (sweep)
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.type = "sawtooth"; // ใช้ sawtooth เพื่อให้เสียงคมชัดเหมือนไซเรน
-        oscillator.frequency.setValueAtTime(600, cycleStartTime);
-        oscillator.frequency.exponentialRampToValueAtTime(
-          1400,
-          cycleStartTime + duration / 2,
-        );
-        oscillator.frequency.exponentialRampToValueAtTime(
-          600,
-          cycleStartTime + duration,
-        );
-
-        gainNode.gain.setValueAtTime(0, cycleStartTime);
-        gainNode.gain.linearRampToValueAtTime(0.6, cycleStartTime + 0.05);
-        gainNode.gain.linearRampToValueAtTime(
-          0.6,
-          cycleStartTime + duration - 0.05,
-        );
-        gainNode.gain.linearRampToValueAtTime(0, cycleStartTime + duration);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        oscillator.start(cycleStartTime);
-        oscillator.stop(cycleStartTime + duration);
-      }
-    } catch {
-      // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
-      // จะไม่แสดง error
-    }
-  }, []);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -506,34 +254,45 @@ export default function PorterJobListPage() {
                   คำขอทั้งหมด {filteredJobs.length} รายการ
                 </div>
                 <Button
-                  color="secondary"
+                  color="danger"
                   size="sm"
-                  title="ทดสอบ Alert"
+                  title="สร้าง Job ฉุกเฉิน"
                   variant="flat"
                   onPress={() => {
+                    const newJob = generateSingleEmergencyJob();
+
+                    setJobList((prevList) => [newJob, ...prevList]);
                     playSirenSound();
-                    alert(
-                      `ทดสอบ Alert:\nจำนวนคำขอทั้งหมด: ${filteredJobs.length} รายการ`,
-                    );
+                    addToast({
+                      title: "⚠️ สร้าง Job ฉุกเฉิน",
+                      description: `เพิ่มงานฉุกเฉิน: ${newJob.form.patientName} (${newJob.id})`,
+                      color: "danger",
+                    });
                   }}
                 >
-                  ทดสอบ Alert
+                  สร้าง Job ฉุกเฉิน
                 </Button>
                 <Button
                   color="primary"
                   size="sm"
-                  title="ทดสอบ Toast"
+                  title="สร้าง Job Dummy"
                   variant="flat"
                   onPress={() => {
+                    const newJob = generateSingleDummyJob();
+
+                    setJobList((prevList) => [newJob, ...prevList]);
                     playNotificationSound();
                     addToast({
-                      title: "ทดสอบ Toast Notification",
-                      description: `จำนวนคำขอทั้งหมด: ${filteredJobs.length} รายการ`,
-                      color: "success",
+                      title: "สร้าง Job Dummy สำเร็จ",
+                      description: `เพิ่มงานใหม่: ${newJob.form.urgencyLevel} - ${newJob.form.patientName} (${newJob.id})`,
+                      color:
+                        newJob.form.urgencyLevel === "ด่วน"
+                          ? "warning"
+                          : "success",
                     });
                   }}
                 >
-                  ทดสอบ Toast
+                  สร้าง Job Dummy
                 </Button>
               </div>
             </div>
@@ -612,6 +371,7 @@ export default function PorterJobListPage() {
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
                   onRowsPerPageChange={setRowsPerPage}
+                  onSelectionChange={handleSelectionChange}
                 />
               </Tab>
               <Tab
@@ -643,6 +403,7 @@ export default function PorterJobListPage() {
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
                   onRowsPerPageChange={setRowsPerPage}
+                  onSelectionChange={handleSelectionChange}
                 />
               </Tab>
               <Tab
@@ -674,6 +435,7 @@ export default function PorterJobListPage() {
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
                   onRowsPerPageChange={setRowsPerPage}
+                  onSelectionChange={handleSelectionChange}
                 />
               </Tab>
             </Tabs>
@@ -688,6 +450,7 @@ export default function PorterJobListPage() {
         onAcceptJob={handleAcceptJob}
         onCancelJob={handleCancelJob}
         onClose={handleCloseDrawer}
+        onCompleteJob={handleCompleteJob}
         onUpdateJob={handleUpdateJob}
       />
     </div>

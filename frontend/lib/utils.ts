@@ -123,3 +123,17 @@ export function formatFileSize(bytes: number): string {
 
   return `${parseFloat(value.toFixed(2))} ${units[unitIndex]}`;
 }
+
+/**
+ * ฟังก์ชันสำหรับแปลง Date เป็นรูปแบบ datetime-local string
+ * ใช้สำหรับ input type="datetime-local"
+ * @param date วันที่ที่ต้องการแปลง (ถ้าไม่ระบุจะใช้เวลาปัจจุบัน)
+ * @returns string ในรูปแบบ "YYYY-MM-DDTHH:mm"
+ */
+export function getDateTimeLocal(date?: Date): string {
+  const d = date ? new Date(date) : new Date();
+
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+
+  return d.toISOString().slice(0, 16);
+}

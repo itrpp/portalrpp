@@ -686,6 +686,58 @@ export const GenderIcon = (props: IconProps) => (
   />
 );
 
+export const InfoCircleIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:info-circle"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const CarIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:car"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const MedicalBagIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:medical-cross"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const ToolsIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:tools"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
 // Backward compatibility - ยังคง export Icons object สำหรับการใช้งานแบบเดิม
 export const Icons = {
   home: HomeIcon,

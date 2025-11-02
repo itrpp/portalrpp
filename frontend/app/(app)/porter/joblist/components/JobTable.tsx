@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@heroui/react";
 
+import { formatThaiDateTimeShort } from "@/lib/utils";
 import { JobTableProps } from "@/types/porter";
 
 export default function JobTable({
@@ -64,14 +65,9 @@ export default function JobTable({
                 >
                   {/* แถวบน: เวลาและแถบ tags หลัก */}
                   <div className="flex items-center gap-2 text-sm">
-                    <Chip color="default" size="sm" variant="flat">
-                      {new Date(item.form.requestedDateTime).toLocaleTimeString(
-                        "th-TH",
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        },
+                    <Chip color="success" size="sm" variant="dot">
+                      {formatThaiDateTimeShort(
+                        new Date(item.form.requestedDateTime),
                       )}
                     </Chip>
                     {item.form.urgencyLevel !== "ปกติ" && (
@@ -94,21 +90,14 @@ export default function JobTable({
                       ➜ {item.form.deliveryLocation}
                     </span>
 
-                    <Chip color="secondary" size="sm" variant="flat">
+                    <Chip color="default" size="sm" variant="bordered">
                       {item.form.requesterDepartment}
                     </Chip>
                   </div>
 
                   {/* แถวล่าง: สถานะ + ปุ่มการจัดการ */}
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <div>
-                      {item.status === "waiting" && (
-                        <Chip color="default" size="sm" variant="flat">
-                          {item.assignedToName
-                            ? `รอศูนย์เปลรับงาน ผู้รับงาน [${item.assignedToName}]`
-                            : "รอศูนย์เปลรับงาน"}
-                        </Chip>
-                      )}
                       {item.status === "in-progress" && (
                         <Chip color="warning" size="sm" variant="flat">
                           {item.assignedToName
