@@ -7,47 +7,40 @@ import {
   CardBody,
   CardHeader,
   Chip,
-  Pagination,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
+  Tabs,
+  Tab,
   addToast,
 } from "@heroui/react";
 
+import { JobTable, JobDetailDrawer } from "./components";
+
 import {
-  CheckCircleIcon,
   ClockIcon,
-  XMarkIcon,
   ClipboardListIcon,
+  XMarkIcon,
+  CheckCircleIcon,
 } from "@/components/ui/icons";
 import { formatDateTimeThai } from "@/lib/utils";
+import {
+  PorterRequestFormData,
+  UrgencyLevel,
+  VehicleType,
+  EquipmentType,
+} from "@/types";
+import { JobListTab, PorterJobItem } from "@/types/porter";
 
 // ========================================
 // PORTER JOB LIST PAGE
 // ========================================
-
-type JobListTab = "waiting" | "in-progress" | "completed" | "cancelled";
-
-interface JobItem {
-  id: string;
-  jobNumber: string;
-  description: string;
-  requestDate: string;
-  requester: string;
-  emergency: boolean;
-  pickup: string;
-  delivery: string;
-  status: JobListTab;
-}
 
 export default function PorterJobListPage() {
   const [selectedTab, setSelectedTab] = useState<JobListTab>("waiting");
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(5);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // อัพเดทเวลาแบบ real-time ทุกวินาที
   useEffect(() => {
@@ -61,9 +54,7 @@ export default function PorterJobListPage() {
   }, []);
 
   // ตัวอย่างข้อมูลรายการคำขอจำลอง (สุ่มข้อมูล 1 วัน)
-  const [jobList] = useState<JobItem[]>(() => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-
+  const [jobList, setJobList] = useState<PorterJobItem[]>(() => {
     const statuses: JobListTab[] = [
       "waiting",
       "in-progress",
@@ -71,22 +62,27 @@ export default function PorterJobListPage() {
       "cancelled",
     ];
 
-    const requesters = [
+    const departments = [
+      "แผนกอายุรกรรม",
+      "แผนกศัลยกรรม",
+      "แผนกฉุกเฉิน",
+      "แผนกเภสัชกรรม",
+      "แผนกไอซียู",
+    ];
+
+    const requesterNames = [
       "พยาบาล สมใจ",
       "พยาบาล สุดา",
       "พยาบาล วิชัย",
       "แพทย์ วิไล",
       "แพทย์ กนก",
       "เภสัชกร มาลี",
-      "หัวหน้าแผนกคลัง",
-      "เจ้าหน้าที่ ER",
     ];
 
     const pickupPoints = [
       "ห้อง 101",
       "ห้อง 205",
       "ห้อง 302",
-      "ห้อง 310",
       "วอร์ด 4A",
       "ICU",
       "ER",
@@ -95,7 +91,8 @@ export default function PorterJobListPage() {
     ];
 
     const deliveryPoints = [
-      "X-ray",
+      "[188] [อาคารเฉลิมพระเกียรติ] X-ray",
+      "[191] [อาคารเมตตาธรรม] X-ray",
       "OR-3",
       "OPD",
       "ICU",
@@ -104,63 +101,126 @@ export default function PorterJobListPage() {
       "คลังเวชภัณฑ์",
     ];
 
+    const vehicleTypes: VehicleType[] = ["รถนั่ง", "รถนอน", "รถกอล์ฟ"];
+    const equipmentOptions: EquipmentType[] = [
+      "Oxygen",
+      "Tube",
+      "IV Pump",
+      "Ventilator",
+      "Monitor",
+      "Suction",
+    ];
+
+    const transportReasons = [
+      "ผ่าตัด",
+      "ตรวจพิเศษ (CT/MRI/X-Ray)",
+      "รับการรักษา",
+      "ย้ายห้อง/ตึก",
+      "จำหน่ายผู้ป่วย",
+      "ฉุกเฉิน",
+      "อื่นๆ",
+    ];
+
     const randInt = (min: number, max: number) =>
       Math.floor(Math.random() * (max - min + 1)) + min;
     const choice = <T,>(arr: T[]): T => arr[randInt(0, arr.length - 1)];
 
-    const total = 220; // ปริมาณข้อมูลเพื่อทดสอบการเลื่อนตาราง
+    const toDateTimeLocal = (d: Date) => {
+      const dd = new Date(d);
 
-    const items: JobItem[] = Array.from({ length: total }, (_, i) => {
+      dd.setMinutes(dd.getMinutes() - dd.getTimezoneOffset());
+
+      return dd.toISOString().slice(0, 16);
+    };
+
+    const total = 100;
+
+    // ตัวนับสำหรับจำกัดจำนวน urgencyLevel
+    let urgentCount = 0; // "ฉุกเฉิน" ไม่เกิน 5
+    let rushCount = 0; // "ด่วน" ไม่เกิน 10
+
+    const items: PorterJobItem[] = Array.from({ length: total }, (_, i) => {
       const idx = i + 1;
-      const hour = randInt(6, 21);
-      const minute = randInt(0, 59);
       const pickup = choice(pickupPoints);
       let delivery = choice(deliveryPoints);
-      // หลีกเลี่ยง pickup == delivery ที่ซ้ำกันแบบไม่สมเหตุสมผล
 
-      if (delivery === pickup) {
-        delivery = choice(deliveryPoints);
+      if (delivery === pickup) delivery = choice(deliveryPoints);
+
+      const now = new Date();
+
+      now.setHours(randInt(6, 21), randInt(0, 59), 0, 0);
+
+      // เลือก urgencyLevel โดยจำกัดจำนวน
+      let urgencyLevel: UrgencyLevel;
+      const availableOptions: UrgencyLevel[] = [];
+
+      if (urgentCount < 5) {
+        availableOptions.push("ฉุกเฉิน");
       }
-      const emergency = Math.random() < 0.2; // 20% เป็นเคสเร่งด่วน
-      const status = choice(statuses);
+      if (rushCount < 10) {
+        availableOptions.push("ด่วน");
+      }
+      availableOptions.push("ปกติ"); // "ปกติ" ไม่มีจำกัด
+
+      urgencyLevel = choice(availableOptions);
+
+      // อัพเดทตัวนับ
+      if (urgencyLevel === "ฉุกเฉิน") {
+        urgentCount++;
+      } else if (urgencyLevel === "ด่วน") {
+        rushCount++;
+      }
+      const equipmentCount = randInt(0, 3);
+      const equipment: EquipmentType[] = Array.from(
+        { length: equipmentCount },
+        () => choice(equipmentOptions),
+      ).filter((v, idx2, arr) => arr.indexOf(v) === idx2);
+
+      const form: PorterRequestFormData = {
+        requesterDepartment: choice(departments),
+        requesterName: choice(requesterNames),
+        requesterPhone: `08${randInt(10000000, 99999999)}`,
+
+        patientName: `ผู้ป่วย ${idx}`,
+        patientHN: `${String(randInt(100000, 999999))}/${String(
+          randInt(10, 99),
+        )}`,
+        patientAge: randInt(1, 99),
+        patientGender: choice(["ชาย", "หญิง", "ไม่ระบุ"] as const),
+        patientWeight: randInt(30, 95),
+
+        pickupLocation: pickup,
+        deliveryLocation: delivery,
+        requestedDateTime: toDateTimeLocal(now),
+        urgencyLevel,
+        vehicleType: choice(vehicleTypes),
+        equipment,
+        assistanceCount: randInt(0, 3),
+        hasVehicle: choice(["มี", "ไม่มี", ""] as const),
+        returnTrip: choice([
+          "ไปส่งอย่างเดียว",
+          "รับกลับด้วย",
+          "",
+        ] as const),
+
+        transportReason: choice(transportReasons),
+        medicalAllergies: Math.random() < 0.2 ? "Penicillin" : "",
+        specialNotes: Math.random() < 0.2 ? "เฝ้าระวัง O2 sat" : "",
+        patientCondition:
+          Math.random() < 0.5 ? "เดินไม่ได้ ต้องใช้รถนอน" : "รู้สึกตัวดี",
+      };
 
       return {
         id: String(idx),
-        jobNumber: `REQ-${pad(idx)}`,
-        description: `รับผู้ป่วยจาก${pickup}`,
-        requestDate: `2024-01-15 ${pad(hour)}:${pad(minute)}`,
-        requester: choice(requesters),
-        emergency,
-        pickup,
-        delivery,
-        status,
+        status: choice(statuses),
+        form,
       };
     });
 
     return items;
   });
 
-  // กรองข้อมูลตามแท็บที่เลือก
-  const filteredJobs = jobList.filter((job) => job.status === selectedTab);
-
-  // จัดเรียงตามกติกา: แท็บ 1-2 (emergency ก่อน + เวลา), แท็บ 3-4 (เวลาอย่างเดียว)
-  const sortedJobs = useMemo(() => {
-    const toTime = (s: string) => new Date(s.replace(" ", "T")).getTime();
-
-    if (selectedTab === "waiting" || selectedTab === "in-progress") {
-      return [...filteredJobs].sort((a, b) => {
-        if (a.emergency !== b.emergency) return a.emergency ? -1 : 1;
-
-        return toTime(a.requestDate) - toTime(b.requestDate);
-      });
-    }
-
-    return [...filteredJobs].sort(
-      (a, b) => toTime(a.requestDate) - toTime(b.requestDate),
-    );
-  }, [filteredJobs, selectedTab]);
-
-  // นับจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
+  // คำนวณจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
   const waitingCount = useMemo(
     () => jobList.filter((job) => job.status === "waiting").length,
     [jobList],
@@ -169,6 +229,35 @@ export default function PorterJobListPage() {
     () => jobList.filter((job) => job.status === "in-progress").length,
     [jobList],
   );
+  const completedCount = useMemo(
+    () => jobList.filter((job) => job.status === "completed").length,
+    [jobList],
+  );
+  const cancelledCount = useMemo(
+    () => jobList.filter((job) => job.status === "cancelled").length,
+    [jobList],
+  );
+
+  // กรองข้อมูลตามแท็บที่เลือก
+  const filteredJobs = jobList.filter((job) => job.status === selectedTab);
+
+  // จัดเรียงตามกติกา: แท็บ 1-2 (emergency ก่อน + เวลา), แท็บ 3-4 (เวลาอย่างเดียว)
+  const sortedJobs = useMemo(() => {
+    const toTime = (s: string) => new Date(s).getTime();
+    const urgencyRank = (u: UrgencyLevel) =>
+      u === "ฉุกเฉิน" ? 0 : u === "ด่วน" ? 1 : 2;
+
+    return [...filteredJobs].sort((a, b) => {
+      const rankA = urgencyRank(a.form.urgencyLevel);
+      const rankB = urgencyRank(b.form.urgencyLevel);
+
+      if (rankA !== rankB) return rankA - rankB;
+
+      return (
+        toTime(a.form.requestedDateTime) - toTime(b.form.requestedDateTime)
+      );
+    });
+  }, [filteredJobs, selectedTab]);
 
   // คำนวณข้อมูลสำหรับ pagination
   const totalPages = Math.ceil(sortedJobs.length / rowsPerPage);
@@ -176,13 +265,113 @@ export default function PorterJobListPage() {
   const endIndex = startIndex + rowsPerPage;
   const paginatedJobs = sortedJobs.slice(startIndex, endIndex);
 
-  // columns สำหรับ HeroUI Table use-case (ซ่อน header ใช้เซลล์เดียว render layout ทั้งแถว)
-  const columns = useMemo(() => [{ key: "job", label: "รายการ" }], []);
-
   // รีเซ็ตหน้าไปที่ 1 เมื่อเปลี่ยนแท็บ
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedKeys(new Set());
+    setSelectedJob(null);
+    setIsDrawerOpen(false);
   }, [selectedTab]);
+
+  // Handler สำหรับการเลือก row
+  const handleSelectionChange = (keys: any) => {
+    if (keys === "all") {
+      setSelectedKeys(new Set());
+      setSelectedJob(null);
+      setIsDrawerOpen(false);
+
+      return;
+    }
+
+    const keysSet = keys as Set<string>;
+
+    setSelectedKeys(keysSet);
+
+    if (keysSet.size > 0) {
+      // หา job ที่ถูกเลือกจาก sortedJobs (ทั้งหมดใน tab)
+      const selectedKey = Array.from(keysSet)[0];
+      const job = sortedJobs.find((item) => item.id === selectedKey);
+
+      if (job) {
+        setSelectedJob(job);
+        setIsDrawerOpen(true);
+      }
+    } else {
+      setSelectedJob(null);
+      setIsDrawerOpen(false);
+    }
+  };
+
+  // Handler สำหรับปิด Drawer
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedKeys(new Set());
+    setSelectedJob(null);
+  };
+
+  // Handler สำหรับรับงาน
+  const handleAcceptJob = (
+    jobId: string,
+    staffId: string,
+    staffName: string,
+  ) => {
+    setJobList((prevList) =>
+      prevList.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              status: "in-progress" as JobListTab,
+              assignedTo: staffId,
+              assignedToName: staffName,
+            }
+          : job,
+      ),
+    );
+    // อัปเดต selectedJob ถ้ายังเลือกอยู่
+    if (selectedJob?.id === jobId) {
+      setSelectedJob({
+        ...selectedJob,
+        status: "in-progress" as JobListTab,
+        assignedTo: staffId,
+        assignedToName: staffName,
+      });
+    }
+  };
+
+  // Handler สำหรับยกเลิกงาน
+  const handleCancelJob = (jobId: string) => {
+    setJobList((prevList) =>
+      prevList.map((job) =>
+        job.id === jobId ? { ...job, status: "cancelled" as JobListTab } : job,
+      ),
+    );
+    // อัปเดต selectedJob ถ้ายังเลือกอยู่
+    if (selectedJob?.id === jobId) {
+      setSelectedJob({
+        ...selectedJob,
+        status: "cancelled" as JobListTab,
+      });
+    }
+  };
+
+  // Handler สำหรับอัปเดตข้อมูลงาน
+  const handleUpdateJob = (
+    jobId: string,
+    updatedForm: PorterRequestFormData,
+  ) => {
+    setJobList((prevList) =>
+      prevList.map((job) =>
+        job.id === jobId ? { ...job, form: updatedForm } : job,
+      ),
+    );
+    // อัปเดต selectedJob ถ้ายังเลือกอยู่
+    if (selectedJob?.id === jobId) {
+      setSelectedJob({
+        ...selectedJob,
+        form: updatedForm,
+      });
+    }
+  };
 
   // ฟังก์ชันสำหรับเล่นเสียงแจ้งเตือน (เสียงกลิ่ง)
   const playNotificationSound = useCallback(() => {
@@ -350,202 +539,157 @@ export default function PorterJobListPage() {
             </div>
           </CardHeader>
           <CardBody>
-            {/* Tab Navigation */}
-            <div className="mb-6">
-              <div className="flex space-x-1 bg-default-100 p-1 rounded-lg w-full overflow-x-auto">
-                <button
-                  className={`flex-1 px-4 py-2 rounded-md transition-all text-sm ${
-                    selectedTab === "waiting"
-                      ? "bg-white shadow text-primary font-medium"
-                      : "text-default-600 hover:text-default-900"
-                  }`}
-                  onClick={() => setSelectedTab("waiting")}
-                >
+            {/* Tab Navigation - HeroUI Tabs */}
+            <Tabs
+              aria-label="รายการคำขอ"
+              classNames={{
+                tabList: "w-full",
+                tab: "data-[selected=true]:bg-primary-500 data-[selected=true]:text-white data-[selected=true]:hover:bg-primary/80",
+              }}
+              color="primary"
+              selectedKey={selectedTab}
+              size="lg"
+              variant="bordered"
+              onSelectionChange={(key) => setSelectedTab(key as JobListTab)}
+            >
+              <Tab
+                key="waiting"
+                title={
                   <div className="flex items-center justify-center space-x-2">
                     <ClipboardListIcon className="w-4 h-4" />
                     <span>รอศูนย์เปลรับงาน</span>
-                    <Chip color="danger" size="sm" variant="flat">
+                    <Chip
+                      color="danger"
+                      size="sm"
+                      variant={selectedTab === "waiting" ? "solid" : "bordered"}
+                    >
                       {waitingCount}
                     </Chip>
                   </div>
-                </button>
-                <button
-                  className={`flex-1 px-4 py-2 rounded-md transition-all text-sm ${
-                    selectedTab === "in-progress"
-                      ? "bg-white shadow text-primary font-medium"
-                      : "text-default-600 hover:text-default-900"
-                  }`}
-                  onClick={() => setSelectedTab("in-progress")}
-                >
+                }
+              >
+                <JobTable
+                  currentPage={currentPage}
+                  endIndex={endIndex}
+                  items={paginatedJobs}
+                  paginationId="rows-per-page"
+                  rowsPerPage={rowsPerPage}
+                  selectedKeys={selectedKeys}
+                  sortedJobs={sortedJobs}
+                  startIndex={startIndex}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  onRowsPerPageChange={setRowsPerPage}
+                  onSelectionChange={handleSelectionChange}
+                />
+              </Tab>
+              <Tab
+                key="in-progress"
+                title={
                   <div className="flex items-center justify-center space-x-2">
                     <ClockIcon className="w-4 h-4" />
                     <span>กำลังดำเนินการ</span>
-                    <Chip color="warning" size="sm" variant="flat">
+                    <Chip
+                      color="warning"
+                      size="sm"
+                      variant={
+                        selectedTab === "in-progress" ? "solid" : "bordered"
+                      }
+                    >
                       {inProgressCount}
                     </Chip>
                   </div>
-                </button>
-                <button
-                  className={`flex-1 px-4 py-2 rounded-md transition-all text-sm ${
-                    selectedTab === "completed"
-                      ? "bg-white shadow text-primary font-medium"
-                      : "text-default-600 hover:text-default-900"
-                  }`}
-                  onClick={() => setSelectedTab("completed")}
-                >
+                }
+              >
+                <JobTable
+                  currentPage={currentPage}
+                  endIndex={endIndex}
+                  items={paginatedJobs}
+                  paginationId="rows-per-page-2"
+                  rowsPerPage={rowsPerPage}
+                  sortedJobs={sortedJobs}
+                  startIndex={startIndex}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  onRowsPerPageChange={setRowsPerPage}
+                />
+              </Tab>
+              <Tab
+                key="completed"
+                title={
                   <div className="flex items-center justify-center space-x-2">
                     <CheckCircleIcon className="w-4 h-4" />
                     <span>เสร็จสิ้น</span>
+                    <Chip
+                      color="success"
+                      size="sm"
+                      variant={
+                        selectedTab === "completed" ? "solid" : "bordered"
+                      }
+                    >
+                      {completedCount}
+                    </Chip>
                   </div>
-                </button>
-                <button
-                  className={`flex-1 px-4 py-2 rounded-md transition-all text-sm ${
-                    selectedTab === "cancelled"
-                      ? "bg-white shadow text-primary font-medium"
-                      : "text-default-600 hover:text-default-900"
-                  }`}
-                  onClick={() => setSelectedTab("cancelled")}
-                >
+                }
+              >
+                <JobTable
+                  currentPage={currentPage}
+                  endIndex={endIndex}
+                  items={paginatedJobs}
+                  paginationId="rows-per-page-3"
+                  rowsPerPage={rowsPerPage}
+                  sortedJobs={sortedJobs}
+                  startIndex={startIndex}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  onRowsPerPageChange={setRowsPerPage}
+                />
+              </Tab>
+              <Tab
+                key="cancelled"
+                title={
                   <div className="flex items-center justify-center space-x-2">
                     <XMarkIcon className="w-4 h-4" />
                     <span>ยกเลิก</span>
+                    <Chip
+                      color="danger"
+                      size="sm"
+                      variant={
+                        selectedTab === "cancelled" ? "solid" : "bordered"
+                      }
+                    >
+                      {cancelledCount}
+                    </Chip>
                   </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Tab Content - HeroUI use-case: ซ่อนหัวตาราง เรนเดอร์เซลล์เดียวแบบ custom */}
-            <Table removeWrapper aria-label="รายการคำขอ" className="w-full">
-              <TableHeader columns={columns}>
-                {(column) => (
-                  <TableColumn key={column.key} hideHeader>
-                    {column.label}
-                  </TableColumn>
-                )}
-              </TableHeader>
-              <TableBody
-                emptyContent="ไม่มีรายการคำขอในหมวดนี้"
-                items={paginatedJobs}
+                }
               >
-                {(item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div
-                        className={`w-full rounded-md border ${
-                          item.status === "waiting"
-                            ? "bg-success-50/30 border-success-100"
-                            : "bg-content1 border-default-200"
-                        } p-3`}
-                      >
-                        {/* แถวบน: เวลาและแถบ tags หลัก */}
-                        <div className="flex items-center gap-2 text-sm">
-                          <Chip color="default" size="sm" variant="flat">
-                            {new Date(
-                              item.requestDate.replace(" ", "T"),
-                            ).toLocaleTimeString("th-TH", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: false,
-                            })}
-                          </Chip>
-                          {item.emergency && (
-                            <Chip color="danger" size="sm" variant="flat">
-                              ด่วน
-                            </Chip>
-                          )}
-                          <span className="text-default-700 font-medium">
-                            {item.description}
-                          </span>
-                          <span className="text-default-500">
-                            ➜ {item.delivery}
-                          </span>
-
-                          {/* ตัวอย่างแท็กหน่วยงาน/ความเร่งด่วน (dummy) */}
-                          <Chip color="secondary" size="sm" variant="flat">
-                            {item.requester}
-                          </Chip>
-                        </div>
-
-                        {/* แถวล่าง: สถานะ + ปุ่มการจัดการตามข้อกำหนดแท็บที่ 1 */}
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            {item.status === "waiting" && (
-                              <Chip color="default" size="sm" variant="flat">
-                                {"รอศูนย์เปลรับงาน ผู้รับงาน "}
-                                {"[นายอริญชย์ ศรีชูเปี่ยม]"}
-                              </Chip>
-                            )}
-                            {item.status === "in-progress" && (
-                              <Chip color="warning" size="sm" variant="flat">
-                                {"กำลังดำเนินการ ผู้ดำเนินการ "}
-                                {"[นายอริญชย์ ศรีชูเปี่ยม]"}
-                              </Chip>
-                            )}
-                            {item.status === "completed" && (
-                              <Chip color="success" size="sm" variant="flat">
-                                เสร็จสิ้น
-                              </Chip>
-                            )}
-                            {item.status === "cancelled" && (
-                              <Chip color="danger" size="sm" variant="flat">
-                                ยกเลิก ผู้ยกเลิก [นายอริญชย์ ศรีชูเปี่ยม]
-                              </Chip>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            {/* Pagination */}
-            {sortedJobs.length > 0 && (
-              <div className="flex items-center justify-between mt-4 px-2">
-                <div className="text-sm text-default-600">
-                  แสดง {startIndex + 1} - {""}
-                  {Math.min(endIndex, sortedJobs.length)} จาก {""}
-                  {sortedJobs.length} รายการ
-                </div>
-                <Pagination
-                  showControls
-                  color="primary"
-                  initialPage={1}
-                  page={currentPage}
-                  size="sm"
-                  total={totalPages}
-                  onChange={setCurrentPage}
+                <JobTable
+                  currentPage={currentPage}
+                  endIndex={endIndex}
+                  items={paginatedJobs}
+                  paginationId="rows-per-page-4"
+                  rowsPerPage={rowsPerPage}
+                  sortedJobs={sortedJobs}
+                  startIndex={startIndex}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  onRowsPerPageChange={setRowsPerPage}
                 />
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <label
-                      className="text-sm text-default-600"
-                      htmlFor="rows-per-page"
-                    >
-                      แสดงต่อหน้า:
-                    </label>
-                    <select
-                      className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                      id="rows-per-page"
-                      value={rowsPerPage}
-                      onChange={(e) => {
-                        setRowsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
+              </Tab>
+            </Tabs>
           </CardBody>
         </Card>
       </div>
+
+      {/* Job Detail Drawer */}
+      <JobDetailDrawer
+        isOpen={isDrawerOpen}
+        job={selectedJob}
+        onAcceptJob={handleAcceptJob}
+        onCancelJob={handleCancelJob}
+        onClose={handleCloseDrawer}
+        onUpdateJob={handleUpdateJob}
+      />
     </div>
   );
 }

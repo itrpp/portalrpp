@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Breadcrumbs,
   BreadcrumbItem,
@@ -36,14 +36,21 @@ interface BreadcrumbItemType {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
   // ตรวจสอบ authentication status
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login");
+      // ส่ง callbackUrl ไปด้วยเพื่อกลับมาหน้าเดิมหลัง login
+      const callbackUrl = encodeURIComponent(
+        pathname +
+          (searchParams.toString() ? `?${searchParams.toString()}` : ""),
+      );
+
+      router.push(`/login?callbackUrl=${callbackUrl}`);
     }
-  }, [status, router]);
+  }, [status, router, pathname, searchParams]);
 
   const handleLogout = async () => {
     await signOut({

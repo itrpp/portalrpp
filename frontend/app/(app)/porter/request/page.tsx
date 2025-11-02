@@ -37,6 +37,7 @@ import {
   UrgencyLevel,
   EquipmentType,
 } from "@/types";
+import { formatThaiDateTimeShort } from "@/lib/utils";
 
 // ========================================
 // PORTER REQUEST PAGE
@@ -48,24 +49,25 @@ export default function PorterRequestPage() {
   const [formData, setFormData] = useState<PorterRequestFormData>({
     requesterDepartment: session?.user?.department || "",
     requesterName: session?.user?.name || "",
-    requesterPhone: "",
+    requesterPhone: "8807",
 
-    patientName: "",
-    patientHN: "",
+    patientName: "สมชาย สมหญิง",
+    patientHN: "00000/00",
     patientAge: "",
     patientGender: "ไม่ระบุ",
     patientWeight: "",
 
-    pickupLocation: "",
-    deliveryLocation: "",
-    requestedDateTime: "",
-    urgencyLevel: "ปกติ",
-    vehicleType: "รถนั่ง",
-    equipment: [],
+    pickupLocation: "ER",
+    deliveryLocation: "[188] [อาคารเฉลิมพระเกียรติ] X-ray",
+    requestedDateTime: getDateTimeLocal(),
+    urgencyLevel: "ด่วน",
+    vehicleType: "รถนอน",
+    equipment: ["IV Pump", "Ventilator"],
     assistanceCount: "",
-    hasVehicle: "",
+    hasVehicle: "ไม่มี",
+    returnTrip: "รับกลับด้วย",
 
-    transportReason: "",
+    transportReason: "ตรวจพิเศษ (CT/MRI/X-Ray)",
     medicalAllergies: "",
     specialNotes: "",
     patientCondition: "",
@@ -79,14 +81,14 @@ export default function PorterRequestPage() {
   const urgencyOptions: {
     value: UrgencyLevel;
     label: string;
-    color: "default" | "warning" | "danger";
+    color: "default" | "warning" | "danger" | "success";
   }[] = [
-    { value: "ปกติ", label: "ปกติ", color: "default" },
-    { value: "ด่วน", label: "ด่วน", color: "warning" },
-    { value: "ฉุกเฉิน", label: "ฉุกเฉิน", color: "danger" },
-  ];
+      { value: "ปกติ", label: "ปกติ", color: "success" },
+      { value: "ด่วน", label: "ด่วน", color: "warning" },
+      { value: "ฉุกเฉิน", label: "ฉุกเฉิน", color: "danger" },
+    ];
 
-  const vehicleTypeOptions: VehicleType[] = ["รถนั่ง", "รถนอน"];
+  const vehicleTypeOptions: VehicleType[] = ["รถนั่ง", "รถนอน", "รถกอล์ฟ"];
 
   const equipmentOptions: EquipmentType[] = [
     "Oxygen",
@@ -187,10 +189,6 @@ export default function PorterRequestPage() {
         "กรุณาระบุวันที่และเวลาที่ต้องการเคลื่อนย้าย";
     }
 
-    if (formData.assistanceCount === "") {
-      newErrors.assistanceCount = "กรุณาระบุจำนวนผู้ช่วยเหลือ";
-    }
-
     if (!formData.transportReason.trim()) {
       newErrors.transportReason = "กรุณากรอกรายการเหตุการเคลื่อนย้าย";
     }
@@ -249,10 +247,11 @@ export default function PorterRequestPage() {
         deliveryLocation: "",
         requestedDateTime: "",
         urgencyLevel: "ปกติ",
-        vehicleType: "รถนั่ง",
+        vehicleType: "รถนอน",
         equipment: [],
         assistanceCount: "",
         hasVehicle: "",
+        returnTrip: "",
 
         transportReason: "",
         medicalAllergies: "",
@@ -286,12 +285,28 @@ export default function PorterRequestPage() {
   };
 
   // Format datetime-local input
-  const getDateTimeLocal = (): string => {
+  function getDateTimeLocal(): string {
     const now = new Date();
 
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 
     return now.toISOString().slice(0, 16);
+  }
+
+  const getSummaryMissing = (): string[] => {
+    const missing: string[] = [];
+
+    if (!formData.requesterDepartment.trim()) missing.push("หน่วยงานผู้แจ้ง");
+    if (!formData.requesterName.trim()) missing.push("ชื่อผู้แจ้ง");
+    if (!formData.requesterPhone.trim()) missing.push("เบอร์โทรติดต่อ");
+    if (!formData.patientHN.trim()) missing.push("หมายเลข HN/AN");
+    if (!formData.patientName.trim()) missing.push("ชื่อผู้ป่วย");
+    if (!formData.pickupLocation.trim()) missing.push("สถานที่รับ");
+    if (!formData.deliveryLocation.trim()) missing.push("สถานที่ส่ง");
+    if (!formData.requestedDateTime.trim()) missing.push("วันที่และเวลา");
+    if (!formData.transportReason.trim()) missing.push("เหตุผลการเคลื่อนย้าย");
+
+    return missing;
   };
 
   return (
@@ -310,410 +325,437 @@ export default function PorterRequestPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <form className="space-y-6 md:col-span-2" onSubmit={handleSubmit}>
-          {/* รวมเป็นการ์ดเดียว */}
+          {/* การ์ดที่ 1: ข้อมูลหน่วยงานผู้แจ้ง */}
           <Card className="shadow-lg border border-default-200">
-            <CardBody className="space-y-8 pt-4">
-              {/* ส่วนที่ 1: ข้อมูลหน่วยงานผู้แจ้ง */}
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <BuildingOfficeIcon className="w-6 h-6 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">
-                    ข้อมูลหน่วยงานผู้แจ้ง
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Select
-                    isRequired
-                    errorMessage={errors.requesterDepartment}
-                    isInvalid={!!errors.requesterDepartment}
-                    label="หน่วยงานผู้แจ้ง"
-                    placeholder="เลือกหน่วยงาน"
-                    selectedKeys={
-                      formData.requesterDepartment
-                        ? [formData.requesterDepartment]
-                        : []
-                    }
-                    startContent={<BuildingOfficeIcon className="w-4 h-4" />}
-                    variant="bordered"
-                    onSelectionChange={(keys) => {
-                      const selected = Array.from(keys)[0] as string;
-
-                      handleInputChange("requesterDepartment", selected);
-                    }}
-                  >
-                    {departmentOptions.map((dept) => (
-                      <SelectItem key={dept}>{dept}</SelectItem>
-                    ))}
-                  </Select>
-
-                  <Input
-                    isRequired
-                    errorMessage={errors.requesterName}
-                    isInvalid={!!errors.requesterName}
-                    label="ชื่อผู้แจ้ง"
-                    placeholder="กรอกชื่อผู้แจ้ง"
-                    startContent={
-                      <UserIcon className="w-4 h-4 text-default-400" />
-                    }
-                    value={formData.requesterName}
-                    variant="bordered"
-                    onChange={(e) => {
-                      handleInputChange("requesterName", e.target.value);
-                    }}
-                  />
-
-                  <Input
-                    isRequired
-                    errorMessage={errors.requesterPhone}
-                    isInvalid={!!errors.requesterPhone}
-                    label="เบอร์โทรติดต่อ"
-                    placeholder="เช่น 0812345678"
-                    startContent={
-                      <PhoneIcon className="w-4 h-4 text-default-400" />
-                    }
-                    value={formData.requesterPhone}
-                    variant="bordered"
-                    onChange={(e) => {
-                      handleInputChange("requesterPhone", e.target.value);
-                    }}
-                  />
-                </div>
-              </section>
-
-              <div className="border-t border-default-200" />
-
-              {/* ส่วนที่ 2: ข้อมูลผู้ป่วย */}
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <UserIcon className="w-6 h-6 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">
-                    ข้อมูลผู้ป่วย
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    isRequired
-                    errorMessage={errors.patientHN}
-                    isInvalid={!!errors.patientHN}
-                    label="หมายเลข HN / AN"
-                    placeholder="เช่น 123456/68"
-                    value={formData.patientHN}
-                    variant="bordered"
-                    onChange={(e) => {
-                      handleInputChange("patientHN", e.target.value);
-                    }}
-                  />
-
-                  <Input
-                    isRequired
-                    errorMessage={errors.patientName}
-                    isInvalid={!!errors.patientName}
-                    label="ชื่อผู้ป่วย"
-                    placeholder="กรอกชื่อผู้ป่วย"
-                    value={formData.patientName}
-                    variant="bordered"
-                    onChange={(e) => {
-                      handleInputChange("patientName", e.target.value);
-                    }}
-                  />
-                </div>
-                <div className="mt-4">
-                  <Textarea
-                    classNames={{
-                      input: "resize-y min-h-[40px]",
-                    }}
-                    label="สภาพผู้ป่วย"
-                    minRows={3}
-                    placeholder="เช่น ผู้ป่วยไม่รู้สึกตัว, ผู้ป่วยเดินได้เอง ฯลฯ"
-                    value={formData.patientCondition}
-                    variant="bordered"
-                    onChange={(e) => {
-                      handleInputChange("patientCondition", e.target.value);
-                    }}
-                  />
-                </div>
-              </section>
-
-              <div className="border-t border-default-200" />
-
-              {/* ส่วนที่ 3: ข้อมูลการเคลื่อนย้าย */}
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <MapPinIcon className="w-6 h-6 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">
-                    ข้อมูลการเคลื่อนย้าย
-                  </h3>
-                </div>
+            <CardHeader className="pb-0">
+              <div className="flex items-center gap-2">
+                <BuildingOfficeIcon className="w-6 h-6 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  ข้อมูลหน่วยงานผู้แจ้ง
+                </h3>
+              </div>
+            </CardHeader>
+            <CardBody className="pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
                   isRequired
-                  errorMessage={errors.transportReason}
-                  isInvalid={!!errors.transportReason}
-                  label="รายการเหตุผลการเคลื่อนย้าย"
-                  placeholder="เลือกเหตุผล"
+                  errorMessage={errors.requesterDepartment}
+                  isInvalid={!!errors.requesterDepartment}
+                  label="หน่วยงานผู้แจ้ง"
+                  placeholder="เลือกหน่วยงาน"
                   selectedKeys={
-                    formData.transportReason ? [formData.transportReason] : []
+                    formData.requesterDepartment
+                      ? [formData.requesterDepartment]
+                      : []
                   }
+                  startContent={<BuildingOfficeIcon className="w-4 h-4" />}
                   variant="bordered"
                   onSelectionChange={(keys) => {
                     const selected = Array.from(keys)[0] as string;
 
-                    handleInputChange("transportReason", selected);
+                    handleInputChange("requesterDepartment", selected);
                   }}
                 >
-                  {transportReasonOptions.map((r) => (
-                    <SelectItem key={r}>{r}</SelectItem>
+                  {departmentOptions.map((dept) => (
+                    <SelectItem key={dept}>{dept}</SelectItem>
                   ))}
                 </Select>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <Autocomplete
-                    isRequired
-                    errorMessage={errors.pickupLocation}
-                    isInvalid={!!errors.pickupLocation}
-                    label="สถานที่รับ"
-                    placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่รับ"
-                    selectedKey={formData.pickupLocation || undefined}
-                    startContent={<MapPinIcon className="w-4 h-4" />}
-                    variant="bordered"
-                    onSelectionChange={(key) => {
-                      handleInputChange("pickupLocation", String(key));
-                    }}
-                  >
-                    {locationOptions.map((location) => (
-                      <AutocompleteItem key={location} textValue={location}>
-                        {location}
-                      </AutocompleteItem>
-                    ))}
-                  </Autocomplete>
+                <Input
+                  isRequired
+                  errorMessage={errors.requesterName}
+                  isInvalid={!!errors.requesterName}
+                  label="ชื่อผู้แจ้ง"
+                  placeholder="กรอกชื่อผู้แจ้ง"
+                  startContent={
+                    <UserIcon className="w-4 h-4 text-default-400" />
+                  }
+                  value={formData.requesterName}
+                  variant="bordered"
+                  onChange={(e) => {
+                    handleInputChange("requesterName", e.target.value);
+                  }}
+                />
 
-                  <Autocomplete
-                    isRequired
-                    errorMessage={errors.deliveryLocation}
-                    isInvalid={!!errors.deliveryLocation}
-                    label="สถานที่ส่ง"
-                    placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่ส่ง"
-                    selectedKey={formData.deliveryLocation || undefined}
-                    startContent={<MapPinIcon className="w-4 h-4" />}
-                    variant="bordered"
-                    onSelectionChange={(key) => {
-                      handleInputChange("deliveryLocation", String(key));
-                    }}
-                  >
-                    {locationOptions.map((location) => (
-                      <AutocompleteItem key={location} textValue={location}>
-                        {location}
-                      </AutocompleteItem>
-                    ))}
-                  </Autocomplete>
-                </div>
+                <Input
+                  isRequired
+                  errorMessage={errors.requesterPhone}
+                  isInvalid={!!errors.requesterPhone}
+                  label="เบอร์โทรติดต่อ"
+                  placeholder="เช่น 0812345678"
+                  startContent={
+                    <PhoneIcon className="w-4 h-4 text-default-400" />
+                  }
+                  value={formData.requesterPhone}
+                  variant="bordered"
+                  onChange={(e) => {
+                    handleInputChange("requesterPhone", e.target.value);
+                  }}
+                />
+              </div>
+            </CardBody>
+          </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div className="space-y-2">
-                    <Input
-                      isRequired
-                      errorMessage={errors.requestedDateTime}
-                      isInvalid={!!errors.requestedDateTime}
-                      label="วันที่และเวลาที่ต้องการเคลื่อนย้าย"
-                      placeholder="เลือกวันที่และเวลา"
-                      startContent={
-                        <CalendarIcon className="w-4 h-4 text-default-400" />
+          {/* การ์ดที่ 2: ข้อมูลผู้ป่วย */}
+          <Card className="shadow-lg border border-default-200">
+            <CardHeader className="pb-0">
+              <div className="flex items-center gap-2">
+                <UserIcon className="w-6 h-6 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  ข้อมูลผู้ป่วย
+                </h3>
+              </div>
+            </CardHeader>
+            <CardBody className="pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  isRequired
+                  errorMessage={errors.patientHN}
+                  isInvalid={!!errors.patientHN}
+                  label="หมายเลข HN / AN"
+                  placeholder="เช่น 123456/68"
+                  value={formData.patientHN}
+                  variant="bordered"
+                  onChange={(e) => {
+                    handleInputChange("patientHN", e.target.value);
+                  }}
+                />
+
+                <Input
+                  isRequired
+                  errorMessage={errors.patientName}
+                  isInvalid={!!errors.patientName}
+                  label="ชื่อผู้ป่วย"
+                  placeholder="กรอกชื่อผู้ป่วย"
+                  value={formData.patientName}
+                  variant="bordered"
+                  onChange={(e) => {
+                    handleInputChange("patientName", e.target.value);
+                  }}
+                />
+              </div>
+              <div className="mt-4">
+                <Textarea
+                  classNames={{ input: "resize-y min-h-[40px]" }}
+                  label="อาการผู้ป่วย"
+                  minRows={3}
+                  placeholder="เช่น ผู้ป่วยไม่รู้สึกตัว, ผู้ป่วยเดินได้เอง ฯลฯ"
+                  value={formData.patientCondition}
+                  variant="bordered"
+                  onChange={(e) => {
+                    handleInputChange("patientCondition", e.target.value);
+                  }}
+                />
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* การ์ดที่ 3: ข้อมูลการเคลื่อนย้าย */}
+          <Card className="shadow-lg border border-default-200">
+            <CardHeader className="pb-0">
+              <div className="flex items-center gap-2">
+                <MapPinIcon className="w-6 h-6 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  ข้อมูลการเคลื่อนย้าย
+                </h3>
+              </div>
+            </CardHeader>
+            <CardBody className="pt-4 space-y-4">
+              <Select
+                isRequired
+                errorMessage={errors.transportReason}
+                isInvalid={!!errors.transportReason}
+                label="รายการเหตุผลการเคลื่อนย้าย"
+                placeholder="เลือกเหตุผล"
+                selectedKeys={
+                  formData.transportReason ? [formData.transportReason] : []
+                }
+                variant="bordered"
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
+
+                  handleInputChange("transportReason", selected);
+                }}
+              >
+                {transportReasonOptions.map((r) => (
+                  <SelectItem key={r}>{r}</SelectItem>
+                ))}
+              </Select>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Autocomplete
+                  isRequired
+                  errorMessage={errors.pickupLocation}
+                  isInvalid={!!errors.pickupLocation}
+                  label="สถานที่รับ"
+                  placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่รับ"
+                  selectedKey={formData.pickupLocation || undefined}
+                  startContent={<MapPinIcon className="w-4 h-4" />}
+                  variant="bordered"
+                  onSelectionChange={(key) => {
+                    handleInputChange("pickupLocation", String(key));
+                  }}
+                >
+                  {locationOptions.map((location) => (
+                    <AutocompleteItem key={location} textValue={location}>
+                      {location}
+                    </AutocompleteItem>
+                  ))}
+                </Autocomplete>
+
+                <Autocomplete
+                  isRequired
+                  errorMessage={errors.deliveryLocation}
+                  isInvalid={!!errors.deliveryLocation}
+                  label="สถานที่ส่ง"
+                  placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่ส่ง"
+                  selectedKey={formData.deliveryLocation || undefined}
+                  startContent={<MapPinIcon className="w-4 h-4" />}
+                  variant="bordered"
+                  onSelectionChange={(key) => {
+                    handleInputChange("deliveryLocation", String(key));
+                  }}
+                >
+                  {locationOptions.map((location) => (
+                    <AutocompleteItem key={location} textValue={location}>
+                      {location}
+                    </AutocompleteItem>
+                  ))}
+                </Autocomplete>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Input
+                    isRequired
+                    errorMessage={errors.requestedDateTime}
+                    isInvalid={!!errors.requestedDateTime}
+                    label="วันที่และเวลาที่ต้องการเคลื่อนย้าย"
+                    placeholder="เลือกวันที่และเวลา"
+                    startContent={
+                      <CalendarIcon className="w-4 h-4 text-default-400" />
+                    }
+                    type="datetime-local"
+                    value={formData.requestedDateTime}
+                    variant="bordered"
+                    onChange={(e) => {
+                      handleInputChange("requestedDateTime", e.target.value);
+                    }}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      onPress={() =>
+                        handleInputChange(
+                          "requestedDateTime",
+                          getDateTimeLocal(),
+                        )
                       }
-                      type="datetime-local"
-                      value={formData.requestedDateTime || getDateTimeLocal()}
-                      variant="bordered"
-                      onChange={(e) => {
-                        handleInputChange("requestedDateTime", e.target.value);
+                    >
+                      ตอนนี้
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      onPress={() => {
+                        const d = new Date();
+
+                        d.setMinutes(d.getMinutes() + 30);
+                        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                        handleInputChange(
+                          "requestedDateTime",
+                          d.toISOString().slice(0, 16),
+                        );
                       }}
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        onPress={() =>
-                          handleInputChange(
-                            "requestedDateTime",
-                            getDateTimeLocal(),
+                    >
+                      +30 นาที
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      onPress={() => {
+                        const d = new Date();
+
+                        d.setHours(d.getHours() + 2);
+                        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                        handleInputChange(
+                          "requestedDateTime",
+                          d.toISOString().slice(0, 16),
+                        );
+                      }}
+                    >
+                      +2 ชั่วโมง
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-foreground mb-2 block">
+                    ความเร่งด่วน
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {urgencyOptions.map((option) => (
+                      <Chip
+                        key={option.value}
+                        className="cursor-pointer"
+                        color={option.color}
+                        startContent={
+                          option.value === "ฉุกเฉิน" ||
+                            option.value === "ด่วน" ? (
+                            <AmbulanceIcon className="w-4 h-4" />
+                          ) : (
+                            <ClipboardListIcon className="w-4 h-4" />
                           )
                         }
-                      >
-                        ตอนนี้
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        onPress={() => {
-                          const d = new Date();
-
-                          d.setMinutes(d.getMinutes() + 30);
-                          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-
-                          handleInputChange(
-                            "requestedDateTime",
-                            d.toISOString().slice(0, 16),
-                          );
-                        }}
-                      >
-                        +30 นาที
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        onPress={() => {
-                          const d = new Date();
-
-                          d.setHours(d.getHours() + 2);
-                          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-
-                          handleInputChange(
-                            "requestedDateTime",
-                            d.toISOString().slice(0, 16),
-                          );
-                        }}
-                      >
-                        +2 ชั่วโมง
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground mb-2 block">
-                      ความเร่งด่วน
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {urgencyOptions.map((option) => (
-                        <Chip
-                          key={option.value}
-                          className="cursor-pointer"
-                          color={
-                            formData.urgencyLevel === option.value
-                              ? option.color
-                              : "default"
-                          }
-                          variant={
-                            formData.urgencyLevel === option.value
-                              ? "solid"
-                              : "flat"
-                          }
-                          onClick={() =>
-                            handleInputChange("urgencyLevel", option.value)
-                          }
-                        >
-                          {option.label}
-                        </Chip>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm font-medium text-foreground mb-2 block">
-                        ประเภทรถ
-                      </div>
-                      <RadioGroup
-                        className="gap-3"
-                        orientation="horizontal"
-                        value={formData.vehicleType}
-                        onValueChange={(val) =>
-                          handleInputChange("vehicleType", val as VehicleType)
+                        variant={
+                          formData.urgencyLevel === option.value
+                            ? "solid"
+                            : "bordered"
+                        }
+                        onClick={() =>
+                          handleInputChange("urgencyLevel", option.value)
                         }
                       >
-                        {vehicleTypeOptions.map((type) => (
-                          <Radio key={type} size="sm" value={type}>
-                            {type}
-                          </Radio>
-                        ))}
-                      </RadioGroup>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-foreground mb-2 block">
-                        มีรถแล้วหรือยัง
-                      </div>
-                      <RadioGroup
-                        className="gap-3"
-                        orientation="horizontal"
-                        value={formData.hasVehicle}
-                        onValueChange={(val) =>
-                          handleInputChange("hasVehicle", val as "มี" | "ไม่มี")
-                        }
-                      >
-                        <Radio size="sm" value="มี">
-                          มี
-                        </Radio>
-                        <Radio size="sm" value="ไม่มี">
-                          ไม่มี
-                        </Radio>
-                      </RadioGroup>
-                    </div>
+                        {option.label}
+                      </Chip>
+                    ))}
                   </div>
                 </div>
-
-                <div className="mt-4">
-                  <label
-                    className="text-sm font-medium text-foreground mb-2 block"
-                    htmlFor="equipment-group"
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm font-medium text-foreground mb-2 block">
+                    ประเภทรถ
+                  </div>
+                  <RadioGroup
+                    className="gap-3"
+                    orientation="horizontal"
+                    value={formData.vehicleType}
+                    onValueChange={(val) =>
+                      handleInputChange("vehicleType", val as VehicleType)
+                    }
                   >
-                    อุปกรณ์ที่ต้องการ
-                  </label>
-                  <CheckboxGroup
-                    id="equipment-group"
-                    value={formData.equipment}
-                    onValueChange={(values) => {
-                      handleInputChange("equipment", values as EquipmentType[]);
-                    }}
+                    {vehicleTypeOptions.map((type) => (
+                      <Radio key={type} size="sm" value={type}>
+                        {type}
+                      </Radio>
+                    ))}
+                  </RadioGroup>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-foreground mb-2 block">
+                    มีรถแล้วหรือยัง
+                  </div>
+                  <RadioGroup
+                    className="gap-3"
+                    orientation="horizontal"
+                    value={formData.hasVehicle}
+                    onValueChange={(val) =>
+                      handleInputChange("hasVehicle", val as "มี" | "ไม่มี")
+                    }
                   >
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {equipmentOptions.map((equipment) => (
-                        <Checkbox key={equipment} size="sm" value={equipment}>
-                          {equipmentLabels[equipment]}
-                        </Checkbox>
-                      ))}
-                    </div>
-                  </CheckboxGroup>
+                    <Radio size="sm" value="มี">
+                      มี
+                    </Radio>
+                    <Radio size="sm" value="ไม่มี">
+                      ไม่มี
+                    </Radio>
+                  </RadioGroup>
                 </div>
-              </section>
-
-              <div className="border-t border-default-200" />
-
-              {/* ส่วนที่ 4: รายละเอียดเพิ่มเติม */}
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <ClipboardListIcon className="w-6 h-6 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">
-                    รายละเอียดเพิ่มเติม
-                  </h3>
+                <div>
+                  <div className="text-sm font-medium text-foreground mb-2 block">
+                    ส่งกลับหรือไม่
+                  </div>
+                  <RadioGroup
+                    className="gap-3"
+                    orientation="horizontal"
+                    value={formData.returnTrip}
+                    onValueChange={(val) =>
+                      handleInputChange(
+                        "returnTrip",
+                        val as "ไปส่งอย่างเดียว" | "รับกลับด้วย",
+                      )
+                    }
+                  >
+                    <Radio size="sm" value="ไปส่งอย่างเดียว">
+                      ไปส่งอย่างเดียว
+                    </Radio>
+                    <Radio size="sm" value="รับกลับด้วย">
+                      รับกลับด้วย
+                    </Radio>
+                  </RadioGroup>
                 </div>
-                <Textarea
-                  label="ข้อมูลแพ้ยา/สาร (ถ้ามี)"
-                  minRows={2}
-                  placeholder="กรอกข้อมูลการแพ้ยาหรือสารต่างๆ"
-                  value={formData.medicalAllergies}
-                  variant="bordered"
-                  onChange={(e) => {
-                    handleInputChange("medicalAllergies", e.target.value);
+              </div>
+              <div className="mt-4">
+                <label
+                  className="text-sm font-medium text-foreground mb-2 block"
+                  htmlFor="equipment-group"
+                >
+                  อุปกรณ์ที่ต้องการ
+                </label>
+                <CheckboxGroup
+                  id="equipment-group"
+                  value={formData.equipment}
+                  onValueChange={(values) => {
+                    handleInputChange("equipment", values as EquipmentType[]);
                   }}
-                />
-
-                <Textarea
-                  className="mt-4"
-                  label="หมายเหตุ / ข้อมูลเพิ่มเติม"
-                  minRows={2}
-                  placeholder="ระบุข้อมูลเพิ่มเติมที่สำคัญ เช่น ข้อควรระวังพิเศษ, โรคประจำตัว, อาการพิเศษ"
-                  value={formData.specialNotes}
-                  variant="bordered"
-                  onChange={(e) => {
-                    handleInputChange("specialNotes", e.target.value);
-                  }}
-                />
-              </section>
+                >
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {equipmentOptions.map((equipment) => (
+                      <Checkbox key={equipment} size="sm" value={equipment}>
+                        {equipmentLabels[equipment]}
+                      </Checkbox>
+                    ))}
+                  </div>
+                </CheckboxGroup>
+              </div>
             </CardBody>
-            <CardFooter className="border-t border-default-200 mt-2 p-3 flex justify-end gap-4">
+          </Card>
+
+          {/* การ์ดที่ 4: รายละเอียดเพิ่มเติม */}
+          <Card className="shadow-lg border border-default-200">
+            <CardHeader className="pb-0">
+              <div className="flex items-center gap-2">
+                <ClipboardListIcon className="w-6 h-6 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  รายละเอียดเพิ่มเติม
+                </h3>
+              </div>
+            </CardHeader>
+            <CardBody className="pt-4">
+              <Textarea
+                label="ข้อมูลแพ้ยา/สาร (ถ้ามี)"
+                minRows={2}
+                placeholder="กรอกข้อมูลการแพ้ยาหรือสารต่างๆ"
+                value={formData.medicalAllergies}
+                variant="bordered"
+                onChange={(e) => {
+                  handleInputChange("medicalAllergies", e.target.value);
+                }}
+              />
+
+              <Textarea
+                className="mt-4"
+                label="หมายเหตุ / ข้อมูลเพิ่มเติม"
+                minRows={2}
+                placeholder="ระบุข้อมูลเพิ่มเติมที่สำคัญ เช่น ข้อควรระวังพิเศษ, โรคประจำตัว, อาการพิเศษ"
+                value={formData.specialNotes}
+                variant="bordered"
+                onChange={(e) => {
+                  handleInputChange("specialNotes", e.target.value);
+                }}
+              />
+            </CardBody>
+          </Card>
+
+          {/* การ์ดปุ่มคำสั่ง */}
+          <Card className="shadow-lg border border-default-200">
+            <CardFooter className="p-3 flex justify-end gap-4">
               <Button
                 size="md"
                 type="button"
                 variant="flat"
                 onPress={() => {
-                  // Reset form
                   setFormData({
                     requesterDepartment: session?.user?.department || "",
                     requesterName: session?.user?.name || "",
@@ -727,12 +769,13 @@ export default function PorterRequestPage() {
 
                     pickupLocation: "",
                     deliveryLocation: "",
-                    requestedDateTime: "",
+                    requestedDateTime: getDateTimeLocal(),
                     urgencyLevel: "ปกติ",
                     vehicleType: "รถนั่ง",
                     equipment: [],
                     assistanceCount: "",
                     hasVehicle: "",
+                    returnTrip: "",
 
                     transportReason: "",
                     medicalAllergies: "",
@@ -762,70 +805,196 @@ export default function PorterRequestPage() {
         {/* Right Summary */}
         <aside className="space-y-4">
           <Card className="shadow-lg border border-default-200">
-            <CardHeader className="pb-0">
-              <div className="flex items-center gap-2">
-                <ClipboardListIcon className="w-6 h-6 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">
-                  สรุปคำขอ
-                </h2>
+            <CardHeader className="pl-0">
+              <div className="flex items-center justify-between gap-2 pl-2">
+                <div className="flex items-center gap-2">
+                  <ClipboardListIcon className="w-6 h-6 text-primary" />
+                  <h2 className="text-lg font-semibold text-foreground">
+                    สรุปคำขอ
+                  </h2>
+                </div>
+                <Chip
+                  color={
+                    (urgencyOptions.find(
+                      (o) => o.value === formData.urgencyLevel,
+                    )?.color as "default" | "warning" | "danger" | "success") ||
+                    "default"
+                  }
+                  size="sm"
+                  variant="bordered"
+                >
+                  {formData.urgencyLevel}
+                </Chip>
               </div>
             </CardHeader>
             <CardBody className="pt-4 text-sm space-y-3">
-              <div className="space-y-1">
-                <div className="text-default-600">หน่วยงานผู้แจ้ง</div>
-                <div className="font-medium">
-                  {formData.requesterDepartment || "-"}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-default-600">หน่วยงานผู้แจ้ง</div>
+                  <div
+                    className={
+                      "font-medium " +
+                      (!formData.requesterDepartment ? "text-danger-600" : "")
+                    }
+                  >
+                    {formData.requesterDepartment || "-"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-default-600">เบอร์โทรผู้แจ้ง</div>
+                  <div
+                    className={
+                      "font-medium " +
+                      (!formData.requesterPhone ? "text-danger-600" : "")
+                    }
+                  >
+                    {formData.requesterPhone || "-"}
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="text-default-600">สถานที่รับ</div>
-                  <div className="font-medium">
+                  <div
+                    className={
+                      "font-medium " +
+                      (!formData.pickupLocation ? "text-danger-600" : "")
+                    }
+                  >
                     {formData.pickupLocation || "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-default-600">สถานที่ส่ง</div>
-                  <div className="font-medium">
+                  <div
+                    className={
+                      "font-medium " +
+                      (!formData.deliveryLocation ? "text-danger-600" : "")
+                    }
+                  >
                     {formData.deliveryLocation || "-"}
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div>
                 <div>
-                  <div className="text-default-600">ความเร่งด่วน</div>
-                  <div className="font-medium">{formData.urgencyLevel}</div>
+                  <div className="text-default-600">เหตุผลการเคลื่อนย้าย</div>
+                  <div
+                    className={
+                      "font-medium " +
+                      (!formData.transportReason ? "text-danger-600" : "")
+                    }
+                  >
+                    {formData.transportReason || "-"}
+                  </div>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div>
                   <div className="text-default-600">ประเภทรถ</div>
                   <div className="font-medium">{formData.vehicleType}</div>
                 </div>
+                <div>
+                  <div className="text-default-600">มีรถแล้วหรือยัง</div>
+                  <div
+                    className={
+                      "font-medium " +
+                      (!formData.hasVehicle ? "text-danger-600" : "")
+                    }
+                  >
+                    {formData.hasVehicle ? formData.hasVehicle : "-"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-default-600">ส่งกลับหรือไม่</div>
+                  <div
+                    className={
+                      "font-medium " +
+                      (!formData.returnTrip ? "text-danger-600" : "")
+                    }
+                  >
+                    {formData.returnTrip ? formData.returnTrip : "-"}
+                  </div>
+                </div>
+                <div>
+                  {/* <div>
+                    <div className="text-default-600">ความเร่งด่วน</div>
+                    <div>
+                      <Chip
+                        className="h-6"
+                        color={
+                          (urgencyOptions.find(
+                            (o) => o.value === formData.urgencyLevel,
+                          )?.color as
+                            | "default"
+                            | "warning"
+                            | "danger"
+                            | "success") || "default"
+                        }
+                        startContent={
+                          formData.urgencyLevel === "ฉุกเฉิน" ? (
+                            <AmbulanceIcon className="w-4 h-4" />
+                          ) : formData.urgencyLevel === "ด่วน" ? (
+                            <AmbulanceIcon className="w-4 h-4" />
+                          ) : (
+                            <ClipboardListIcon className="w-4 h-4" />
+                          )
+                        }
+                        variant="solid"
+                      >
+                        {formData.urgencyLevel}
+                      </Chip>
+                    </div>
+                  </div> */}
+                </div>
               </div>
               <div>
                 <div className="text-default-600">ผู้ป่วย</div>
-                <div className="font-medium">
+                <div
+                  className={
+                    "font-medium " +
+                    (!formData.patientHN || !formData.patientName
+                      ? "text-danger-600"
+                      : "")
+                  }
+                >
                   {formData.patientHN || "-"}
                   {formData.patientName ? ` - ${formData.patientName}` : ""}
                 </div>
               </div>
+
               <div>
-                <div className="text-default-600">อุปกรณ์</div>
+                <div className="text-default-600">เวลานัด</div>
+                <div
+                  className={
+                    "font-medium " +
+                    (!formData.requestedDateTime ? "text-danger-600" : "")
+                  }
+                >
+                  {formData.requestedDateTime
+                    ? formatThaiDateTimeShort(
+                      new Date(formData.requestedDateTime),
+                    )
+                    : "-"}
+                </div>
+              </div>
+              <div>
+                <div className="text-default-600">อุปกรณ์ที่ต้องการ</div>
                 <div className="flex flex-wrap gap-1">
                   {formData.equipment.length > 0 ? (
                     formData.equipment.map((eq) => (
-                      <Chip key={eq} size="sm" variant="flat">
+                      <Chip
+                        key={eq}
+                        color="warning"
+                        size="sm"
+                        variant="bordered"
+                      >
                         {eq}
                       </Chip>
                     ))
                   ) : (
                     <span className="text-default-500">-</span>
                   )}
-                </div>
-              </div>
-              <div>
-                <div className="text-default-600">เวลานัด</div>
-                <div className="font-medium">
-                  {formData.requestedDateTime || "-"}
                 </div>
               </div>
             </CardBody>

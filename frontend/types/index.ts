@@ -33,7 +33,7 @@ export interface UploadModalProps {
 /**
  * ประเภทรถเปล
  */
-export type VehicleType = "รถนั่ง" | "รถนอน";
+export type VehicleType = "รถนั่ง" | "รถนอน" | "รถกอล์ฟ";
 
 /**
  * ระดับความเร่งด่วน
@@ -81,6 +81,7 @@ export interface PorterRequestFormData {
   equipment: EquipmentType[];
   assistanceCount: number | "";
   hasVehicle: "มี" | "ไม่มี" | "";
+  returnTrip: "ไปส่งอย่างเดียว" | "รับกลับด้วย" | "";
 
   // รายละเอียดเพิ่มเติม
   transportReason: string;
