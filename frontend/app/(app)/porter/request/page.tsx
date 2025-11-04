@@ -9,8 +9,6 @@ import {
   CardHeader,
   CardFooter,
   Input,
-  Autocomplete,
-  AutocompleteItem,
   Select,
   SelectItem,
   Textarea,
@@ -38,15 +36,16 @@ import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
+  formatLocationString,
 } from "@/types/porter";
 import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
+import { LocationSelector } from "@/components/porter/LocationSelector";
 import {
   URGENCY_OPTIONS,
   VEHICLE_TYPE_OPTIONS,
   EQUIPMENT_OPTIONS,
   EQUIPMENT_LABELS,
   TRANSPORT_REASON_OPTIONS,
-  LOCATION_OPTIONS,
   DEPARTMENT_OPTIONS,
   validateForm,
 } from "@/lib/porter";
@@ -67,7 +66,9 @@ export default function PorterRequestPage() {
     patientHN: "",
 
     pickupLocation: "",
+    pickupLocationDetail: null,
     deliveryLocation: "",
+    deliveryLocationDetail: null,
     requestedDateTime: getDateTimeLocal(),
     urgencyLevel: "ปกติ",
     vehicleType: "",
@@ -238,7 +239,9 @@ export default function PorterRequestPage() {
         patientHN: "",
 
         pickupLocation: "",
+        pickupLocationDetail: null,
         deliveryLocation: "",
+        deliveryLocationDetail: null,
         requestedDateTime: getDateTimeLocal(),
         urgencyLevel: "ปกติ",
         vehicleType: "",
@@ -509,44 +512,60 @@ export default function PorterRequestPage() {
                 ))}
               </Select>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Autocomplete
+              <div className="space-y-4">
+                <LocationSelector
                   isRequired
+                  errorMessage={validationErrors.pickupLocation}
                   label="สถานที่รับ"
-                  name="pickupLocation"
-                  placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่รับ"
-                  selectedKey={formData.pickupLocation || undefined}
-                  startContent={<MapPinIcon className="w-4 h-4" />}
-                  variant="bordered"
-                  onSelectionChange={(key) => {
-                    handleInputChange("pickupLocation", String(key));
-                  }}
-                >
-                  {LOCATION_OPTIONS.map((location) => (
-                    <AutocompleteItem key={location} textValue={location}>
-                      {location}
-                    </AutocompleteItem>
-                  ))}
-                </Autocomplete>
+                  value={formData.pickupLocationDetail}
+                  onChange={(location) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      pickupLocationDetail: location,
+                      pickupLocation: location
+                        ? formatLocationString(location)
+                        : "",
+                    }));
 
-                <Autocomplete
-                  isRequired
-                  label="สถานที่ส่ง"
-                  name="deliveryLocation"
-                  placeholder="พิมพ์เพื่อค้นหาและเลือกสถานที่ส่ง"
-                  selectedKey={formData.deliveryLocation || undefined}
-                  startContent={<MapPinIcon className="w-4 h-4" />}
-                  variant="bordered"
-                  onSelectionChange={(key) => {
-                    handleInputChange("deliveryLocation", String(key));
+                    // Clear error when user modifies
+                    if (validationErrors.pickupLocation) {
+                      setValidationErrors((prev) => {
+                        const newErrors = { ...prev };
+
+                        delete newErrors.pickupLocation;
+
+                        return newErrors;
+                      });
+                    }
                   }}
-                >
-                  {LOCATION_OPTIONS.map((location) => (
-                    <AutocompleteItem key={location} textValue={location}>
-                      {location}
-                    </AutocompleteItem>
-                  ))}
-                </Autocomplete>
+                />
+
+                <LocationSelector
+                  isRequired
+                  errorMessage={validationErrors.deliveryLocation}
+                  label="สถานที่ส่ง"
+                  value={formData.deliveryLocationDetail}
+                  onChange={(location) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      deliveryLocationDetail: location,
+                      deliveryLocation: location
+                        ? formatLocationString(location)
+                        : "",
+                    }));
+
+                    // Clear error when user modifies
+                    if (validationErrors.deliveryLocation) {
+                      setValidationErrors((prev) => {
+                        const newErrors = { ...prev };
+
+                        delete newErrors.deliveryLocation;
+
+                        return newErrors;
+                      });
+                    }
+                  }}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -800,7 +819,9 @@ export default function PorterRequestPage() {
                     patientHN: "",
 
                     pickupLocation: "",
+                    pickupLocationDetail: null,
                     deliveryLocation: "",
+                    deliveryLocationDetail: null,
                     requestedDateTime: getDateTimeLocal(),
                     urgencyLevel: "ปกติ",
                     vehicleType: "",
@@ -882,27 +903,33 @@ export default function PorterRequestPage() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <div className="text-default-600">สถานที่รับ</div>
+                  <div className="text-default-600 mb-1">สถานที่รับ</div>
                   <div
                     className={
                       "font-medium " +
-                      (!formData.pickupLocation ? "text-danger-600" : "")
+                      (!formData.pickupLocationDetail ? "text-danger-600" : "")
                     }
                   >
-                    {formData.pickupLocation || "-"}
+                    {formData.pickupLocationDetail
+                      ? formatLocationString(formData.pickupLocationDetail)
+                      : "-"}
                   </div>
                 </div>
                 <div>
-                  <div className="text-default-600">สถานที่ส่ง</div>
+                  <div className="text-default-600 mb-1">สถานที่ส่ง</div>
                   <div
                     className={
                       "font-medium " +
-                      (!formData.deliveryLocation ? "text-danger-600" : "")
+                      (!formData.deliveryLocationDetail
+                        ? "text-danger-600"
+                        : "")
                     }
                   >
-                    {formData.deliveryLocation || "-"}
+                    {formData.deliveryLocationDetail
+                      ? formatLocationString(formData.deliveryLocationDetail)
+                      : "-"}
                   </div>
                 </div>
               </div>

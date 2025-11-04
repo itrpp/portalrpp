@@ -145,6 +145,18 @@ export default function Sidebar() {
               name: "ตั้งค่า",
               href: "#",
               icon: SettingsIcon,
+              subItems: [
+                {
+                  name: "จุดรับ - ส่ง",
+                  href: "#",
+                  icon: SettingsIcon,
+                },
+                {
+                  name: "รายชื่อเจ้าหน้าที่เปล",
+                  href: "#",
+                  icon: UserIcon,
+                },
+              ],
             },
           ],
         },

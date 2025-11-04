@@ -189,9 +189,11 @@ export function validateField(
       return !stringValue ? "กรุณากรอกหมายเลข HN" : undefined;
 
     case "pickupLocation":
+      // Validate ผ่าน pickupLocationDetail แทน
       return !stringValue ? "กรุณาระบุสถานที่รับ" : undefined;
 
     case "deliveryLocation":
+      // Validate ผ่าน deliveryLocationDetail แทน
       return !stringValue ? "กรุณาระบุสถานที่ส่ง" : undefined;
 
     case "requestedDateTime":
@@ -245,10 +247,26 @@ export function validateForm(data: PorterRequestFormData): {
   ];
 
   requiredFields.forEach((field) => {
-    const error = validateField(field, data[field]);
-
-    if (error) {
-      newErrors[field] = error;
+    // ตรวจสอบสถานที่ผ่าน Detail แทน string
+    if (field === "pickupLocation") {
+      const error = !data.pickupLocationDetail
+        ? "กรุณาระบุสถานที่รับ"
+        : undefined;
+      if (error) {
+        newErrors[field] = error;
+      }
+    } else if (field === "deliveryLocation") {
+      const error = !data.deliveryLocationDetail
+        ? "กรุณาระบุสถานที่ส่ง"
+        : undefined;
+      if (error) {
+        newErrors[field] = error;
+      }
+    } else {
+      const error = validateField(field, data[field]);
+      if (error) {
+        newErrors[field] = error;
+      }
     }
   });
 

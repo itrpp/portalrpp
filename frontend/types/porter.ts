@@ -42,8 +42,10 @@ export interface PorterRequestFormData {
   patientHN: string;
 
   // ข้อมูลการเคลื่อนย้าย
-  pickupLocation: string;
-  deliveryLocation: string;
+  pickupLocation: string; // เก็บเป็น string สำหรับ backward compatibility
+  pickupLocationDetail: DetailedLocation | null; // ข้อมูลสถานที่รับแบบละเอียด
+  deliveryLocation: string; // เก็บเป็น string สำหรับ backward compatibility
+  deliveryLocationDetail: DetailedLocation | null; // ข้อมูลสถานที่ส่งแบบละเอียด
   requestedDateTime: string;
   urgencyLevel: UrgencyLevel | "";
   vehicleType: VehicleType | "";
@@ -100,4 +102,59 @@ export interface StaffMember {
   name: string;
   department?: string;
   title?: string;
+}
+
+/**
+ * ข้อมูลห้อง/เตียง
+ */
+export interface RoomBed {
+  id: string;
+  name: string;
+}
+
+/**
+ * ข้อมูลชั้น/หน่วยงาน
+ */
+export interface FloorDepartment {
+  id: string;
+  name: string;
+  rooms?: RoomBed[]; // ถ้ามีห้อง/เตียง
+}
+
+/**
+ * ข้อมูลอาคาร
+ */
+export interface Building {
+  id: string;
+  name: string;
+  floors: FloorDepartment[];
+}
+
+/**
+ * ข้อมูลสถานที่แบบละเอียด
+ */
+export interface DetailedLocation {
+  buildingId: string;
+  buildingName: string;
+  floorDepartmentId: string;
+  floorDepartmentName: string;
+  roomBedId?: string;
+  roomBedName?: string;
+}
+
+/**
+ * ฟังก์ชันสำหรับแปลง DetailedLocation เป็น string สำหรับแสดงผล
+ */
+export function formatLocationString(
+  location: DetailedLocation | null,
+): string {
+  if (!location) return "";
+
+  const parts = [
+    location.buildingName,
+    location.floorDepartmentName,
+    location.roomBedName,
+  ].filter(Boolean);
+
+  return parts.join(" - ");
 }
