@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// PORTER REQUEST DATABASE SCHEMA
+// ========================================
+
+model PorterRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ========================================
+  // ข้อมูลผู้แจ้ง (Requester Information)
+  // ========================================
+  requesterDepartment String
+  requesterName       String
+  requesterPhone      String @db.VarChar(20)
+  requesterUserId     String? // Foreign key to User.id (optional)
+
+  // ========================================
+  // ข้อมูลผู้ป่วย (Patient Information)
+  // ========================================
+  patientName     String
+  patientHN       String @db.VarChar(50)
+  patientCondition String? @db.Text
+
+  // ========================================
+  // ข้อมูลสถานที่รับ (Pickup Location)
+  // ========================================
+  pickupLocation           String @db.VarChar(500) // เก็บ string สำหรับ backward compatibility
+  pickupBuildingId         String
+  pickupBuildingName       String
+  pickupFloorDepartmentId  String
+  pickupFloorDepartmentName String
+  pickupRoomBedId          String?
+  pickupRoomBedName        String?
+
+  // ========================================
+  // ข้อมูลสถานที่ส่ง (Delivery Location)
+  // ========================================
+  deliveryLocation           String @db.VarChar(500) // เก็บ string สำหรับ backward compatibility
+  deliveryBuildingId         String
+  deliveryBuildingName       String
+  deliveryFloorDepartmentId  String
+  deliveryFloorDepartmentName String
+  deliveryRoomBedId          String?
+  deliveryRoomBedName        String?
+
+  // ========================================
+  // ข้อมูลการเคลื่อนย้าย (Transport Information)
+  // ========================================
+  requestedDateTime DateTime
+  urgencyLevel      PorterUrgencyLevel
+  vehicleType       PorterVehicleType
+  hasVehicle        PorterHasVehicle
+  returnTrip        PorterReturnTrip
+  transportReason   String @db.VarChar(200)
+
+  // ========================================
+  // อุปกรณ์ที่ต้องการ (Equipment)
+  // ========================================
+  equipment Json // MySQL ไม่รองรับ array ของ enum ใช้ JSON แทน
+
+  // ========================================
+  // รายละเอียดเพิ่มเติม (Additional Information)
+  // ========================================
+  specialNotes String? @db.Text
+
+  // ========================================
+  // ข้อมูลการจัดการงาน (Job Management)
+  // ========================================
+  status        PorterJobStatus @default(WAITING)
+  assignedToId  String? // Foreign key to User.id (optional)
+  assignedToName String? @db.VarChar(200)
+
+  // ========================================
+  // ข้อมูลเวลา (Timestamps)
+  // ========================================
+  acceptedAt  DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  cancelledReason String? @db.Text // เหตุผลในการยกเลิก (optional)
+
+  // ========================================
+  // Relations
+  // ========================================
+  requester   User?           @relation("PorterRequestsCreated", fields: [requesterUserId], references: [id], onDelete: SetNull)
+  assignedTo  User?           @relation("PorterRequestsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([urgencyLevel])
+  @@index([requestedDateTime])
+  @@index([createdAt])
+  @@index([requesterUserId])
+  @@index([assignedToId])
+}
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum PorterUrgencyLevel {
+  NORMAL    // "ปกติ"
+  RUSH      // "ด่วน"
+  EMERGENCY // "ฉุกเฉิน"
+}
+
+enum PorterVehicleType {
+  SITTING  // "รถนั่ง"
+  LYING    // "รถนอน"
+  GOLF     // "รถกอล์ฟ"
+}
+
+enum PorterHasVehicle {
+  YES    // "มี"
+  NO     // "ไม่มี"
+}
+
+enum PorterReturnTrip {
+  ONE_WAY       // "ไปส่งอย่างเดียว"
+  ROUND_TRIP    // "รับกลับด้วย"
+}
+
+enum PorterJobStatus {
+  WAITING      // รอรับงาน
+  IN_PROGRESS  // กำลังดำเนินการ
+  COMPLETED    // เสร็จสิ้น
+  CANCELLED    // ยกเลิก
+}
+
+enum PorterEquipment {
+  OXYGEN      // "Oxygen"
+  TUBE        // "Tube"
+  IV_PUMP     // "IV Pump"
+  VENTILATOR  // "Ventilator"
+  MONITOR     // "Monitor"
+  SUCTION     // "Suction"
+}
+
+// ========================================
+// USER MODEL (Placeholder - ต้องเชื่อมต่อกับ User service อื่น)
+// ========================================
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // เพิ่ม Relations สำหรับ Porter
+  porterRequestsCreated  PorterRequest[] @relation("PorterRequestsCreated")
+  porterRequestsAssigned PorterRequest[] @relation("PorterRequestsAssigned")
+}

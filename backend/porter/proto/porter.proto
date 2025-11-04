@@ -1,0 +1,267 @@
+syntax = "proto3";
+
+package porter;
+
+// ========================================
+// Porter Request Service
+// ========================================
+
+service PorterService {
+  // สร้าง Porter Request ใหม่
+  rpc CreatePorterRequest(CreatePorterRequestRequest) returns (PorterRequestResponse);
+
+  // ดึงข้อมูล Porter Request โดย ID
+  rpc GetPorterRequest(GetPorterRequestRequest) returns (PorterRequestResponse);
+
+  // ดึงรายการ Porter Request ทั้งหมด (พร้อม filters)
+  rpc ListPorterRequests(ListPorterRequestsRequest) returns (ListPorterRequestsResponse);
+
+  // อัปเดตข้อมูล Porter Request
+  rpc UpdatePorterRequest(UpdatePorterRequestRequest) returns (PorterRequestResponse);
+
+  // อัปเดตสถานะ Porter Request
+  rpc UpdatePorterRequestStatus(UpdatePorterRequestStatusRequest) returns (PorterRequestResponse);
+
+  // ลบ Porter Request
+  rpc DeletePorterRequest(DeletePorterRequestRequest) returns (DeletePorterRequestResponse);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// ========================================
+// Request Messages
+// ========================================
+
+message CreatePorterRequestRequest {
+  // ข้อมูลผู้แจ้ง (Requester Information)
+  string requester_department = 1;
+  string requester_name = 2;
+  string requester_phone = 3;
+  optional string requester_user_id = 4;
+
+  // ข้อมูลผู้ป่วย (Patient Information)
+  string patient_name = 5;
+  string patient_hn = 6;
+  optional string patient_condition = 7;
+
+  // ข้อมูลสถานที่รับ (Pickup Location)
+  string pickup_location = 8;
+  string pickup_building_id = 9;
+  string pickup_building_name = 10;
+  string pickup_floor_department_id = 11;
+  string pickup_floor_department_name = 12;
+  optional string pickup_room_bed_id = 13;
+  optional string pickup_room_bed_name = 14;
+
+  // ข้อมูลสถานที่ส่ง (Delivery Location)
+  string delivery_location = 15;
+  string delivery_building_id = 16;
+  string delivery_building_name = 17;
+  string delivery_floor_department_id = 18;
+  string delivery_floor_department_name = 19;
+  optional string delivery_room_bed_id = 20;
+  optional string delivery_room_bed_name = 21;
+
+  // ข้อมูลการเคลื่อนย้าย (Transport Information)
+  string requested_date_time = 22; // ISO 8601 format
+  PorterUrgencyLevel urgency_level = 23;
+  PorterVehicleType vehicle_type = 24;
+  PorterHasVehicle has_vehicle = 25;
+  PorterReturnTrip return_trip = 26;
+  string transport_reason = 27;
+
+  // อุปกรณ์ที่ต้องการ (Equipment)
+  repeated PorterEquipment equipment = 28;
+
+  // รายละเอียดเพิ่มเติม
+  optional string special_notes = 29;
+}
+
+message GetPorterRequestRequest {
+  string id = 1;
+}
+
+message ListPorterRequestsRequest {
+  optional PorterJobStatus status = 1;
+  optional PorterUrgencyLevel urgency_level = 2;
+  optional string requester_user_id = 3;
+  optional string assigned_to_id = 4;
+  optional int32 page = 5;
+  optional int32 page_size = 6;
+}
+
+message UpdatePorterRequestRequest {
+  string id = 1;
+  optional string requester_department = 2;
+  optional string requester_name = 3;
+  optional string requester_phone = 4;
+  optional string patient_name = 5;
+  optional string patient_hn = 6;
+  optional string patient_condition = 7;
+  optional string pickup_location = 8;
+  optional string pickup_building_id = 9;
+  optional string pickup_building_name = 10;
+  optional string delivery_location = 11;
+  optional string delivery_building_id = 12;
+  optional string delivery_building_name = 13;
+  optional string requested_date_time = 14;
+  optional PorterUrgencyLevel urgency_level = 15;
+  optional PorterVehicleType vehicle_type = 16;
+  optional PorterHasVehicle has_vehicle = 17;
+  optional PorterReturnTrip return_trip = 18;
+  optional string transport_reason = 19;
+  repeated PorterEquipment equipment = 20;
+  optional string special_notes = 21;
+}
+
+message UpdatePorterRequestStatusRequest {
+  string id = 1;
+  PorterJobStatus status = 2;
+  optional string assigned_to_id = 3;
+  optional string assigned_to_name = 4;
+  optional string cancelled_reason = 5;
+}
+
+message DeletePorterRequestRequest {
+  string id = 1;
+}
+
+message HealthCheckRequest {}
+
+// ========================================
+// Response Messages
+// ========================================
+
+message PorterRequestResponse {
+  bool success = 1;
+  optional PorterRequest data = 2;
+  optional string error_message = 3;
+}
+
+message ListPorterRequestsResponse {
+  bool success = 1;
+  repeated PorterRequest data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeletePorterRequestResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+message HealthCheckResponse {
+  bool success = 1;
+  string message = 2;
+  string timestamp = 3;
+}
+
+// ========================================
+// Data Models
+// ========================================
+
+message PorterRequest {
+  string id = 1;
+  string created_at = 2; // ISO 8601 format
+  string updated_at = 3; // ISO 8601 format
+
+  // ข้อมูลผู้แจ้ง
+  string requester_department = 4;
+  string requester_name = 5;
+  string requester_phone = 6;
+  optional string requester_user_id = 7;
+
+  // ข้อมูลผู้ป่วย
+  string patient_name = 8;
+  string patient_hn = 9;
+  optional string patient_condition = 10;
+
+  // ข้อมูลสถานที่รับ
+  string pickup_location = 11;
+  string pickup_building_id = 12;
+  string pickup_building_name = 13;
+  string pickup_floor_department_id = 14;
+  string pickup_floor_department_name = 15;
+  optional string pickup_room_bed_id = 16;
+  optional string pickup_room_bed_name = 17;
+
+  // ข้อมูลสถานที่ส่ง
+  string delivery_location = 18;
+  string delivery_building_id = 19;
+  string delivery_building_name = 20;
+  string delivery_floor_department_id = 21;
+  string delivery_floor_department_name = 22;
+  optional string delivery_room_bed_id = 23;
+  optional string delivery_room_bed_name = 24;
+
+  // ข้อมูลการเคลื่อนย้าย
+  string requested_date_time = 25;
+  PorterUrgencyLevel urgency_level = 26;
+  PorterVehicleType vehicle_type = 27;
+  PorterHasVehicle has_vehicle = 28;
+  PorterReturnTrip return_trip = 29;
+  string transport_reason = 30;
+
+  // อุปกรณ์
+  repeated PorterEquipment equipment = 31;
+
+  // รายละเอียดเพิ่มเติม
+  optional string special_notes = 32;
+
+  // ข้อมูลการจัดการงาน
+  PorterJobStatus status = 33;
+  optional string assigned_to_id = 34;
+  optional string assigned_to_name = 35;
+
+  // ข้อมูลเวลา
+  optional string accepted_at = 36;
+  optional string completed_at = 37;
+  optional string cancelled_at = 38;
+  optional string cancelled_reason = 39;
+}
+
+// ========================================
+// Enums
+// ========================================
+
+enum PorterUrgencyLevel {
+  NORMAL = 0;
+  RUSH = 1;
+  EMERGENCY = 2;
+}
+
+enum PorterVehicleType {
+  SITTING = 0;
+  LYING = 1;
+  GOLF = 2;
+}
+
+enum PorterHasVehicle {
+  YES = 0;
+  NO = 1;
+}
+
+enum PorterReturnTrip {
+  ONE_WAY = 0;
+  ROUND_TRIP = 1;
+}
+
+enum PorterJobStatus {
+  WAITING = 0;
+  IN_PROGRESS = 1;
+  COMPLETED = 2;
+  CANCELLED = 3;
+}
+
+enum PorterEquipment {
+  OXYGEN = 0;
+  TUBE = 1;
+  IV_PUMP = 2;
+  VENTILATOR = 3;
+  MONITOR = 4;
+  SUCTION = 5;
+}

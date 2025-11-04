@@ -1,0 +1,100 @@
+import * as grpc from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { config } from './config/env.js';
+import prisma from './config/database.js';
+import * as porterHandlers from './handlers/porter.handler.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Path ไปยัง proto file จาก src/server.js -> proto/porter.proto
+const PROTO_PATH = path.resolve(__dirname, '../proto/porter.proto');
+
+/**
+ * โหลด Proto Definition
+ */
+const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+});
+
+const porterProto = grpc.loadPackageDefinition(packageDefinition).porter;
+
+/**
+ * เริ่มต้น gRPC Server
+ */
+const startServer = async () => {
+  try {
+    // Test database connection
+    await prisma.$connect();
+    console.log('✅ Database connected successfully');
+
+    // สร้าง gRPC Server
+    const server = new grpc.Server();
+
+    // ลงทะเบียน Porter Service
+    server.addService(porterProto.PorterService.service, {
+      createPorterRequest: porterHandlers.createPorterRequest,
+      getPorterRequest: porterHandlers.getPorterRequest,
+      listPorterRequests: porterHandlers.listPorterRequests,
+      updatePorterRequest: porterHandlers.updatePorterRequest,
+      updatePorterRequestStatus: porterHandlers.updatePorterRequestStatus,
+      deletePorterRequest: porterHandlers.deletePorterRequest,
+      healthCheck: porterHandlers.healthCheck,
+    });
+
+    // เริ่ม listen
+    const port = config.port || 50051;
+    server.bindAsync(
+      `0.0.0.0:${port}`,
+      grpc.ServerCredentials.createInsecure(),
+      (error, port) => {
+        if (error) {
+          console.error('❌ Failed to start gRPC server:', error);
+          process.exit(1);
+        }
+
+        server.start();
+        console.log(`🚀 gRPC Server is running on port ${port}`);
+        console.log(`📝 Environment: ${config.nodeEnv}`);
+        console.log(`🌐 gRPC endpoint: 0.0.0.0:${port}`);
+      }
+    );
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+};
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+startServer();
