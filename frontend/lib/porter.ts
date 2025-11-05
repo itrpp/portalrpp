@@ -371,7 +371,9 @@ export function generateSingleEmergencyJob(): PorterJobItem {
     patientHN: `${String(randInt(100000, 999999))}/${String(randInt(10, 99))}`,
 
     pickupLocation: pickup,
+    pickupLocationDetail: null,
     deliveryLocation: delivery,
+    deliveryLocationDetail: null,
     requestedDateTime: getDateTimeLocal(now),
     urgencyLevel,
     vehicleType: choice(VEHICLE_TYPE_OPTIONS),
@@ -434,7 +436,9 @@ export function generateSingleDummyJob(): PorterJobItem {
     patientHN: `${String(randInt(100000, 999999))}/${String(randInt(10, 99))}`,
 
     pickupLocation: pickup,
+    pickupLocationDetail: null,
     deliveryLocation: delivery,
+    deliveryLocationDetail: null,
     requestedDateTime: getDateTimeLocal(now),
     urgencyLevel,
     vehicleType: choice(VEHICLE_TYPE_OPTIONS),
@@ -527,7 +531,9 @@ export function generateMockPorterJobs(count: number = 100): PorterJobItem[] {
       )}`,
 
       pickupLocation: pickup,
+      pickupLocationDetail: null,
       deliveryLocation: delivery,
+      deliveryLocationDetail: null,
       requestedDateTime: getDateTimeLocal(now),
       urgencyLevel,
       vehicleType: choice(VEHICLE_TYPE_OPTIONS),
@@ -585,8 +591,8 @@ export function mapUrgencyLevelToProto(level: string): number {
 /**
  * แปลง Status จาก Proto enum เป็น Frontend format
  */
-function mapStatusFromProto(status: number): string {
-  const map: Record<number, string> = {
+function mapStatusFromProto(status: number): JobListTab {
+  const map: Record<number, JobListTab> = {
     0: "waiting",
     1: "in-progress",
     2: "completed",
@@ -598,8 +604,8 @@ function mapStatusFromProto(status: number): string {
 /**
  * แปลง Urgency Level จาก Proto enum เป็น Frontend (ภาษาไทย)
  */
-function mapUrgencyLevelFromProto(level: number): string {
-  const map: Record<number, string> = {
+function mapUrgencyLevelFromProto(level: number): UrgencyLevel {
+  const map: Record<number, UrgencyLevel> = {
     0: "ปกติ",
     1: "ด่วน",
     2: "ฉุกเฉิน",
@@ -610,8 +616,8 @@ function mapUrgencyLevelFromProto(level: number): string {
 /**
  * แปลง Vehicle Type จาก Proto enum เป็น Frontend (ภาษาไทย)
  */
-function mapVehicleTypeFromProto(type: number): string {
-  const map: Record<number, string> = {
+function mapVehicleTypeFromProto(type: number): VehicleType {
+  const map: Record<number, VehicleType> = {
     0: "รถนั่ง",
     1: "รถนอน",
     2: "รถกอล์ฟ",
@@ -622,30 +628,30 @@ function mapVehicleTypeFromProto(type: number): string {
 /**
  * แปลง Has Vehicle จาก Proto enum เป็น Frontend (ภาษาไทย)
  */
-function mapHasVehicleFromProto(hasVehicle: number): string {
-  const map: Record<number, string> = {
+function mapHasVehicleFromProto(hasVehicle: number): "มี" | "ไม่มี" | "" {
+  const map: Record<number, "มี" | "ไม่มี"> = {
     0: "มี",
     1: "ไม่มี",
   };
-  return map[hasVehicle] ?? "ไม่มี";
+  return map[hasVehicle] ?? "";
 }
 
 /**
  * แปลง Return Trip จาก Proto enum เป็น Frontend (ภาษาไทย)
  */
-function mapReturnTripFromProto(returnTrip: number): string {
-  const map: Record<number, string> = {
+function mapReturnTripFromProto(returnTrip: number): "ไปส่งอย่างเดียว" | "รับกลับด้วย" | "" {
+  const map: Record<number, "ไปส่งอย่างเดียว" | "รับกลับด้วย"> = {
     0: "ไปส่งอย่างเดียว",
     1: "รับกลับด้วย",
   };
-  return map[returnTrip] ?? "ไปส่งอย่างเดียว";
+  return map[returnTrip] ?? "";
 }
 
 /**
  * แปลง Equipment array จาก Proto enum array เป็น Frontend format
  */
-function mapEquipmentFromProto(equipment: number[]): string[] {
-  const map: Record<number, string> = {
+function mapEquipmentFromProto(equipment: number[]): EquipmentType[] {
+  const map: Record<number, EquipmentType> = {
     0: "Oxygen",
     1: "Tube",
     2: "IV Pump",
@@ -653,7 +659,9 @@ function mapEquipmentFromProto(equipment: number[]): string[] {
     4: "Monitor",
     5: "Suction",
   };
-  return equipment.map((eq) => map[eq] ?? "Oxygen").filter(Boolean);
+  return equipment
+    .map((eq) => map[eq] ?? "Oxygen")
+    .filter((eq): eq is EquipmentType => Boolean(eq));
 }
 
 /**
