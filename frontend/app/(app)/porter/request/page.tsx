@@ -213,15 +213,31 @@ export default function PorterRequestPage() {
     setIsSubmitting(true);
 
     try {
-      // TODO: ส่งข้อมูลไปยัง API
-      // const response = await fetch('/api/porter/request', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
+      // ส่งข้อมูลไปยัง API
+      const response = await fetch("/api/porter/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-      // จำลองการส่งข้อมูล (รอ 1 วินาที)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        const errorMessage =
+          result.error === "UNAUTHORIZED"
+            ? "กรุณาเข้าสู่ระบบก่อนส่งคำขอ"
+            : result.error === "PORTER_SERVICE_UNAVAILABLE"
+              ? "บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้"
+              : result.message || "ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง";
+
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: errorMessage,
+          color: "danger",
+        });
+
+        return;
+      }
 
       addToast({
         title: "ส่งคำขอสำเร็จ",
@@ -255,7 +271,16 @@ export default function PorterRequestPage() {
       });
 
       setValidationErrors({});
-    } catch {
+    } catch (error: unknown) {
+      // Log error for debugging (in production, use proper logging service)
+      if (error instanceof Error) {
+        // eslint-disable-next-line no-console
+        console.error("Error submitting porter request:", error.message);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error("Error submitting porter request:", error);
+      }
+
       addToast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง",

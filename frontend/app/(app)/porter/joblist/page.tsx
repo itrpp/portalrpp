@@ -26,14 +26,7 @@ import {
   PorterJobItem,
   PorterRequestFormData,
 } from "@/types/porter";
-import {
-  generateMockPorterJobs,
-  generateSingleDummyJob,
-  generateSingleEmergencyJob,
-  sortJobs,
-  playNotificationSound,
-  playSirenSound,
-} from "@/lib/porter";
+import { sortJobs } from "@/lib/porter";
 
 // ========================================
 // PORTER JOB LIST PAGE
@@ -47,6 +40,9 @@ export default function PorterJobListPage() {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [jobList, setJobList] = useState<PorterJobItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // อัพเดทเวลาแบบ real-time ทุกวินาที
   useEffect(() => {
@@ -59,10 +55,59 @@ export default function PorterJobListPage() {
     };
   }, []);
 
-  // ตัวอย่างข้อมูลรายการคำขอจำลอง (สุ่มข้อมูล 1 วัน)
-  const [jobList, setJobList] = useState<PorterJobItem[]>(() =>
-    generateMockPorterJobs(100),
-  );
+  // ดึงข้อมูลรายการคำขอจาก API
+  const fetchPorterRequests = async (status?: JobListTab) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (status) {
+        queryParams.append("status", status);
+      }
+
+      // เพิ่ม pagination params ถ้าต้องการ (ตอนนี้ดึงทั้งหมดก่อน)
+      queryParams.append("page_size", "1000"); // ดึงข้อมูลจำนวนมากเพื่อรองรับการ filter ใน frontend
+
+      const response = await fetch(
+        `/api/porter/requests?${queryParams.toString()}`,
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+
+        throw new Error(
+          errorData.message || "ไม่สามารถโหลดข้อมูลรายการคำขอได้",
+        );
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setJobList(result.data as PorterJobItem[]);
+      } else {
+        throw new Error("รูปแบบข้อมูลไม่ถูกต้อง");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+
+      setError(errorMessage);
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: errorMessage,
+        color: "danger",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // โหลดข้อมูลเมื่อ component mount และเมื่อเปลี่ยน tab
+  useEffect(() => {
+    fetchPorterRequests();
+  }, []);
 
   // คำนวณจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
   const waitingCount = useMemo(
@@ -105,6 +150,11 @@ export default function PorterJobListPage() {
     setIsDrawerOpen(false);
   }, [selectedTab]);
 
+  // Handler สำหรับ refresh ข้อมูล
+  const handleRefresh = () => {
+    fetchPorterRequests();
+  };
+
   // Handler สำหรับการเลือก row
   const handleSelectionChange = (keys: any) => {
     if (keys === "all") {
@@ -142,11 +192,13 @@ export default function PorterJobListPage() {
   };
 
   // Handler สำหรับรับงาน
-  const handleAcceptJob = (
+  const handleAcceptJob = async (
     jobId: string,
     staffId: string,
     staffName: string,
   ) => {
+    // TODO: เรียก API เพื่ออัพเดทสถานะ
+    // ตอนนี้อัพเดทเฉพาะ frontend state ก่อน
     setJobList((prevList) =>
       prevList.map((job) =>
         job.id === jobId
@@ -168,10 +220,14 @@ export default function PorterJobListPage() {
         assignedToName: staffName,
       });
     }
+    // Refresh ข้อมูลหลังจากอัพเดท
+    await fetchPorterRequests();
   };
 
   // Handler สำหรับยกเลิกงาน
-  const handleCancelJob = (jobId: string) => {
+  const handleCancelJob = async (jobId: string) => {
+    // TODO: เรียก API เพื่ออัพเดทสถานะ
+    // ตอนนี้อัพเดทเฉพาะ frontend state ก่อน
     setJobList((prevList) =>
       prevList.map((job) =>
         job.id === jobId ? { ...job, status: "cancelled" as JobListTab } : job,
@@ -184,10 +240,14 @@ export default function PorterJobListPage() {
         status: "cancelled" as JobListTab,
       });
     }
+    // Refresh ข้อมูลหลังจากอัพเดท
+    await fetchPorterRequests();
   };
 
   // Handler สำหรับทำเสร็จสิ้นงาน
-  const handleCompleteJob = (jobId: string) => {
+  const handleCompleteJob = async (jobId: string) => {
+    // TODO: เรียก API เพื่ออัพเดทสถานะ
+    // ตอนนี้อัพเดทเฉพาะ frontend state ก่อน
     setJobList((prevList) =>
       prevList.map((job) =>
         job.id === jobId ? { ...job, status: "completed" as JobListTab } : job,
@@ -200,6 +260,8 @@ export default function PorterJobListPage() {
         status: "completed" as JobListTab,
       });
     }
+    // Refresh ข้อมูลหลังจากอัพเดท
+    await fetchPorterRequests();
   };
 
   // Handler สำหรับอัปเดตข้อมูลงาน
@@ -254,52 +316,33 @@ export default function PorterJobListPage() {
                   คำขอทั้งหมด {filteredJobs.length} รายการ
                 </div>
                 <Button
-                  color="danger"
-                  size="sm"
-                  title="สร้าง Job ฉุกเฉิน"
-                  variant="flat"
-                  onPress={() => {
-                    const newJob = generateSingleEmergencyJob();
-
-                    setJobList((prevList) => [newJob, ...prevList]);
-                    playSirenSound();
-                    addToast({
-                      title: "⚠️ สร้าง Job ฉุกเฉิน",
-                      description: `เพิ่มงานฉุกเฉิน: ${newJob.form.patientName} (${newJob.id})`,
-                      color: "danger",
-                    });
-                  }}
-                >
-                  สร้าง Job ฉุกเฉิน
-                </Button>
-                <Button
                   color="primary"
                   size="sm"
-                  title="สร้าง Job Dummy"
+                  isLoading={isLoading}
+                  title="รีเฟรชข้อมูล"
                   variant="flat"
-                  onPress={() => {
-                    const newJob = generateSingleDummyJob();
-
-                    setJobList((prevList) => [newJob, ...prevList]);
-                    playNotificationSound();
-                    addToast({
-                      title: "สร้าง Job Dummy สำเร็จ",
-                      description: `เพิ่มงานใหม่: ${newJob.form.urgencyLevel} - ${newJob.form.patientName} (${newJob.id})`,
-                      color:
-                        newJob.form.urgencyLevel === "ด่วน"
-                          ? "warning"
-                          : "success",
-                    });
-                  }}
+                  onPress={handleRefresh}
                 >
-                  สร้าง Job Dummy
+                  รีเฟรชข้อมูล
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardBody>
+            {/* แสดง Loading หรือ Error */}
+            {isLoading && (
+              <div className="flex justify-center items-center py-8">
+                <div className="text-default-600">กำลังโหลดข้อมูล...</div>
+              </div>
+            )}
+            {error && !isLoading && (
+              <div className="flex justify-center items-center py-8">
+                <div className="text-danger">{error}</div>
+              </div>
+            )}
             {/* Tab Navigation - HeroUI Tabs */}
-            <Tabs
+            {!isLoading && !error && (
+              <Tabs
               aria-label="รายการคำขอ"
               classNames={{
                 tabList: "w-full",
@@ -439,6 +482,7 @@ export default function PorterJobListPage() {
                 />
               </Tab>
             </Tabs>
+            )}
           </CardBody>
         </Card>
       </div>
