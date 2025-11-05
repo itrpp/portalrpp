@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middlewares/auth';
-import { callPorterService } from '../utils/grpcClient';
+import { callPorterService, streamPorterRequests } from '../utils/grpcClient';
 import { config } from '../config/env';
 
 export const porterRouter = Router();
@@ -393,4 +393,144 @@ function mapEquipmentToProto(equipment: string[]): number[] {
   };
   return equipment.map((eq) => map[eq] ?? 0).filter((val) => val !== undefined);
 }
+
+/**
+ * SSE Endpoint สำหรับ real-time updates ของ Porter Requests
+ * GET /api-gateway/porter/requests/stream
+ */
+porterRouter.get(
+  '/requests/stream',
+  authMiddleware,
+  requirePorterService,
+  async (req: Request, res: Response) => {
+    try {
+      const { status, urgency_level } = req.query;
+
+      console.log('[API Gateway] SSE stream request received', {
+        status,
+        urgency_level,
+      });
+
+      // ตั้งค่า headers สำหรับ SSE
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // ปิดการ buffer ของ nginx (ถ้ามี)
+      
+      // Flush headers เพื่อให้แน่ใจว่า headers ถูกส่งไปก่อน
+      res.flushHeaders();
+
+      // สร้าง request สำหรับ gRPC stream
+      const protoRequest: any = {};
+      if (status !== undefined && status !== null) {
+        protoRequest.status = mapStatusToProto(status as string);
+      }
+      if (urgency_level !== undefined && urgency_level !== null) {
+        protoRequest.urgency_level = mapUrgencyLevelToProto(urgency_level as string);
+      }
+
+      console.log('[API Gateway] Creating gRPC stream with request:', protoRequest);
+
+      // สร้าง gRPC stream
+      const stream = streamPorterRequests(protoRequest);
+
+      console.log('[API Gateway] gRPC stream created');
+
+      // ส่งข้อมูลเมื่อได้รับ stream
+      stream.on('data', (update: any) => {
+        try {
+          console.log('[API Gateway] Received gRPC stream update:', {
+            type: update.type,
+            hasRequest: !!update.request,
+          });
+
+          // แปลงข้อมูลจาก Proto format เป็น Frontend format
+          if (update.request) {
+            const frontendData = convertProtoToFrontend(update.request);
+            const updateData = {
+              type: update.type === 0 ? 'CREATED' : 
+                    update.type === 1 ? 'UPDATED' : 
+                    update.type === 2 ? 'STATUS_CHANGED' : 'DELETED',
+              data: frontendData,
+            };
+
+            // ส่งข้อมูลผ่าน SSE
+            const sseMessage = `data: ${JSON.stringify(updateData)}\n\n`;
+            
+            // ตรวจสอบว่า response ยังเปิดอยู่
+            if (!res.writableEnded && !res.destroyed) {
+              const success = res.write(sseMessage);
+              console.log('[API Gateway] Sent SSE message:', updateData.type, 'write success:', success);
+              
+              // ถ้า write buffer เต็ม ให้รอ drain event
+              if (!success) {
+                res.once('drain', () => {
+                  console.log('[API Gateway] Write buffer drained');
+                });
+              }
+            } else {
+              console.warn('[API Gateway] Response ended or destroyed, cannot write');
+            }
+          } else {
+            console.warn('[API Gateway] Received update without request data');
+          }
+        } catch (error) {
+          console.error('[API Gateway] Error processing stream data:', error);
+        }
+      });
+
+      // จัดการ error
+      stream.on('error', (error: any) => {
+        console.error('gRPC stream error:', error);
+        res.write(`event: error\ndata: ${JSON.stringify({ error: error.message || 'Stream error' })}\n\n`);
+        res.end();
+      });
+
+      // จัดการเมื่อ stream end
+      stream.on('end', () => {
+        res.end();
+      });
+
+      // จัดการเมื่อ client ปิด connection
+      req.on('close', () => {
+        stream.cancel();
+        res.end();
+      });
+
+      // ส่ง keep-alive message ทุก 20 วินาที (เร็วกว่าเพื่อป้องกัน timeout)
+      const keepAliveInterval = setInterval(() => {
+        try {
+          if (!res.writableEnded && !res.destroyed) {
+            res.write(': keep-alive\n\n');
+            console.log('[API Gateway] Sent keep-alive message');
+          } else {
+            console.log('[API Gateway] Response ended, clearing keep-alive');
+            clearInterval(keepAliveInterval);
+          }
+        } catch (error) {
+          // Connection closed
+          console.log('[API Gateway] Connection closed, clearing keep-alive:', error);
+          clearInterval(keepAliveInterval);
+        }
+      }, 20000);
+
+      // Clear interval เมื่อ connection ปิด
+      req.on('close', () => {
+        clearInterval(keepAliveInterval);
+      });
+
+      // Clear interval เมื่อ stream end
+      stream.on('end', () => {
+        clearInterval(keepAliveInterval);
+      });
+    } catch (error: any) {
+      console.error('Error setting up SSE stream:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'Internal server error',
+      });
+    }
+  }
+);
 

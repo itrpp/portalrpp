@@ -90,3 +90,13 @@ export function callPorterService<T>(
   });
 }
 
+/**
+ * สร้าง gRPC stream สำหรับ Porter Requests
+ */
+export function streamPorterRequests(request: any): any {
+  const client = getPorterClient();
+  const stream = client.StreamPorterRequests(request);
+
+  return stream;
+}
+

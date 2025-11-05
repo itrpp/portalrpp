@@ -36,7 +36,9 @@ import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
+  UrgencyLevel,
   formatLocationString,
+  DetailedLocation,
 } from "@/types/porter";
 import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
 import { LocationSelector } from "@/components/porter/LocationSelector";
@@ -49,6 +51,7 @@ import {
   DEPARTMENT_OPTIONS,
   validateForm,
 } from "@/lib/porter";
+import { BUILDINGS } from "@/lib/locations";
 
 // ========================================
 // PORTER REQUEST PAGE
@@ -358,6 +361,125 @@ export default function PorterRequestPage() {
     if (value) {
       handleInputChange("requestedDateTime", calendarDateTimeToString(value));
     }
+  };
+
+  // Generate test data for admin testing
+  const generateTestData = () => {
+    // สุ่มข้อมูลตัวอย่าง
+    const testDepartments = DEPARTMENT_OPTIONS;
+    const testNames = [
+      "พยาบาล สมใจ",
+      "พยาบาล สุดา",
+      "พยาบาล วิชัย",
+      "แพทย์ วิไล",
+      "แพทย์ กนก",
+    ];
+    const testPatientNames = [
+      "นายสมชาย ใจดี",
+      "นางสมหญิง ดีใจ",
+      "นางสาวสมศรี รักงาน",
+      "นายสมศักดิ์ ขยัน",
+      "นางสมปอง ตั้งใจ",
+    ];
+    const testHNs = ["123456", "234567", "345678", "456789", "567890"];
+
+    // สุ่มเลือกอาคารและสถานที่
+    const building = BUILDINGS[0]; // อาคารแรก
+    const floor = building.floors.find((f) => f.rooms && f.rooms.length > 0);
+    const room = floor?.rooms?.[0];
+
+    const pickupLocation: DetailedLocation = {
+      buildingId: building.id,
+      buildingName: building.name,
+      floorDepartmentId: floor?.id || building.floors[0].id,
+      floorDepartmentName: floor?.name || building.floors[0].name,
+      roomBedId: room?.id,
+      roomBedName: room?.name,
+    };
+
+    // สุ่มสถานที่ส่ง (ใช้อาคารที่ 2 หรือ 3)
+    const deliveryBuilding =
+      BUILDINGS[Math.floor(Math.random() * (BUILDINGS.length - 1)) + 1] ||
+      BUILDINGS[1];
+    const deliveryFloor =
+      deliveryBuilding.floors.find((f) => f.rooms && f.rooms.length > 0) ||
+      deliveryBuilding.floors[0];
+    const deliveryRoom = deliveryFloor?.rooms?.[0];
+
+    const deliveryLocation: DetailedLocation = {
+      buildingId: deliveryBuilding.id,
+      buildingName: deliveryBuilding.name,
+      floorDepartmentId: deliveryFloor.id,
+      floorDepartmentName: deliveryFloor.name,
+      roomBedId: deliveryRoom?.id,
+      roomBedName: deliveryRoom?.name,
+    };
+
+    // สร้างวันที่และเวลา (30 นาทีจากปัจจุบัน)
+    const futureDate = new Date();
+
+    futureDate.setMinutes(futureDate.getMinutes() + 30);
+
+    // สุ่มข้อมูล
+    const randomDept =
+      testDepartments[Math.floor(Math.random() * testDepartments.length)];
+    const randomName = testNames[Math.floor(Math.random() * testNames.length)];
+    const randomPatientName =
+      testPatientNames[Math.floor(Math.random() * testPatientNames.length)];
+    const randomHN =
+      testHNs[Math.floor(Math.random() * testHNs.length)] +
+      "/" +
+      String(Math.floor(Math.random() * 30) + 65);
+    const randomPhone =
+      "08" + String(Math.floor(Math.random() * 100000000)).padStart(8, "0");
+    const randomUrgency: UrgencyLevel =
+      URGENCY_OPTIONS[Math.floor(Math.random() * URGENCY_OPTIONS.length)].value;
+    const randomVehicleType: VehicleType =
+      VEHICLE_TYPE_OPTIONS[
+        Math.floor(Math.random() * VEHICLE_TYPE_OPTIONS.length)
+      ];
+    const randomTransportReason =
+      TRANSPORT_REASON_OPTIONS[
+        Math.floor(Math.random() * TRANSPORT_REASON_OPTIONS.length)
+      ];
+    const randomEquipment: EquipmentType[] = EQUIPMENT_OPTIONS.filter(
+      () => Math.random() > 0.5,
+    );
+    const randomHasVehicle: "มี" | "ไม่มี" =
+      Math.random() > 0.5 ? "มี" : "ไม่มี";
+    const randomReturnTrip: "ไปส่งอย่างเดียว" | "รับกลับด้วย" =
+      Math.random() > 0.5 ? "ไปส่งอย่างเดียว" : "รับกลับด้วย";
+
+    // เติมข้อมูลลงใน form
+    setFormData({
+      requesterDepartment: randomDept,
+      requesterName: randomName,
+      requesterPhone: randomPhone,
+      patientName: randomPatientName,
+      patientHN: randomHN,
+      pickupLocation: formatLocationString(pickupLocation),
+      pickupLocationDetail: pickupLocation,
+      deliveryLocation: formatLocationString(deliveryLocation),
+      deliveryLocationDetail: deliveryLocation,
+      requestedDateTime: getDateTimeLocal(futureDate),
+      urgencyLevel: randomUrgency,
+      vehicleType: randomVehicleType,
+      equipment: randomEquipment,
+      hasVehicle: randomHasVehicle,
+      returnTrip: randomReturnTrip,
+      transportReason: randomTransportReason,
+      specialNotes: "ข้อมูลทดสอบการบันทึก - สร้างโดยระบบ",
+      patientCondition: "ผู้ป่วยสามารถเดินได้เอง / ไม่มีอาการพิเศษ",
+    });
+
+    // Clear validation errors
+    setValidationErrors({});
+
+    addToast({
+      title: "สร้างข้อมูลทดสอบสำเร็จ",
+      description: "ข้อมูลตัวอย่างถูกเติมลงในฟอร์มแล้ว",
+      color: "success",
+    });
   };
 
   return (
@@ -1049,6 +1171,19 @@ export default function PorterRequestPage() {
                 </div>
               </div>
             </CardBody>
+            {session?.user?.role === "admin" && (
+              <CardFooter className="pt-2 pb-4 px-4">
+                <Button
+                  className="w-full"
+                  color="warning"
+                  size="sm"
+                  variant="flat"
+                  onPress={generateTestData}
+                >
+                  Generate User (ทดสอบการบันทึกข้อมูล)
+                </Button>
+              </CardFooter>
+            )}
           </Card>
         </aside>
       </div>

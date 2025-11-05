@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import porterEventEmitter from '../utils/eventEmitter.js';
 import {
   mapUrgencyLevelToPrisma,
   mapUrgencyLevelToProto,
@@ -109,7 +110,26 @@ export const createPorterRequest = async (requestData) => {
     },
   });
 
-  return convertToProtoResponse(porterRequest);
+  const protoResponse = convertToProtoResponse(porterRequest);
+
+  // Emit event สำหรับ real-time updates
+  console.log('[Porter Service] Emitting porterRequestCreated event:', {
+    requestId: protoResponse.id,
+    status: protoResponse.status,
+    statusType: typeof protoResponse.status,
+    urgencyLevel: protoResponse.urgency_level,
+    listenersCount: porterEventEmitter.listenerCount('porterRequestCreated'),
+  });
+  
+  // ตรวจสอบว่ามี listeners หรือไม่
+  if (porterEventEmitter.listenerCount('porterRequestCreated') === 0) {
+    console.warn('[Porter Service] WARNING: No listeners for porterRequestCreated event! Stream may not be connected.');
+  }
+  
+  porterEventEmitter.emit('porterRequestCreated', protoResponse);
+  console.log('[Porter Service] Event porterRequestCreated emitted successfully');
+
+  return protoResponse;
 };
 
 /**
@@ -229,7 +249,12 @@ export const updatePorterRequest = async (id, updateData) => {
     data,
   });
 
-  return convertToProtoResponse(porterRequest);
+  const protoResponse = convertToProtoResponse(porterRequest);
+
+  // Emit event สำหรับ real-time updates
+  porterEventEmitter.emit('porterRequestUpdated', protoResponse);
+
+  return protoResponse;
 };
 
 /**
@@ -239,6 +264,10 @@ export const updatePorterRequestStatus = async (id, statusData) => {
   const { status, assigned_to_id, assigned_to_name, cancelled_reason } = statusData;
 
   const newStatus = mapStatusToPrisma(status);
+
+  // ดึงข้อมูลเก่าก่อนเพื่อเปรียบเทียบ status
+  const oldRequest = await prisma.porterRequest.findUnique({ where: { id } });
+  const oldStatus = oldRequest?.status;
 
   const data = {
     status: newStatus,
@@ -268,16 +297,38 @@ export const updatePorterRequestStatus = async (id, statusData) => {
     data,
   });
 
-  return convertToProtoResponse(porterRequest);
+  const protoResponse = convertToProtoResponse(porterRequest);
+
+  // Emit event สำหรับ real-time updates
+  if (oldStatus !== newStatus) {
+    console.log('[Porter Service] Emitting porterRequestStatusChanged event:', protoResponse.id, 'from', oldStatus, 'to', newStatus);
+    porterEventEmitter.emit('porterRequestStatusChanged', protoResponse);
+  } else {
+    console.log('[Porter Service] Emitting porterRequestUpdated event:', protoResponse.id);
+    porterEventEmitter.emit('porterRequestUpdated', protoResponse);
+  }
+
+  return protoResponse;
 };
 
 /**
  * ลบ Porter Request
  */
 export const deletePorterRequest = async (id) => {
-  await prisma.porterRequest.delete({
+  const porterRequest = await prisma.porterRequest.findUnique({
     where: { id },
   });
+
+  if (porterRequest) {
+    const protoResponse = convertToProtoResponse(porterRequest);
+
+    await prisma.porterRequest.delete({
+      where: { id },
+    });
+
+    // Emit event สำหรับ real-time updates
+    porterEventEmitter.emit('porterRequestDeleted', protoResponse);
+  }
 };
 
 /**

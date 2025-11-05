@@ -46,6 +46,7 @@ const startServer = async () => {
       updatePorterRequestStatus: porterHandlers.updatePorterRequestStatus,
       deletePorterRequest: porterHandlers.deletePorterRequest,
       healthCheck: porterHandlers.healthCheck,
+      streamPorterRequests: porterHandlers.streamPorterRequests,
     });
 
     // เริ่ม listen

@@ -27,6 +27,9 @@ service PorterService {
 
   // Health check
   rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // Stream สำหรับ real-time updates เมื่อมีการเปลี่ยนแปลงคำขอ
+  rpc StreamPorterRequests(StreamPorterRequestsRequest) returns (stream PorterRequestUpdate);
 }
 
 // ========================================
@@ -128,6 +131,11 @@ message DeletePorterRequestRequest {
 }
 
 message HealthCheckRequest {}
+
+message StreamPorterRequestsRequest {
+  optional PorterJobStatus status = 1;
+  optional PorterUrgencyLevel urgency_level = 2;
+}
 
 // ========================================
 // Response Messages
@@ -264,4 +272,19 @@ enum PorterEquipment {
   VENTILATOR = 3;
   MONITOR = 4;
   SUCTION = 5;
+}
+
+// ========================================
+// Streaming Messages
+// ========================================
+
+message PorterRequestUpdate {
+  enum UpdateType {
+    CREATED = 0;
+    UPDATED = 1;
+    STATUS_CHANGED = 2;
+    DELETED = 3;
+  }
+  UpdateType type = 1;
+  PorterRequest request = 2;
 }

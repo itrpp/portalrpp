@@ -553,6 +553,162 @@ export function generateMockPorterJobs(count: number = 100): PorterJobItem[] {
 
 /**
  * ========================================
+ * PROTO CONVERSION FUNCTIONS
+ * ========================================
+ */
+
+/**
+ * แปลง Status จาก Frontend (waiting, in-progress, completed, cancelled) เป็น Proto enum
+ */
+export function mapStatusToProto(status: string): number {
+  const map: Record<string, number> = {
+    waiting: 0,
+    "in-progress": 1,
+    completed: 2,
+    cancelled: 3,
+  };
+  return map[status] ?? 0;
+}
+
+/**
+ * แปลง Urgency Level จาก Frontend (ภาษาไทย) เป็น Proto enum
+ */
+export function mapUrgencyLevelToProto(level: string): number {
+  const map: Record<string, number> = {
+    "ปกติ": 0,
+    "ด่วน": 1,
+    "ฉุกเฉิน": 2,
+  };
+  return map[level] ?? 0;
+}
+
+/**
+ * แปลง Status จาก Proto enum เป็น Frontend format
+ */
+function mapStatusFromProto(status: number): string {
+  const map: Record<number, string> = {
+    0: "waiting",
+    1: "in-progress",
+    2: "completed",
+    3: "cancelled",
+  };
+  return map[status] ?? "waiting";
+}
+
+/**
+ * แปลง Urgency Level จาก Proto enum เป็น Frontend (ภาษาไทย)
+ */
+function mapUrgencyLevelFromProto(level: number): string {
+  const map: Record<number, string> = {
+    0: "ปกติ",
+    1: "ด่วน",
+    2: "ฉุกเฉิน",
+  };
+  return map[level] ?? "ปกติ";
+}
+
+/**
+ * แปลง Vehicle Type จาก Proto enum เป็น Frontend (ภาษาไทย)
+ */
+function mapVehicleTypeFromProto(type: number): string {
+  const map: Record<number, string> = {
+    0: "รถนั่ง",
+    1: "รถนอน",
+    2: "รถกอล์ฟ",
+  };
+  return map[type] ?? "รถนั่ง";
+}
+
+/**
+ * แปลง Has Vehicle จาก Proto enum เป็น Frontend (ภาษาไทย)
+ */
+function mapHasVehicleFromProto(hasVehicle: number): string {
+  const map: Record<number, string> = {
+    0: "มี",
+    1: "ไม่มี",
+  };
+  return map[hasVehicle] ?? "ไม่มี";
+}
+
+/**
+ * แปลง Return Trip จาก Proto enum เป็น Frontend (ภาษาไทย)
+ */
+function mapReturnTripFromProto(returnTrip: number): string {
+  const map: Record<number, string> = {
+    0: "ไปส่งอย่างเดียว",
+    1: "รับกลับด้วย",
+  };
+  return map[returnTrip] ?? "ไปส่งอย่างเดียว";
+}
+
+/**
+ * แปลง Equipment array จาก Proto enum array เป็น Frontend format
+ */
+function mapEquipmentFromProto(equipment: number[]): string[] {
+  const map: Record<number, string> = {
+    0: "Oxygen",
+    1: "Tube",
+    2: "IV Pump",
+    3: "Ventilator",
+    4: "Monitor",
+    5: "Suction",
+  };
+  return equipment.map((eq) => map[eq] ?? "Oxygen").filter(Boolean);
+}
+
+/**
+ * แปลงข้อมูลจาก Proto format เป็น Frontend format
+ */
+export function convertProtoToFrontend(protoData: any): PorterJobItem {
+  return {
+    id: protoData.id,
+    status: mapStatusFromProto(protoData.status),
+    form: {
+      requesterDepartment: protoData.requester_department,
+      requesterName: protoData.requester_name,
+      requesterPhone: protoData.requester_phone,
+      patientName: protoData.patient_name,
+      patientHN: protoData.patient_hn,
+      pickupLocation: protoData.pickup_location,
+      pickupLocationDetail: protoData.pickup_building_id
+        ? {
+            buildingId: protoData.pickup_building_id,
+            buildingName: protoData.pickup_building_name,
+            floorDepartmentId: protoData.pickup_floor_department_id,
+            floorDepartmentName: protoData.pickup_floor_department_name,
+            roomBedId: protoData.pickup_room_bed_id || undefined,
+            roomBedName: protoData.pickup_room_bed_name || undefined,
+          }
+        : null,
+      deliveryLocation: protoData.delivery_location,
+      deliveryLocationDetail: protoData.delivery_building_id
+        ? {
+            buildingId: protoData.delivery_building_id,
+            buildingName: protoData.delivery_building_name,
+            floorDepartmentId: protoData.delivery_floor_department_id,
+            floorDepartmentName: protoData.delivery_floor_department_name,
+            roomBedId: protoData.delivery_room_bed_id || undefined,
+            roomBedName: protoData.delivery_room_bed_name || undefined,
+          }
+        : null,
+      requestedDateTime: protoData.requested_date_time,
+      urgencyLevel: mapUrgencyLevelFromProto(protoData.urgency_level),
+      vehicleType: mapVehicleTypeFromProto(protoData.vehicle_type),
+      hasVehicle: mapHasVehicleFromProto(protoData.has_vehicle),
+      returnTrip: mapReturnTripFromProto(protoData.return_trip),
+      transportReason: protoData.transport_reason,
+      equipment: mapEquipmentFromProto(protoData.equipment || []),
+      specialNotes: protoData.special_notes || "",
+      patientCondition: protoData.patient_condition || "",
+      assignedToName: protoData.assigned_to_name || undefined,
+    },
+    assignedTo: protoData.assigned_to_id || undefined,
+    assignedToName: protoData.assigned_to_name || undefined,
+  };
+}
+
+/**
+ * ========================================
  * SOUND UTILITIES
  * ========================================
  */
