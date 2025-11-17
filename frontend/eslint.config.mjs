@@ -86,14 +86,14 @@ export default [
 
     settings: {
       react: {
-        version: "detect",
+        version: "18.3.1",
       },
     },
 
     files: ["**/*.ts", "**/*.tsx"],
 
     rules: {
-      "no-console": "warn",
+      "no-console": ["warn", { allow: ["warn", "error", "info"] }],
       "react/prop-types": "off",
       "react/jsx-uses-react": "off",
       "react/react-in-jsx-scope": "off",

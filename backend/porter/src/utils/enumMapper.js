@@ -1,12 +1,19 @@
 /**
  * Enum Mapper Utilities
- * แปลง enum ระหว่าง Proto (number) และ Prisma (string)
+ * แปลงค่า string ระหว่าง Proto และ Prisma (ตอนนี้ใช้ string ทั้งคู่แล้ว)
+ * ฟังก์ชันเหล่านี้ยังคงมีไว้เพื่อ validate และ normalize ค่า
  */
 
 /**
- * แปลง Proto Urgency Level เป็น Prisma enum
+ * Validate และ normalize Urgency Level
  */
 export const mapUrgencyLevelToPrisma = (protoLevel) => {
+  // ถ้าเป็น string อยู่แล้ว ให้ return โดยตรง
+  if (typeof protoLevel === 'string') {
+    const validValues = ['NORMAL', 'RUSH', 'EMERGENCY'];
+    return validValues.includes(protoLevel) ? protoLevel : 'NORMAL';
+  }
+  // ถ้าเป็น number (backward compatibility) ให้แปลง
   const map = {
     0: 'NORMAL',
     1: 'RUSH',
@@ -16,21 +23,22 @@ export const mapUrgencyLevelToPrisma = (protoLevel) => {
 };
 
 /**
- * แปลง Prisma Urgency Level เป็น Proto enum
+ * Validate และ normalize Urgency Level สำหรับ Proto
  */
 export const mapUrgencyLevelToProto = (prismaLevel) => {
-  const map = {
-    NORMAL: 0,
-    RUSH: 1,
-    EMERGENCY: 2,
-  };
-  return map[prismaLevel] ?? 0;
+  // ตอนนี้ใช้ string โดยตรง
+  const validValues = ['NORMAL', 'RUSH', 'EMERGENCY'];
+  return validValues.includes(prismaLevel) ? prismaLevel : 'NORMAL';
 };
 
 /**
- * แปลง Proto Vehicle Type เป็น Prisma enum
+ * Validate และ normalize Vehicle Type
  */
 export const mapVehicleTypeToPrisma = (protoType) => {
+  if (typeof protoType === 'string') {
+    const validValues = ['SITTING', 'LYING', 'GOLF'];
+    return validValues.includes(protoType) ? protoType : 'SITTING';
+  }
   const map = {
     0: 'SITTING',
     1: 'LYING',
@@ -40,21 +48,21 @@ export const mapVehicleTypeToPrisma = (protoType) => {
 };
 
 /**
- * แปลง Prisma Vehicle Type เป็น Proto enum
+ * Validate และ normalize Vehicle Type สำหรับ Proto
  */
 export const mapVehicleTypeToProto = (prismaType) => {
-  const map = {
-    SITTING: 0,
-    LYING: 1,
-    GOLF: 2,
-  };
-  return map[prismaType] ?? 0;
+  const validValues = ['SITTING', 'LYING', 'GOLF'];
+  return validValues.includes(prismaType) ? prismaType : 'SITTING';
 };
 
 /**
- * แปลง Proto Has Vehicle เป็น Prisma enum
+ * Validate และ normalize Has Vehicle
  */
 export const mapHasVehicleToPrisma = (protoValue) => {
+  if (typeof protoValue === 'string') {
+    const validValues = ['YES', 'NO'];
+    return validValues.includes(protoValue) ? protoValue : 'NO';
+  }
   const map = {
     0: 'YES',
     1: 'NO',
@@ -63,20 +71,21 @@ export const mapHasVehicleToPrisma = (protoValue) => {
 };
 
 /**
- * แปลง Prisma Has Vehicle เป็น Proto enum
+ * Validate และ normalize Has Vehicle สำหรับ Proto
  */
 export const mapHasVehicleToProto = (prismaValue) => {
-  const map = {
-    YES: 0,
-    NO: 1,
-  };
-  return map[prismaValue] ?? 1;
+  const validValues = ['YES', 'NO'];
+  return validValues.includes(prismaValue) ? prismaValue : 'NO';
 };
 
 /**
- * แปลง Proto Return Trip เป็น Prisma enum
+ * Validate และ normalize Return Trip
  */
 export const mapReturnTripToPrisma = (protoValue) => {
+  if (typeof protoValue === 'string') {
+    const validValues = ['ONE_WAY', 'ROUND_TRIP'];
+    return validValues.includes(protoValue) ? protoValue : 'ONE_WAY';
+  }
   const map = {
     0: 'ONE_WAY',
     1: 'ROUND_TRIP',
@@ -85,20 +94,21 @@ export const mapReturnTripToPrisma = (protoValue) => {
 };
 
 /**
- * แปลง Prisma Return Trip เป็น Proto enum
+ * Validate และ normalize Return Trip สำหรับ Proto
  */
 export const mapReturnTripToProto = (prismaValue) => {
-  const map = {
-    ONE_WAY: 0,
-    ROUND_TRIP: 1,
-  };
-  return map[prismaValue] ?? 0;
+  const validValues = ['ONE_WAY', 'ROUND_TRIP'];
+  return validValues.includes(prismaValue) ? prismaValue : 'ONE_WAY';
 };
 
 /**
- * แปลง Proto Status เป็น Prisma enum
+ * Validate และ normalize Status
  */
 export const mapStatusToPrisma = (protoStatus) => {
+  if (typeof protoStatus === 'string') {
+    const validValues = ['WAITING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+    return validValues.includes(protoStatus) ? protoStatus : 'WAITING';
+  }
   const map = {
     0: 'WAITING',
     1: 'IN_PROGRESS',
@@ -109,58 +119,63 @@ export const mapStatusToPrisma = (protoStatus) => {
 };
 
 /**
- * แปลง Prisma Status เป็น Proto enum
+ * Validate และ normalize Status สำหรับ Proto
  */
 export const mapStatusToProto = (prismaStatus) => {
-  const map = {
-    WAITING: 0,
-    IN_PROGRESS: 1,
-    COMPLETED: 2,
-    CANCELLED: 3,
-  };
-  return map[prismaStatus] ?? 0;
+  const validValues = ['WAITING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+  return validValues.includes(prismaStatus) ? prismaStatus : 'WAITING';
 };
 
 /**
- * แปลง Proto Equipment array เป็น Prisma enum array
+ * Validate และ normalize Equipment array
  */
 export const mapEquipmentToPrisma = (protoEquipmentArray) => {
+  if (!Array.isArray(protoEquipmentArray)) {
+    return [];
+  }
+  
+  const validValues = ['OXYGEN', 'SALINE_POLE', 'ICD_BOX', 'CLOTH_TIED', 'OTHER', 'TUBE', 'IV_PUMP', 'VENTILATOR', 'MONITOR', 'SUCTION'];
+  
+  // ถ้าเป็น string array อยู่แล้ว ให้ validate และ return
+  if (protoEquipmentArray.length > 0 && typeof protoEquipmentArray[0] === 'string') {
+    return protoEquipmentArray.filter((eq) => validValues.includes(eq));
+  }
+  
+  // ถ้าเป็น number array (backward compatibility) ให้แปลง
   const map = {
     0: 'OXYGEN',
-    1: 'TUBE',
-    2: 'IV_PUMP',
-    3: 'VENTILATOR',
-    4: 'MONITOR',
+    1: 'SALINE_POLE',
+    2: 'ICD_BOX',
+    3: 'CLOTH_TIED',
+    4: 'OTHER',
+    // Backward compatibility
     5: 'SUCTION',
   };
-  return protoEquipmentArray.map((eq) => map[eq] ?? 'OXYGEN');
+  return protoEquipmentArray
+    .map((eq) => map[eq] ?? null)
+    .filter((eq) => eq !== null);
 };
 
 /**
- * แปลง Prisma Equipment (JSON string หรือ array) เป็น Proto enum array
+ * Validate และ normalize Equipment สำหรับ Proto
  */
 export const mapEquipmentToProto = (prismaEquipment) => {
-  const reverseMap = {
-    OXYGEN: 0,
-    TUBE: 1,
-    IV_PUMP: 2,
-    VENTILATOR: 3,
-    MONITOR: 4,
-    SUCTION: 5,
-  };
+  const validValues = ['OXYGEN', 'SALINE_POLE', 'ICD_BOX', 'CLOTH_TIED', 'OTHER', 'TUBE', 'IV_PUMP', 'VENTILATOR', 'MONITOR', 'SUCTION'];
 
   // Prisma เก็บ equipment เป็น JSON อาจเป็น string หรือ array
   let equipmentArray = prismaEquipment;
   if (typeof equipmentArray === 'string') {
     try {
       equipmentArray = JSON.parse(equipmentArray);
-    } catch (e) {
+    } catch (_e) {
       equipmentArray = [];
     }
   }
   if (!Array.isArray(equipmentArray)) {
     equipmentArray = [];
   }
-  return equipmentArray.map((eq) => reverseMap[eq] ?? 0);
+  
+  // Filter เฉพาะค่าที่ valid
+  return equipmentArray.filter((eq) => validValues.includes(eq));
 };
 

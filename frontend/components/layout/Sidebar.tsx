@@ -20,6 +20,8 @@ import {
   ArrowDownTrayIcon,
   DocumentTextIcon,
   ArrowUpTrayIcon,
+  BriefcaseIcon,
+  UserGroupIcon,
 } from "@/components/ui/icons";
 
 interface SidebarItem {
@@ -62,6 +64,12 @@ export default function Sidebar() {
     // Auto-expand "รายการงานที่ต้องดำเนินการ" when on job list pages
     if (pathname.startsWith("/porter/joblist")) {
       newExpandedItems.add("ศูนย์เปล");
+    }
+
+    // Auto-expand "ตั้งค่า" when on setting pages
+    if (pathname.startsWith("/porter/setting/")) {
+      newExpandedItems.add("ศูนย์เปล");
+      newExpandedItems.add("ตั้งค่า");
     }
 
     setExpandedItems(newExpandedItems);
@@ -148,13 +156,23 @@ export default function Sidebar() {
               subItems: [
                 {
                   name: "จุดรับ - ส่ง",
-                  href: "#",
+                  href: "/porter/setting/location",
                   icon: SettingsIcon,
                 },
                 {
                   name: "รายชื่อเจ้าหน้าที่เปล",
-                  href: "#",
+                  href: "/porter/setting/employee",
                   icon: UserIcon,
+                },
+                {
+                  name: "ประเภทการจ้าง",
+                  href: "/porter/setting/employment-type",
+                  icon: BriefcaseIcon,
+                },
+                {
+                  name: "ตำแหน่ง",
+                  href: "/porter/setting/position",
+                  icon: UserGroupIcon,
                 },
               ],
             },

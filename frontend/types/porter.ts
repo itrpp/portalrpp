@@ -21,12 +21,11 @@ export type UrgencyLevel = "ปกติ" | "ด่วน" | "ฉุกเฉิ
  * อุปกรณ์ที่ต้องการ
  */
 export type EquipmentType =
-  | "Oxygen"
-  | "Tube"
-  | "IV Pump"
-  | "Ventilator"
-  | "Monitor"
-  | "Suction";
+  | "ถังออกซิเจน (ออกซิเจนCannula/mask with bag)"
+  | "เสาน้ำเกลือ"
+  | "กล่องวางขวด ICD"
+  | "ผ้าผูกตรึงร่างกาย"
+  | "อื่นๆ ระบุ";
 
 /**
  * ข้อมูลฟอร์มขอเปล
@@ -55,9 +54,9 @@ export interface PorterRequestFormData {
 
   // รายละเอียดเพิ่มเติม
   transportReason: string;
+  equipmentOther?: string; // ระบุอุปกรณ์อื่นๆ เมื่อเลือก "อื่นๆ ระบุ"
   specialNotes: string;
-  patientCondition: string;
-  assignedToName?: string;
+  patientCondition: string[]; // อาการ/สภาพผู้ป่วย (array ของ checkbox)
 }
 
 /**
@@ -72,8 +71,16 @@ export interface PorterJobItem {
   id: string;
   status: JobListTab;
   form: PorterRequestFormData;
-  assignedTo?: string; // ID หรือชื่อผู้ดำเนินการ
-  assignedToName?: string; // ชื่อผู้ดำเนินการสำหรับแสดงผล
+  assignedTo?: string; // ID ของผู้ดำเนินการ
+  createdAt?: string; // ISO 8601 format
+  updatedAt?: string; // ISO 8601 format
+  acceptedAt?: string; // ISO 8601 format - เวลาที่รับงาน
+  completedAt?: string; // ISO 8601 format - เวลาที่เสร็จสิ้น
+  cancelledAt?: string; // ISO 8601 format - เวลาที่ยกเลิก
+  cancelledReason?: string; // เหตุผลการยกเลิก
+  pickupAt?: string; // ISO 8601 format - เวลาที่ถึงจุดรับ
+  deliveryAt?: string; // ISO 8601 format - เวลาที่ถึงจุดส่ง
+  returnAt?: string; // ISO 8601 format - เวลาที่ถึงจุดส่งกลับ
 }
 
 /**
@@ -113,12 +120,65 @@ export interface RoomBed {
 }
 
 /**
+ * ประเภทหน่วยงาน (ID mapping)
+ */
+export const DEPARTMENT_TYPES = {
+  1: "คลินิก",
+  2: "หอผู้ป่วย",
+} as const;
+
+export type DepartmentTypeId = keyof typeof DEPARTMENT_TYPES;
+export type DepartmentType = (typeof DEPARTMENT_TYPES)[DepartmentTypeId];
+
+/**
+ * ประเภทห้องพัก (ID mapping)
+ */
+export const ROOM_TYPES = {
+  1: "ห้องรวม",
+  2: "ห้องพิเศษ",
+  3: "ห้องรวมและห้องพิเศษ",
+} as const;
+
+export type RoomTypeId = keyof typeof ROOM_TYPES;
+export type RoomType = (typeof ROOM_TYPES)[RoomTypeId];
+
+/**
+ * Helper functions สำหรับ mapping
+ */
+export function getDepartmentTypeName(id: number): DepartmentType | undefined {
+  return DEPARTMENT_TYPES[id as DepartmentTypeId];
+}
+
+export function getDepartmentTypeId(
+  name: DepartmentType,
+): DepartmentTypeId | undefined {
+  return Object.entries(DEPARTMENT_TYPES).find(
+    ([, value]) => value === name,
+  )?.[0] as DepartmentTypeId | undefined;
+}
+
+export function getRoomTypeName(id: number): RoomType | undefined {
+  return ROOM_TYPES[id as RoomTypeId];
+}
+
+export function getRoomTypeId(name: RoomType): RoomTypeId | undefined {
+  return Object.entries(ROOM_TYPES).find(([, value]) => value === name)?.[0] as
+    | RoomTypeId
+    | undefined;
+}
+
+/**
  * ข้อมูลชั้น/หน่วยงาน
  */
 export interface FloorDepartment {
   id: string;
   name: string;
-  rooms?: RoomBed[]; // ถ้ามีห้อง/เตียง
+  floorNumber?: number; // หมายเลขชั้น
+  departmentType: number; // ประเภทหน่วยงาน (ID: 1 = "คลินิก", 2 = "หอผู้ป่วย")
+  roomType?: number; // ประเภทห้องพัก (ID: 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม")
+  roomCount?: number; // จำนวนห้อง (ถ้ามี)
+  bedCount?: number; // จำนวนเตียง (ถ้ามี)
+  rooms?: RoomBed[]; // ถ้ามีห้อง/เตียง (สำหรับ backward compatibility)
 }
 
 /**
@@ -127,6 +187,7 @@ export interface FloorDepartment {
 export interface Building {
   id: string;
   name: string;
+  floorCount?: number; // จำนวนชั้น
   floors: FloorDepartment[];
 }
 

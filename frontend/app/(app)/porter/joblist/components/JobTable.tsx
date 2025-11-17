@@ -100,8 +100,8 @@ export default function JobTable({
                     <div>
                       {item.status === "in-progress" && (
                         <Chip color="warning" size="sm" variant="flat">
-                          {item.assignedToName
-                            ? `กำลังดำเนินการ ผู้ดำเนินการ [${item.assignedToName}]`
+                          {item.assignedTo
+                            ? `กำลังดำเนินการ [ID: ${item.assignedTo}]`
                             : "กำลังดำเนินการ"}
                         </Chip>
                       )}
@@ -112,8 +112,8 @@ export default function JobTable({
                       )}
                       {item.status === "cancelled" && (
                         <Chip color="danger" size="sm" variant="flat">
-                          {item.assignedToName
-                            ? `ยกเลิก ผู้ยกเลิก [${item.assignedToName}]`
+                          {item.assignedTo
+                            ? `ยกเลิก [ID: ${item.assignedTo}]`
                             : "ยกเลิก"}
                         </Chip>
                       )}

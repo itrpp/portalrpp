@@ -41,35 +41,41 @@ export async function GET(request: NextRequest) {
     const searchParams = url.searchParams;
     const { status, urgency_level } = Object.fromEntries(searchParams);
 
-    // eslint-disable-next-line no-console
-    console.log("[Next.js API] Creating gRPC stream directly (bypassing API Gateway)", {
-      queryParams: { status, urgency_level },
-      hasStatusFilter: status !== undefined && status !== null,
-      hasUrgencyFilter: urgency_level !== undefined && urgency_level !== null,
-    });
+    console.info(
+      "[Next.js API] Creating gRPC stream directly (bypassing API Gateway)",
+      {
+        queryParams: { status, urgency_level },
+        hasStatusFilter: status !== undefined && status !== null,
+        hasUrgencyFilter: urgency_level !== undefined && urgency_level !== null,
+      },
+    );
 
     // สร้าง request สำหรับ gRPC stream โดยตรง
     const protoRequest: any = {};
 
     if (status !== undefined && status !== null) {
       protoRequest.status = mapStatusToProto(status);
-      // eslint-disable-next-line no-console
-      console.log("[Next.js API] Mapped status filter:", { original: status, proto: protoRequest.status });
+      console.info("[Next.js API] Mapped status filter:", {
+        original: status,
+        proto: protoRequest.status,
+      });
     }
     if (urgency_level !== undefined && urgency_level !== null) {
       protoRequest.urgency_level = mapUrgencyLevelToProto(urgency_level);
-      // eslint-disable-next-line no-console
-      console.log("[Next.js API] Mapped urgency_level filter:", { original: urgency_level, proto: protoRequest.urgency_level });
+      console.info("[Next.js API] Mapped urgency_level filter:", {
+        original: urgency_level,
+        proto: protoRequest.urgency_level,
+      });
     }
 
-    // eslint-disable-next-line no-console
-    console.log("[Next.js API] Proto request object:", protoRequest);
+    console.info("[Next.js API] Proto request object:", protoRequest);
 
     // สร้าง gRPC stream โดยตรงจาก gRPC service (ไม่ผ่าน API Gateway)
     const grpcStream = streamPorterRequests(protoRequest);
 
-    // eslint-disable-next-line no-console
-    console.log("[Next.js API] gRPC stream created directly, waiting for data...");
+    console.info(
+      "[Next.js API] gRPC stream created directly, waiting for data...",
+    );
 
     // สร้าง ReadableStream เพื่อแปลง gRPC stream เป็น SSE
     let isStreamClosed = false;
@@ -78,8 +84,7 @@ export async function GET(request: NextRequest) {
     const stream = new ReadableStream({
       async start(streamController) {
         try {
-          // eslint-disable-next-line no-console
-          console.log("[Next.js API] Starting to read gRPC stream...");
+          console.info("[Next.js API] Starting to read gRPC stream...");
 
           // Helper function สำหรับตรวจสอบว่า stream ยังเปิดอยู่
           const isControllerOpen = () => {
@@ -116,6 +121,7 @@ export async function GET(request: NextRequest) {
             // แปลง type เป็น string (รองรับทั้ง number และ string)
             // เนื่องจาก protoLoader อาจแปลง enum เป็น string เมื่อใช้ enums: String
             let updateTypeNumber: number;
+
             if (typeof update.type === "string") {
               // ถ้าเป็น string ให้ map กลับเป็น number
               const typeMap: Record<string, number> = {
@@ -124,6 +130,7 @@ export async function GET(request: NextRequest) {
                 STATUS_CHANGED: 2,
                 DELETED: 3,
               };
+
               updateTypeNumber = typeMap[update.type] ?? 0;
             } else {
               updateTypeNumber = update.type;
@@ -138,8 +145,7 @@ export async function GET(request: NextRequest) {
                     ? "STATUS_CHANGED"
                     : "DELETED";
 
-            // eslint-disable-next-line no-console
-            console.log("[Next.js API] Received gRPC stream data event:", {
+            console.info("[Next.js API] Received gRPC stream data event:", {
               rawType: update.type,
               typeValue: updateTypeNumber,
               typeName: updateTypeString,
@@ -150,10 +156,10 @@ export async function GET(request: NextRequest) {
             });
 
             if (!isControllerOpen()) {
-              // eslint-disable-next-line no-console
               console.warn(
                 "[Next.js API] Stream controller is closed, ignoring data",
               );
+
               return;
             }
 
@@ -167,8 +173,7 @@ export async function GET(request: NextRequest) {
                   data: frontendData,
                 };
 
-                // eslint-disable-next-line no-console
-                console.log("[Next.js API] Converted to frontend format:", {
+                console.info("[Next.js API] Converted to frontend format:", {
                   type: updateData.type,
                   requestId: frontendData.id,
                   status: frontendData.status,
@@ -181,8 +186,7 @@ export async function GET(request: NextRequest) {
                 if (isControllerOpen()) {
                   try {
                     streamController.enqueue(encoder.encode(sseMessage));
-                    // eslint-disable-next-line no-console
-                    console.log(
+                    console.info(
                       "[Next.js API] Successfully sent SSE message:",
                       {
                         type: updateData.type,
@@ -190,32 +194,30 @@ export async function GET(request: NextRequest) {
                       },
                     );
                   } catch (enqueueError) {
-                    // eslint-disable-next-line no-console
                     console.error(
                       "[Next.js API] Error enqueueing SSE message:",
                       enqueueError,
                     );
                   }
                 } else {
-                  // eslint-disable-next-line no-console
-                  console.warn("[Next.js API] Controller closed, cannot send SSE message");
+                  console.warn(
+                    "[Next.js API] Controller closed, cannot send SSE message",
+                  );
                 }
               } else {
-                // eslint-disable-next-line no-console
                 console.warn(
                   "[Next.js API] Received update without request data:",
                   update,
                 );
               }
             } catch (error) {
-                // eslint-disable-next-line no-console
-                console.error("[Next.js API] Error processing stream data:", {
-                  error: error instanceof Error ? error.message : String(error),
-                  stack: error instanceof Error ? error.stack : undefined,
-                  rawUpdateType: update.type,
-                  updateTypeName: updateTypeString,
-                  hasRequest: !!update.request,
-                });
+              console.error("[Next.js API] Error processing stream data:", {
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+                rawUpdateType: update.type,
+                updateTypeName: updateTypeString,
+                hasRequest: !!update.request,
+              });
             }
           });
 
@@ -227,15 +229,13 @@ export async function GET(request: NextRequest) {
               (error.details?.includes("Cancelled") ||
                 error.message?.includes("Cancelled"))
             ) {
-              // eslint-disable-next-line no-console
-              console.log("[Next.js API] Stream cancelled by client (normal)");
+              console.info("[Next.js API] Stream cancelled by client (normal)");
               safeClose();
 
               return;
             }
 
             // Error อื่นๆ - log และส่ง error message
-            // eslint-disable-next-line no-console
             console.error("[Next.js API] gRPC stream error:", error);
 
             if (isControllerOpen()) {
@@ -254,8 +254,7 @@ export async function GET(request: NextRequest) {
 
           // จัดการเมื่อ stream end
           grpcStream.on("end", () => {
-            // eslint-disable-next-line no-console
-            console.log("[Next.js API] gRPC stream ended");
+            console.info("[Next.js API] gRPC stream ended");
             safeClose();
           });
 
@@ -275,8 +274,7 @@ export async function GET(request: NextRequest) {
               const encoder = new TextEncoder();
 
               streamController.enqueue(encoder.encode(keepAlive));
-              // eslint-disable-next-line no-console
-              console.log("[Next.js API] Sent keep-alive message");
+              console.info("[Next.js API] Sent keep-alive message");
             } catch {
               // Connection closed
               if (keepAliveInterval) {
@@ -288,7 +286,6 @@ export async function GET(request: NextRequest) {
             }
           }, 20000);
         } catch (error: any) {
-          // eslint-disable-next-line no-console
           console.error("[Next.js API] Error setting up stream:", error);
           isStreamClosed = true;
 
@@ -306,8 +303,7 @@ export async function GET(request: NextRequest) {
       },
       cancel() {
         // เมื่อ client ปิด connection - cancel gRPC stream
-        // eslint-disable-next-line no-console
-        console.log("[Next.js API] Stream cancelled by client");
+        console.info("[Next.js API] Stream cancelled by client");
 
         isStreamClosed = true;
 
@@ -335,7 +331,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: unknown) {
     // Log error for debugging
-    // eslint-disable-next-line no-console
     console.error("Error setting up SSE stream:", error);
 
     return new Response(
@@ -351,4 +346,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -40,18 +40,21 @@ import {
   formatLocationString,
   DetailedLocation,
 } from "@/types/porter";
+import {
+  convertBuildingFromProto,
+  convertFloorDepartmentFromProto,
+} from "@/lib/porter";
 import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
 import { LocationSelector } from "@/components/porter/LocationSelector";
 import {
   URGENCY_OPTIONS,
   VEHICLE_TYPE_OPTIONS,
   EQUIPMENT_OPTIONS,
-  EQUIPMENT_LABELS,
   TRANSPORT_REASON_OPTIONS,
   DEPARTMENT_OPTIONS,
+  PATIENT_CONDITION_OPTIONS,
   validateForm,
 } from "@/lib/porter";
-import { BUILDINGS } from "@/lib/locations";
 
 // ========================================
 // PORTER REQUEST PAGE
@@ -80,8 +83,9 @@ export default function PorterRequestPage() {
     returnTrip: "",
 
     transportReason: "",
+    equipmentOther: "",
     specialNotes: "",
-    patientCondition: "",
+    patientCondition: [],
   });
 
   const [validationErrors, setValidationErrors] = useState<
@@ -269,18 +273,17 @@ export default function PorterRequestPage() {
         returnTrip: "",
 
         transportReason: "",
+        equipmentOther: "",
         specialNotes: "",
-        patientCondition: "",
+        patientCondition: [],
       });
 
       setValidationErrors({});
     } catch (error: unknown) {
       // Log error for debugging (in production, use proper logging service)
       if (error instanceof Error) {
-        // eslint-disable-next-line no-console
         console.error("Error submitting porter request:", error.message);
       } else {
-        // eslint-disable-next-line no-console
         console.error("Error submitting porter request:", error);
       }
 
@@ -364,122 +367,231 @@ export default function PorterRequestPage() {
   };
 
   // Generate test data for admin testing
-  const generateTestData = () => {
-    // สุ่มข้อมูลตัวอย่าง
-    const testDepartments = DEPARTMENT_OPTIONS;
-    const testNames = [
-      "พยาบาล สมใจ",
-      "พยาบาล สุดา",
-      "พยาบาล วิชัย",
-      "แพทย์ วิไล",
-      "แพทย์ กนก",
-    ];
-    const testPatientNames = [
-      "นายสมชาย ใจดี",
-      "นางสมหญิง ดีใจ",
-      "นางสาวสมศรี รักงาน",
-      "นายสมศักดิ์ ขยัน",
-      "นางสมปอง ตั้งใจ",
-    ];
-    const testHNs = ["123456", "234567", "345678", "456789", "567890"];
-
-    // สุ่มเลือกอาคารและสถานที่
-    const building = BUILDINGS[0]; // อาคารแรก
-    const floor = building.floors.find((f) => f.rooms && f.rooms.length > 0);
-    const room = floor?.rooms?.[0];
-
-    const pickupLocation: DetailedLocation = {
-      buildingId: building.id,
-      buildingName: building.name,
-      floorDepartmentId: floor?.id || building.floors[0].id,
-      floorDepartmentName: floor?.name || building.floors[0].name,
-      roomBedId: room?.id,
-      roomBedName: room?.name,
-    };
-
-    // สุ่มสถานที่ส่ง (ใช้อาคารที่ 2 หรือ 3)
-    const deliveryBuilding =
-      BUILDINGS[Math.floor(Math.random() * (BUILDINGS.length - 1)) + 1] ||
-      BUILDINGS[1];
-    const deliveryFloor =
-      deliveryBuilding.floors.find((f) => f.rooms && f.rooms.length > 0) ||
-      deliveryBuilding.floors[0];
-    const deliveryRoom = deliveryFloor?.rooms?.[0];
-
-    const deliveryLocation: DetailedLocation = {
-      buildingId: deliveryBuilding.id,
-      buildingName: deliveryBuilding.name,
-      floorDepartmentId: deliveryFloor.id,
-      floorDepartmentName: deliveryFloor.name,
-      roomBedId: deliveryRoom?.id,
-      roomBedName: deliveryRoom?.name,
-    };
-
-    // สร้างวันที่และเวลา (30 นาทีจากปัจจุบัน)
-    const futureDate = new Date();
-
-    futureDate.setMinutes(futureDate.getMinutes() + 30);
-
-    // สุ่มข้อมูล
-    const randomDept =
-      testDepartments[Math.floor(Math.random() * testDepartments.length)];
-    const randomName = testNames[Math.floor(Math.random() * testNames.length)];
-    const randomPatientName =
-      testPatientNames[Math.floor(Math.random() * testPatientNames.length)];
-    const randomHN =
-      testHNs[Math.floor(Math.random() * testHNs.length)] +
-      "/" +
-      String(Math.floor(Math.random() * 30) + 65);
-    const randomPhone =
-      "08" + String(Math.floor(Math.random() * 100000000)).padStart(8, "0");
-    const randomUrgency: UrgencyLevel =
-      URGENCY_OPTIONS[Math.floor(Math.random() * URGENCY_OPTIONS.length)].value;
-    const randomVehicleType: VehicleType =
-      VEHICLE_TYPE_OPTIONS[
-        Math.floor(Math.random() * VEHICLE_TYPE_OPTIONS.length)
+  const generateTestData = async () => {
+    try {
+      // สุ่มข้อมูลตัวอย่าง
+      const testDepartments = DEPARTMENT_OPTIONS;
+      const testNames = [
+        "พยาบาล สมใจ",
+        "พยาบาล สุดา",
+        "พยาบาล วิชัย",
+        "แพทย์ วิไล",
+        "แพทย์ กนก",
       ];
-    const randomTransportReason =
-      TRANSPORT_REASON_OPTIONS[
-        Math.floor(Math.random() * TRANSPORT_REASON_OPTIONS.length)
+      const testPatientNames = [
+        "นายสมชาย ใจดี",
+        "นางสมหญิง ดีใจ",
+        "นางสาวสมศรี รักงาน",
+        "นายสมศักดิ์ ขยัน",
+        "นางสมปอง ตั้งใจ",
       ];
-    const randomEquipment: EquipmentType[] = EQUIPMENT_OPTIONS.filter(
-      () => Math.random() > 0.5,
-    );
-    const randomHasVehicle: "มี" | "ไม่มี" =
-      Math.random() > 0.5 ? "มี" : "ไม่มี";
-    const randomReturnTrip: "ไปส่งอย่างเดียว" | "รับกลับด้วย" =
-      Math.random() > 0.5 ? "ไปส่งอย่างเดียว" : "รับกลับด้วย";
+      const testHNs = ["123456", "234567", "345678", "456789", "567890"];
 
-    // เติมข้อมูลลงใน form
-    setFormData({
-      requesterDepartment: randomDept,
-      requesterName: randomName,
-      requesterPhone: randomPhone,
-      patientName: randomPatientName,
-      patientHN: randomHN,
-      pickupLocation: formatLocationString(pickupLocation),
-      pickupLocationDetail: pickupLocation,
-      deliveryLocation: formatLocationString(deliveryLocation),
-      deliveryLocationDetail: deliveryLocation,
-      requestedDateTime: getDateTimeLocal(futureDate),
-      urgencyLevel: randomUrgency,
-      vehicleType: randomVehicleType,
-      equipment: randomEquipment,
-      hasVehicle: randomHasVehicle,
-      returnTrip: randomReturnTrip,
-      transportReason: randomTransportReason,
-      specialNotes: "ข้อมูลทดสอบการบันทึก - สร้างโดยระบบ",
-      patientCondition: "ผู้ป่วยสามารถเดินได้เอง / ไม่มีอาการพิเศษ",
-    });
+      // ดึงข้อมูลอาคารจาก API
+      const buildingsResponse = await fetch("/api/porter/buildings");
+      const buildingsResult = await buildingsResponse.json();
 
-    // Clear validation errors
-    setValidationErrors({});
+      if (!buildingsResult.success || !buildingsResult.data?.length) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลอาคารได้",
+          color: "danger",
+        });
 
-    addToast({
-      title: "สร้างข้อมูลทดสอบสำเร็จ",
-      description: "ข้อมูลตัวอย่างถูกเติมลงในฟอร์มแล้ว",
-      color: "success",
-    });
+        return;
+      }
+
+      const buildings = buildingsResult.data.map((b: any) =>
+        convertBuildingFromProto(b),
+      );
+
+      // สุ่มเลือกอาคารแรก
+      const building = buildings[0];
+
+      if (!building) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่พบข้อมูลอาคาร",
+          color: "danger",
+        });
+
+        return;
+      }
+
+      // ดึงข้อมูลชั้น/หน่วยงานของอาคารที่เลือก
+      const floorsResponse = await fetch(
+        `/api/porter/floor-departments?building_id=${building.id}`,
+      );
+      const floorsResult = await floorsResponse.json();
+
+      if (!floorsResult.success || !floorsResult.data?.length) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลชั้น/หน่วยงานได้",
+          color: "danger",
+        });
+
+        return;
+      }
+
+      const floors = floorsResult.data.map((f: any) =>
+        convertFloorDepartmentFromProto(f),
+      );
+      const floor = floors[0];
+
+      if (!floor) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่พบข้อมูลชั้น/หน่วยงาน",
+          color: "danger",
+        });
+
+        return;
+      }
+
+      // ไม่ใช้ room-beds API แล้ว (เลิกใช้งาน table นี้)
+      // let roomBed: any = null;
+      // const roomBedsResponse = await fetch(
+      //   `/api/porter/room-beds?floor_department_id=${floor.id}`,
+      // );
+      // const roomBedsResult = await roomBedsResponse.json();
+      // if (roomBedsResult.success && roomBedsResult.data?.length > 0) {
+      //   const roomBeds = roomBedsResult.data.map((r: any) =>
+      //     convertRoomBedFromProto(r),
+      //   );
+      //   roomBed = roomBeds[0];
+      // }
+
+      const pickupLocation: DetailedLocation = {
+        buildingId: building.id,
+        buildingName: building.name,
+        floorDepartmentId: floor.id,
+        floorDepartmentName: floor.name,
+        // roomBedId: roomBed?.id,
+        // roomBedName: roomBed?.name,
+      };
+
+      // สุ่มสถานที่ส่ง (ใช้อาคารที่ 2 หรืออาคารแรกถ้ามีแค่อาคารเดียว)
+      const deliveryBuilding =
+        buildings[Math.floor(Math.random() * (buildings.length - 1)) + 1] ||
+        buildings[0];
+
+      const deliveryFloorsResponse = await fetch(
+        `/api/porter/floor-departments?building_id=${deliveryBuilding.id}`,
+      );
+      const deliveryFloorsResult = await deliveryFloorsResponse.json();
+
+      if (!deliveryFloorsResult.success || !deliveryFloorsResult.data?.length) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดึงข้อมูลชั้น/หน่วยงานสำหรับสถานที่ส่งได้",
+          color: "danger",
+        });
+
+        return;
+      }
+
+      const deliveryFloors = deliveryFloorsResult.data.map((f: any) =>
+        convertFloorDepartmentFromProto(f),
+      );
+      const deliveryFloor = deliveryFloors[0];
+
+      if (!deliveryFloor) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่พบข้อมูลชั้น/หน่วยงานสำหรับสถานที่ส่ง",
+          color: "danger",
+        });
+
+        return;
+      }
+
+      const deliveryLocation: DetailedLocation = {
+        buildingId: deliveryBuilding.id,
+        buildingName: deliveryBuilding.name,
+        floorDepartmentId: deliveryFloor.id,
+        floorDepartmentName: deliveryFloor.name,
+        // roomBedId: deliveryRoomBed?.id,
+        // roomBedName: deliveryRoomBed?.name,
+      };
+
+      // สร้างวันที่และเวลา (30 นาทีจากปัจจุบัน)
+      const futureDate = new Date();
+
+      futureDate.setMinutes(futureDate.getMinutes() + 30);
+
+      // สุ่มข้อมูล
+      const randomDept =
+        testDepartments[Math.floor(Math.random() * testDepartments.length)];
+      const randomName =
+        testNames[Math.floor(Math.random() * testNames.length)];
+      const randomPatientName =
+        testPatientNames[Math.floor(Math.random() * testPatientNames.length)];
+      const randomHN =
+        testHNs[Math.floor(Math.random() * testHNs.length)] +
+        "/" +
+        String(Math.floor(Math.random() * 30) + 65);
+      const randomPhone =
+        "08" + String(Math.floor(Math.random() * 100000000)).padStart(8, "0");
+      const randomUrgency: UrgencyLevel =
+        URGENCY_OPTIONS[Math.floor(Math.random() * URGENCY_OPTIONS.length)]
+          .value;
+      const randomVehicleType: VehicleType =
+        VEHICLE_TYPE_OPTIONS[
+          Math.floor(Math.random() * VEHICLE_TYPE_OPTIONS.length)
+        ];
+      const randomTransportReason =
+        TRANSPORT_REASON_OPTIONS[
+          Math.floor(Math.random() * TRANSPORT_REASON_OPTIONS.length)
+        ];
+      const randomEquipment: EquipmentType[] = EQUIPMENT_OPTIONS.filter(
+        () => Math.random() > 0.5,
+      );
+      const randomHasVehicle: "มี" | "ไม่มี" =
+        Math.random() > 0.5 ? "มี" : "ไม่มี";
+      const randomReturnTrip: "ไปส่งอย่างเดียว" | "รับกลับด้วย" =
+        Math.random() > 0.5 ? "ไปส่งอย่างเดียว" : "รับกลับด้วย";
+
+      // เติมข้อมูลลงใน form
+      setFormData({
+        requesterDepartment: randomDept,
+        requesterName: randomName,
+        requesterPhone: randomPhone,
+        patientName: randomPatientName,
+        patientHN: randomHN,
+        pickupLocation: formatLocationString(pickupLocation),
+        pickupLocationDetail: pickupLocation,
+        deliveryLocation: formatLocationString(deliveryLocation),
+        deliveryLocationDetail: deliveryLocation,
+        requestedDateTime: getDateTimeLocal(futureDate),
+        urgencyLevel: randomUrgency,
+        vehicleType: randomVehicleType,
+        equipment: randomEquipment,
+        hasVehicle: randomHasVehicle,
+        returnTrip: randomReturnTrip,
+        transportReason: randomTransportReason,
+        specialNotes: "ข้อมูลทดสอบการบันทึก - สร้างโดยระบบ",
+        patientCondition: PATIENT_CONDITION_OPTIONS.filter(
+          () => Math.random() > 0.5,
+        ),
+      });
+
+      // Clear validation errors
+      setValidationErrors({});
+
+      addToast({
+        title: "สร้างข้อมูลทดสอบสำเร็จ",
+        description: "ข้อมูลตัวอย่างถูกเติมลงในฟอร์มแล้ว",
+        color: "success",
+      });
+    } catch (error) {
+      console.error("Error generating test data:", error);
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถสร้างข้อมูลทดสอบได้",
+        color: "danger",
+      });
+    }
   };
 
   return (
@@ -613,17 +725,27 @@ export default function PorterRequestPage() {
                 />
               </div>
               <div className="mt-4">
-                <Textarea
-                  classNames={{ input: "resize-y min-h-[40px]" }}
-                  label="อาการผู้ป่วย"
-                  minRows={3}
-                  placeholder="เช่น ผู้ป่วยไม่รู้สึกตัว, ผู้ป่วยเดินได้เอง ฯลฯ"
+                <label
+                  className="text-sm font-medium text-foreground mb-2 block"
+                  htmlFor="patient-condition-group"
+                >
+                  อาการ / สภาพผู้ป่วยที่ต้องแจ้งเวรเปล
+                </label>
+                <CheckboxGroup
+                  id="patient-condition-group"
                   value={formData.patientCondition}
-                  variant="bordered"
-                  onChange={(e) => {
-                    handleInputChange("patientCondition", e.target.value);
+                  onValueChange={(values) => {
+                    handleInputChange("patientCondition", values as string[]);
                   }}
-                />
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {PATIENT_CONDITION_OPTIONS.map((condition) => (
+                      <Checkbox key={condition} size="sm" value={condition}>
+                        {condition}
+                      </Checkbox>
+                    ))}
+                  </div>
+                </CheckboxGroup>
               </div>
             </CardBody>
           </Card>
@@ -910,16 +1032,32 @@ export default function PorterRequestPage() {
                   value={formData.equipment}
                   onValueChange={(values) => {
                     handleInputChange("equipment", values as EquipmentType[]);
+                    // ถ้าไม่ได้เลือก "อื่นๆ ระบุ" ให้ล้าง equipmentOther
+                    if (!values.includes("อื่นๆ ระบุ")) {
+                      handleInputChange("equipmentOther", "");
+                    }
                   }}
                 >
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {EQUIPMENT_OPTIONS.map((equipment) => (
                       <Checkbox key={equipment} size="sm" value={equipment}>
-                        {EQUIPMENT_LABELS[equipment]}
+                        {equipment}
                       </Checkbox>
                     ))}
                   </div>
                 </CheckboxGroup>
+                {formData.equipment.includes("อื่นๆ ระบุ") && (
+                  <Input
+                    className="mt-3"
+                    label="ระบุอุปกรณ์อื่นๆ"
+                    placeholder="กรุณาระบุอุปกรณ์ที่ต้องการ"
+                    value={formData.equipmentOther || ""}
+                    variant="bordered"
+                    onChange={(e) => {
+                      handleInputChange("equipmentOther", e.target.value);
+                    }}
+                  />
+                )}
               </div>
             </CardBody>
           </Card>
@@ -978,7 +1116,7 @@ export default function PorterRequestPage() {
 
                     transportReason: "",
                     specialNotes: "",
-                    patientCondition: "",
+                    patientCondition: [],
                   });
                   setValidationErrors({});
                 }}
@@ -1163,6 +1301,25 @@ export default function PorterRequestPage() {
                         variant="bordered"
                       >
                         {eq}
+                      </Chip>
+                    ))
+                  ) : (
+                    <span className="text-default-500">-</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="text-default-600">อาการ / สภาพผู้ป่วย</div>
+                <div className="flex flex-wrap gap-1">
+                  {formData.patientCondition.length > 0 ? (
+                    formData.patientCondition.map((condition) => (
+                      <Chip
+                        key={condition}
+                        color="primary"
+                        size="sm"
+                        variant="bordered"
+                      >
+                        {condition}
                       </Chip>
                     ))
                   ) : (

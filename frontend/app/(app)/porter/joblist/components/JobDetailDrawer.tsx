@@ -7,11 +7,18 @@ import {
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  useDisclosure,
 } from "@heroui/react";
 import {
   Button,
   Chip,
   Divider,
+  Input,
   Textarea,
   Select,
   SelectItem,
@@ -29,16 +36,15 @@ import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
+  formatLocationString,
 } from "@/types/porter";
 import {
   URGENCY_OPTIONS,
   VEHICLE_TYPE_OPTIONS,
   EQUIPMENT_OPTIONS,
-  EQUIPMENT_LABELS,
-  LOCATION_OPTIONS,
   TRANSPORT_REASON_OPTIONS,
-  STAFF_MEMBERS,
 } from "@/lib/porter";
+import { LocationSelector } from "@/components/porter/LocationSelector";
 import {
   BuildingOfficeIcon,
   MapPinIcon,
@@ -62,9 +68,24 @@ interface JobDetailDrawerProps {
   job: PorterJobItem | null;
   onClose: () => void;
   onAcceptJob?: (jobId: string, staffId: string, staffName: string) => void;
-  onCancelJob?: (jobId: string) => void;
+  onCancelJob?: (jobId: string, cancelledReason?: string) => void;
   onCompleteJob?: (jobId: string) => void;
   onUpdateJob?: (jobId: string, updatedForm: PorterRequestFormData) => void;
+}
+
+/**
+ * Interface สำหรับข้อมูลเจ้าหน้าที่เปล
+ */
+interface PorterEmployee {
+  id: string;
+  citizenId: string;
+  firstName: string;
+  lastName: string;
+  employmentType: string;
+  employmentTypeId: string;
+  position: string;
+  positionId: string;
+  status: boolean;
 }
 
 export default function JobDetailDrawer({
@@ -77,9 +98,48 @@ export default function JobDetailDrawer({
   onUpdateJob,
 }: JobDetailDrawerProps) {
   const [formData, setFormData] = useState<PorterRequestFormData | null>(null);
-
+  const [employees, setEmployees] = useState<PorterEmployee[]>([]);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [cancelReason, setCancelReason] = useState<string>("");
+  const {
+    isOpen: isCancelModalOpen,
+    onOpen: onCancelModalOpen,
+    onClose: onCancelModalClose,
+  } = useDisclosure();
+
+  // โหลดข้อมูล employees จาก API
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        setIsLoadingEmployees(true);
+        const response = await fetch("/api/porter/employees?status=true");
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          // Filter เฉพาะ employees ที่มี status = true
+          const activeEmployees = result.data.filter(
+            (emp: PorterEmployee) => emp.status === true,
+          );
+
+          setEmployees(activeEmployees);
+        }
+      } catch {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถโหลดข้อมูลเจ้าหน้าที่ได้",
+          color: "danger",
+        });
+      } finally {
+        setIsLoadingEmployees(false);
+      }
+    };
+
+    if (isOpen) {
+      loadEmployees();
+    }
+  }, [isOpen]);
 
   // Sync form data with job when it changes
   useEffect(() => {
@@ -120,11 +180,11 @@ export default function JobDetailDrawer({
       return;
     }
 
-    const selectedStaff = STAFF_MEMBERS.find(
-      (staff) => staff.id === selectedStaffId,
+    const selectedEmployee = employees.find(
+      (emp) => emp.id === selectedStaffId,
     );
 
-    if (!selectedStaff) {
+    if (!selectedEmployee) {
       addToast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่พบข้อมูลเจ้าหน้าที่ที่เลือก",
@@ -134,14 +194,16 @@ export default function JobDetailDrawer({
       return;
     }
 
+    const staffName = `${selectedEmployee.firstName} ${selectedEmployee.lastName}`;
+
     if (onAcceptJob) {
       setIsSubmitting(true);
       try {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        onAcceptJob(job.id, selectedStaff.id, selectedStaff.name);
+        onAcceptJob(job.id, selectedEmployee.id, staffName);
         addToast({
           title: "รับงานสำเร็จ",
-          description: `รับงานสำเร็จ ผู้ดำเนินการ: ${selectedStaff.name}`,
+          description: `รับงานสำเร็จ ผู้ดำเนินการ: ${staffName}`,
           color: "success",
         });
         setSelectedStaffId("");
@@ -158,17 +220,25 @@ export default function JobDetailDrawer({
     }
   };
 
-  const handleCancelJob = async () => {
+  const handleCancelJob = () => {
+    // เปิด Modal confirm
+    setCancelReason("");
+    onCancelModalOpen();
+  };
+
+  const handleConfirmCancel = async () => {
     if (onCancelJob) {
       setIsSubmitting(true);
       try {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        onCancelJob(job.id);
+        onCancelJob(job.id, cancelReason.trim() || undefined);
         addToast({
           title: "ยกเลิกงานสำเร็จ",
           description: "งานนี้ได้ถูกยกเลิกเรียบร้อยแล้ว",
           color: "warning",
         });
+        onCancelModalClose();
+        setCancelReason("");
         onClose();
       } catch {
         addToast({
@@ -248,7 +318,7 @@ export default function JobDetailDrawer({
   const canEdit = job.status === "waiting" || job.status === "in-progress";
 
   return (
-    <Drawer isOpen={isOpen} placement="right" size="2xl" onClose={onClose}>
+    <Drawer isOpen={isOpen} placement="right" size="5xl" onClose={onClose}>
       <DrawerContent>
         <DrawerHeader className="flex flex-col gap-1 border-b border-divider">
           <div className="flex items-center justify-between w-full">
@@ -334,9 +404,23 @@ export default function JobDetailDrawer({
                 <div className="text-sm text-default-600 block mb-1">
                   สภาพผู้ป่วย
                 </div>
-                <p className="text-foreground">
-                  {formData.patientCondition || "-"}
-                </p>
+                {Array.isArray(formData.patientCondition) &&
+                formData.patientCondition.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {formData.patientCondition.map((condition) => (
+                      <Chip
+                        key={condition}
+                        color="primary"
+                        size="sm"
+                        variant="bordered"
+                      >
+                        {condition}
+                      </Chip>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-foreground">-</p>
+                )}
               </div>
             </section>
 
@@ -371,49 +455,74 @@ export default function JobDetailDrawer({
                               </h4>
                             </div>
                             <p className="text-xs text-default-500 mb-2">
-                              {formatDate(job.form.requestedDateTime)}
+                              {job.createdAt
+                                ? formatDate(job.createdAt)
+                                : formatDate(job.form.requestedDateTime)}
                             </p>
                             <div className="text-sm text-default-600 space-y-1">
                               <p>
                                 <span className="font-medium">ผู้แจ้ง:</span>{" "}
                                 {formData.requesterName}
                               </p>
+                              <p>
+                                <span className="font-medium">หน่วยงาน:</span>{" "}
+                                {formData.requesterDepartment}
+                              </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Item 2: รอรับงาน */}
-                        <div className="relative flex gap-4">
-                          <div className="relative z-10 flex-shrink-0">
-                            <div className="w-8 h-8 rounded-full bg-warning flex items-center justify-center">
-                              <ClockIcon className="w-4 h-4 text-white" />
+                        {/* Item 2: รับงาน (แสดงเมื่อมี acceptedAt) */}
+                        {job.acceptedAt && (
+                          <div className="relative flex gap-4">
+                            <div className="relative z-10 flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-warning flex items-center justify-center">
+                                <CheckCircleIcon className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
+                            <div className="flex-1 pb-6">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-semibold text-foreground">
+                                  รับงาน
+                                </h4>
+                              </div>
+                              <p className="text-xs text-default-500 mb-2">
+                                {formatDate(job.acceptedAt)}
+                              </p>
+                              <div className="text-sm text-default-600 space-y-1">
+                                {job.assignedTo && (
+                                  <p>
+                                    <span className="font-medium">
+                                      ผู้ปฎิบัติงาน ID:
+                                    </span>{" "}
+                                    {job.assignedTo}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <div className="flex-1 pb-6">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="text-sm font-semibold text-foreground">
-                                รอศูนย์เปลรับงาน
-                              </h4>
+                        )}
+
+                        {/* Item 3: รอรับงาน (แสดงเมื่อยังไม่รับงาน) */}
+                        {!job.acceptedAt && job.status === "waiting" && (
+                          <div className="relative flex gap-4">
+                            <div className="relative z-10 flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
+                                <ClockIcon className="w-4 h-4 text-default-600" />
+                              </div>
                             </div>
-                            <p className="text-xs text-default-500 mb-2">
-                              {formatDate(job.form.requestedDateTime)}
-                            </p>
-                            <div className="text-sm text-default-600">
-                              <p>
-                                <span className="font-medium">ผู้รับงาน:</span>{" "}
-                                {formData.requesterName}
-                              </p>
-                            </div>
-                            <div className="text-sm text-default-600">
-                              <p>
-                                <span className="font-medium">
-                                  ผู้ปฎิบัติงาน:
-                                </span>{" "}
-                                {job.assignedToName || "-"}
+                            <div className="flex-1 pb-6">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-semibold text-foreground">
+                                  รอศูนย์เปลรับงาน
+                                </h4>
+                              </div>
+                              <p className="text-xs text-default-500 mb-2">
+                                กำลังรอการรับงาน
                               </p>
                             </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Timeline การเคลื่อนย้าย (ถ้ามีข้อมูลการเคลื่อนย้าย) */}
                         {formData.transportReason &&
@@ -434,7 +543,9 @@ export default function JobDetailDrawer({
                                     </h4>
                                   </div>
                                   <p className="text-xs text-default-500 mb-2">
-                                    {formatDate(job.form.requestedDateTime)}
+                                    {job.acceptedAt
+                                      ? formatDate(job.acceptedAt)
+                                      : formatDate(job.form.requestedDateTime)}
                                   </p>
                                   <div className="text-sm text-default-600">
                                     <p className="font-medium text-foreground">
@@ -458,7 +569,13 @@ export default function JobDetailDrawer({
                                     </h4>
                                   </div>
                                   <p className="text-xs text-default-500 mb-2">
-                                    {formatDate(job.form.requestedDateTime)}
+                                    {job.completedAt
+                                      ? formatDate(job.completedAt)
+                                      : job.acceptedAt
+                                        ? formatDate(job.acceptedAt)
+                                        : formatDate(
+                                            job.form.requestedDateTime,
+                                          )}
                                   </p>
                                   <div className="text-sm text-default-600">
                                     <p className="font-medium text-foreground">
@@ -483,13 +600,69 @@ export default function JobDetailDrawer({
                                       </h4>
                                     </div>
                                     <p className="text-xs text-default-500 mb-2">
-                                      {formatDate(job.form.requestedDateTime)}
+                                      {job.completedAt
+                                        ? formatDate(job.completedAt)
+                                        : formatDate(
+                                            job.form.requestedDateTime,
+                                          )}
                                     </p>
                                     <div className="text-sm text-default-600">
                                       <p className="font-medium text-foreground">
                                         {formData.pickupLocation}
                                       </p>
                                     </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* เสร็จสิ้นงาน (แสดงเมื่อมี completedAt) */}
+                              {job.completedAt && (
+                                <div className="relative flex gap-4">
+                                  <div className="relative z-10 flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
+                                      <CheckCircleIcon className="w-4 h-4 text-white" />
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 pb-6">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="text-sm font-semibold text-foreground">
+                                        เสร็จสิ้นงาน
+                                      </h4>
+                                    </div>
+                                    <p className="text-xs text-default-500 mb-2">
+                                      {formatDate(job.completedAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* ยกเลิกงาน (แสดงเมื่อมี cancelledAt) */}
+                              {job.cancelledAt && (
+                                <div className="relative flex gap-4">
+                                  <div className="relative z-10 flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-danger flex items-center justify-center">
+                                      <XMarkIcon className="w-4 h-4 text-white" />
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 pb-6">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="text-sm font-semibold text-foreground">
+                                        ยกเลิกงาน
+                                      </h4>
+                                    </div>
+                                    <p className="text-xs text-default-500 mb-2">
+                                      {formatDate(job.cancelledAt)}
+                                    </p>
+                                    {job.cancelledReason && (
+                                      <div className="text-sm text-default-600">
+                                        <p>
+                                          <span className="font-medium">
+                                            เหตุผล:
+                                          </span>{" "}
+                                          {job.cancelledReason}
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -649,7 +822,7 @@ export default function JobDetailDrawer({
                                     }
                                     variant="flat"
                                   >
-                                    {EQUIPMENT_LABELS[eq]}
+                                    {eq}
                                   </Chip>
                                 ))}
                               </div>
@@ -691,9 +864,23 @@ export default function JobDetailDrawer({
                     <div className="text-sm text-default-600 block mb-1">
                       สภาพผู้ป่วย
                     </div>
-                    <p className="text-foreground">
-                      {formData.patientCondition || "-"}
-                    </p>
+                    {Array.isArray(formData.patientCondition) &&
+                    formData.patientCondition.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {formData.patientCondition.map((condition) => (
+                          <Chip
+                            key={condition}
+                            color="primary"
+                            size="sm"
+                            variant="bordered"
+                          >
+                            {condition}
+                          </Chip>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-foreground">-</p>
+                    )}
                   </div>
                 </section>
 
@@ -722,37 +909,45 @@ export default function JobDetailDrawer({
                         <SelectItem key={reason}>{reason}</SelectItem>
                       ))}
                     </Select>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Autocomplete
-                        defaultSelectedKey={formData.pickupLocation}
+                    <div className="space-y-4">
+                      <LocationSelector
                         isDisabled={!canEdit}
-                        label="จุดรับ"
-                        placeholder="เลือกจุดรับ"
-                        selectedKey={formData.pickupLocation}
-                        variant="bordered"
-                        onSelectionChange={(key) =>
-                          handleInputChange("pickupLocation", key || "")
-                        }
-                      >
-                        {LOCATION_OPTIONS.map((loc) => (
-                          <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
-                        ))}
-                      </Autocomplete>
-                      <Autocomplete
-                        defaultSelectedKey={formData.deliveryLocation}
+                        isRequired={canEdit}
+                        label="สถานที่รับ"
+                        value={formData.pickupLocationDetail}
+                        onChange={(location) => {
+                          setFormData((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  pickupLocationDetail: location,
+                                  pickupLocation: location
+                                    ? formatLocationString(location)
+                                    : "",
+                                }
+                              : null,
+                          );
+                        }}
+                      />
+                      <LocationSelector
                         isDisabled={!canEdit}
-                        label="จุดส่ง"
-                        placeholder="เลือกจุดส่ง"
-                        selectedKey={formData.deliveryLocation}
-                        variant="bordered"
-                        onSelectionChange={(key) =>
-                          handleInputChange("deliveryLocation", key || "")
-                        }
-                      >
-                        {LOCATION_OPTIONS.map((loc) => (
-                          <AutocompleteItem key={loc}>{loc}</AutocompleteItem>
-                        ))}
-                      </Autocomplete>
+                        isRequired={canEdit}
+                        label="สถานที่ส่ง"
+                        value={formData.deliveryLocationDetail}
+                        onChange={(location) => {
+                          setFormData((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  deliveryLocationDetail: location,
+                                  deliveryLocation: location
+                                    ? formatLocationString(location)
+                                    : "",
+                                }
+                              : null,
+                          );
+                        }}
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -865,20 +1060,37 @@ export default function JobDetailDrawer({
                         label="อุปกรณ์ที่ต้องการ"
                         orientation="horizontal"
                         value={formData.equipment}
-                        onValueChange={(values) =>
+                        onValueChange={(values) => {
                           handleInputChange(
                             "equipment",
                             values as EquipmentType[],
-                          )
-                        }
+                          );
+                          // ถ้าไม่ได้เลือก "อื่นๆ ระบุ" ให้ล้าง equipmentOther
+                          if (!values.includes("อื่นๆ ระบุ")) {
+                            handleInputChange("equipmentOther", "");
+                          }
+                        }}
                       >
                         {EQUIPMENT_OPTIONS.map((eq) => (
                           <Checkbox key={eq} value={eq}>
-                            {EQUIPMENT_LABELS[eq]}
+                            {eq}
                           </Checkbox>
                         ))}
                       </CheckboxGroup>
                     </div>
+                    {formData.equipment.includes("อื่นๆ ระบุ") && (
+                      <Input
+                        className="mt-3"
+                        isDisabled={!canEdit}
+                        label="ระบุอุปกรณ์อื่นๆ"
+                        placeholder="กรุณาระบุอุปกรณ์ที่ต้องการ"
+                        value={formData.equipmentOther || ""}
+                        variant="bordered"
+                        onChange={(e) => {
+                          handleInputChange("equipmentOther", e.target.value);
+                        }}
+                      />
+                    )}
                     <Textarea
                       isDisabled={!canEdit}
                       label="หมายเหตุพิเศษ"
@@ -893,32 +1105,41 @@ export default function JobDetailDrawer({
                       <Autocomplete
                         isRequired
                         defaultSelectedKey={job.assignedTo || undefined}
+                        isDisabled={isLoadingEmployees}
                         label="ผู้ดำเนินการ"
-                        placeholder="เลือกเจ้าหน้าที่ผู้ดำเนินการ"
+                        placeholder={
+                          isLoadingEmployees
+                            ? "กำลังโหลดข้อมูลเจ้าหน้าที่..."
+                            : "เลือกเจ้าหน้าที่ผู้ดำเนินการ"
+                        }
                         selectedKey={selectedStaffId || job.assignedTo || ""}
                         variant="bordered"
                         onSelectionChange={(key) => {
                           setSelectedStaffId((key as string) || "");
                         }}
                       >
-                        {STAFF_MEMBERS.map((staff) => (
-                          <AutocompleteItem
-                            key={staff.id}
-                            textValue={staff.name}
-                          >
-                            <div className="flex flex-col">
-                              <span className="text-foreground font-medium">
-                                {staff.name}
-                              </span>
-                              {staff.department && (
-                                <span className="text-default-500 text-sm">
-                                  {staff.department}
-                                  {staff.title ? ` • ${staff.title}` : ""}
+                        {employees.map((employee) => {
+                          const fullName = `${employee.firstName} ${employee.lastName}`;
+
+                          return (
+                            <AutocompleteItem
+                              key={employee.id}
+                              textValue={fullName}
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-foreground font-medium">
+                                  {fullName}
                                 </span>
-                              )}
-                            </div>
-                          </AutocompleteItem>
-                        ))}
+                                <span className="text-default-500 text-sm">
+                                  {employee.position}
+                                  {employee.employmentType
+                                    ? ` • ${employee.employmentType}`
+                                    : ""}
+                                </span>
+                              </div>
+                            </AutocompleteItem>
+                          );
+                        })}
                       </Autocomplete>
                     )}
                   </div>
@@ -987,6 +1208,66 @@ export default function JobDetailDrawer({
           </div>
         </DrawerFooter>
       </DrawerContent>
+
+      {/* Cancel Confirmation Modal */}
+      <Modal isOpen={isCancelModalOpen} size="md" onClose={onCancelModalClose}>
+        <ModalContent>
+          <ModalHeader>
+            <div className="flex items-center gap-2">
+              <XMarkIcon className="w-5 h-5 text-danger" />
+              <h3 className="text-lg font-semibold text-foreground">
+                ยืนยันการยกเลิกงาน
+              </h3>
+            </div>
+          </ModalHeader>
+          <ModalBody>
+            <div className="space-y-4">
+              <p className="text-default-600">
+                คุณแน่ใจหรือไม่ว่าต้องการยกเลิกงานนี้?
+              </p>
+              <div className="bg-warning-50 dark:bg-warning-900/20 p-4 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <InfoCircleIcon className="w-5 h-5 text-warning-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-warning-800 dark:text-warning-200">
+                    <p className="font-medium mb-1">คำเตือน:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>การยกเลิกงานจะไม่สามารถกู้คืนได้</li>
+                      <li>สถานะงานจะเปลี่ยนเป็น &quot;ยกเลิก&quot;</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Textarea
+                  label="เหตุผลการยกเลิก (ไม่บังคับ)"
+                  placeholder="ระบุเหตุผลการยกเลิกงาน (ถ้ามี)"
+                  value={cancelReason}
+                  variant="bordered"
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              isDisabled={isSubmitting}
+              variant="light"
+              onPress={onCancelModalClose}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              color="danger"
+              isDisabled={isSubmitting}
+              isLoading={isSubmitting}
+              startContent={<XMarkIcon className="w-4 h-4" />}
+              onPress={handleConfirmCancel}
+            >
+              ยืนยันยกเลิกงาน
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Drawer>
   );
 }

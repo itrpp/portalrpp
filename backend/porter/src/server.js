@@ -32,21 +32,52 @@ const startServer = async () => {
   try {
     // Test database connection
     await prisma.$connect();
-    console.log('✅ Database connected successfully');
+    console.info('✅ Database connected successfully');
 
     // สร้าง gRPC Server
     const server = new grpc.Server();
 
     // ลงทะเบียน Porter Service
     server.addService(porterProto.PorterService.service, {
+      // Porter Request handlers
       createPorterRequest: porterHandlers.createPorterRequest,
       getPorterRequest: porterHandlers.getPorterRequest,
       listPorterRequests: porterHandlers.listPorterRequests,
       updatePorterRequest: porterHandlers.updatePorterRequest,
       updatePorterRequestStatus: porterHandlers.updatePorterRequestStatus,
+      updatePorterRequestTimestamps: porterHandlers.updatePorterRequestTimestamps,
       deletePorterRequest: porterHandlers.deletePorterRequest,
       healthCheck: porterHandlers.healthCheck,
       streamPorterRequests: porterHandlers.streamPorterRequests,
+      // Location Settings handlers
+      createBuilding: porterHandlers.createBuilding,
+      getBuilding: porterHandlers.getBuilding,
+      listBuildings: porterHandlers.listBuildings,
+      updateBuilding: porterHandlers.updateBuilding,
+      deleteBuilding: porterHandlers.deleteBuilding,
+      createFloorDepartment: porterHandlers.createFloorDepartment,
+      getFloorDepartment: porterHandlers.getFloorDepartment,
+      listFloorDepartments: porterHandlers.listFloorDepartments,
+      updateFloorDepartment: porterHandlers.updateFloorDepartment,
+      deleteFloorDepartment: porterHandlers.deleteFloorDepartment,
+      // Employee Management handlers
+      createEmployee: porterHandlers.createEmployee,
+      getEmployee: porterHandlers.getEmployee,
+      listEmployees: porterHandlers.listEmployees,
+      updateEmployee: porterHandlers.updateEmployee,
+      deleteEmployee: porterHandlers.deleteEmployee,
+      // EmploymentType Management handlers
+      createEmploymentType: porterHandlers.createEmploymentType,
+      getEmploymentType: porterHandlers.getEmploymentType,
+      listEmploymentTypes: porterHandlers.listEmploymentTypes,
+      updateEmploymentType: porterHandlers.updateEmploymentType,
+      deleteEmploymentType: porterHandlers.deleteEmploymentType,
+      // Position Management handlers
+      createPosition: porterHandlers.createPosition,
+      getPosition: porterHandlers.getPosition,
+      listPositions: porterHandlers.listPositions,
+      updatePosition: porterHandlers.updatePosition,
+      deletePosition: porterHandlers.deletePosition,
     });
 
     // เริ่ม listen
@@ -61,9 +92,9 @@ const startServer = async () => {
         }
 
         server.start();
-        console.log(`🚀 gRPC Server is running on port ${port}`);
-        console.log(`📝 Environment: ${config.nodeEnv}`);
-        console.log(`🌐 gRPC endpoint: 0.0.0.0:${port}`);
+        console.info(`🚀 gRPC Server is running on port ${port}`);
+        console.info(`📝 Environment: ${config.nodeEnv}`);
+        console.info(`🌐 gRPC endpoint: 0.0.0.0:${port}`);
       }
     );
   } catch (error) {
@@ -87,13 +118,13 @@ process.on('uncaughtException', (err) => {
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+  console.info('SIGTERM received, shutting down gracefully...');
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
+  console.info('SIGINT received, shutting down gracefully...');
   await prisma.$disconnect();
   process.exit(0);
 });

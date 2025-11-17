@@ -1,40 +1,34 @@
-import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
-import path from 'path';
+import path from "path";
+
+import * as grpc from "@grpc/grpc-js";
+import * as protoLoader from "@grpc/proto-loader";
 
 /**
  * โหลด Proto Definition สำหรับ Porter Service
+ * ใช้ไฟล์ proto ที่อยู่ใน frontend/proto/porter.proto
  */
 function getProtoPath(): string {
-  // Path ไปยัง proto file จาก frontend/lib -> backend/porter/proto/porter.proto
-  // ใช้ __dirname ใน Node.js runtime (Next.js API routes)
-  const possiblePaths = [
-    // จาก compiled code (.next/server/app/api/...)
-    path.resolve(process.cwd(), 'backend/porter/proto/porter.proto'),
-    // จาก source code (lib/)
-    path.resolve(process.cwd(), '../backend/porter/proto/porter.proto'),
-    // จาก project root
-    path.resolve(process.cwd(), '../../backend/porter/proto/porter.proto'),
-  ];
+  // Path ไปยัง proto file ใน frontend/proto/porter.proto
+  // ใช้ process.cwd() ซึ่งจะชี้ไปที่ frontend directory
+  const protoPath = path.resolve(process.cwd(), "proto/porter.proto");
 
-  for (const protoPath of possiblePaths) {
-    try {
-      const fs = require('fs');
-      if (fs.existsSync(protoPath)) {
-        // eslint-disable-next-line no-console
-        console.log('[gRPC Client] Using proto file:', protoPath);
-        return protoPath;
-      }
-    } catch {
-      // Continue to next path
+  try {
+    const fs = require("fs");
+
+    if (fs.existsSync(protoPath)) {
+      // eslint-disable-next-line no-console
+      console.log("[gRPC Client] Using proto file:", protoPath);
+
+      return protoPath;
     }
+  } catch (error) {
+    console.error("[gRPC Client] Error checking proto file:", error);
   }
 
-  // ถ้าหาไม่เจอ ให้ใช้ path แรก (default)
-  const defaultPath = possiblePaths[0];
-  // eslint-disable-next-line no-console
-  console.warn('[gRPC Client] Proto file not found, using default path:', defaultPath);
-  return defaultPath;
+  // ถ้าหาไม่เจอ ให้ throw error แทนการใช้ default path
+  throw new Error(
+    `Proto file not found at: ${protoPath}. Please ensure proto/porter.proto exists in the frontend directory.`,
+  );
 }
 
 const PROTO_PATH = getProtoPath();
@@ -56,24 +50,55 @@ const porterProto = grpc.loadPackageDefinition(packageDefinition).porter as any;
 export function getPorterClient(): any {
   // อ่าน gRPC URL จาก environment variable
   // ใช้ NEXT_PUBLIC_ prefix สำหรับ client-side แต่ใน API route ใช้ process.env ได้
-  const grpcUrl = 
-    process.env.PORTER_SERVICE_GRPC_URL || 
-    process.env.NEXT_PUBLIC_PORTER_SERVICE_GRPC_URL || 
-    'localhost:50051';
+  const grpcUrl =
+    process.env.PORTER_SERVICE_GRPC_URL ||
+    process.env.NEXT_PUBLIC_PORTER_SERVICE_GRPC_URL ||
+    "localhost:50051";
 
   // eslint-disable-next-line no-console
-  console.log('[gRPC Client] Connecting to gRPC service at:', grpcUrl);
+  console.log("[gRPC Client] Connecting to gRPC service at:", grpcUrl);
 
   if (!grpcUrl) {
-    throw new Error('PORTER_SERVICE_GRPC_URL is not configured');
+    throw new Error("PORTER_SERVICE_GRPC_URL is not configured");
   }
 
   const client = new porterProto.PorterService(
     grpcUrl,
-    grpc.credentials.createInsecure()
+    grpc.credentials.createInsecure(),
   );
 
   return client;
+}
+
+/**
+ * Helper function สำหรับเรียก gRPC method แบบ Promise
+ */
+export function callPorterService<T = any>(
+  methodName: string,
+  request: any,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    try {
+      const client = getPorterClient();
+      const method = client[methodName];
+
+      if (!method) {
+        reject(new Error(`Method ${methodName} not found`));
+
+        return;
+      }
+
+      method.call(client, request, (error: any, response: T) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(response);
+        }
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 /**
@@ -90,9 +115,7 @@ export function streamPorterRequests(request: any): any {
 
     return stream;
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error("[gRPC Client] Error creating stream:", error);
     throw error;
   }
 }
-

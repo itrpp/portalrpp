@@ -42,7 +42,6 @@ export async function GET() {
       token: signedToken,
     });
   } catch (error: unknown) {
-    // eslint-disable-next-line no-console
     console.error("Error creating stream token:", error);
 
     return NextResponse.json(
@@ -55,4 +54,3 @@ export async function GET() {
     );
   }
 }
-

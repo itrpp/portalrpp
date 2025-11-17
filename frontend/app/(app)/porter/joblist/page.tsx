@@ -9,8 +9,10 @@ import {
   Chip,
   Tabs,
   Tab,
+  DatePicker,
   addToast,
 } from "@heroui/react";
+import { CalendarDate } from "@internationalized/date";
 
 import { JobTable, JobDetailDrawer } from "./components";
 
@@ -19,6 +21,7 @@ import {
   ClipboardListIcon,
   XMarkIcon,
   CheckCircleIcon,
+  CalendarIcon,
 } from "@/components/ui/icons";
 import { formatDateTimeThai } from "@/lib/utils";
 import {
@@ -43,6 +46,18 @@ export default function PorterJobListPage() {
   const [jobList, setJobList] = useState<PorterJobItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Date range filters สำหรับ completed และ cancelled tabs
+  const [completedStartDate, setCompletedStartDate] =
+    useState<CalendarDate | null>(null);
+  const [completedEndDate, setCompletedEndDate] = useState<CalendarDate | null>(
+    null,
+  );
+  const [cancelledStartDate, setCancelledStartDate] =
+    useState<CalendarDate | null>(null);
+  const [cancelledEndDate, setCancelledEndDate] = useState<CalendarDate | null>(
+    null,
+  );
 
   // อัพเดทเวลาแบบ real-time ทุกวินาที
   useEffect(() => {
@@ -167,8 +182,10 @@ export default function PorterJobListPage() {
             // eslint-disable-next-line no-console
             console.log("[SSE] Direct connection URL:", streamUrl);
           } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error("[SSE] Failed to get token, falling back to Next.js API route:", error);
+            console.error(
+              "[SSE] Failed to get token, falling back to Next.js API route:",
+              error,
+            );
             streamUrl = `/api/porter/requests/stream?${params.toString()}`;
           }
         } else {
@@ -212,6 +229,7 @@ export default function PorterJobListPage() {
 
           // Decode และเพิ่มข้อมูลเข้า buffer
           const chunk = decoder.decode(value, { stream: true });
+
           buffer += chunk;
 
           // Log raw data สำหรับ debugging (เฉพาะใน development)
@@ -270,7 +288,7 @@ export default function PorterJobListPage() {
                       // เพิ่มคำขอใหม่
                       // eslint-disable-next-line no-console
                       console.log("[SSE] Processing CREATED event:", data.id);
-                      
+
                       setJobList((prevList) => {
                         // ตรวจสอบว่ามีอยู่แล้วหรือไม่ (ป้องกัน duplicate)
                         const exists = prevList.some(
@@ -279,12 +297,20 @@ export default function PorterJobListPage() {
 
                         if (exists) {
                           // eslint-disable-next-line no-console
-                          console.log("[SSE] Request already exists in list, skipping:", data.id);
+                          console.log(
+                            "[SSE] Request already exists in list, skipping:",
+                            data.id,
+                          );
+
                           return prevList;
                         }
 
                         // eslint-disable-next-line no-console
-                        console.log("[SSE] Adding new request to list:", data.id);
+                        console.log(
+                          "[SSE] Adding new request to list:",
+                          data.id,
+                        );
+
                         return [...prevList, data];
                       });
 
@@ -295,11 +321,15 @@ export default function PorterJobListPage() {
                         color: "success",
                       });
                     } else if (
-                      type === "UPDATED" || type === "STATUS_CHANGED"
+                      type === "UPDATED" ||
+                      type === "STATUS_CHANGED"
                     ) {
                       // eslint-disable-next-line no-console
-                      console.log("[SSE] Processing UPDATED/STATUS_CHANGED event:", data.id);
-                      
+                      console.log(
+                        "[SSE] Processing UPDATED/STATUS_CHANGED event:",
+                        data.id,
+                      );
+
                       // อัพเดทคำขอที่มีอยู่
                       setJobList((prevList) =>
                         prevList.map((job) =>
@@ -323,7 +353,7 @@ export default function PorterJobListPage() {
                     } else if (type === "DELETED") {
                       // eslint-disable-next-line no-console
                       console.log("[SSE] Processing DELETED event:", data.id);
-                      
+
                       // ลบคำขอ
                       setJobList((prevList) =>
                         prevList.filter((job) => job.id !== data.id),
@@ -336,11 +366,9 @@ export default function PorterJobListPage() {
                         setSelectedKeys(new Set());
                       }
                     } else {
-                      // eslint-disable-next-line no-console
                       console.warn("[SSE] Unknown update type:", type);
                     }
                   } else {
-                    // eslint-disable-next-line no-console
                     console.warn("[SSE] Missing type or data in update:", {
                       hasType: !!updateData.type,
                       hasData: !!updateData.data,
@@ -349,7 +377,6 @@ export default function PorterJobListPage() {
                   }
                 }
               } catch (error) {
-                // eslint-disable-next-line no-console
                 console.error("[SSE] Error parsing SSE message:", {
                   error: error instanceof Error ? error.message : String(error),
                   line: line.substring(0, 200), // จำกัดความยาวของ line
@@ -375,7 +402,6 @@ export default function PorterJobListPage() {
           return;
         }
 
-        // eslint-disable-next-line no-console
         console.error("[SSE] Connection error:", error);
 
         // Reconnect หลัง 3 วินาที (หรือเมื่อ stream timeout)
@@ -422,8 +448,111 @@ export default function PorterJobListPage() {
     [jobList],
   );
 
-  // กรองข้อมูลตามแท็บที่เลือก
-  const filteredJobs = jobList.filter((job) => job.status === selectedTab);
+  // กรองข้อมูลตามแท็บที่เลือกและ date range (ถ้ามี)
+  const filteredJobs = useMemo(() => {
+    let filtered = jobList.filter((job) => job.status === selectedTab);
+
+    // Filter ตาม date range สำหรับ completed tab
+    if (selectedTab === "completed") {
+      if (completedStartDate || completedEndDate) {
+        filtered = filtered.filter((job) => {
+          if (!job.completedAt) {
+            return false;
+          }
+
+          const jobDate = new Date(job.completedAt);
+          const jobDateOnly = new Date(
+            jobDate.getFullYear(),
+            jobDate.getMonth(),
+            jobDate.getDate(),
+          );
+
+          // ตรวจสอบ startDate
+          if (completedStartDate) {
+            const startDateOnly = new Date(
+              completedStartDate.year,
+              completedStartDate.month - 1,
+              completedStartDate.day,
+            );
+
+            if (jobDateOnly < startDateOnly) {
+              return false;
+            }
+          }
+
+          // ตรวจสอบ endDate
+          if (completedEndDate) {
+            const endDateOnly = new Date(
+              completedEndDate.year,
+              completedEndDate.month - 1,
+              completedEndDate.day,
+            );
+
+            if (jobDateOnly > endDateOnly) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+      }
+    }
+
+    // Filter ตาม date range สำหรับ cancelled tab
+    if (selectedTab === "cancelled") {
+      if (cancelledStartDate || cancelledEndDate) {
+        filtered = filtered.filter((job) => {
+          if (!job.cancelledAt) {
+            return false;
+          }
+
+          const jobDate = new Date(job.cancelledAt);
+          const jobDateOnly = new Date(
+            jobDate.getFullYear(),
+            jobDate.getMonth(),
+            jobDate.getDate(),
+          );
+
+          // ตรวจสอบ startDate
+          if (cancelledStartDate) {
+            const startDateOnly = new Date(
+              cancelledStartDate.year,
+              cancelledStartDate.month - 1,
+              cancelledStartDate.day,
+            );
+
+            if (jobDateOnly < startDateOnly) {
+              return false;
+            }
+          }
+
+          // ตรวจสอบ endDate
+          if (cancelledEndDate) {
+            const endDateOnly = new Date(
+              cancelledEndDate.year,
+              cancelledEndDate.month - 1,
+              cancelledEndDate.day,
+            );
+
+            if (jobDateOnly > endDateOnly) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+      }
+    }
+
+    return filtered;
+  }, [
+    jobList,
+    selectedTab,
+    completedStartDate,
+    completedEndDate,
+    cancelledStartDate,
+    cancelledEndDate,
+  ]);
 
   // จัดเรียงตามกติกา: แท็บ 1-2 (emergency ก่อน + เวลา), แท็บ 3-4 (เวลาอย่างเดียว)
   const sortedJobs = useMemo(
@@ -431,19 +560,36 @@ export default function PorterJobListPage() {
     [filteredJobs, selectedTab],
   );
 
+  // Helper function สำหรับ clear date filters
+  const clearCompletedDateFilter = () => {
+    setCompletedStartDate(null);
+    setCompletedEndDate(null);
+  };
+
+  const clearCancelledDateFilter = () => {
+    setCancelledStartDate(null);
+    setCancelledEndDate(null);
+  };
+
   // คำนวณข้อมูลสำหรับ pagination
   const totalPages = Math.ceil(sortedJobs.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const paginatedJobs = sortedJobs.slice(startIndex, endIndex);
 
-  // รีเซ็ตหน้าไปที่ 1 เมื่อเปลี่ยนแท็บ
+  // รีเซ็ตหน้าไปที่ 1 เมื่อเปลี่ยนแท็บหรือ date filter
   useEffect(() => {
     setCurrentPage(1);
     setSelectedKeys(new Set());
     setSelectedJob(null);
     setIsDrawerOpen(false);
-  }, [selectedTab]);
+  }, [
+    selectedTab,
+    completedStartDate,
+    completedEndDate,
+    cancelledStartDate,
+    cancelledEndDate,
+  ]);
 
   // Handler สำหรับ refresh ข้อมูล
   const handleRefresh = () => {
@@ -492,71 +638,142 @@ export default function PorterJobListPage() {
     staffId: string,
     staffName: string,
   ) => {
-    // TODO: เรียก API เพื่ออัพเดทสถานะ
-    // ตอนนี้อัพเดทเฉพาะ frontend state ก่อน
-    setJobList((prevList) =>
-      prevList.map((job) =>
-        job.id === jobId
-          ? {
-              ...job,
-              status: "in-progress" as JobListTab,
-              assignedTo: staffId,
-              assignedToName: staffName,
-            }
-          : job,
-      ),
-    );
-    // อัปเดต selectedJob ถ้ายังเลือกอยู่
-    if (selectedJob?.id === jobId) {
-      setSelectedJob({
-        ...selectedJob,
-        status: "in-progress" as JobListTab,
-        assignedTo: staffId,
-        assignedToName: staffName,
+    try {
+      // เรียก API เพื่ออัปเดตสถานะเป็น in-progress
+      const response = await fetch(`/api/porter/requests/${jobId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "in-progress",
+          assignedToId: staffId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // อัปเดต jobList ด้วยข้อมูลที่ได้จาก API
+        setJobList((prevList) =>
+          prevList.map((job) => (job.id === jobId ? result.data : job)),
+        );
+
+        // อัปเดต selectedJob ถ้ายังเลือกอยู่
+        if (selectedJob?.id === jobId) {
+          setSelectedJob(result.data);
+        }
+
+        addToast({
+          title: "รับงานสำเร็จ",
+          description: `รับงานสำเร็จ ผู้ดำเนินการ: ${staffName}`,
+          color: "success",
+        });
+      } else {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: result.message || "ไม่สามารถรับงานได้",
+          color: "danger",
+        });
+      }
+    } catch {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถรับงานได้",
+        color: "danger",
       });
     }
-    // Refresh ข้อมูลหลังจากอัพเดท
-    await fetchPorterRequests();
   };
 
   // Handler สำหรับยกเลิกงาน
-  const handleCancelJob = async (jobId: string) => {
-    // TODO: เรียก API เพื่ออัพเดทสถานะ
-    // ตอนนี้อัพเดทเฉพาะ frontend state ก่อน
-    setJobList((prevList) =>
-      prevList.map((job) =>
-        job.id === jobId ? { ...job, status: "cancelled" as JobListTab } : job,
-      ),
-    );
-    // อัปเดต selectedJob ถ้ายังเลือกอยู่
-    if (selectedJob?.id === jobId) {
-      setSelectedJob({
-        ...selectedJob,
-        status: "cancelled" as JobListTab,
+  const handleCancelJob = async (jobId: string, cancelledReason?: string) => {
+    try {
+      // เรียก API เพื่ออัปเดตสถานะเป็น cancelled
+      const response = await fetch(`/api/porter/requests/${jobId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "cancelled",
+          cancelledReason: cancelledReason || undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // อัปเดต jobList ด้วยข้อมูลที่ได้จาก API
+        setJobList((prevList) =>
+          prevList.map((job) => (job.id === jobId ? result.data : job)),
+        );
+
+        // อัปเดต selectedJob ถ้ายังเลือกอยู่
+        if (selectedJob?.id === jobId) {
+          setSelectedJob(result.data);
+        }
+
+        addToast({
+          title: "ยกเลิกงานสำเร็จ",
+          description: "ยกเลิกงานสำเร็จ",
+          color: "success",
+        });
+      } else {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: result.message || "ไม่สามารถยกเลิกงานได้",
+          color: "danger",
+        });
+      }
+    } catch {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถยกเลิกงานได้",
+        color: "danger",
       });
     }
-    // Refresh ข้อมูลหลังจากอัพเดท
-    await fetchPorterRequests();
   };
 
   // Handler สำหรับทำเสร็จสิ้นงาน
   const handleCompleteJob = async (jobId: string) => {
-    // TODO: เรียก API เพื่ออัพเดทสถานะ
-    // ตอนนี้อัพเดทเฉพาะ frontend state ก่อน
-    setJobList((prevList) =>
-      prevList.map((job) =>
-        job.id === jobId ? { ...job, status: "completed" as JobListTab } : job,
-      ),
-    );
-    // อัปเดต selectedJob ถ้ายังเลือกอยู่
-    if (selectedJob?.id === jobId) {
-      setSelectedJob({
-        ...selectedJob,
-        status: "completed" as JobListTab,
+    try {
+      // เรียก API เพื่ออัปเดตสถานะเป็น completed
+      const response = await fetch(`/api/porter/requests/${jobId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "completed",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // อัปเดต jobList ด้วยข้อมูลที่ได้จาก API
+        setJobList((prevList) =>
+          prevList.map((job) => (job.id === jobId ? result.data : job)),
+        );
+
+        // อัปเดต selectedJob ถ้ายังเลือกอยู่
+        if (selectedJob?.id === jobId) {
+          setSelectedJob(result.data);
+        }
+
+        addToast({
+          title: "ทำเสร็จสิ้นงานสำเร็จ",
+          description: "ทำเสร็จสิ้นงานสำเร็จ",
+          color: "success",
+        });
+      } else {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: result.message || "ไม่สามารถทำเสร็จสิ้นงานได้",
+          color: "danger",
+        });
+      }
+    } catch {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถทำเสร็จสิ้นงานได้",
+        color: "danger",
       });
     }
-    // Refresh ข้อมูลหลังจากอัพเดท
-    await fetchPorterRequests();
   };
 
   // Handler สำหรับอัปเดตข้อมูลงาน
@@ -612,8 +829,8 @@ export default function PorterJobListPage() {
                 </div>
                 <Button
                   color="primary"
-                  size="sm"
                   isLoading={isLoading}
+                  size="sm"
                   title="รีเฟรชข้อมูล"
                   variant="flat"
                   onPress={handleRefresh}
@@ -638,145 +855,249 @@ export default function PorterJobListPage() {
             {/* Tab Navigation - HeroUI Tabs */}
             {!isLoading && !error && (
               <Tabs
-              aria-label="รายการคำขอ"
-              classNames={{
-                tabList: "w-full",
-                tab: "data-[selected=true]:bg-primary-500 data-[selected=true]:text-white data-[selected=true]:hover:bg-primary/80",
-              }}
-              color="primary"
-              selectedKey={selectedTab}
-              size="lg"
-              variant="bordered"
-              onSelectionChange={(key) => setSelectedTab(key as JobListTab)}
-            >
-              <Tab
-                key="waiting"
-                title={
-                  <div className="flex items-center justify-center space-x-2">
-                    <ClipboardListIcon className="w-4 h-4" />
-                    <span>รอศูนย์เปลรับงาน</span>
-                    <Chip
-                      color="danger"
-                      size="sm"
-                      variant={selectedTab === "waiting" ? "solid" : "bordered"}
-                    >
-                      {waitingCount}
-                    </Chip>
-                  </div>
-                }
+                aria-label="รายการคำขอ"
+                classNames={{
+                  tabList: "w-full",
+                  tab: "data-[selected=true]:bg-primary-500 data-[selected=true]:text-white data-[selected=true]:hover:bg-primary/80",
+                }}
+                color="primary"
+                selectedKey={selectedTab}
+                size="lg"
+                variant="bordered"
+                onSelectionChange={(key) => setSelectedTab(key as JobListTab)}
               >
-                <JobTable
-                  currentPage={currentPage}
-                  endIndex={endIndex}
-                  items={paginatedJobs}
-                  paginationId="rows-per-page"
-                  rowsPerPage={rowsPerPage}
-                  selectedKeys={selectedKeys}
-                  sortedJobs={sortedJobs}
-                  startIndex={startIndex}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  onRowsPerPageChange={setRowsPerPage}
-                  onSelectionChange={handleSelectionChange}
-                />
-              </Tab>
-              <Tab
-                key="in-progress"
-                title={
-                  <div className="flex items-center justify-center space-x-2">
-                    <ClockIcon className="w-4 h-4" />
-                    <span>กำลังดำเนินการ</span>
-                    <Chip
-                      color="warning"
-                      size="sm"
-                      variant={
-                        selectedTab === "in-progress" ? "solid" : "bordered"
-                      }
-                    >
-                      {inProgressCount}
-                    </Chip>
+                <Tab
+                  key="waiting"
+                  title={
+                    <div className="flex items-center justify-center space-x-2">
+                      <ClipboardListIcon className="w-4 h-4" />
+                      <span>รอศูนย์เปลรับงาน</span>
+                      <Chip
+                        color="danger"
+                        size="sm"
+                        variant={
+                          selectedTab === "waiting" ? "solid" : "bordered"
+                        }
+                      >
+                        {waitingCount}
+                      </Chip>
+                    </div>
+                  }
+                >
+                  <JobTable
+                    currentPage={currentPage}
+                    endIndex={endIndex}
+                    items={paginatedJobs}
+                    paginationId="rows-per-page"
+                    rowsPerPage={rowsPerPage}
+                    selectedKeys={selectedKeys}
+                    sortedJobs={sortedJobs}
+                    startIndex={startIndex}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    onRowsPerPageChange={setRowsPerPage}
+                    onSelectionChange={handleSelectionChange}
+                  />
+                </Tab>
+                <Tab
+                  key="in-progress"
+                  title={
+                    <div className="flex items-center justify-center space-x-2">
+                      <ClockIcon className="w-4 h-4" />
+                      <span>กำลังดำเนินการ</span>
+                      <Chip
+                        color="warning"
+                        size="sm"
+                        variant={
+                          selectedTab === "in-progress" ? "solid" : "bordered"
+                        }
+                      >
+                        {inProgressCount}
+                      </Chip>
+                    </div>
+                  }
+                >
+                  <JobTable
+                    currentPage={currentPage}
+                    endIndex={endIndex}
+                    items={paginatedJobs}
+                    paginationId="rows-per-page-2"
+                    rowsPerPage={rowsPerPage}
+                    sortedJobs={sortedJobs}
+                    startIndex={startIndex}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    onRowsPerPageChange={setRowsPerPage}
+                    onSelectionChange={handleSelectionChange}
+                  />
+                </Tab>
+                <Tab
+                  key="completed"
+                  title={
+                    <div className="flex items-center justify-center space-x-2">
+                      <CheckCircleIcon className="w-4 h-4" />
+                      <span>เสร็จสิ้น</span>
+                      <Chip
+                        color="success"
+                        size="sm"
+                        variant={
+                          selectedTab === "completed" ? "solid" : "bordered"
+                        }
+                      >
+                        {completedCount}
+                      </Chip>
+                    </div>
+                  }
+                >
+                  <div className="space-y-4">
+                    {/* Date Range Filter */}
+                    <Card className="border border-default-200">
+                      <CardBody>
+                        <div className="flex flex-col md:flex-row gap-4 items-end">
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DatePicker
+                              label="วันที่เริ่มต้น"
+                              maxValue={completedEndDate || undefined}
+                              selectorIcon={
+                                <CalendarIcon className="w-4 h-4" />
+                              }
+                              value={completedStartDate}
+                              variant="bordered"
+                              onChange={(date) => {
+                                setCompletedStartDate(date);
+                                // ถ้าวันที่เริ่มต้นมากกว่าวันที่สิ้นสุด ให้ล้างวันที่สิ้นสุด
+                                if (
+                                  date &&
+                                  completedEndDate &&
+                                  date.compare(completedEndDate) > 0
+                                ) {
+                                  setCompletedEndDate(null);
+                                }
+                              }}
+                            />
+                            <DatePicker
+                              label="วันที่สิ้นสุด"
+                              minValue={completedStartDate || undefined}
+                              selectorIcon={
+                                <CalendarIcon className="w-4 h-4" />
+                              }
+                              value={completedEndDate}
+                              variant="bordered"
+                              onChange={(date) => setCompletedEndDate(date)}
+                            />
+                          </div>
+                          {(completedStartDate || completedEndDate) && (
+                            <Button
+                              color="default"
+                              size="md"
+                              variant="flat"
+                              onPress={clearCompletedDateFilter}
+                            >
+                              ล้างตัวกรอง
+                            </Button>
+                          )}
+                        </div>
+                      </CardBody>
+                    </Card>
+                    <JobTable
+                      currentPage={currentPage}
+                      endIndex={endIndex}
+                      items={paginatedJobs}
+                      paginationId="rows-per-page-3"
+                      rowsPerPage={rowsPerPage}
+                      sortedJobs={sortedJobs}
+                      startIndex={startIndex}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      onRowsPerPageChange={setRowsPerPage}
+                      onSelectionChange={handleSelectionChange}
+                    />
                   </div>
-                }
-              >
-                <JobTable
-                  currentPage={currentPage}
-                  endIndex={endIndex}
-                  items={paginatedJobs}
-                  paginationId="rows-per-page-2"
-                  rowsPerPage={rowsPerPage}
-                  sortedJobs={sortedJobs}
-                  startIndex={startIndex}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  onRowsPerPageChange={setRowsPerPage}
-                  onSelectionChange={handleSelectionChange}
-                />
-              </Tab>
-              <Tab
-                key="completed"
-                title={
-                  <div className="flex items-center justify-center space-x-2">
-                    <CheckCircleIcon className="w-4 h-4" />
-                    <span>เสร็จสิ้น</span>
-                    <Chip
-                      color="success"
-                      size="sm"
-                      variant={
-                        selectedTab === "completed" ? "solid" : "bordered"
-                      }
-                    >
-                      {completedCount}
-                    </Chip>
+                </Tab>
+                <Tab
+                  key="cancelled"
+                  title={
+                    <div className="flex items-center justify-center space-x-2">
+                      <XMarkIcon className="w-4 h-4" />
+                      <span>ยกเลิก</span>
+                      <Chip
+                        color="danger"
+                        size="sm"
+                        variant={
+                          selectedTab === "cancelled" ? "solid" : "bordered"
+                        }
+                      >
+                        {cancelledCount}
+                      </Chip>
+                    </div>
+                  }
+                >
+                  <div className="space-y-4">
+                    {/* Date Range Filter */}
+                    <Card className="border border-default-200">
+                      <CardBody>
+                        <div className="flex flex-col md:flex-row gap-4 items-end">
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DatePicker
+                              label="วันที่เริ่มต้น"
+                              maxValue={cancelledEndDate || undefined}
+                              selectorIcon={
+                                <CalendarIcon className="w-4 h-4" />
+                              }
+                              value={cancelledStartDate}
+                              variant="bordered"
+                              onChange={(date) => {
+                                setCancelledStartDate(date);
+                                // ถ้าวันที่เริ่มต้นมากกว่าวันที่สิ้นสุด ให้ล้างวันที่สิ้นสุด
+                                if (
+                                  date &&
+                                  cancelledEndDate &&
+                                  date.compare(cancelledEndDate) > 0
+                                ) {
+                                  setCancelledEndDate(null);
+                                }
+                              }}
+                            />
+                            <DatePicker
+                              label="วันที่สิ้นสุด"
+                              minValue={cancelledStartDate || undefined}
+                              selectorIcon={
+                                <CalendarIcon className="w-4 h-4" />
+                              }
+                              value={cancelledEndDate}
+                              variant="bordered"
+                              onChange={(date) => setCancelledEndDate(date)}
+                            />
+                          </div>
+                          {(cancelledStartDate || cancelledEndDate) && (
+                            <Button
+                              color="default"
+                              size="md"
+                              variant="flat"
+                              onPress={clearCancelledDateFilter}
+                            >
+                              ล้างตัวกรอง
+                            </Button>
+                          )}
+                        </div>
+                      </CardBody>
+                    </Card>
+                    <JobTable
+                      currentPage={currentPage}
+                      endIndex={endIndex}
+                      items={paginatedJobs}
+                      paginationId="rows-per-page-4"
+                      rowsPerPage={rowsPerPage}
+                      sortedJobs={sortedJobs}
+                      startIndex={startIndex}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      onRowsPerPageChange={setRowsPerPage}
+                      onSelectionChange={handleSelectionChange}
+                    />
                   </div>
-                }
-              >
-                <JobTable
-                  currentPage={currentPage}
-                  endIndex={endIndex}
-                  items={paginatedJobs}
-                  paginationId="rows-per-page-3"
-                  rowsPerPage={rowsPerPage}
-                  sortedJobs={sortedJobs}
-                  startIndex={startIndex}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  onRowsPerPageChange={setRowsPerPage}
-                  onSelectionChange={handleSelectionChange}
-                />
-              </Tab>
-              <Tab
-                key="cancelled"
-                title={
-                  <div className="flex items-center justify-center space-x-2">
-                    <XMarkIcon className="w-4 h-4" />
-                    <span>ยกเลิก</span>
-                    <Chip
-                      color="danger"
-                      size="sm"
-                      variant={
-                        selectedTab === "cancelled" ? "solid" : "bordered"
-                      }
-                    >
-                      {cancelledCount}
-                    </Chip>
-                  </div>
-                }
-              >
-                <JobTable
-                  currentPage={currentPage}
-                  endIndex={endIndex}
-                  items={paginatedJobs}
-                  paginationId="rows-per-page-4"
-                  rowsPerPage={rowsPerPage}
-                  sortedJobs={sortedJobs}
-                  startIndex={startIndex}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  onRowsPerPageChange={setRowsPerPage}
-                  onSelectionChange={handleSelectionChange}
-                />
-              </Tab>
-            </Tabs>
+                </Tab>
+              </Tabs>
             )}
           </CardBody>
         </Card>

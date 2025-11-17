@@ -1,0 +1,532 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  addToast,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Pagination,
+  Checkbox,
+  Chip,
+} from "@heroui/react";
+
+import {
+  UserGroupIcon,
+  PlusIcon,
+  TrashIcon,
+  PencilIcon,
+} from "@/components/ui/icons";
+
+// ========================================
+// POSITION MANAGEMENT PAGE
+// ========================================
+
+/**
+ * Interface สำหรับข้อมูลตำแหน่ง
+ */
+export interface Position {
+  id: string;
+  name: string;
+  status: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Modal สำหรับเพิ่ม/แก้ไขตำแหน่ง
+ */
+interface PositionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (
+    position: Omit<Position, "id" | "createdAt" | "updatedAt"> & {
+      id?: string;
+    },
+  ) => void;
+  position?: Position | null;
+  isLoading?: boolean;
+}
+
+function PositionModal({
+  isOpen,
+  onClose,
+  onSave,
+  position,
+  isLoading = false,
+}: PositionModalProps) {
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState(true);
+
+  useEffect(() => {
+    if (position) {
+      setName(position.name);
+      setStatus(position.status ?? true);
+    } else {
+      setName("");
+      setStatus(true);
+    }
+  }, [position, isOpen]);
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      addToast({
+        title: "ข้อมูลไม่ครบถ้วน",
+        description: "กรุณากรอกชื่อตำแหน่ง",
+        color: "danger",
+      });
+
+      return;
+    }
+
+    try {
+      await onSave({
+        id: position?.id,
+        name: name.trim(),
+        status,
+      });
+      onClose();
+    } catch {
+      // Error handling ถูกจัดการใน handleSavePosition แล้ว
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} size="lg" onClose={onClose}>
+      <ModalContent>
+        <ModalHeader>
+          {position ? "แก้ไขตำแหน่ง" : "เพิ่มตำแหน่งใหม่"}
+        </ModalHeader>
+        <ModalBody>
+          <div className="space-y-4">
+            <Input
+              isRequired
+              isDisabled={isLoading}
+              label="ชื่อตำแหน่ง"
+              placeholder="เช่น พนักงานเปล"
+              value={name}
+              variant="bordered"
+              onChange={(e) => setName(e.target.value)}
+            />
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">
+                สถานะการใช้งาน
+              </div>
+              <div className="text-xs text-default-500">
+                เปิดใช้งานเมื่อต้องการให้ตำแหน่งนี้สามารถเลือกใช้ได้
+              </div>
+              <Checkbox
+                isDisabled={isLoading}
+                isSelected={status}
+                onValueChange={setStatus}
+              >
+                ใช้งาน
+              </Checkbox>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button isDisabled={isLoading} variant="flat" onPress={onClose}>
+            ยกเลิก
+          </Button>
+          <Button
+            color="primary"
+            isDisabled={isLoading}
+            isLoading={isLoading}
+            onPress={handleSave}
+          >
+            บันทึก
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
+export default function PositionManagementPage() {
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Modal state
+  const {
+    isOpen: isPositionModalOpen,
+    onOpen: onPositionModalOpen,
+    onClose: onPositionModalClose,
+  } = useDisclosure();
+  const [editingPosition, setEditingPosition] = useState<Position | null>(null);
+
+  // โหลดข้อมูลจาก API
+  useEffect(() => {
+    const loadPositions = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/porter/positions");
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setPositions(result.data);
+        } else {
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: result.message || "ไม่สามารถโหลดข้อมูลตำแหน่งได้",
+            color: "danger",
+          });
+        }
+      } catch {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถโหลดข้อมูลตำแหน่งได้",
+          color: "danger",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPositions();
+  }, []);
+
+  // Pagination
+  const totalPages = Math.ceil(positions.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+
+  const paginatedPositions = useMemo(() => {
+    return positions.slice(startIndex, endIndex);
+  }, [positions, startIndex, endIndex]);
+
+  // Handlers
+  const handleAddPosition = () => {
+    setEditingPosition(null);
+    onPositionModalOpen();
+  };
+
+  const handleEditPosition = (position: Position) => {
+    setEditingPosition(position);
+    onPositionModalOpen();
+  };
+
+  const handleDeletePosition = async (positionId: string) => {
+    const position = positions.find((p) => p.id === positionId);
+
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบตำแหน่ง "${position?.name}"?`)) {
+      return;
+    }
+
+    try {
+      setIsDeleting(positionId);
+      const response = await fetch(`/api/porter/positions/${positionId}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        setPositions((prev) => prev.filter((p) => p.id !== positionId));
+        addToast({
+          title: "ลบตำแหน่งสำเร็จ",
+          description: "ตำแหน่งถูกลบออกจากระบบแล้ว",
+          color: "success",
+        });
+      } else {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: result.message || "ไม่สามารถลบตำแหน่งได้",
+          color: "danger",
+        });
+      }
+    } catch {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถลบตำแหน่งได้",
+        color: "danger",
+      });
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const handleSavePosition = async (
+    positionData: Omit<Position, "id" | "createdAt" | "updatedAt"> & {
+      id?: string;
+    },
+  ) => {
+    try {
+      setIsSaving(true);
+
+      // ตรวจสอบชื่อซ้ำ (ยกเว้นกรณีแก้ไข)
+      if (!editingPosition) {
+        const existingPosition = positions.find(
+          (p) => p.name.toLowerCase() === positionData.name.toLowerCase(),
+        );
+
+        if (existingPosition) {
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: "ชื่อตำแหน่งนี้มีอยู่ในระบบแล้ว",
+            color: "danger",
+          });
+          throw new Error("ชื่อตำแหน่งซ้ำ");
+        }
+      }
+
+      if (editingPosition) {
+        // แก้ไขตำแหน่ง
+        const response = await fetch(
+          `/api/porter/positions/${editingPosition.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: positionData.name,
+              status: positionData.status,
+            }),
+          },
+        );
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setPositions((prev) =>
+            prev.map((p) => (p.id === editingPosition.id ? result.data : p)),
+          );
+          addToast({
+            title: "แก้ไขตำแหน่งสำเร็จ",
+            description: "ข้อมูลตำแหน่งถูกอัปเดตแล้ว",
+            color: "success",
+          });
+        } else {
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: result.message || "ไม่สามารถแก้ไขตำแหน่งได้",
+            color: "danger",
+          });
+          throw new Error(result.message || "ไม่สามารถแก้ไขตำแหน่งได้");
+        }
+      } else {
+        // เพิ่มตำแหน่งใหม่
+        const response = await fetch("/api/porter/positions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: positionData.name,
+            status: positionData.status,
+          }),
+        });
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setPositions((prev) => [...prev, result.data]);
+          addToast({
+            title: "เพิ่มตำแหน่งสำเร็จ",
+            description: "ตำแหน่งใหม่ถูกเพิ่มเข้าไปในระบบแล้ว",
+            color: "success",
+          });
+        } else {
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: result.message || "ไม่สามารถเพิ่มตำแหน่งได้",
+            color: "danger",
+          });
+          throw new Error(result.message || "ไม่สามารถเพิ่มตำแหน่งได้");
+        }
+      }
+      setEditingPosition(null);
+    } catch (error) {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถบันทึกตำแหน่งได้",
+        color: "danger",
+      });
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const columns = [
+    { key: "name", label: "ชื่อตำแหน่ง" },
+    { key: "status", label: "สถานะ" },
+    { key: "actions", label: "การจัดการ" },
+  ];
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <UserGroupIcon className="w-8 h-8 text-primary" />
+            จัดการตำแหน่ง
+          </h1>
+          <p className="text-default-600 mt-2">
+            จัดการข้อมูลตำแหน่งสำหรับระบบ Porter
+          </p>
+        </div>
+        <Button
+          color="primary"
+          isDisabled={isLoading || isSaving}
+          startContent={<PlusIcon className="w-5 h-5" />}
+          onPress={handleAddPosition}
+        >
+          เพิ่มตำแหน่ง
+        </Button>
+      </div>
+
+      {/* Table */}
+      <Card className="shadow-lg border border-default-200">
+        <CardHeader className="pb-0">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <UserGroupIcon className="w-6 h-6 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">
+                รายการตำแหน่ง
+              </h2>
+            </div>
+          </div>
+        </CardHeader>
+        <CardBody className="pt-4">
+          {isLoading ? (
+            <div className="text-center py-8 text-default-500">
+              <p>กำลังโหลดข้อมูล...</p>
+            </div>
+          ) : (
+            <>
+              <Table
+                removeWrapper
+                aria-label="รายการตำแหน่ง"
+                classNames={{
+                  wrapper: "min-h-[400px]",
+                }}
+              >
+                <TableHeader columns={columns}>
+                  {(column) => (
+                    <TableColumn key={column.key}>{column.label}</TableColumn>
+                  )}
+                </TableHeader>
+                <TableBody
+                  emptyContent="ยังไม่มีข้อมูลตำแหน่ง"
+                  items={paginatedPositions}
+                >
+                  {(item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <span className="text-foreground">{item.name}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          color={item.status ? "success" : "default"}
+                          size="sm"
+                          variant="flat"
+                        >
+                          {item.status ? "ใช้งาน" : "ไม่ใช้งาน"}
+                        </Chip>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            isIconOnly
+                            color="primary"
+                            isDisabled={isDeleting === item.id || isSaving}
+                            size="sm"
+                            variant="light"
+                            onPress={() => handleEditPosition(item)}
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            isIconOnly
+                            color="danger"
+                            isDisabled={isDeleting === item.id}
+                            isLoading={isDeleting === item.id}
+                            size="sm"
+                            variant="light"
+                            onPress={() => handleDeletePosition(item.id)}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {positions.length > 0 && (
+                <div className="flex items-center justify-between mt-4 px-2">
+                  <div className="text-sm text-default-600">
+                    แสดง {startIndex + 1} - {""}
+                    {Math.min(endIndex, positions.length)} จาก {""}
+                    {positions.length} รายการ
+                  </div>
+                  <Pagination
+                    showControls
+                    color="primary"
+                    initialPage={1}
+                    page={currentPage}
+                    size="sm"
+                    total={totalPages}
+                    onChange={setCurrentPage}
+                  />
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <label
+                        className="text-sm text-default-600"
+                        htmlFor="rows-per-page"
+                      >
+                        แสดงต่อหน้า:
+                      </label>
+                      <select
+                        className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        id="rows-per-page"
+                        value={rowsPerPage}
+                        onChange={(e) => {
+                          setRowsPerPage(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Modal */}
+      <PositionModal
+        isLoading={isSaving}
+        isOpen={isPositionModalOpen}
+        position={editingPosition}
+        onClose={() => {
+          onPositionModalClose();
+          setEditingPosition(null);
+        }}
+        onSave={handleSavePosition}
+      />
+    </div>
+  );
+}

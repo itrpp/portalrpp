@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "lint": "eslint . --fix",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
@@ -25,6 +26,8 @@
     "@prisma/client": "^6.18.0"
   },
   "devDependencies": {
+    "eslint": "^9.38.0",
+    "globals": "^16.0.0",
     "nodemon": "^3.1.10",
     "prisma": "^6.18.0"
   }
