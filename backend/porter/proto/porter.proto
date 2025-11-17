@@ -1,0 +1,605 @@
+syntax = "proto3";
+
+package porter;
+
+// ========================================
+// Porter Request Service
+// ========================================
+
+service PorterService {
+  // สร้าง Porter Request ใหม่
+  rpc CreatePorterRequest(CreatePorterRequestRequest) returns (PorterRequestResponse);
+
+  // ดึงข้อมูล Porter Request โดย ID
+  rpc GetPorterRequest(GetPorterRequestRequest) returns (PorterRequestResponse);
+
+  // ดึงรายการ Porter Request ทั้งหมด (พร้อม filters)
+  rpc ListPorterRequests(ListPorterRequestsRequest) returns (ListPorterRequestsResponse);
+
+  // อัปเดตข้อมูล Porter Request
+  rpc UpdatePorterRequest(UpdatePorterRequestRequest) returns (PorterRequestResponse);
+
+  // อัปเดตสถานะ Porter Request
+  rpc UpdatePorterRequestStatus(UpdatePorterRequestStatusRequest) returns (PorterRequestResponse);
+  // อัปเดต Timestamps ของ Porter Request (pickup, delivery, return)
+  rpc UpdatePorterRequestTimestamps(UpdatePorterRequestTimestampsRequest) returns (PorterRequestResponse);
+
+  // ลบ Porter Request
+  rpc DeletePorterRequest(DeletePorterRequestRequest) returns (DeletePorterRequestResponse);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // Stream สำหรับ real-time updates เมื่อมีการเปลี่ยนแปลงคำขอ
+  rpc StreamPorterRequests(StreamPorterRequestsRequest) returns (stream PorterRequestUpdate);
+
+  // ========================================
+  // Location Settings Service
+  // ========================================
+
+  // Building CRUD
+  rpc CreateBuilding(CreateBuildingRequest) returns (BuildingResponse);
+  rpc GetBuilding(GetBuildingRequest) returns (BuildingResponse);
+  rpc ListBuildings(ListBuildingsRequest) returns (ListBuildingsResponse);
+  rpc UpdateBuilding(UpdateBuildingRequest) returns (BuildingResponse);
+  rpc DeleteBuilding(DeleteBuildingRequest) returns (DeleteBuildingResponse);
+
+  // FloorDepartment CRUD
+  rpc CreateFloorDepartment(CreateFloorDepartmentRequest) returns (FloorDepartmentResponse);
+  rpc GetFloorDepartment(GetFloorDepartmentRequest) returns (FloorDepartmentResponse);
+  rpc ListFloorDepartments(ListFloorDepartmentsRequest) returns (ListFloorDepartmentsResponse);
+  rpc UpdateFloorDepartment(UpdateFloorDepartmentRequest) returns (FloorDepartmentResponse);
+  rpc DeleteFloorDepartment(DeleteFloorDepartmentRequest) returns (DeleteFloorDepartmentResponse);
+
+  // ========================================
+  // Employee Management Service
+  // ========================================
+
+  // Employee CRUD
+  rpc CreateEmployee(CreateEmployeeRequest) returns (EmployeeResponse);
+  rpc GetEmployee(GetEmployeeRequest) returns (EmployeeResponse);
+  rpc ListEmployees(ListEmployeesRequest) returns (ListEmployeesResponse);
+  rpc UpdateEmployee(UpdateEmployeeRequest) returns (EmployeeResponse);
+  rpc DeleteEmployee(DeleteEmployeeRequest) returns (DeleteEmployeeResponse);
+
+  // EmploymentType CRUD
+  rpc CreateEmploymentType(CreateEmploymentTypeRequest) returns (EmploymentTypeResponse);
+  rpc GetEmploymentType(GetEmploymentTypeRequest) returns (EmploymentTypeResponse);
+  rpc ListEmploymentTypes(ListEmploymentTypesRequest) returns (ListEmploymentTypesResponse);
+  rpc UpdateEmploymentType(UpdateEmploymentTypeRequest) returns (EmploymentTypeResponse);
+  rpc DeleteEmploymentType(DeleteEmploymentTypeRequest) returns (DeleteEmploymentTypeResponse);
+
+  // Position CRUD
+  rpc CreatePosition(CreatePositionRequest) returns (PositionResponse);
+  rpc GetPosition(GetPositionRequest) returns (PositionResponse);
+  rpc ListPositions(ListPositionsRequest) returns (ListPositionsResponse);
+  rpc UpdatePosition(UpdatePositionRequest) returns (PositionResponse);
+  rpc DeletePosition(DeletePositionRequest) returns (DeletePositionResponse);
+}
+
+// ========================================
+// Request Messages
+// ========================================
+
+message CreatePorterRequestRequest {
+  // ข้อมูลผู้แจ้ง (Requester Information)
+  string requester_department = 1;
+  string requester_name = 2;
+  string requester_phone = 3;
+
+  // ข้อมูลผู้ป่วย (Patient Information)
+  string patient_name = 4;
+  string patient_hn = 5;
+  optional string patient_condition = 6;
+
+  // ข้อมูลสถานที่รับ (Pickup Location)
+  string pickup_location = 7;
+  string pickup_building_id = 8;
+  string pickup_floor_department_id = 9;
+  optional string pickup_room_bed_name = 10;
+
+  // ข้อมูลสถานที่ส่ง (Delivery Location)
+  string delivery_location = 11;
+  string delivery_building_id = 12;
+  string delivery_floor_department_id = 13;
+  optional string delivery_room_bed_name = 14;
+
+  // ข้อมูลการเคลื่อนย้าย (Transport Information)
+  string requested_date_time = 15; // ISO 8601 format
+  string urgency_level = 16; // NORMAL, RUSH, EMERGENCY
+  string vehicle_type = 17; // SITTING, LYING, GOLF
+  string has_vehicle = 18; // YES, NO
+  string return_trip = 19; // ONE_WAY, ROUND_TRIP
+  string transport_reason = 20;
+
+  // อุปกรณ์ที่ต้องการ (Equipment)
+  repeated string equipment = 21; // OXYGEN, SALINE_POLE, ICD_BOX, CLOTH_TIED, OTHER
+  optional string equipment_other = 23; // ระบุอุปกรณ์อื่นๆ เมื่อเลือก "OTHER"
+
+  // รายละเอียดเพิ่มเติม
+  optional string special_notes = 22;
+}
+
+message GetPorterRequestRequest {
+  string id = 1;
+}
+
+message ListPorterRequestsRequest {
+  optional string status = 1; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string urgency_level = 2; // NORMAL, RUSH, EMERGENCY
+  optional string assigned_to_id = 3;
+  optional int32 page = 4;
+  optional int32 page_size = 5;
+}
+
+message UpdatePorterRequestRequest {
+  string id = 1;
+  optional string requester_department = 2;
+  optional string requester_name = 3;
+  optional string requester_phone = 4;
+  optional string patient_name = 5;
+  optional string patient_hn = 6;
+  optional string patient_condition = 7;
+  optional string pickup_location = 8;
+  optional string pickup_building_id = 9;
+  optional string delivery_location = 10;
+  optional string delivery_building_id = 11;
+  optional string requested_date_time = 12;
+  optional string urgency_level = 13; // NORMAL, RUSH, EMERGENCY
+  optional string vehicle_type = 14; // SITTING, LYING, GOLF
+  optional string has_vehicle = 15; // YES, NO
+  optional string return_trip = 16; // ONE_WAY, ROUND_TRIP
+  optional string transport_reason = 17;
+  repeated string equipment = 18; // OXYGEN, SALINE_POLE, ICD_BOX, CLOTH_TIED, OTHER
+  optional string equipment_other = 20; // ระบุอุปกรณ์อื่นๆ เมื่อเลือก "OTHER"
+  optional string special_notes = 19;
+}
+
+message UpdatePorterRequestStatusRequest {
+  string id = 1;
+  string status = 2; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string assigned_to_id = 3;
+  optional string cancelled_reason = 4;
+}
+
+message UpdatePorterRequestTimestampsRequest {
+  string id = 1;
+  optional string pickup_at = 2;   // ISO 8601 format - เวลาที่ถึงจุดรับ
+  optional string delivery_at = 3; // ISO 8601 format - เวลาที่ถึงจุดส่ง
+  optional string return_at = 4;   // ISO 8601 format - เวลาที่ถึงจุดส่งกลับ
+}
+
+message DeletePorterRequestRequest {
+  string id = 1;
+}
+
+message HealthCheckRequest {}
+
+message StreamPorterRequestsRequest {
+  optional string status = 1; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string urgency_level = 2; // NORMAL, RUSH, EMERGENCY
+}
+
+// ========================================
+// Response Messages
+// ========================================
+
+message PorterRequestResponse {
+  bool success = 1;
+  optional PorterRequest data = 2;
+  optional string error_message = 3;
+}
+
+message ListPorterRequestsResponse {
+  bool success = 1;
+  repeated PorterRequest data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeletePorterRequestResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+message HealthCheckResponse {
+  bool success = 1;
+  string message = 2;
+  string timestamp = 3;
+}
+
+// ========================================
+// Data Models
+// ========================================
+
+message PorterRequest {
+  string id = 1;
+  string created_at = 2; // ISO 8601 format
+  string updated_at = 3; // ISO 8601 format
+
+  // ข้อมูลผู้แจ้ง
+  string requester_department = 4;
+  string requester_name = 5;
+  string requester_phone = 6;
+
+  // ข้อมูลผู้ป่วย
+  string patient_name = 7;
+  string patient_hn = 8;
+  optional string patient_condition = 9;
+
+  // ข้อมูลสถานที่รับ
+  string pickup_location = 10;
+  string pickup_building_id = 11;
+  string pickup_floor_department_id = 12;
+  optional string pickup_room_bed_name = 13;
+
+  // ข้อมูลสถานที่ส่ง
+  string delivery_location = 14;
+  string delivery_building_id = 15;
+  string delivery_floor_department_id = 16;
+  optional string delivery_room_bed_name = 17;
+
+  // ข้อมูลการเคลื่อนย้าย
+  string requested_date_time = 18;
+  string urgency_level = 19; // NORMAL, RUSH, EMERGENCY
+  string vehicle_type = 20; // SITTING, LYING, GOLF
+  string has_vehicle = 21; // YES, NO
+  string return_trip = 22; // ONE_WAY, ROUND_TRIP
+  string transport_reason = 23;
+
+  // อุปกรณ์
+  repeated string equipment = 24; // OXYGEN, SALINE_POLE, ICD_BOX, CLOTH_TIED, OTHER
+  optional string equipment_other = 27; // ระบุอุปกรณ์อื่นๆ เมื่อเลือก "OTHER"
+
+  // รายละเอียดเพิ่มเติม
+  optional string special_notes = 25;
+
+  // ข้อมูลการจัดการงาน
+  string status = 26; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string assigned_to_id = 28;
+
+  // ข้อมูลเวลา
+  optional string accepted_at = 29;
+  optional string completed_at = 30;
+  optional string cancelled_at = 31;
+  optional string cancelled_reason = 32;
+  
+  // ข้อมูลเวลาการดำเนินงาน
+  optional string pickup_at = 33;   // เวลาที่ถึงจุดรับ
+  optional string delivery_at = 34; // เวลาที่ถึงจุดส่ง
+  optional string return_at = 35;   // เวลาที่ถึงจุดส่งกลับ (สำหรับ ROUND_TRIP)
+}
+
+// ========================================
+// Streaming Messages
+// ========================================
+
+message PorterRequestUpdate {
+  enum UpdateType {
+    CREATED = 0;
+    UPDATED = 1;
+    STATUS_CHANGED = 2;
+    DELETED = 3;
+  }
+  UpdateType type = 1;
+  PorterRequest request = 2;
+}
+
+// ========================================
+// Location Settings Messages
+// ========================================
+
+// Building Messages
+message CreateBuildingRequest {
+  optional string id = 1; // ถ้าไม่ระบุจะใช้ cuid() auto-generated
+  string name = 2;
+  optional int32 floor_count = 3; // จำนวนชั้น
+}
+
+message GetBuildingRequest {
+  string id = 1;
+}
+
+message ListBuildingsRequest {
+  optional int32 page = 1;
+  optional int32 page_size = 2;
+}
+
+message UpdateBuildingRequest {
+  string id = 1;
+  string name = 2;
+  optional int32 floor_count = 3; // จำนวนชั้น
+}
+
+message DeleteBuildingRequest {
+  string id = 1;
+}
+
+message BuildingResponse {
+  bool success = 1;
+  optional Building data = 2;
+  optional string error_message = 3;
+}
+
+message ListBuildingsResponse {
+  bool success = 1;
+  repeated Building data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeleteBuildingResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+// FloorDepartment Messages
+message CreateFloorDepartmentRequest {
+  optional string id = 1; // ถ้าไม่ระบุจะใช้ cuid() auto-generated
+  string name = 2;
+  string building_id = 3;
+  optional int32 floor_number = 8; // หมายเลขชั้น
+  int32 department_type = 4; // 1 = "คลินิก", 2 = "หอผู้ป่วย"
+  optional int32 room_type = 5; // 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม"
+  optional int32 room_count = 6; // จำนวนห้องพิเศษ
+  optional int32 bed_count = 7; // จำนวนเตียงห้องรวม
+}
+
+message GetFloorDepartmentRequest {
+  string id = 1;
+}
+
+message ListFloorDepartmentsRequest {
+  optional string building_id = 1;
+  optional int32 department_type = 2; // 1 = "คลินิก", 2 = "หอผู้ป่วย"
+  optional int32 page = 3;
+  optional int32 page_size = 4;
+}
+
+message UpdateFloorDepartmentRequest {
+  string id = 1;
+  optional string name = 2;
+  optional int32 floor_number = 8; // หมายเลขชั้น
+  optional int32 department_type = 3; // 1 = "คลินิก", 2 = "หอผู้ป่วย"
+  optional int32 room_type = 4; // 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม"
+  optional int32 room_count = 5;
+  optional int32 bed_count = 6;
+}
+
+message DeleteFloorDepartmentRequest {
+  string id = 1;
+}
+
+message FloorDepartmentResponse {
+  bool success = 1;
+  optional FloorDepartment data = 2;
+  optional string error_message = 3;
+}
+
+message ListFloorDepartmentsResponse {
+  bool success = 1;
+  repeated FloorDepartment data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeleteFloorDepartmentResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+// Location Settings Data Models
+message Building {
+  string id = 1;
+  string name = 2;
+  string created_at = 3; // ISO 8601 format
+  string updated_at = 4; // ISO 8601 format
+  repeated FloorDepartment floors = 5;
+  optional int32 floor_count = 7; // จำนวนชั้น (ใช้ field number 7 เพื่อไม่ conflict กับ field เดิม)
+}
+
+message FloorDepartment {
+  string id = 1;
+  string name = 2;
+  string building_id = 3;
+  optional int32 floor_number = 11; // หมายเลขชั้น (ใช้ field number 11 เพื่อไม่ conflict)
+  int32 department_type = 4; // 1 = "คลินิก", 2 = "หอผู้ป่วย"
+  optional int32 room_type = 5; // 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม"
+  optional int32 room_count = 6; // จำนวนห้องพิเศษ
+  optional int32 bed_count = 7; // จำนวนเตียงห้องรวม
+  string created_at = 8; // ISO 8601 format
+  string updated_at = 9; // ISO 8601 format
+}
+
+// ========================================
+// Employee Management Messages
+// ========================================
+
+// Employee Request Messages
+message CreateEmployeeRequest {
+  string citizen_id = 1; // เลขบัตรประชาชน 13 หลัก
+  string first_name = 2;
+  string last_name = 3;
+  string employment_type_id = 4; // ID ของ EmploymentType
+  string position_id = 5; // ID ของ Position
+  bool status = 6; // true = ใช้งาน, false = ไม่ใช้งาน
+}
+
+message GetEmployeeRequest {
+  string id = 1;
+}
+
+message ListEmployeesRequest {
+  optional string employment_type_id = 1;
+  optional string position_id = 2;
+  optional bool status = 3;
+  optional int32 page = 4;
+  optional int32 page_size = 5;
+}
+
+message UpdateEmployeeRequest {
+  string id = 1;
+  optional string first_name = 2;
+  optional string last_name = 3;
+  optional string employment_type_id = 4;
+  optional string position_id = 5;
+  optional bool status = 6;
+}
+
+message DeleteEmployeeRequest {
+  string id = 1;
+}
+
+// Employee Response Messages
+message EmployeeResponse {
+  bool success = 1;
+  optional Employee data = 2;
+  optional string error_message = 3;
+}
+
+message ListEmployeesResponse {
+  bool success = 1;
+  repeated Employee data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeleteEmployeeResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+// Employee Data Model
+message Employee {
+  string id = 1;
+  string citizen_id = 2;
+  string first_name = 3;
+  string last_name = 4;
+  optional string employment_type = 5; // ชื่อประเภทการจ้าง (สำหรับ backward compatibility)
+  string employment_type_id = 6; // ID ของ EmploymentType
+  optional string position = 7; // ชื่อตำแหน่ง (สำหรับ backward compatibility)
+  string position_id = 8; // ID ของ Position
+  bool status = 9; // true = ใช้งาน, false = ไม่ใช้งาน
+  string created_at = 10; // ISO 8601 format
+  string updated_at = 11; // ISO 8601 format
+}
+
+// ========================================
+// EmploymentType Management Messages
+// ========================================
+
+// EmploymentType Request Messages
+message CreateEmploymentTypeRequest {
+  string name = 1; // "ลูกจ้างรายวัน", "พนักงานประกันสังคม", "ลูกจ้างประจำ", "ลูกจ้างชั่วคราว"
+  optional bool status = 2; // true = ใช้งาน, false = ไม่ใช้งาน (default: true)
+}
+
+message GetEmploymentTypeRequest {
+  string id = 1;
+}
+
+message ListEmploymentTypesRequest {}
+
+message UpdateEmploymentTypeRequest {
+  string id = 1;
+  optional string name = 2;
+  optional bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
+}
+
+message DeleteEmploymentTypeRequest {
+  string id = 1;
+}
+
+// EmploymentType Response Messages
+message EmploymentTypeResponse {
+  bool success = 1;
+  optional EmploymentType data = 2;
+  optional string error_message = 3;
+}
+
+message ListEmploymentTypesResponse {
+  bool success = 1;
+  repeated EmploymentType data = 2;
+  optional string error_message = 3;
+}
+
+message DeleteEmploymentTypeResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+// EmploymentType Data Model
+message EmploymentType {
+  string id = 1;
+  string name = 2;
+  bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
+  string created_at = 4; // ISO 8601 format
+  string updated_at = 5; // ISO 8601 format
+}
+
+// ========================================
+// Position Management Messages
+// ========================================
+
+// Position Request Messages
+message CreatePositionRequest {
+  string name = 1; // "พนักงานทั่วไป", "พนักงานเปล", "เจ้าพนักงานธุรการ"
+  optional bool status = 2; // true = ใช้งาน, false = ไม่ใช้งาน (default: true)
+}
+
+message GetPositionRequest {
+  string id = 1;
+}
+
+message ListPositionsRequest {}
+
+message UpdatePositionRequest {
+  string id = 1;
+  optional string name = 2;
+  optional bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
+}
+
+message DeletePositionRequest {
+  string id = 1;
+}
+
+// Position Response Messages
+message PositionResponse {
+  bool success = 1;
+  optional Position data = 2;
+  optional string error_message = 3;
+}
+
+message ListPositionsResponse {
+  bool success = 1;
+  repeated Position data = 2;
+  optional string error_message = 3;
+}
+
+message DeletePositionResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+// Position Data Model
+message Position {
+  string id = 1;
+  string name = 2;
+  bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
+  string created_at = 4; // ISO 8601 format
+  string updated_at = 5; // ISO 8601 format
+}

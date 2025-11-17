@@ -73,7 +73,6 @@ const providers: any[] = [
 
         return user;
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error("Authentication error:", error);
 
         // แปลง error code -> ข้อความภาษาไทยสำหรับผู้ใช้
@@ -240,7 +239,6 @@ export const authOptions: any = {
           },
         });
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.warn("Failed to update providerType on linkAccount:", e);
       }
     },

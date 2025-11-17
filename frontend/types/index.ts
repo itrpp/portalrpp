@@ -1,4 +1,11 @@
 /**
+ * ========================================
+ * COMMON TYPES
+ * ========================================
+ * Types ที่ใช้ร่วมกันทั่วทั้งแอปพลิเคชัน
+ */
+
+/**
  * โครงสร้างข้อมูล pagination (หลีกเลี่ยงการใช้ any)
  */
 export interface Pagination {
@@ -8,24 +15,13 @@ export interface Pagination {
   totalItems: number;
 }
 
+/**
+ * Props สำหรับ Upload Modal component
+ */
 export interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // uploadedFiles: UploadedFile[];
-  // isDragOver: boolean;
-  // errorMessage: string;
-  // isUploading: boolean;
-  // isUploadCompleted: boolean;
-  // maxFileSize: number;
-  // maxFiles: number;
-  // formatFileSize: (bytes: number) => string;
-  // fileInputRef: React.RefObject<HTMLInputElement>;
-  // onDragOver: (e: React.DragEvent) => void;
-  // onDragLeave: (e: React.DragEvent) => void;
-  // onDrop: (e: React.DragEvent) => void;
   onFileSelect: (files: FileList | null) => void;
-  // onRemoveFile: (fileId: string) => void;
-  // onClearAllFiles: () => void;
   onUpload: () => void;
   onUploadComplete: () => void;
 }

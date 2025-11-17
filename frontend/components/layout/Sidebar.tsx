@@ -20,6 +20,8 @@ import {
   ArrowDownTrayIcon,
   DocumentTextIcon,
   ArrowUpTrayIcon,
+  BriefcaseIcon,
+  UserGroupIcon,
 } from "@/components/ui/icons";
 
 interface SidebarItem {
@@ -57,6 +59,17 @@ export default function Sidebar() {
     // Auto-expand "ส่งออกข้อมูล" when on export pages
     if (pathname.startsWith("/revenue/export/")) {
       newExpandedItems.add("ส่งออกข้อมูล");
+    }
+
+    // Auto-expand "รายการงานที่ต้องดำเนินการ" when on job list pages
+    if (pathname.startsWith("/porter/joblist")) {
+      newExpandedItems.add("ศูนย์เปล");
+    }
+
+    // Auto-expand "ตั้งค่า" when on setting pages
+    if (pathname.startsWith("/porter/setting/")) {
+      newExpandedItems.add("ศูนย์เปล");
+      newExpandedItems.add("ตั้งค่า");
     }
 
     setExpandedItems(newExpandedItems);
@@ -112,7 +125,7 @@ export default function Sidebar() {
       items: [
         {
           name: "ขอเปล",
-          href: "#",
+          href: "/porter/request",
           icon: EmergencyBedIcon,
         },
 
@@ -132,14 +145,36 @@ export default function Sidebar() {
               icon: ChartBarIcon,
             },
             {
-              name: "รายการ",
-              href: "#",
+              name: "รายการคำขอ",
+              href: "/porter/joblist",
               icon: ClipboardListIcon,
             },
             {
               name: "ตั้งค่า",
               href: "#",
               icon: SettingsIcon,
+              subItems: [
+                {
+                  name: "จุดรับ - ส่ง",
+                  href: "/porter/setting/location",
+                  icon: SettingsIcon,
+                },
+                {
+                  name: "รายชื่อเจ้าหน้าที่เปล",
+                  href: "/porter/setting/employee",
+                  icon: UserIcon,
+                },
+                {
+                  name: "ประเภทการจ้าง",
+                  href: "/porter/setting/employment-type",
+                  icon: BriefcaseIcon,
+                },
+                {
+                  name: "ตำแหน่ง",
+                  href: "/porter/setting/position",
+                  icon: UserGroupIcon,
+                },
+              ],
             },
           ],
         },
@@ -147,7 +182,7 @@ export default function Sidebar() {
     },
     {
       title: "ระบบงานจัดเก็บรายได้",
-      isDisabled: false,
+      isDisabled: true,
       items: [
         {
           name: "สถิติการดำเนินการ",

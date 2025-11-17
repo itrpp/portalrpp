@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// PORTER REQUEST DATABASE SCHEMA
+// ========================================
+
+model PorterRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ========================================
+  // ข้อมูลผู้แจ้ง (Requester Information)
+  // ========================================
+  requesterDepartment String
+  requesterName       String
+  requesterPhone      String @db.VarChar(20)
+
+  // ========================================
+  // ข้อมูลผู้ป่วย (Patient Information)
+  // ========================================
+  patientName     String
+  patientHN       String @db.VarChar(50)
+  patientCondition Json? // เก็บเป็น JSON array ของ string: ["รู้สึกตัวดี ช่วยเหลือตัวเองได้", "เดินไม่ได้ / อ่อนแรง", ...]
+
+  // ========================================
+  // ข้อมูลสถานที่รับ (Pickup Location)
+  // ========================================
+  pickupLocation           String @db.VarChar(500) // เก็บ string สำหรับ backward compatibility
+  pickupBuildingId         String
+  pickupFloorDepartmentId  String
+  pickupRoomBedName        String?
+
+  // ========================================
+  // ข้อมูลสถานที่ส่ง (Delivery Location)
+  // ========================================
+  deliveryLocation           String @db.VarChar(500) // เก็บ string สำหรับ backward compatibility
+  deliveryBuildingId         String
+  deliveryFloorDepartmentId  String
+  deliveryRoomBedName        String?
+
+  // ========================================
+  // ข้อมูลการเคลื่อนย้าย (Transport Information)
+  // ========================================
+  requestedDateTime DateTime
+  urgencyLevel      String @db.VarChar(50) // NORMAL, RUSH, EMERGENCY
+  vehicleType       String @db.VarChar(50) // SITTING, LYING, GOLF
+  hasVehicle        String @db.VarChar(50) // YES, NO
+  returnTrip        String @db.VarChar(50) // ONE_WAY, ROUND_TRIP
+  transportReason   String @db.VarChar(200)
+
+  // ========================================
+  // อุปกรณ์ที่ต้องการ (Equipment)
+  // ========================================
+  equipment Json // เก็บเป็น JSON array ของ string: ["OXYGEN", "SALINE_POLE", ...]
+  equipmentOther String? @db.VarChar(200) // ระบุอุปกรณ์อื่นๆ เมื่อเลือก "OTHER"
+
+  // ========================================
+  // รายละเอียดเพิ่มเติม (Additional Information)
+  // ========================================
+  specialNotes String? @db.Text
+
+  // ========================================
+  // ข้อมูลการจัดการงาน (Job Management)
+  // ========================================
+  status        String @default("WAITING") @db.VarChar(50) // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  assignedToId  String? // Foreign key to User.id (optional)
+
+  // ========================================
+  // ข้อมูลเวลา (Timestamps)
+  // ========================================
+  acceptedAt  DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  cancelledReason String? @db.Text // เหตุผลในการยกเลิก (optional)
+  
+  // ========================================
+  // ข้อมูลเวลาการดำเนินงาน (Operation Timestamps)
+  // ========================================
+  pickupAt   DateTime? // เวลาที่ถึงจุดรับ
+  deliveryAt DateTime? // เวลาที่ถึงจุดส่ง
+  returnAt   DateTime? // เวลาที่ถึงจุดส่งกลับ (สำหรับ ROUND_TRIP)
+
+  // ========================================
+  // Relations
+  // ========================================
+  // assignedToId เก็บเป็น string ธรรมดา ไม่มี relation ไปยัง User model
+
+  @@index([status])
+  @@index([urgencyLevel])
+  @@index([requestedDateTime])
+  @@index([createdAt])
+  @@index([assignedToId])
+}
+
+// ========================================
+// LOCATION SETTINGS DATABASE SCHEMA
+// ========================================
+// ข้อมูลสถานที่สำหรับระบบ Porter: อาคาร -> คลีนิก/หอผู้ป่วย -> ห้อง/เตียง
+
+/**
+ * ข้อมูลอาคาร
+ */
+model Building {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(200)
+  floorCount Int?    // จำนวนชั้น
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  floors FloorDepartment[]
+
+  @@index([name])
+}
+
+/**
+ * ข้อมูลคลีนิก/หอผู้ป่วย
+ */
+model FloorDepartment {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(200)
+  buildingId String
+  floorNumber Int?   // หมายเลขชั้น
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ========================================
+  // ข้อมูลประเภทหน่วยงาน
+  // ========================================
+  departmentType Int? // 1 = "คลินิก", 2 = "หอผู้ป่วย"
+
+  // ========================================
+  // ข้อมูลประเภทห้องพัก (สำหรับหอผู้ป่วยเท่านั้น)
+  // ========================================
+  roomType Int? // 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม"
+
+  // ========================================
+  // ข้อมูลจำนวนห้อง/เตียง (สำหรับหอผู้ป่วยเท่านั้น)
+  // ========================================
+  roomCount Int? // จำนวนห้องพิเศษ
+  bedCount  Int? // จำนวนเตียงห้องรวม
+
+  // Relations
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@index([buildingId])
+  @@index([departmentType])
+}
+
+// ========================================
+// EMPLOYEE MANAGEMENT DATABASE SCHEMA
+// ========================================
+
+/**
+ * ประเภทการจ้างงาน
+ */
+model EmploymentType {
+  id        String   @id @default(cuid())
+  name      String   @unique @db.VarChar(100) // "ลูกจ้างรายวัน", "พนักงานประกันสังคม", "ลูกจ้างประจำ", "ลูกจ้างชั่วคราว"
+  status    Boolean  @default(true) // true = ใช้งาน, false = ไม่ใช้งาน
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  employees PorterEmployee[]
+
+  @@index([name])
+  @@index([status])
+}
+
+/**
+ * ตำแหน่งงาน
+ */
+model Position {
+  id        String   @id @default(cuid())
+  name      String   @unique @db.VarChar(100) // "พนักงานทั่วไป", "พนักงานเปล", "เจ้าพนักงานธุรการ"
+  status    Boolean  @default(true) // true = ใช้งาน, false = ไม่ใช้งาน
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  employees PorterEmployee[]
+
+  @@index([name])
+  @@index([status])
+}
+
+/**
+ * ข้อมูลเจ้าหน้าที่เปล
+ */
+model PorterEmployee {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ข้อมูลส่วนตัว
+  citizenId  String @unique @db.VarChar(13) // เลขบัตรประชาชน 13 หลัก
+  firstName  String @db.VarChar(100)
+  lastName   String @db.VarChar(100)
+
+  // ข้อมูลการจ้างงาน
+  employmentTypeId String
+  positionId       String
+
+  // สถานะการใช้งาน
+  status Boolean @default(true) // true = ใช้งาน, false = ไม่ใช้งาน
+
+  // Relations
+  employmentType EmploymentType @relation(fields: [employmentTypeId], references: [id], onDelete: Restrict)
+  position       Position       @relation(fields: [positionId], references: [id], onDelete: Restrict)
+
+  @@index([citizenId])
+  @@index([status])
+  @@index([employmentTypeId])
+  @@index([positionId])
+}

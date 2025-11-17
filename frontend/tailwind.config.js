@@ -10,8 +10,8 @@ const config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        mono: ["var(--font-mono)"],
+        sans: ["var(--font-sans)", "Prompt", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
       },
     },
   },
@@ -19,4 +19,4 @@ const config = {
   plugins: [heroui()],
 }
 
-module.exports = config;
+export default config;

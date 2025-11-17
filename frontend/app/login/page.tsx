@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { Input, Button, Divider, Card, CardBody } from "@heroui/react";
 
@@ -19,6 +19,7 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +29,12 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
-  // ถ้ามี session แล้วให้ redirect ไปหน้าแรก
+  // อ่าน callbackUrl จาก query string และ decode
+  const callbackUrl = searchParams.get("callbackUrl")
+    ? decodeURIComponent(searchParams.get("callbackUrl")!)
+    : "/home";
+
+  // ถ้ามี session แล้วให้ redirect ไปหน้าเดิมหรือหน้าแรก
   useEffect(() => {
     if (status === "authenticated" && session) {
       setShouldRedirect(true);
@@ -37,9 +43,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (shouldRedirect) {
-      router.push("/home");
+      // ใช้ callbackUrl ถ้ามี ถ้าไม่มีใช้ /home
+      router.push(callbackUrl);
     }
-  }, [shouldRedirect, router]);
+  }, [shouldRedirect, router, callbackUrl]);
 
   if (status === "loading") {
     return (
