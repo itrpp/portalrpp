@@ -297,6 +297,7 @@ message CreateBuildingRequest {
   optional string id = 1; // ถ้าไม่ระบุจะใช้ cuid() auto-generated
   string name = 2;
   optional int32 floor_count = 3; // จำนวนชั้น
+  optional bool status = 4; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
 message GetBuildingRequest {
@@ -312,6 +313,7 @@ message UpdateBuildingRequest {
   string id = 1;
   string name = 2;
   optional int32 floor_count = 3; // จำนวนชั้น
+  optional bool status = 4; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
 message DeleteBuildingRequest {
@@ -349,6 +351,7 @@ message CreateFloorDepartmentRequest {
   optional int32 room_type = 5; // 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม"
   optional int32 room_count = 6; // จำนวนห้องพิเศษ
   optional int32 bed_count = 7; // จำนวนเตียงห้องรวม
+  optional bool status = 9; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
 message GetFloorDepartmentRequest {
@@ -370,6 +373,7 @@ message UpdateFloorDepartmentRequest {
   optional int32 room_type = 4; // 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม"
   optional int32 room_count = 5;
   optional int32 bed_count = 6;
+  optional bool status = 9; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
 message DeleteFloorDepartmentRequest {
@@ -405,6 +409,7 @@ message Building {
   string updated_at = 4; // ISO 8601 format
   repeated FloorDepartment floors = 5;
   optional int32 floor_count = 7; // จำนวนชั้น (ใช้ field number 7 เพื่อไม่ conflict กับ field เดิม)
+  bool status = 8; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
 message FloorDepartment {
@@ -418,6 +423,7 @@ message FloorDepartment {
   optional int32 bed_count = 7; // จำนวนเตียงห้องรวม
   string created_at = 8; // ISO 8601 format
   string updated_at = 9; // ISO 8601 format
+  bool status = 10; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
 // ========================================

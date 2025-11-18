@@ -63,7 +63,7 @@ export default function PorterRequestPage() {
   const { data: session } = useSession();
 
   const [formData, setFormData] = useState<PorterRequestFormData>({
-    requesterDepartment: session?.user?.department || "",
+    requesterDepartment: "",
     requesterName: session?.user?.name || "",
     requesterPhone: "",
 
@@ -360,7 +360,7 @@ export default function PorterRequestPage() {
   const handleCancelEdit = () => {
     setEditingRequestId(null);
     setFormData({
-      requesterDepartment: session?.user?.department || "",
+      requesterDepartment: "",
       requesterName: session?.user?.name || "",
       requesterPhone: "",
 
@@ -493,7 +493,7 @@ export default function PorterRequestPage() {
 
       // Reset form
       setFormData({
-        requesterDepartment: session?.user?.department || "",
+        requesterDepartment: "",
         requesterName: session?.user?.name || "",
         requesterPhone: "",
 
@@ -755,7 +755,7 @@ export default function PorterRequestPage() {
                   }}
                   label="เบอร์โทรติดต่อ"
                   name="requesterPhone"
-                  placeholder="เช่น 0812345678"
+                  placeholder="IP-Phone / เบอร์โทรศัพท์"
                   startContent={
                     <PhoneIcon className="w-4 h-4 text-default-400" />
                   }
@@ -1189,7 +1189,7 @@ export default function PorterRequestPage() {
                   variant="flat"
                   onPress={() => {
                     setFormData({
-                      requesterDepartment: session?.user?.department || "",
+                      requesterDepartment: "",
                       requesterName: session?.user?.name || "",
                       requesterPhone: "",
 

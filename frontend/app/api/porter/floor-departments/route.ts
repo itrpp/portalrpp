@@ -127,6 +127,9 @@ export async function POST(request: Request) {
     if (requestData.bedCount !== undefined) {
       protoRequest.bed_count = requestData.bedCount;
     }
+    if (requestData.status !== undefined) {
+      protoRequest.status = requestData.status;
+    }
 
     // เรียก gRPC service
     const response = await callPorterService<any>(

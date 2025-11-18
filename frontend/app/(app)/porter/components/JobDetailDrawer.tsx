@@ -329,7 +329,7 @@ export default function JobDetailDrawer({
   const canEdit = job.status === "waiting" || job.status === "in-progress";
 
   return (
-    <Drawer isOpen={isOpen} placement="right" size="5xl" onClose={onClose}>
+    <Drawer isOpen={isOpen} placement="right" size="3xl" onClose={onClose}>
       <DrawerContent>
         <DrawerHeader className="flex flex-col gap-1 border-b border-divider">
           <div className="flex items-center justify-between w-full">

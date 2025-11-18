@@ -101,11 +101,19 @@ export async function PUT(
     if (requestData.roomType !== undefined) {
       protoRequest.room_type = requestData.roomType;
     }
+    // ส่ง roomCount ถ้ามีค่า (รวมถึง null เพื่อลบข้อมูล - ส่ง 0 เพื่อให้ backend แปลงเป็น null)
     if (requestData.roomCount !== undefined) {
-      protoRequest.room_count = requestData.roomCount;
+      protoRequest.room_count =
+        requestData.roomCount === null ? 0 : requestData.roomCount;
     }
+    // ส่ง bedCount ถ้ามีค่า (รวมถึง null เพื่อลบข้อมูล - ส่ง 0 เพื่อให้ backend แปลงเป็น null)
     if (requestData.bedCount !== undefined) {
-      protoRequest.bed_count = requestData.bedCount;
+      protoRequest.bed_count =
+        requestData.bedCount === null ? 0 : requestData.bedCount;
+    }
+    // ส่ง status ถ้ามีค่า
+    if (requestData.status !== undefined) {
+      protoRequest.status = requestData.status;
     }
 
     // เรียก gRPC service

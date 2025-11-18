@@ -20,6 +20,7 @@ import {
   Select,
   SelectItem,
   ScrollShadow,
+  Checkbox,
 } from "@heroui/react";
 
 import {
@@ -65,14 +66,17 @@ function BuildingModal({
 }: BuildingModalProps) {
   const [name, setName] = useState("");
   const [floorCount, setFloorCount] = useState<string>("");
+  const [status, setStatus] = useState<boolean>(true);
 
   useEffect(() => {
     if (building) {
       setName(building.name);
       setFloorCount(building.floorCount?.toString() || "");
+      setStatus(building.status !== undefined ? building.status : true);
     } else {
       setName("");
       setFloorCount("");
+      setStatus(true);
     }
   }, [building, isOpen]);
 
@@ -92,6 +96,7 @@ function BuildingModal({
         id: building?.id || "", // จะถูกสร้างอัตโนมัติใน handleSaveBuilding
         name: name.trim(),
         floorCount: floorCount ? parseInt(floorCount, 10) : undefined,
+        status: status,
         floors: building?.floors || [],
       });
       // ปิด modal เมื่อบันทึกสำเร็จ
@@ -131,6 +136,21 @@ function BuildingModal({
               variant="bordered"
               onChange={(e) => setFloorCount(e.target.value)}
             />
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">
+                สถานะการใช้งาน
+              </div>
+              <div className="text-xs text-default-500">
+                เปิดใช้งานเมื่อต้องการให้อาคารนี้สามารถเลือกใช้ได้
+              </div>
+              <Checkbox
+                isDisabled={isLoading}
+                isSelected={status}
+                onValueChange={setStatus}
+              >
+                ใช้งาน
+              </Checkbox>
+            </div>
           </div>
         </ModalBody>
         <ModalFooter>
@@ -174,6 +194,7 @@ function FloorDepartmentModal({
   const [roomTypeId, setRoomTypeId] = useState<number>(1); // 1 = "ห้องรวม"
   const [roomCount, setRoomCount] = useState<string>("");
   const [bedCount, setBedCount] = useState<string>("");
+  const [status, setStatus] = useState<boolean>(true);
 
   // สร้างรายการชั้นจากจำนวนชั้นของอาคาร
   const floorOptions = building?.floorCount
@@ -191,6 +212,7 @@ function FloorDepartmentModal({
       setRoomTypeId(floor.roomType || 1);
       setRoomCount(floor.roomCount?.toString() || "");
       setBedCount(floor.bedCount?.toString() || "");
+      setStatus(floor.status !== undefined ? floor.status : true);
     } else {
       setName("");
       setFloorNumber("");
@@ -198,6 +220,7 @@ function FloorDepartmentModal({
       setRoomTypeId(1);
       setRoomCount("");
       setBedCount("");
+      setStatus(true);
     }
   }, [floor, isOpen]);
 
@@ -271,6 +294,7 @@ function FloorDepartmentModal({
         departmentTypeId === 2 && (roomTypeId === 1 || roomTypeId === 3)
           ? parseInt(bedCount, 10)
           : undefined,
+      status: status,
       rooms: floor?.rooms || undefined,
     };
 
@@ -371,14 +395,15 @@ function FloorDepartmentModal({
                       const id = parseInt(val, 10);
 
                       setRoomTypeId(id);
-                      // Reset จำนวนเมื่อเปลี่ยนประเภท
+                      // Reset จำนวนเมื่อเปลี่ยนประเภทห้องพัก
                       if (id === 1) {
-                        // 1 = "ห้องรวม"
+                        // 1 = "ห้องรวม" - ต้องลบจำนวนห้องพิเศษออก
                         setRoomCount("");
                       } else if (id === 2) {
-                        // 2 = "ห้องพิเศษ"
+                        // 2 = "ห้องพิเศษ" - ต้องลบจำนวนเตียงห้องรวมออก
                         setBedCount("");
                       }
+                      // id === 3 = "ห้องรวมและห้องพิเศษ" - ไม่ต้อง reset อะไร
                     }}
                   >
                     {Object.entries(ROOM_TYPES).map(([id, name]) => (
@@ -428,6 +453,21 @@ function FloorDepartmentModal({
                 )}
               </>
             )}
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">
+                สถานะการใช้งาน
+              </div>
+              <div className="text-xs text-default-500">
+                เปิดใช้งานเมื่อต้องการให้คลีนิก/หอผู้ป่วยนี้สามารถเลือกใช้ได้
+              </div>
+              <Checkbox
+                isDisabled={isLoading}
+                isSelected={status}
+                onValueChange={setStatus}
+              >
+                ใช้งาน
+              </Checkbox>
+            </div>
           </div>
         </ModalBody>
         <ModalFooter>
@@ -592,6 +632,7 @@ export default function LocationSettingsPage() {
             body: JSON.stringify({
               name: buildingData.name,
               floorCount: buildingData.floorCount,
+              status: buildingData.status,
             }),
           },
         );
@@ -627,6 +668,9 @@ export default function LocationSettingsPage() {
 
         if (buildingData.floorCount !== undefined) {
           requestBody.floorCount = buildingData.floorCount;
+        }
+        if (buildingData.status !== undefined) {
+          requestBody.status = buildingData.status;
         }
 
         const response = await fetch("/api/porter/buildings", {
@@ -770,19 +814,37 @@ export default function LocationSettingsPage() {
       setIsSavingFloor(true);
       if (editingFloor) {
         // แก้ไขคลีนิก/หอผู้ป่วย
+        // ส่ง null สำหรับค่าที่ต้องลบออก (แทน undefined)
+        const requestBody: any = {
+          name: floorData.name,
+          floorNumber: floorData.floorNumber,
+          departmentType: floorData.departmentType,
+          roomType: floorData.roomType,
+          status: floorData.status,
+        };
+
+        // ส่ง roomCount เป็น null ถ้าไม่ใช้ (เพื่อให้ backend ลบค่าเก่าออก)
+        if (floorData.roomCount !== undefined) {
+          requestBody.roomCount = floorData.roomCount;
+        } else if (floorData.departmentType === 2) {
+          // ถ้าเป็นหอผู้ป่วย แต่ roomCount เป็น undefined ให้ส่ง null เพื่อลบค่าเก่า
+          requestBody.roomCount = null;
+        }
+
+        // ส่ง bedCount เป็น null ถ้าไม่ใช้ (เพื่อให้ backend ลบค่าเก่าออก)
+        if (floorData.bedCount !== undefined) {
+          requestBody.bedCount = floorData.bedCount;
+        } else if (floorData.departmentType === 2) {
+          // ถ้าเป็นหอผู้ป่วย แต่ bedCount เป็น undefined ให้ส่ง null เพื่อลบค่าเก่า
+          requestBody.bedCount = null;
+        }
+
         const response = await fetch(
           `/api/porter/floor-departments/${editingFloor.id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: floorData.name,
-              floorNumber: floorData.floorNumber,
-              departmentType: floorData.departmentType,
-              roomType: floorData.roomType,
-              roomCount: floorData.roomCount,
-              bedCount: floorData.bedCount,
-            }),
+            body: JSON.stringify(requestBody),
           },
         );
         const result = await response.json();
@@ -830,6 +892,7 @@ export default function LocationSettingsPage() {
           name: floorData.name,
           buildingId: selectedBuilding.id,
           departmentType: floorData.departmentType,
+          status: floorData.status,
         };
 
         if (floorData.floorNumber !== undefined) {
@@ -988,6 +1051,13 @@ export default function LocationSettingsPage() {
                             >
                               {building.name}
                             </span>
+                            <Chip
+                              color={building.status ? "success" : "default"}
+                              size="sm"
+                              variant="flat"
+                            >
+                              {building.status ? "ใช้งาน" : "ไม่ใช้งาน"}
+                            </Chip>
                           </div>
                         </div>
                         <div className="flex gap-1" role="group">
@@ -1078,81 +1148,97 @@ export default function LocationSettingsPage() {
             {selectedBuilding ? (
               <ScrollShadow className="max-h-[calc(70vh-120px)]">
                 <div className="space-y-2">
-                  {selectedBuilding.floors.map((floor) => (
-                    <div
-                      key={floor.id}
-                      className="flex items-center justify-between p-3 border border-default-200 rounded-lg hover:bg-default-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <MapPinIcon className="w-4 h-4 text-default-500 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {floor.floorNumber && (
-                              <span className="text-sm font-medium">
-                                ชั้น {floor.floorNumber}
+                  {[...selectedBuilding.floors]
+                    .sort((a, b) => {
+                      // เรียงตาม floorNumber จากมากไปน้อย
+                      // ถ้า floorNumber เป็น null หรือ undefined ให้อยู่ท้ายสุด
+                      const aFloor = a.floorNumber ?? -1;
+                      const bFloor = b.floorNumber ?? -1;
+
+                      return bFloor - aFloor;
+                    })
+                    .map((floor) => (
+                      <div
+                        key={floor.id}
+                        className="flex items-center justify-between p-3 border border-default-200 rounded-lg hover:bg-default-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <MapPinIcon className="w-4 h-4 text-default-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {floor.floorNumber && (
+                                <span className="text-sm font-medium">
+                                  ชั้น {floor.floorNumber}
+                                </span>
+                              )}
+                              <span className="font-medium text-sm text-foreground">
+                                {floor.name}
                               </span>
-                            )}
-                            <span className="font-medium text-sm text-foreground">
-                              {floor.name}
-                            </span>
-                            <Chip
-                              color={
-                                floor.departmentType === 2
-                                  ? "primary"
-                                  : "secondary"
-                              }
-                              size="sm"
-                              variant="flat"
-                            >
-                              {getDepartmentTypeName(floor.departmentType) ||
-                                "คลินิก"}
-                            </Chip>
-                            {floor.departmentType === 2 && (
-                              // 2 = "หอผู้ป่วย"
-                              <span className="text-xs text-default-500">
-                                {floor.roomCount && floor.bedCount
-                                  ? `ห้องรวม ${floor.bedCount} เตียง, ${floor.roomCount} ห้องพิเศษ`
-                                  : floor.bedCount
-                                    ? `ห้องรวม ${floor.bedCount} เตียง`
-                                    : floor.roomCount
-                                      ? `${floor.roomCount} ห้องพิเศษ`
-                                      : ""}
-                              </span>
-                            )}
+                              <Chip
+                                color={
+                                  floor.departmentType === 2
+                                    ? "primary"
+                                    : "secondary"
+                                }
+                                size="sm"
+                                variant="flat"
+                              >
+                                {getDepartmentTypeName(floor.departmentType) ||
+                                  "คลินิก"}
+                              </Chip>
+                              <Chip
+                                color={floor.status ? "success" : "default"}
+                                size="sm"
+                                variant="flat"
+                              >
+                                {floor.status ? "ใช้งาน" : "ไม่ใช้งาน"}
+                              </Chip>
+                              {floor.departmentType === 2 && (
+                                // 2 = "หอผู้ป่วย"
+                                <span className="text-xs text-default-500">
+                                  {floor.roomCount && floor.bedCount
+                                    ? `ห้องรวม ${floor.bedCount} เตียง, ${floor.roomCount} ห้องพิเศษ`
+                                    : floor.bedCount
+                                      ? `ห้องรวม ${floor.bedCount} เตียง`
+                                      : floor.roomCount
+                                        ? `${floor.roomCount} ห้องพิเศษ`
+                                        : ""}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            isIconOnly
+                            color="primary"
+                            isDisabled={
+                              isDeletingFloor === floor.id || isSavingFloor
+                            }
+                            size="sm"
+                            variant="light"
+                            onPress={() =>
+                              handleEditFloor(selectedBuilding, floor)
+                            }
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            isIconOnly
+                            color="danger"
+                            isDisabled={isDeletingFloor === floor.id}
+                            isLoading={isDeletingFloor === floor.id}
+                            size="sm"
+                            variant="light"
+                            onPress={() =>
+                              handleDeleteFloor(selectedBuilding.id, floor.id)
+                            }
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button
-                          isIconOnly
-                          color="primary"
-                          isDisabled={
-                            isDeletingFloor === floor.id || isSavingFloor
-                          }
-                          size="sm"
-                          variant="light"
-                          onPress={() =>
-                            handleEditFloor(selectedBuilding, floor)
-                          }
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          isIconOnly
-                          color="danger"
-                          isDisabled={isDeletingFloor === floor.id}
-                          isLoading={isDeletingFloor === floor.id}
-                          size="sm"
-                          variant="light"
-                          onPress={() =>
-                            handleDeleteFloor(selectedBuilding.id, floor.id)
-                          }
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                   {selectedBuilding.floors.length === 0 && (
                     <div className="text-center py-8 text-default-500">
                       <MapPinIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />

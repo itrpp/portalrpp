@@ -110,8 +110,10 @@ export function validateField(
         return "กรุณากรอกเบอร์โทรติดต่อ";
       }
 
-      if (!/^[0-9]{9,10}$/.test(stringValue.replace(/[- ]/g, ""))) {
-        return "รูปแบบเบอร์โทรไม่ถูกต้อง";
+      const phoneDigits = stringValue.replace(/[- ]/g, "");
+
+      if (phoneDigits.length < 3) {
+        return "เบอร์โทรติดต่อต้องระบุอย่างน้อย 3 หลัก";
       }
 
       return undefined;
@@ -593,6 +595,7 @@ export function convertFloorDepartmentFromProto(
     roomType: protoData.room_type ? Number(protoData.room_type) : undefined,
     roomCount: protoData.room_count ?? undefined,
     bedCount: protoData.bed_count ?? undefined,
+    status: protoData.status !== undefined ? Boolean(protoData.status) : true,
     rooms: protoData.rooms?.map((r: any) => convertRoomBedFromProto(r)) || [],
   };
 }
@@ -605,6 +608,7 @@ export function convertBuildingFromProto(protoData: any): Building {
     id: protoData.id,
     name: protoData.name,
     floorCount: protoData.floor_count ?? undefined,
+    status: protoData.status !== undefined ? Boolean(protoData.status) : true,
     floors:
       protoData.floors?.map((f: any) => convertFloorDepartmentFromProto(f)) ||
       [],
