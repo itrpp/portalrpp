@@ -14,7 +14,7 @@ import {
 } from "@heroui/react";
 import { CalendarDate } from "@internationalized/date";
 
-import { JobTable, JobDetailDrawer } from "./components";
+import { JobTable, JobDetailDrawer } from "../components";
 
 import {
   ClockIcon,
@@ -28,8 +28,9 @@ import {
   JobListTab,
   PorterJobItem,
   PorterRequestFormData,
+  UrgencyLevel,
 } from "@/types/porter";
-import { sortJobs } from "@/lib/porter";
+import { sortJobs, playNotificationSound, playSirenSound } from "@/lib/porter";
 
 // ========================================
 // PORTER JOB LIST PAGE
@@ -167,7 +168,7 @@ export default function PorterJobListPage() {
           // Note: ใน client-side เราไม่สามารถใช้ getServerSession ได้
           // ดังนั้นเราจะใช้วิธีอื่น เช่น ส่ง token ผ่าน API endpoint เพื่อสร้าง token
           try {
-            const tokenResponse = await fetch("/api/porter/stream-token");
+            const tokenResponse = await fetch("/api/porter/requests/token");
             const tokenData = await tokenResponse.json();
 
             if (!tokenData.token) {
@@ -314,12 +315,43 @@ export default function PorterJobListPage() {
                         return [...prevList, data];
                       });
 
-                      // แสดง toast notification
-                      addToast({
-                        title: "มีคำขอใหม่",
-                        description: `คำขอจาก ${data.form?.requesterName || "ไม่ระบุ"} ได้รับการเพิ่มแล้ว`,
-                        color: "success",
-                      });
+                      // แสดง toast notification และเล่นเสียงตาม UrgencyLevel
+                      const urgencyLevel = data.form
+                        ?.urgencyLevel as UrgencyLevel;
+
+                      if (urgencyLevel === "ฉุกเฉิน") {
+                        // UrgencyLevel ฉุกเฉิน - เล่นเสียงไซเรน
+                        playSirenSound();
+                        addToast({
+                          title: "มีคำขอใหม่ - ฉุกเฉิน",
+                          description: `คำขอฉุกเฉินจาก ${data.form?.requesterName || "ไม่ระบุ"} (HN: ${data.form?.patientHN || "ไม่ระบุ"})`,
+                          color: "danger",
+                        });
+                      } else if (
+                        urgencyLevel === "ด่วน" ||
+                        urgencyLevel === "ปกติ"
+                      ) {
+                        // UrgencyLevel ปกติ, ด่วน - เล่นเสียงแจ้งเตือน
+                        playNotificationSound();
+
+                        const urgencyText =
+                          urgencyLevel === "ด่วน" ? "ด่วน" : "ปกติ";
+
+                        addToast({
+                          title: `มีคำขอใหม่ - ${urgencyText}`,
+                          description: `คำขอ${urgencyText}จาก ${data.form?.requesterName || "ไม่ระบุ"} (HN: ${data.form?.patientHN || "ไม่ระบุ"})`,
+                          color:
+                            urgencyLevel === "ด่วน" ? "warning" : "success",
+                        });
+                      } else {
+                        // กรณีไม่มี UrgencyLevel หรือไม่ทราบค่า
+                        playNotificationSound();
+                        addToast({
+                          title: "มีคำขอใหม่",
+                          description: `คำขอจาก ${data.form?.requesterName || "ไม่ระบุ"} ได้รับการเพิ่มแล้ว`,
+                          color: "success",
+                        });
+                      }
                     } else if (
                       type === "UPDATED" ||
                       type === "STATUS_CHANGED"
@@ -342,13 +374,52 @@ export default function PorterJobListPage() {
                         setSelectedJob(data);
                       }
 
-                      // แสดง toast notification สำหรับ status change
+                      // แสดง toast notification และเล่นเสียงสำหรับ status change
                       if (type === "STATUS_CHANGED") {
-                        addToast({
-                          title: "สถานะเปลี่ยน",
-                          description: `สถานะของคำขอ ${data.form?.patientHN || "ไม่ระบุ"} เปลี่ยนเป็น ${data.status === "waiting" ? "รอศูนย์เปลรับงาน" : data.status === "in-progress" ? "กำลังดำเนินการ" : data.status === "completed" ? "เสร็จสิ้น" : "ยกเลิก"}`,
-                          color: "primary",
-                        });
+                        const urgencyLevel = data.form
+                          ?.urgencyLevel as UrgencyLevel;
+                        const statusText =
+                          data.status === "waiting"
+                            ? "รอศูนย์เปลรับงาน"
+                            : data.status === "in-progress"
+                              ? "กำลังดำเนินการ"
+                              : data.status === "completed"
+                                ? "เสร็จสิ้น"
+                                : "ยกเลิก";
+
+                        if (urgencyLevel === "ฉุกเฉิน") {
+                          // UrgencyLevel ฉุกเฉิน - เล่นเสียงไซเรน
+                          playSirenSound();
+                          addToast({
+                            title: "สถานะเปลี่ยน - ฉุกเฉิน",
+                            description: `สถานะของคำขอฉุกเฉิน (HN: ${data.form?.patientHN || "ไม่ระบุ"}) เปลี่ยนเป็น ${statusText}`,
+                            color: "danger",
+                          });
+                        } else if (
+                          urgencyLevel === "ด่วน" ||
+                          urgencyLevel === "ปกติ"
+                        ) {
+                          // UrgencyLevel ปกติ, ด่วน - เล่นเสียงแจ้งเตือน
+                          playNotificationSound();
+
+                          const urgencyText =
+                            urgencyLevel === "ด่วน" ? "ด่วน" : "ปกติ";
+
+                          addToast({
+                            title: `สถานะเปลี่ยน - ${urgencyText}`,
+                            description: `สถานะของคำขอ${urgencyText} (HN: ${data.form?.patientHN || "ไม่ระบุ"}) เปลี่ยนเป็น ${statusText}`,
+                            color:
+                              urgencyLevel === "ด่วน" ? "warning" : "primary",
+                          });
+                        } else {
+                          // กรณีไม่มี UrgencyLevel หรือไม่ทราบค่า
+                          playNotificationSound();
+                          addToast({
+                            title: "สถานะเปลี่ยน",
+                            description: `สถานะของคำขอ ${data.form?.patientHN || "ไม่ระบุ"} เปลี่ยนเป็น ${statusText}`,
+                            color: "primary",
+                          });
+                        }
                       }
                     } else if (type === "DELETED") {
                       // eslint-disable-next-line no-console

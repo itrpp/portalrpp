@@ -23,29 +23,15 @@ import {
 } from "@heroui/react";
 import { CalendarDateTime } from "@internationalized/date";
 
-import {
-  AmbulanceIcon,
-  BuildingOfficeIcon,
-  MapPinIcon,
-  UserIcon,
-  PhoneIcon,
-  CalendarIcon,
-  ClipboardListIcon,
-} from "@/components/ui/icons";
+import { LocationSelector } from "../components";
+
 import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
-  UrgencyLevel,
   formatLocationString,
-  DetailedLocation,
 } from "@/types/porter";
-import {
-  convertBuildingFromProto,
-  convertFloorDepartmentFromProto,
-} from "@/lib/porter";
 import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
-import { LocationSelector } from "@/components/porter/LocationSelector";
 import {
   URGENCY_OPTIONS,
   VEHICLE_TYPE_OPTIONS,
@@ -55,6 +41,15 @@ import {
   PATIENT_CONDITION_OPTIONS,
   validateForm,
 } from "@/lib/porter";
+import {
+  AmbulanceIcon,
+  BuildingOfficeIcon,
+  MapPinIcon,
+  UserIcon,
+  PhoneIcon,
+  CalendarIcon,
+  ClipboardListIcon,
+} from "@/components/ui/icons";
 
 // ========================================
 // PORTER REQUEST PAGE
@@ -221,7 +216,7 @@ export default function PorterRequestPage() {
 
     try {
       // ส่งข้อมูลไปยัง API
-      const response = await fetch("/api/porter/request", {
+      const response = await fetch("/api/porter/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -363,234 +358,6 @@ export default function PorterRequestPage() {
   const handleDateTimeChange = (value: CalendarDateTime | null) => {
     if (value) {
       handleInputChange("requestedDateTime", calendarDateTimeToString(value));
-    }
-  };
-
-  // Generate test data for admin testing
-  const generateTestData = async () => {
-    try {
-      // สุ่มข้อมูลตัวอย่าง
-      const testDepartments = DEPARTMENT_OPTIONS;
-      const testNames = [
-        "พยาบาล สมใจ",
-        "พยาบาล สุดา",
-        "พยาบาล วิชัย",
-        "แพทย์ วิไล",
-        "แพทย์ กนก",
-      ];
-      const testPatientNames = [
-        "นายสมชาย ใจดี",
-        "นางสมหญิง ดีใจ",
-        "นางสาวสมศรี รักงาน",
-        "นายสมศักดิ์ ขยัน",
-        "นางสมปอง ตั้งใจ",
-      ];
-      const testHNs = ["123456", "234567", "345678", "456789", "567890"];
-
-      // ดึงข้อมูลอาคารจาก API
-      const buildingsResponse = await fetch("/api/porter/buildings");
-      const buildingsResult = await buildingsResponse.json();
-
-      if (!buildingsResult.success || !buildingsResult.data?.length) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลอาคารได้",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      const buildings = buildingsResult.data.map((b: any) =>
-        convertBuildingFromProto(b),
-      );
-
-      // สุ่มเลือกอาคารแรก
-      const building = buildings[0];
-
-      if (!building) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่พบข้อมูลอาคาร",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      // ดึงข้อมูลชั้น/หน่วยงานของอาคารที่เลือก
-      const floorsResponse = await fetch(
-        `/api/porter/floor-departments?building_id=${building.id}`,
-      );
-      const floorsResult = await floorsResponse.json();
-
-      if (!floorsResult.success || !floorsResult.data?.length) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลชั้น/หน่วยงานได้",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      const floors = floorsResult.data.map((f: any) =>
-        convertFloorDepartmentFromProto(f),
-      );
-      const floor = floors[0];
-
-      if (!floor) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่พบข้อมูลชั้น/หน่วยงาน",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      // ไม่ใช้ room-beds API แล้ว (เลิกใช้งาน table นี้)
-      // let roomBed: any = null;
-      // const roomBedsResponse = await fetch(
-      //   `/api/porter/room-beds?floor_department_id=${floor.id}`,
-      // );
-      // const roomBedsResult = await roomBedsResponse.json();
-      // if (roomBedsResult.success && roomBedsResult.data?.length > 0) {
-      //   const roomBeds = roomBedsResult.data.map((r: any) =>
-      //     convertRoomBedFromProto(r),
-      //   );
-      //   roomBed = roomBeds[0];
-      // }
-
-      const pickupLocation: DetailedLocation = {
-        buildingId: building.id,
-        buildingName: building.name,
-        floorDepartmentId: floor.id,
-        floorDepartmentName: floor.name,
-        // roomBedId: roomBed?.id,
-        // roomBedName: roomBed?.name,
-      };
-
-      // สุ่มสถานที่ส่ง (ใช้อาคารที่ 2 หรืออาคารแรกถ้ามีแค่อาคารเดียว)
-      const deliveryBuilding =
-        buildings[Math.floor(Math.random() * (buildings.length - 1)) + 1] ||
-        buildings[0];
-
-      const deliveryFloorsResponse = await fetch(
-        `/api/porter/floor-departments?building_id=${deliveryBuilding.id}`,
-      );
-      const deliveryFloorsResult = await deliveryFloorsResponse.json();
-
-      if (!deliveryFloorsResult.success || !deliveryFloorsResult.data?.length) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลชั้น/หน่วยงานสำหรับสถานที่ส่งได้",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      const deliveryFloors = deliveryFloorsResult.data.map((f: any) =>
-        convertFloorDepartmentFromProto(f),
-      );
-      const deliveryFloor = deliveryFloors[0];
-
-      if (!deliveryFloor) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่พบข้อมูลชั้น/หน่วยงานสำหรับสถานที่ส่ง",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      const deliveryLocation: DetailedLocation = {
-        buildingId: deliveryBuilding.id,
-        buildingName: deliveryBuilding.name,
-        floorDepartmentId: deliveryFloor.id,
-        floorDepartmentName: deliveryFloor.name,
-        // roomBedId: deliveryRoomBed?.id,
-        // roomBedName: deliveryRoomBed?.name,
-      };
-
-      // สร้างวันที่และเวลา (30 นาทีจากปัจจุบัน)
-      const futureDate = new Date();
-
-      futureDate.setMinutes(futureDate.getMinutes() + 30);
-
-      // สุ่มข้อมูล
-      const randomDept =
-        testDepartments[Math.floor(Math.random() * testDepartments.length)];
-      const randomName =
-        testNames[Math.floor(Math.random() * testNames.length)];
-      const randomPatientName =
-        testPatientNames[Math.floor(Math.random() * testPatientNames.length)];
-      const randomHN =
-        testHNs[Math.floor(Math.random() * testHNs.length)] +
-        "/" +
-        String(Math.floor(Math.random() * 30) + 65);
-      const randomPhone =
-        "08" + String(Math.floor(Math.random() * 100000000)).padStart(8, "0");
-      const randomUrgency: UrgencyLevel =
-        URGENCY_OPTIONS[Math.floor(Math.random() * URGENCY_OPTIONS.length)]
-          .value;
-      const randomVehicleType: VehicleType =
-        VEHICLE_TYPE_OPTIONS[
-          Math.floor(Math.random() * VEHICLE_TYPE_OPTIONS.length)
-        ];
-      const randomTransportReason =
-        TRANSPORT_REASON_OPTIONS[
-          Math.floor(Math.random() * TRANSPORT_REASON_OPTIONS.length)
-        ];
-      const randomEquipment: EquipmentType[] = EQUIPMENT_OPTIONS.filter(
-        () => Math.random() > 0.5,
-      );
-      const randomHasVehicle: "มี" | "ไม่มี" =
-        Math.random() > 0.5 ? "มี" : "ไม่มี";
-      const randomReturnTrip: "ไปส่งอย่างเดียว" | "รับกลับด้วย" =
-        Math.random() > 0.5 ? "ไปส่งอย่างเดียว" : "รับกลับด้วย";
-
-      // เติมข้อมูลลงใน form
-      setFormData({
-        requesterDepartment: randomDept,
-        requesterName: randomName,
-        requesterPhone: randomPhone,
-        patientName: randomPatientName,
-        patientHN: randomHN,
-        pickupLocation: formatLocationString(pickupLocation),
-        pickupLocationDetail: pickupLocation,
-        deliveryLocation: formatLocationString(deliveryLocation),
-        deliveryLocationDetail: deliveryLocation,
-        requestedDateTime: getDateTimeLocal(futureDate),
-        urgencyLevel: randomUrgency,
-        vehicleType: randomVehicleType,
-        equipment: randomEquipment,
-        hasVehicle: randomHasVehicle,
-        returnTrip: randomReturnTrip,
-        transportReason: randomTransportReason,
-        specialNotes: "ข้อมูลทดสอบการบันทึก - สร้างโดยระบบ",
-        patientCondition: PATIENT_CONDITION_OPTIONS.filter(
-          () => Math.random() > 0.5,
-        ),
-      });
-
-      // Clear validation errors
-      setValidationErrors({});
-
-      addToast({
-        title: "สร้างข้อมูลทดสอบสำเร็จ",
-        description: "ข้อมูลตัวอย่างถูกเติมลงในฟอร์มแล้ว",
-        color: "success",
-      });
-    } catch (error) {
-      console.error("Error generating test data:", error);
-      addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถสร้างข้อมูลทดสอบได้",
-        color: "danger",
-      });
     }
   };
 
@@ -1328,19 +1095,6 @@ export default function PorterRequestPage() {
                 </div>
               </div>
             </CardBody>
-            {session?.user?.role === "admin" && (
-              <CardFooter className="pt-2 pb-4 px-4">
-                <Button
-                  className="w-full"
-                  color="warning"
-                  size="sm"
-                  variant="flat"
-                  onPress={generateTestData}
-                >
-                  Generate User (ทดสอบการบันทึกข้อมูล)
-                </Button>
-              </CardFooter>
-            )}
           </Card>
         </aside>
       </div>

@@ -31,6 +31,8 @@ import {
   addToast,
 } from "@heroui/react";
 
+import { LocationSelector } from "./LocationSelector";
+
 import { PorterJobItem } from "@/types/porter";
 import {
   PorterRequestFormData,
@@ -44,7 +46,6 @@ import {
   EQUIPMENT_OPTIONS,
   TRANSPORT_REASON_OPTIONS,
 } from "@/lib/porter";
-import { LocationSelector } from "@/components/porter/LocationSelector";
 import {
   BuildingOfficeIcon,
   MapPinIcon,
@@ -836,56 +837,6 @@ export default function JobDetailDrawer({
               </>
             ) : (
               <>
-                {/* ข้อมูลผู้ป่วย */}
-                {/* <section>
-                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <UserIcon className="w-5 h-5 text-primary" />
-                    ข้อมูลผู้ป่วย
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-default-600 block mb-1">
-                        HN / AN
-                      </div>
-                      <span className="text-foreground">
-                        {formData.patientHN}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-sm text-default-600 block mb-1">
-                        ชื่อผู้ป่วย
-                      </div>
-                      <span className="text-foreground">
-                        {formData.patientName}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <div className="text-sm text-default-600 block mb-1">
-                      สภาพผู้ป่วย
-                    </div>
-                    {Array.isArray(formData.patientCondition) &&
-                    formData.patientCondition.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {formData.patientCondition.map((condition) => (
-                          <Chip
-                            key={condition}
-                            color="primary"
-                            size="sm"
-                            variant="bordered"
-                          >
-                            {condition}
-                          </Chip>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-foreground">-</p>
-                    )}
-                  </div>
-                </section>
-
-                <Divider /> */}
-
                 {/* ข้อมูลการเคลื่อนย้าย */}
                 <section>
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">

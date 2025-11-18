@@ -6,7 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 /**
  * สร้าง JWT token สำหรับ SSE stream connection
- * GET /api/porter/stream-token
+ * GET /api/porter/requests/token
  */
 export async function GET() {
   try {
