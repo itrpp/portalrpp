@@ -653,21 +653,36 @@ export function playNotificationSound(): void {
       });
     };
 
-    const now = audioContext.currentTime;
-    const intervalBetweenRounds = 0.2; // เวลาระหว่างรอบ (วินาที)
+    // ใช้ Promise เพื่อรอให้ AudioContext resume ก่อนเล่นเสียง
+    const playSound = () => {
+      const now = audioContext.currentTime;
+      const intervalBetweenRounds = 0.2; // เวลาระหว่างรอบ (วินาที)
 
-    // เล่นเสียง 2 รอบ
-    for (let round = 0; round < 2; round++) {
-      const roundStartTime = now + round * (0.1 + intervalBetweenRounds);
+      // เล่นเสียง 2 รอบ
+      for (let round = 0; round < 2; round++) {
+        const roundStartTime = now + round * (0.1 + intervalBetweenRounds);
 
-      // เสียงกลิ่งครั้งแรก
-      createBellTone(800, roundStartTime, 0.1);
-      // เสียงกลิ่งครั้งที่สอง (ตามหลัง)
-      createBellTone(1000, roundStartTime + 0.15, 0.25);
+        // เสียงกลิ่งครั้งแรก
+        createBellTone(800, roundStartTime, 0.1);
+        // เสียงกลิ่งครั้งที่สอง (ตามหลัง)
+        createBellTone(1000, roundStartTime + 0.15, 0.25);
+      }
+    };
+
+    if (audioContext.state === "suspended") {
+      audioContext
+        .resume()
+        .then(playSound)
+        .catch(() => {
+          // ถ้าไม่สามารถ resume ได้ จะไม่แสดง error
+        });
+    } else {
+      playSound();
     }
-  } catch {
+  } catch (error) {
     // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
     // จะไม่แสดง error
+    console.warn("[Sound] Failed to play notification sound:", error);
   }
 }
 
@@ -679,44 +694,59 @@ export function playSirenSound(): void {
     const audioContext = new (window.AudioContext ||
       (window as any).webkitAudioContext)();
 
-    const now = audioContext.currentTime;
-    const duration = 1.5; // ความยาวแต่ละรอบ (วินาที)
-    const cycles = 3; // จำนวนรอบไซเรน
+    // ใช้ Promise เพื่อรอให้ AudioContext resume ก่อนเล่นเสียง
+    const playSound = () => {
+      const now = audioContext.currentTime;
+      const duration = 1.5; // ความยาวแต่ละรอบ (วินาที)
+      const cycles = 3; // จำนวนรอบไซเรน
 
-    for (let cycle = 0; cycle < cycles; cycle++) {
-      const cycleStartTime = now + cycle * (duration + 0.2);
+      for (let cycle = 0; cycle < cycles; cycle++) {
+        const cycleStartTime = now + cycle * (duration + 0.2);
 
-      // สร้างเสียงไซเรนด้วยการปรับความถี่ขึ้น-ลง (sweep)
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+        // สร้างเสียงไซเรนด้วยการปรับความถี่ขึ้น-ลง (sweep)
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-      oscillator.type = "sawtooth"; // ใช้ sawtooth เพื่อให้เสียงคมชัดเหมือนไซเรน
-      oscillator.frequency.setValueAtTime(600, cycleStartTime);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        1400,
-        cycleStartTime + duration / 2,
-      );
-      oscillator.frequency.exponentialRampToValueAtTime(
-        600,
-        cycleStartTime + duration,
-      );
+        oscillator.type = "sawtooth"; // ใช้ sawtooth เพื่อให้เสียงคมชัดเหมือนไซเรน
+        oscillator.frequency.setValueAtTime(600, cycleStartTime);
+        oscillator.frequency.exponentialRampToValueAtTime(
+          1400,
+          cycleStartTime + duration / 2,
+        );
+        oscillator.frequency.exponentialRampToValueAtTime(
+          600,
+          cycleStartTime + duration,
+        );
 
-      gainNode.gain.setValueAtTime(0, cycleStartTime);
-      gainNode.gain.linearRampToValueAtTime(0.6, cycleStartTime + 0.05);
-      gainNode.gain.linearRampToValueAtTime(
-        0.6,
-        cycleStartTime + duration - 0.05,
-      );
-      gainNode.gain.linearRampToValueAtTime(0, cycleStartTime + duration);
+        gainNode.gain.setValueAtTime(0, cycleStartTime);
+        gainNode.gain.linearRampToValueAtTime(0.6, cycleStartTime + 0.05);
+        gainNode.gain.linearRampToValueAtTime(
+          0.6,
+          cycleStartTime + duration - 0.05,
+        );
+        gainNode.gain.linearRampToValueAtTime(0, cycleStartTime + duration);
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-      oscillator.start(cycleStartTime);
-      oscillator.stop(cycleStartTime + duration);
+        oscillator.start(cycleStartTime);
+        oscillator.stop(cycleStartTime + duration);
+      }
+    };
+
+    if (audioContext.state === "suspended") {
+      audioContext
+        .resume()
+        .then(playSound)
+        .catch(() => {
+          // ถ้าไม่สามารถ resume ได้ จะไม่แสดง error
+        });
+    } else {
+      playSound();
     }
-  } catch {
+  } catch (error) {
     // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
     // จะไม่แสดง error
+    console.warn("[Sound] Failed to play siren sound:", error);
   }
 }
