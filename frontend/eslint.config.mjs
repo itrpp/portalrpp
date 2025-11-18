@@ -56,6 +56,13 @@ export default [
     ),
   ),
   {
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+  },
+  {
     plugins: {
       react: fixupPluginRules(react),
       "unused-imports": unusedImports,
@@ -81,12 +88,6 @@ export default [
         ecmaFeatures: {
           jsx: true,
         },
-      },
-    },
-
-    settings: {
-      react: {
-        version: "18.3.1",
       },
     },
 

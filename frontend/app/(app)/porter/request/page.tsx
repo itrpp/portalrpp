@@ -19,33 +19,21 @@ import {
   Radio,
   Form,
   DatePicker,
+  useDisclosure,
   addToast,
 } from "@heroui/react";
 import { CalendarDateTime } from "@internationalized/date";
 
-import {
-  AmbulanceIcon,
-  BuildingOfficeIcon,
-  MapPinIcon,
-  UserIcon,
-  PhoneIcon,
-  CalendarIcon,
-  ClipboardListIcon,
-} from "@/components/ui/icons";
+import { LocationSelector, CancelJobModal } from "../components";
+
 import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
-  UrgencyLevel,
   formatLocationString,
-  DetailedLocation,
+  PorterJobItem,
 } from "@/types/porter";
-import {
-  convertBuildingFromProto,
-  convertFloorDepartmentFromProto,
-} from "@/lib/porter";
 import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
-import { LocationSelector } from "@/components/porter/LocationSelector";
 import {
   URGENCY_OPTIONS,
   VEHICLE_TYPE_OPTIONS,
@@ -55,6 +43,17 @@ import {
   PATIENT_CONDITION_OPTIONS,
   validateForm,
 } from "@/lib/porter";
+import {
+  AmbulanceIcon,
+  BuildingOfficeIcon,
+  MapPinIcon,
+  UserIcon,
+  PhoneIcon,
+  CalendarIcon,
+  ClipboardListIcon,
+  XMarkIcon,
+  PencilIcon,
+} from "@/components/ui/icons";
 
 // ========================================
 // PORTER REQUEST PAGE
@@ -94,6 +93,95 @@ export default function PorterRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shouldScrollToError, setShouldScrollToError] = useState(false);
   const prevErrorsCountRef = React.useRef(0);
+
+  // State สำหรับรายการคำขอ
+  const [userRequests, setUserRequests] = useState<PorterJobItem[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+
+  // State สำหรับยกเลิกงาน
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
+    null,
+  );
+  const [cancelReason, setCancelReason] = useState<string>("");
+  const [isCancelling, setIsCancelling] = useState(false);
+  const {
+    isOpen: isCancelModalOpen,
+    onOpen: onCancelModalOpen,
+    onClose: onCancelModalClose,
+  } = useDisclosure();
+
+  // State สำหรับแก้ไขคำขอ
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
+
+  // ฟังก์ชันสำหรับดึงข้อมูลรายการคำขอของผู้ใช้ปัจจุบัน
+  const fetchUserRequests = React.useCallback(async () => {
+    if (!session?.user?.id) {
+      return;
+    }
+
+    setIsLoadingRequests(true);
+
+    try {
+      // ดึงข้อมูลคำขอที่อยู่ในสถานะ waiting และ in-progress
+      const queryParams = new URLSearchParams();
+
+      queryParams.append("requester_user_id", session.user.id);
+      queryParams.append("page_size", "100");
+
+      const response = await fetch(
+        `/api/porter/requests?${queryParams.toString()}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("ไม่สามารถโหลดข้อมูลรายการคำขอได้");
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // กรองเฉพาะคำขอที่อยู่ในสถานะ waiting และ in-progress
+        const filteredRequests = (result.data as PorterJobItem[]).filter(
+          (request) =>
+            request.status === "waiting" || request.status === "in-progress",
+        );
+
+        // จัดเรียงตาม urgency level และเวลา
+        const sortedRequests = filteredRequests.sort((a, b) => {
+          // จัดเรียงตาม urgency level: ฉุกเฉิน > ด่วน > ปกติ
+          const urgencyOrder: Record<string, number> = {
+            ฉุกเฉิน: 3,
+            ด่วน: 2,
+            ปกติ: 1,
+          };
+
+          const urgencyDiff =
+            (urgencyOrder[b.form.urgencyLevel] || 0) -
+            (urgencyOrder[a.form.urgencyLevel] || 0);
+
+          if (urgencyDiff !== 0) {
+            return urgencyDiff;
+          }
+
+          // ถ้า urgency เท่ากัน จัดเรียงตามเวลา
+          return (
+            new Date(a.form.requestedDateTime).getTime() -
+            new Date(b.form.requestedDateTime).getTime()
+          );
+        });
+
+        setUserRequests(sortedRequests);
+      }
+    } catch (error) {
+      console.error("Error fetching user requests:", error);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  }, [session?.user?.id]);
+
+  // ดึงข้อมูลรายการคำขอของผู้ใช้ปัจจุบัน
+  useEffect(() => {
+    fetchUserRequests();
+  }, [fetchUserRequests]);
 
   // Scroll to first error field after validation fails (only when submit)
   useEffect(() => {
@@ -190,6 +278,102 @@ export default function PorterRequestPage() {
     prevErrorsCountRef.current = currentErrorsCount;
   }, [validationErrors, shouldScrollToError]);
 
+  // Handler สำหรับแก้ไขคำขอ
+  const handleEditRequest = async (requestId: string) => {
+    try {
+      // ดึงข้อมูลคำขอจากรายการที่มีอยู่
+      const request = userRequests.find((r) => r.id === requestId);
+
+      if (!request) {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่พบข้อมูลคำขอ",
+          color: "danger",
+        });
+
+        return;
+      }
+
+      // เติมข้อมูลลงในฟอร์ม
+      setFormData({
+        requesterDepartment: request.form.requesterDepartment || "",
+        requesterName: request.form.requesterName || "",
+        requesterPhone: request.form.requesterPhone || "",
+
+        patientName: request.form.patientName || "",
+        patientHN: request.form.patientHN || "",
+
+        pickupLocation: request.form.pickupLocation || "",
+        pickupLocationDetail: request.form.pickupLocationDetail || null,
+        deliveryLocation: request.form.deliveryLocation || "",
+        deliveryLocationDetail: request.form.deliveryLocationDetail || null,
+        requestedDateTime: request.form.requestedDateTime || getDateTimeLocal(),
+        urgencyLevel: request.form.urgencyLevel || "ปกติ",
+        vehicleType: request.form.vehicleType || "",
+        equipment: request.form.equipment || [],
+        hasVehicle: request.form.hasVehicle || "",
+        returnTrip: request.form.returnTrip || "",
+
+        transportReason: request.form.transportReason || "",
+        equipmentOther: request.form.equipmentOther || "",
+        specialNotes: request.form.specialNotes || "",
+        patientCondition: request.form.patientCondition || [],
+      });
+
+      // ตั้งค่า editingRequestId
+      setEditingRequestId(requestId);
+
+      // Clear validation errors
+      setValidationErrors({});
+
+      // Scroll to top of form
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      addToast({
+        title: "โหลดข้อมูลสำเร็จ",
+        description: "ข้อมูลคำขอได้ถูกโหลดลงในฟอร์มแล้ว",
+        color: "success",
+      });
+    } catch (error) {
+      console.error("Error loading request for edit:", error);
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลคำขอได้",
+        color: "danger",
+      });
+    }
+  };
+
+  // Handler สำหรับยกเลิกการแก้ไข
+  const handleCancelEdit = () => {
+    setEditingRequestId(null);
+    setFormData({
+      requesterDepartment: session?.user?.department || "",
+      requesterName: session?.user?.name || "",
+      requesterPhone: "",
+
+      patientName: "",
+      patientHN: "",
+
+      pickupLocation: "",
+      pickupLocationDetail: null,
+      deliveryLocation: "",
+      deliveryLocationDetail: null,
+      requestedDateTime: getDateTimeLocal(),
+      urgencyLevel: "ปกติ",
+      vehicleType: "",
+      equipment: [],
+      hasVehicle: "",
+      returnTrip: "",
+
+      transportReason: "",
+      equipmentOther: "",
+      specialNotes: "",
+      patientCondition: [],
+    });
+    setValidationErrors({});
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,37 +404,80 @@ export default function PorterRequestPage() {
     setIsSubmitting(true);
 
     try {
-      // ส่งข้อมูลไปยัง API
-      const response = await fetch("/api/porter/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      let response: Response;
+      let result: any;
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        const errorMessage =
-          result.error === "UNAUTHORIZED"
-            ? "กรุณาเข้าสู่ระบบก่อนส่งคำขอ"
-            : result.error === "PORTER_SERVICE_UNAVAILABLE"
-              ? "บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้"
-              : result.message || "ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง";
-
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: errorMessage,
-          color: "danger",
+      if (editingRequestId) {
+        // แก้ไขคำขอ
+        response = await fetch(`/api/porter/requests/${editingRequestId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
         });
 
-        return;
+        result = await response.json();
+
+        if (!response.ok || !result.success) {
+          const errorMessage =
+            result.error === "UNAUTHORIZED"
+              ? "กรุณาเข้าสู่ระบบก่อนแก้ไขคำขอ"
+              : result.error === "PORTER_SERVICE_UNAVAILABLE"
+                ? "บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้"
+                : result.message || "ไม่สามารถแก้ไขคำขอได้ กรุณาลองอีกครั้ง";
+
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: errorMessage,
+            color: "danger",
+          });
+
+          return;
+        }
+
+        addToast({
+          title: "แก้ไขคำขอสำเร็จ",
+          description: "คำขอของคุณได้รับการแก้ไขเรียบร้อยแล้ว",
+          color: "success",
+        });
+
+        // Reset editing state
+        setEditingRequestId(null);
+      } else {
+        // สร้างคำขอใหม่
+        response = await fetch("/api/porter/requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        result = await response.json();
+
+        if (!response.ok || !result.success) {
+          const errorMessage =
+            result.error === "UNAUTHORIZED"
+              ? "กรุณาเข้าสู่ระบบก่อนส่งคำขอ"
+              : result.error === "PORTER_SERVICE_UNAVAILABLE"
+                ? "บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้"
+                : result.message || "ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง";
+
+          addToast({
+            title: "เกิดข้อผิดพลาด",
+            description: errorMessage,
+            color: "danger",
+          });
+
+          return;
+        }
+
+        addToast({
+          title: "ส่งคำขอสำเร็จ",
+          description: "คำขอของคุณได้รับการส่งเรียบร้อยแล้ว",
+          color: "success",
+        });
       }
 
-      addToast({
-        title: "ส่งคำขอสำเร็จ",
-        description: "คำขอของคุณได้รับการส่งเรียบร้อยแล้ว",
-        color: "success",
-      });
+      // Refresh รายการคำขอ
+      fetchUserRequests();
 
       // Reset form
       setFormData({
@@ -366,231 +593,64 @@ export default function PorterRequestPage() {
     }
   };
 
-  // Generate test data for admin testing
-  const generateTestData = async () => {
+  // Handler สำหรับเปิด Modal ยกเลิกงาน
+  const handleOpenCancelModal = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setCancelReason("");
+    onCancelModalOpen();
+  };
+
+  // Handler สำหรับยกเลิกงาน
+  const handleCancelJob = async () => {
+    if (!selectedRequestId) {
+      return;
+    }
+
+    setIsCancelling(true);
+
     try {
-      // สุ่มข้อมูลตัวอย่าง
-      const testDepartments = DEPARTMENT_OPTIONS;
-      const testNames = [
-        "พยาบาล สมใจ",
-        "พยาบาล สุดา",
-        "พยาบาล วิชัย",
-        "แพทย์ วิไล",
-        "แพทย์ กนก",
-      ];
-      const testPatientNames = [
-        "นายสมชาย ใจดี",
-        "นางสมหญิง ดีใจ",
-        "นางสาวสมศรี รักงาน",
-        "นายสมศักดิ์ ขยัน",
-        "นางสมปอง ตั้งใจ",
-      ];
-      const testHNs = ["123456", "234567", "345678", "456789", "567890"];
-
-      // ดึงข้อมูลอาคารจาก API
-      const buildingsResponse = await fetch("/api/porter/buildings");
-      const buildingsResult = await buildingsResponse.json();
-
-      if (!buildingsResult.success || !buildingsResult.data?.length) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลอาคารได้",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      const buildings = buildingsResult.data.map((b: any) =>
-        convertBuildingFromProto(b),
+      const response = await fetch(
+        `/api/porter/requests/${selectedRequestId}/status`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "cancelled",
+            cancelledReason: cancelReason.trim() || undefined,
+          }),
+        },
       );
 
-      // สุ่มเลือกอาคารแรก
-      const building = buildings[0];
+      const result = await response.json();
 
-      if (!building) {
+      if (result.success && result.data) {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่พบข้อมูลอาคาร",
-          color: "danger",
+          title: "ยกเลิกงานสำเร็จ",
+          description: "งานนี้ได้ถูกยกเลิกเรียบร้อยแล้ว",
+          color: "success",
         });
 
-        return;
-      }
+        onCancelModalClose();
+        setSelectedRequestId(null);
+        setCancelReason("");
 
-      // ดึงข้อมูลชั้น/หน่วยงานของอาคารที่เลือก
-      const floorsResponse = await fetch(
-        `/api/porter/floor-departments?building_id=${building.id}`,
-      );
-      const floorsResult = await floorsResponse.json();
-
-      if (!floorsResult.success || !floorsResult.data?.length) {
+        // Refresh รายการคำขอหลังจากยกเลิกสำเร็จ
+        fetchUserRequests();
+      } else {
         addToast({
           title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลชั้น/หน่วยงานได้",
+          description: result.message || "ไม่สามารถยกเลิกงานได้",
           color: "danger",
         });
-
-        return;
       }
-
-      const floors = floorsResult.data.map((f: any) =>
-        convertFloorDepartmentFromProto(f),
-      );
-      const floor = floors[0];
-
-      if (!floor) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่พบข้อมูลชั้น/หน่วยงาน",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      // ไม่ใช้ room-beds API แล้ว (เลิกใช้งาน table นี้)
-      // let roomBed: any = null;
-      // const roomBedsResponse = await fetch(
-      //   `/api/porter/room-beds?floor_department_id=${floor.id}`,
-      // );
-      // const roomBedsResult = await roomBedsResponse.json();
-      // if (roomBedsResult.success && roomBedsResult.data?.length > 0) {
-      //   const roomBeds = roomBedsResult.data.map((r: any) =>
-      //     convertRoomBedFromProto(r),
-      //   );
-      //   roomBed = roomBeds[0];
-      // }
-
-      const pickupLocation: DetailedLocation = {
-        buildingId: building.id,
-        buildingName: building.name,
-        floorDepartmentId: floor.id,
-        floorDepartmentName: floor.name,
-        // roomBedId: roomBed?.id,
-        // roomBedName: roomBed?.name,
-      };
-
-      // สุ่มสถานที่ส่ง (ใช้อาคารที่ 2 หรืออาคารแรกถ้ามีแค่อาคารเดียว)
-      const deliveryBuilding =
-        buildings[Math.floor(Math.random() * (buildings.length - 1)) + 1] ||
-        buildings[0];
-
-      const deliveryFloorsResponse = await fetch(
-        `/api/porter/floor-departments?building_id=${deliveryBuilding.id}`,
-      );
-      const deliveryFloorsResult = await deliveryFloorsResponse.json();
-
-      if (!deliveryFloorsResult.success || !deliveryFloorsResult.data?.length) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลชั้น/หน่วยงานสำหรับสถานที่ส่งได้",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      const deliveryFloors = deliveryFloorsResult.data.map((f: any) =>
-        convertFloorDepartmentFromProto(f),
-      );
-      const deliveryFloor = deliveryFloors[0];
-
-      if (!deliveryFloor) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่พบข้อมูลชั้น/หน่วยงานสำหรับสถานที่ส่ง",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      const deliveryLocation: DetailedLocation = {
-        buildingId: deliveryBuilding.id,
-        buildingName: deliveryBuilding.name,
-        floorDepartmentId: deliveryFloor.id,
-        floorDepartmentName: deliveryFloor.name,
-        // roomBedId: deliveryRoomBed?.id,
-        // roomBedName: deliveryRoomBed?.name,
-      };
-
-      // สร้างวันที่และเวลา (30 นาทีจากปัจจุบัน)
-      const futureDate = new Date();
-
-      futureDate.setMinutes(futureDate.getMinutes() + 30);
-
-      // สุ่มข้อมูล
-      const randomDept =
-        testDepartments[Math.floor(Math.random() * testDepartments.length)];
-      const randomName =
-        testNames[Math.floor(Math.random() * testNames.length)];
-      const randomPatientName =
-        testPatientNames[Math.floor(Math.random() * testPatientNames.length)];
-      const randomHN =
-        testHNs[Math.floor(Math.random() * testHNs.length)] +
-        "/" +
-        String(Math.floor(Math.random() * 30) + 65);
-      const randomPhone =
-        "08" + String(Math.floor(Math.random() * 100000000)).padStart(8, "0");
-      const randomUrgency: UrgencyLevel =
-        URGENCY_OPTIONS[Math.floor(Math.random() * URGENCY_OPTIONS.length)]
-          .value;
-      const randomVehicleType: VehicleType =
-        VEHICLE_TYPE_OPTIONS[
-          Math.floor(Math.random() * VEHICLE_TYPE_OPTIONS.length)
-        ];
-      const randomTransportReason =
-        TRANSPORT_REASON_OPTIONS[
-          Math.floor(Math.random() * TRANSPORT_REASON_OPTIONS.length)
-        ];
-      const randomEquipment: EquipmentType[] = EQUIPMENT_OPTIONS.filter(
-        () => Math.random() > 0.5,
-      );
-      const randomHasVehicle: "มี" | "ไม่มี" =
-        Math.random() > 0.5 ? "มี" : "ไม่มี";
-      const randomReturnTrip: "ไปส่งอย่างเดียว" | "รับกลับด้วย" =
-        Math.random() > 0.5 ? "ไปส่งอย่างเดียว" : "รับกลับด้วย";
-
-      // เติมข้อมูลลงใน form
-      setFormData({
-        requesterDepartment: randomDept,
-        requesterName: randomName,
-        requesterPhone: randomPhone,
-        patientName: randomPatientName,
-        patientHN: randomHN,
-        pickupLocation: formatLocationString(pickupLocation),
-        pickupLocationDetail: pickupLocation,
-        deliveryLocation: formatLocationString(deliveryLocation),
-        deliveryLocationDetail: deliveryLocation,
-        requestedDateTime: getDateTimeLocal(futureDate),
-        urgencyLevel: randomUrgency,
-        vehicleType: randomVehicleType,
-        equipment: randomEquipment,
-        hasVehicle: randomHasVehicle,
-        returnTrip: randomReturnTrip,
-        transportReason: randomTransportReason,
-        specialNotes: "ข้อมูลทดสอบการบันทึก - สร้างโดยระบบ",
-        patientCondition: PATIENT_CONDITION_OPTIONS.filter(
-          () => Math.random() > 0.5,
-        ),
-      });
-
-      // Clear validation errors
-      setValidationErrors({});
-
-      addToast({
-        title: "สร้างข้อมูลทดสอบสำเร็จ",
-        description: "ข้อมูลตัวอย่างถูกเติมลงในฟอร์มแล้ว",
-        color: "success",
-      });
-    } catch (error) {
-      console.error("Error generating test data:", error);
+    } catch {
       addToast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถสร้างข้อมูลทดสอบได้",
+        description: "ไม่สามารถยกเลิกงานได้",
         color: "danger",
       });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -1090,39 +1150,51 @@ export default function PorterRequestPage() {
           {/* การ์ดปุ่มคำสั่ง */}
           <Card className="shadow-lg border border-default-200 w-full">
             <CardFooter className="p-3 flex justify-end gap-4">
-              <Button
-                size="md"
-                type="button"
-                variant="flat"
-                onPress={() => {
-                  setFormData({
-                    requesterDepartment: session?.user?.department || "",
-                    requesterName: session?.user?.name || "",
-                    requesterPhone: "",
+              {editingRequestId && (
+                <Button
+                  size="md"
+                  type="button"
+                  variant="flat"
+                  onPress={handleCancelEdit}
+                >
+                  ยกเลิกการแก้ไข
+                </Button>
+              )}
+              {!editingRequestId && (
+                <Button
+                  size="md"
+                  type="button"
+                  variant="flat"
+                  onPress={() => {
+                    setFormData({
+                      requesterDepartment: session?.user?.department || "",
+                      requesterName: session?.user?.name || "",
+                      requesterPhone: "",
 
-                    patientName: "",
-                    patientHN: "",
+                      patientName: "",
+                      patientHN: "",
 
-                    pickupLocation: "",
-                    pickupLocationDetail: null,
-                    deliveryLocation: "",
-                    deliveryLocationDetail: null,
-                    requestedDateTime: getDateTimeLocal(),
-                    urgencyLevel: "ปกติ",
-                    vehicleType: "",
-                    equipment: [],
-                    hasVehicle: "",
-                    returnTrip: "",
+                      pickupLocation: "",
+                      pickupLocationDetail: null,
+                      deliveryLocation: "",
+                      deliveryLocationDetail: null,
+                      requestedDateTime: getDateTimeLocal(),
+                      urgencyLevel: "ปกติ",
+                      vehicleType: "",
+                      equipment: [],
+                      hasVehicle: "",
+                      returnTrip: "",
 
-                    transportReason: "",
-                    specialNotes: "",
-                    patientCondition: [],
-                  });
-                  setValidationErrors({});
-                }}
-              >
-                ล้างข้อมูล
-              </Button>
+                      transportReason: "",
+                      specialNotes: "",
+                      patientCondition: [],
+                    });
+                    setValidationErrors({});
+                  }}
+                >
+                  ล้างข้อมูล
+                </Button>
+              )}
               <Button
                 color="primary"
                 isLoading={isSubmitting}
@@ -1132,13 +1204,19 @@ export default function PorterRequestPage() {
                 }
                 type="submit"
               >
-                {isSubmitting ? "กำลังส่งคำขอ..." : "ส่งคำขอ"}
+                {isSubmitting
+                  ? editingRequestId
+                    ? "กำลังแก้ไขคำขอ..."
+                    : "กำลังส่งคำขอ..."
+                  : editingRequestId
+                    ? "แก้ไขคำขอ"
+                    : "ส่งคำขอ"}
               </Button>
             </CardFooter>
           </Card>
         </Form>
 
-        {/* Right Summary */}
+        {/* Right Sidebar - รายการคำขอ */}
         <aside className="space-y-4">
           <Card className="shadow-lg border border-default-200">
             <CardHeader className="pl-0">
@@ -1146,204 +1224,147 @@ export default function PorterRequestPage() {
                 <div className="flex items-center gap-2">
                   <ClipboardListIcon className="w-6 h-6 text-primary" />
                   <h2 className="text-lg font-semibold text-foreground">
-                    สรุปคำขอ
+                    รายการคำขอ
                   </h2>
                 </div>
-                <Chip
-                  color={
-                    (URGENCY_OPTIONS.find(
-                      (o) => o.value === formData.urgencyLevel,
-                    )?.color as "default" | "warning" | "danger" | "success") ||
-                    "default"
-                  }
-                  size="sm"
-                  variant="bordered"
-                >
-                  {formData.urgencyLevel}
-                </Chip>
+                {userRequests.length > 0 && (
+                  <Chip color="primary" size="sm" variant="flat">
+                    {userRequests.length}
+                  </Chip>
+                )}
               </div>
             </CardHeader>
-            <CardBody className="pt-4 text-sm space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="text-default-600">หน่วยงานผู้แจ้ง</div>
-                  <div
-                    className={
-                      "font-medium " +
-                      (!formData.requesterDepartment ? "text-danger-600" : "")
-                    }
-                  >
-                    {formData.requesterDepartment || "-"}
+            <CardBody className="pt-4">
+              {isLoadingRequests ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-default-600">กำลังโหลดข้อมูล...</div>
+                </div>
+              ) : userRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <ClipboardListIcon className="w-12 h-12 text-default-300 mb-2" />
+                  <div className="text-default-500 text-sm">
+                    ยังไม่มีคำขอที่รอดำเนินการ
                   </div>
                 </div>
-                <div>
-                  <div className="text-default-600">เบอร์โทรผู้แจ้ง</div>
-                  <div
-                    className={
-                      "font-medium " +
-                      (!formData.requesterPhone ? "text-danger-600" : "")
-                    }
-                  >
-                    {formData.requesterPhone || "-"}
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <div className="text-default-600 mb-1">สถานที่รับ</div>
-                  <div
-                    className={
-                      "font-medium " +
-                      (!formData.pickupLocationDetail ? "text-danger-600" : "")
-                    }
-                  >
-                    {formData.pickupLocationDetail
-                      ? formatLocationString(formData.pickupLocationDetail)
-                      : "-"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-default-600 mb-1">สถานที่ส่ง</div>
-                  <div
-                    className={
-                      "font-medium " +
-                      (!formData.deliveryLocationDetail
-                        ? "text-danger-600"
-                        : "")
-                    }
-                  >
-                    {formData.deliveryLocationDetail
-                      ? formatLocationString(formData.deliveryLocationDetail)
-                      : "-"}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div>
-                  <div className="text-default-600">เหตุผลการเคลื่อนย้าย</div>
-                  <div
-                    className={
-                      "font-medium " +
-                      (!formData.transportReason ? "text-danger-600" : "")
-                    }
-                  >
-                    {formData.transportReason || "-"}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div>
-                  <div className="text-default-600">ประเภทรถ</div>
-                  <div className="font-medium">{formData.vehicleType}</div>
-                </div>
-                <div>
-                  <div className="text-default-600">มีรถแล้วหรือยัง</div>
-                  <div
-                    className={
-                      "font-medium " +
-                      (!formData.hasVehicle ? "text-danger-600" : "")
-                    }
-                  >
-                    {formData.hasVehicle ? formData.hasVehicle : "-"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-default-600">ส่งกลับหรือไม่</div>
-                  <div
-                    className={
-                      "font-medium " +
-                      (!formData.returnTrip ? "text-danger-600" : "")
-                    }
-                  >
-                    {formData.returnTrip ? formData.returnTrip : "-"}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="text-default-600">ผู้ป่วย</div>
-                <div
-                  className={
-                    "font-medium " +
-                    (!formData.patientHN || !formData.patientName
-                      ? "text-danger-600"
-                      : "")
-                  }
-                >
-                  {formData.patientHN || "-"}
-                  {formData.patientName ? ` - ${formData.patientName}` : ""}
-                </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {userRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className={`rounded-lg border p-3 ${
+                        request.form.urgencyLevel === "ฉุกเฉิน"
+                          ? "bg-danger-50/30 border-danger-200"
+                          : request.form.urgencyLevel === "ด่วน"
+                            ? "bg-warning-50/30 border-warning-200"
+                            : "bg-content1 border-default-200"
+                      }`}
+                    >
+                      {/* บรรทัดที่ 1: สถานะ กับ เวลาที่แจ้ง */}
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <div className="flex items-center gap-2">
+                          <Chip
+                            color={
+                              request.status === "waiting"
+                                ? "default"
+                                : "warning"
+                            }
+                            size="sm"
+                            variant="flat"
+                          >
+                            {request.status === "waiting"
+                              ? "รอศูนย์เปลรับงาน"
+                              : "กำลังดำเนินการ"}
+                          </Chip>
+                          {request.form.urgencyLevel !== "ปกติ" && (
+                            <Chip
+                              color={
+                                request.form.urgencyLevel === "ฉุกเฉิน"
+                                  ? "danger"
+                                  : "warning"
+                              }
+                              size="sm"
+                              variant="flat"
+                            >
+                              {request.form.urgencyLevel}
+                            </Chip>
+                          )}
+                        </div>
+                        <div>
+                          <span>เวลานัด: </span>
+                          <span className="font-medium text-default-800">
+                            {formatThaiDateTimeShort(
+                              new Date(request.form.requestedDateTime),
+                            )}
+                          </span>
+                        </div>
+                      </div>
 
-              <div>
-                <div className="text-default-600">เวลานัด</div>
-                <div
-                  className={
-                    "font-medium " +
-                    (!formData.requestedDateTime ? "text-danger-600" : "")
-                  }
-                >
-                  {formData.requestedDateTime
-                    ? formatThaiDateTimeShort(
-                        new Date(formData.requestedDateTime),
-                      )
-                    : "-"}
+                      {/* บรรทัดที่ 2: หมายเลข HN และ ชื่อผู้ป่วย */}
+                      <div className="text-sm font-medium text-foreground mb-2">
+                        {request.form.patientHN || "-"}
+                        {request.form.patientName
+                          ? ` - ${request.form.patientName}`
+                          : ""}
+                      </div>
+
+                      {/* บรรทัดที่ 3: สถานที่รับ */}
+                      <div className="text-xs text-default-700 mb-1">
+                        <span className="font-medium">
+                          {`รับผู้ป่วยจาก : ${request.form.pickupLocation || "-"}`}
+                        </span>
+                      </div>
+
+                      {/* บรรทัดที่ 4: สถานที่ส่ง */}
+                      <div className="text-xs text-default-700 mb-2">
+                        <span className="font-medium">
+                          {`ส่งผู้ป่วยไปที่ : ${request.form.deliveryLocation || "-"}`}
+                        </span>
+                      </div>
+
+                      {/* บรรทัดที่ 5: ปุ่มแก้ไขและยกเลิกงาน */}
+                      {(request.status === "waiting" ||
+                        request.status === "in-progress") && (
+                        <div className="flex items-center justify-end gap-2 mt-2">
+                          {request.status === "waiting" && (
+                            <Button
+                              color="primary"
+                              size="sm"
+                              startContent={<PencilIcon className="w-4 h-4" />}
+                              variant="flat"
+                              onPress={() => handleEditRequest(request.id)}
+                            >
+                              แก้ไข
+                            </Button>
+                          )}
+                          <Button
+                            color="danger"
+                            size="sm"
+                            startContent={<XMarkIcon className="w-4 h-4" />}
+                            variant="flat"
+                            onPress={() => handleOpenCancelModal(request.id)}
+                          >
+                            ยกเลิกงาน
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div>
-                <div className="text-default-600">อุปกรณ์ที่ต้องการ</div>
-                <div className="flex flex-wrap gap-1">
-                  {formData.equipment.length > 0 ? (
-                    formData.equipment.map((eq) => (
-                      <Chip
-                        key={eq}
-                        color="warning"
-                        size="sm"
-                        variant="bordered"
-                      >
-                        {eq}
-                      </Chip>
-                    ))
-                  ) : (
-                    <span className="text-default-500">-</span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-default-600">อาการ / สภาพผู้ป่วย</div>
-                <div className="flex flex-wrap gap-1">
-                  {formData.patientCondition.length > 0 ? (
-                    formData.patientCondition.map((condition) => (
-                      <Chip
-                        key={condition}
-                        color="primary"
-                        size="sm"
-                        variant="bordered"
-                      >
-                        {condition}
-                      </Chip>
-                    ))
-                  ) : (
-                    <span className="text-default-500">-</span>
-                  )}
-                </div>
-              </div>
+              )}
             </CardBody>
-            {session?.user?.role === "admin" && (
-              <CardFooter className="pt-2 pb-4 px-4">
-                <Button
-                  className="w-full"
-                  color="warning"
-                  size="sm"
-                  variant="flat"
-                  onPress={generateTestData}
-                >
-                  Generate User (ทดสอบการบันทึกข้อมูล)
-                </Button>
-              </CardFooter>
-            )}
           </Card>
         </aside>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      <CancelJobModal
+        cancelReason={cancelReason}
+        isOpen={isCancelModalOpen}
+        isSubmitting={isCancelling}
+        onCancelReasonChange={setCancelReason}
+        onClose={onCancelModalClose}
+        onConfirm={handleCancelJob}
+      />
     </div>
   );
 }

@@ -1,5 +1,3 @@
-import { getDateTimeLocal } from "./utils";
-
 import {
   UrgencyLevel,
   VehicleType,
@@ -7,7 +5,6 @@ import {
   PorterJobItem,
   PorterRequestFormData,
   JobListTab,
-  StaffMember,
   Building,
   FloorDepartment,
   RoomBed,
@@ -39,7 +36,7 @@ export const VEHICLE_TYPE_OPTIONS: VehicleType[] = [
  * อุปกรณ์ที่ต้องการ
  */
 export const EQUIPMENT_OPTIONS: EquipmentType[] = [
-  "ถังออกซิเจน (ออกซิเจนCannula/mask with bag)",
+  "ถังออกซิเจน (ออกซิเจนCannula / mask with bag)",
   "เสาน้ำเกลือ",
   "กล่องวางขวด ICD",
   "ผ้าผูกตรึงร่างกาย",
@@ -51,7 +48,7 @@ export const EQUIPMENT_OPTIONS: EquipmentType[] = [
  */
 export const PATIENT_CONDITION_OPTIONS = [
   "รู้สึกตัวดี ช่วยเหลือตัวเองได้",
-  "เดินไม่ได้ / อ่อนแรง",
+  "เดินไม่ได้ อ่อนแรง",
   "หายใจลำบาก / ใช้ O2 / On HFNC / On Tube / Ventilator",
   "ผู้ป่วยหลังผ่าตัด / เสี่ยงเจ็บแผล",
   "มีอาการมึนงง / ซึม / มีโอกาสล้มหรือตกเตียง",
@@ -65,29 +62,11 @@ export const PATIENT_CONDITION_OPTIONS = [
  */
 export const TRANSPORT_REASON_OPTIONS = [
   "รับผู้ป่วยเข้าหอผู้ป่วย (Admission)",
-  "ส่งผู้ป่วยไปตรวจวินิจฉัย (X-Ray / CT / MRI / US / Echo / Lab)",
+  "ส่งผู้ป่วยไปตรวจวินิจฉัย (X-Ray/CT/MRI/US/Echo/Lab)",
   "ส่งผู้ป่วยไปห้องผ่าตัด/ทำหัตถการ ",
   "ส่งผู้ป่วยกลับหอผู้ป่วย/กลับบ้าน (Discharge)",
-  "ส่งผู้ป่วย Refer ไปสถานพยาบาลอื่น /ศูนย์เวชศาสตร์เมืองราชพิพัฒน์ฯ",
+  "ส่งผู้ป่วย Refer ไปสถานพยาบาลอื่น/ศูนย์เวชศาสตร์เมืองราชพิพัฒน์ฯ",
   "เคลื่อนย้ายภายในหน่วยงาน (เปลี่ยนเตียง/เคลื่อนเข้าห้องแยก)",
-] as const;
-
-/**
- * ตัวอย่างสถานที่ (ในระบบจริงควรดึงมาจาก API หรือ database)
- */
-export const LOCATION_OPTIONS = [
-  "ห้อง 101",
-  "ห้อง 205",
-  "ห้อง 302",
-  "วอร์ด 4A",
-  "ICU",
-  "ER",
-  "[188] [อาคารเฉลิมพระเกียรติ] X-ray",
-  "[191] [อาคารเมตตาธรรม] X-ray",
-  "OR-3",
-  "OPD",
-  "แผนกเภสัช",
-  "คลังเวชภัณฑ์",
 ] as const;
 
 /**
@@ -103,54 +82,6 @@ export const DEPARTMENT_OPTIONS = [
   "แผนกคลัง",
   "แผนกเภสัชกรรม",
 ] as const;
-
-/**
- * ตัวอย่างชื่อผู้แจ้ง (สำหรับ mock data)
- */
-export const SAMPLE_REQUESTER_NAMES = [
-  "พยาบาล สมใจ",
-  "พยาบาล สุดา",
-  "พยาบาล วิชัย",
-  "แพทย์ วิไล",
-  "แพทย์ กนก",
-  "เภสัชกร มาลี",
-] as const;
-
-/**
- * ข้อมูลเจ้าหน้าที่พนักงานเปล (ตัวอย่างข้อมูล - ในระบบจริงควรดึงมาจาก API)
- */
-export const STAFF_MEMBERS: StaffMember[] = [
-  {
-    id: "staff-1",
-    name: "นายอริญชย์ ศรีชูเปี่ยม",
-    department: "ศูนย์เปล",
-    title: "พนักงานเปล",
-  },
-  {
-    id: "staff-2",
-    name: "นายสมชาย ใจดี",
-    department: "ศูนย์เปล",
-    title: "พนักงานเปล",
-  },
-  {
-    id: "staff-3",
-    name: "นางสาวสุดา รักงาน",
-    department: "ศูนย์เปล",
-    title: "พนักงานเปล",
-  },
-  {
-    id: "staff-4",
-    name: "นายวิชัย ขยัน",
-    department: "ศูนย์เปล",
-    title: "พนักงานเปล",
-  },
-  {
-    id: "staff-5",
-    name: "นางมาลี เก่งงาน",
-    department: "ศูนย์เปล",
-    title: "พนักงานเปล",
-  },
-];
 
 /**
  * ========================================
@@ -325,247 +256,6 @@ export function sortJobs(
     (a, b) =>
       toTime(b.form.requestedDateTime) - toTime(a.form.requestedDateTime),
   );
-}
-
-/**
- * ========================================
- * MOCK DATA GENERATION
- * ========================================
- */
-
-/**
- * Generate a single emergency job (ฉุกเฉิน)
- */
-export function generateSingleEmergencyJob(): PorterJobItem {
-  const randInt = (min: number, max: number) =>
-    Math.floor(Math.random() * (max - min + 1)) + min;
-  const choice = <T>(arr: readonly T[]): T => arr[randInt(0, arr.length - 1)];
-
-  // Always use "ฉุกเฉิน" for emergency jobs
-  const urgencyLevel: UrgencyLevel = "ฉุกเฉิน";
-
-  const pickup = choice(LOCATION_OPTIONS);
-  let delivery = choice(LOCATION_OPTIONS);
-
-  // Ensure pickup and delivery are different
-  if (delivery === pickup) {
-    const available = LOCATION_OPTIONS.filter((loc) => loc !== pickup);
-
-    delivery = available.length > 0 ? choice(available) : pickup;
-  }
-
-  const now = new Date();
-
-  now.setHours(randInt(6, 21), randInt(0, 59), 0, 0);
-
-  // Emergency jobs typically need more equipment
-  const equipmentCount = randInt(1, 4);
-  const equipment: EquipmentType[] = Array.from(
-    { length: equipmentCount },
-    () => choice(EQUIPMENT_OPTIONS),
-  ).filter((v, idx, arr) => arr.indexOf(v) === idx);
-
-  // Generate unique ID based on timestamp
-  const id = `emergency-${Date.now()}-${randInt(1000, 9999)}`;
-
-  const form: PorterRequestFormData = {
-    requesterDepartment: choice(DEPARTMENT_OPTIONS),
-    requesterName: choice(SAMPLE_REQUESTER_NAMES),
-    requesterPhone: `08${randInt(10000000, 99999999)}`,
-
-    patientName: `ผู้ป่วยฉุกเฉิน ${randInt(1, 999)}`,
-    patientHN: `${String(randInt(100000, 999999))}/${String(randInt(10, 99))}`,
-
-    pickupLocation: pickup,
-    pickupLocationDetail: null,
-    deliveryLocation: delivery,
-    deliveryLocationDetail: null,
-    requestedDateTime: getDateTimeLocal(now),
-    urgencyLevel,
-    vehicleType: choice(VEHICLE_TYPE_OPTIONS),
-    equipment,
-    hasVehicle: choice(["มี", "ไม่มี", ""] as const),
-    returnTrip: choice(["ไปส่งอย่างเดียว", "รับกลับด้วย", ""] as const),
-
-    transportReason: "ฉุกเฉิน",
-    specialNotes: "กรณีฉุกเฉิน ต้องระวังอย่างใกล้ชิด",
-    patientCondition: [
-      "ผู้ป่วยวิกฤต มีMonitor ติดตามสัญญาณชีพ",
-      "หายใจลำบาก / ใช้ O2 / On HFNC / On Tube / Ventilator",
-    ],
-  };
-
-  return {
-    id,
-    status: "waiting",
-    form,
-  };
-}
-
-/**
- * Generate a single random dummy job (ปกติ or ด่วน only)
- */
-export function generateSingleDummyJob(): PorterJobItem {
-  const randInt = (min: number, max: number) =>
-    Math.floor(Math.random() * (max - min + 1)) + min;
-  const choice = <T>(arr: readonly T[]): T => arr[randInt(0, arr.length - 1)];
-
-  // Randomly choose between "ปกติ" and "ด่วน" (exclude "ฉุกเฉิน")
-  const urgencyLevel: UrgencyLevel = Math.random() < 0.5 ? "ปกติ" : "ด่วน";
-
-  const pickup = choice(LOCATION_OPTIONS);
-  let delivery = choice(LOCATION_OPTIONS);
-
-  // Ensure pickup and delivery are different
-  if (delivery === pickup) {
-    const available = LOCATION_OPTIONS.filter((loc) => loc !== pickup);
-
-    delivery = available.length > 0 ? choice(available) : pickup;
-  }
-
-  const now = new Date();
-
-  now.setHours(randInt(6, 21), randInt(0, 59), 0, 0);
-
-  const equipmentCount = randInt(0, 3);
-  const equipment: EquipmentType[] = Array.from(
-    { length: equipmentCount },
-    () => choice(EQUIPMENT_OPTIONS),
-  ).filter((v, idx, arr) => arr.indexOf(v) === idx);
-
-  // Generate unique ID based on timestamp
-  const id = `job-${Date.now()}-${randInt(1000, 9999)}`;
-
-  const form: PorterRequestFormData = {
-    requesterDepartment: choice(DEPARTMENT_OPTIONS),
-    requesterName: choice(SAMPLE_REQUESTER_NAMES),
-    requesterPhone: `08${randInt(10000000, 99999999)}`,
-
-    patientName: `ผู้ป่วย ${randInt(1, 999)}`,
-    patientHN: `${String(randInt(100000, 999999))}/${String(randInt(10, 99))}`,
-
-    pickupLocation: pickup,
-    pickupLocationDetail: null,
-    deliveryLocation: delivery,
-    deliveryLocationDetail: null,
-    requestedDateTime: getDateTimeLocal(now),
-    urgencyLevel,
-    vehicleType: choice(VEHICLE_TYPE_OPTIONS),
-    equipment,
-    hasVehicle: choice(["มี", "ไม่มี", ""] as const),
-    returnTrip: choice(["ไปส่งอย่างเดียว", "รับกลับด้วย", ""] as const),
-
-    transportReason: choice(TRANSPORT_REASON_OPTIONS),
-    specialNotes: Math.random() < 0.2 ? "เฝ้าระวัง O2 sat" : "",
-    patientCondition: PATIENT_CONDITION_OPTIONS.filter(
-      () => Math.random() > 0.5,
-    ),
-  };
-
-  return {
-    id,
-    status: "waiting",
-    form,
-  };
-}
-
-/**
- * Generate mock porter job items for testing
- */
-export function generateMockPorterJobs(count: number = 100): PorterJobItem[] {
-  const statuses: JobListTab[] = [
-    "waiting",
-    "in-progress",
-    "completed",
-    "cancelled",
-  ];
-
-  const randInt = (min: number, max: number) =>
-    Math.floor(Math.random() * (max - min + 1)) + min;
-  const choice = <T>(arr: readonly T[]): T => arr[randInt(0, arr.length - 1)];
-
-  let urgentCount = 0; // "ฉุกเฉิน" ไม่เกิน 5
-  let rushCount = 0; // "ด่วน" ไม่เกิน 10
-
-  const items: PorterJobItem[] = Array.from({ length: count }, (_, i) => {
-    const idx = i + 1;
-    const pickup = choice(LOCATION_OPTIONS);
-    let delivery = choice(LOCATION_OPTIONS);
-
-    // ตรวจสอบว่า pickup และ delivery ไม่เหมือนกัน
-    if (delivery === pickup) {
-      const available = LOCATION_OPTIONS.filter((loc) => loc !== pickup);
-
-      delivery = available.length > 0 ? choice(available) : pickup;
-    }
-
-    const now = new Date();
-
-    now.setHours(randInt(6, 21), randInt(0, 59), 0, 0);
-
-    // เลือก urgencyLevel โดยจำกัดจำนวน
-    let urgencyLevel: UrgencyLevel;
-    const availableOptions: UrgencyLevel[] = [];
-
-    if (urgentCount < 5) {
-      availableOptions.push("ฉุกเฉิน");
-    }
-    if (rushCount < 10) {
-      availableOptions.push("ด่วน");
-    }
-    availableOptions.push("ปกติ"); // "ปกติ" ไม่มีจำกัด
-
-    urgencyLevel = choice(availableOptions);
-
-    // อัพเดทตัวนับ
-    if (urgencyLevel === "ฉุกเฉิน") {
-      urgentCount++;
-    } else if (urgencyLevel === "ด่วน") {
-      rushCount++;
-    }
-
-    const equipmentCount = randInt(0, 3);
-    const equipment: EquipmentType[] = Array.from(
-      { length: equipmentCount },
-      () => choice(EQUIPMENT_OPTIONS),
-    ).filter((v, idx2, arr) => arr.indexOf(v) === idx2);
-
-    const form: PorterRequestFormData = {
-      requesterDepartment: choice(DEPARTMENT_OPTIONS),
-      requesterName: choice(SAMPLE_REQUESTER_NAMES),
-      requesterPhone: `08${randInt(10000000, 99999999)}`,
-
-      patientName: `ผู้ป่วย ${idx}`,
-      patientHN: `${String(randInt(100000, 999999))}/${String(
-        randInt(10, 99),
-      )}`,
-
-      pickupLocation: pickup,
-      pickupLocationDetail: null,
-      deliveryLocation: delivery,
-      deliveryLocationDetail: null,
-      requestedDateTime: getDateTimeLocal(now),
-      urgencyLevel,
-      vehicleType: choice(VEHICLE_TYPE_OPTIONS),
-      equipment,
-      hasVehicle: choice(["มี", "ไม่มี", ""] as const),
-      returnTrip: choice(["ไปส่งอย่างเดียว", "รับกลับด้วย", ""] as const),
-
-      transportReason: choice(TRANSPORT_REASON_OPTIONS),
-      specialNotes: Math.random() < 0.2 ? "เฝ้าระวัง O2 sat" : "",
-      patientCondition: PATIENT_CONDITION_OPTIONS.filter(
-        () => Math.random() > 0.5,
-      ),
-    };
-
-    return {
-      id: String(idx),
-      status: choice(statuses),
-      form,
-    };
-  });
-
-  return items;
 }
 
 /**
@@ -782,7 +472,7 @@ function mapEquipmentFromProto(
   // ถ้าเป็น number array (backward compatibility)
   if (equipment.length > 0 && typeof equipment[0] === "number") {
     const map: Record<number, EquipmentType> = {
-      0: "ถังออกซิเจน (ออกซิเจนCannula/mask with bag)",
+      0: "ถังออกซิเจน (ออกซิเจนCannula / mask with bag)",
       1: "เสาน้ำเกลือ",
       2: "กล่องวางขวด ICD",
       3: "ผ้าผูกตรึงร่างกาย",
@@ -796,17 +486,11 @@ function mapEquipmentFromProto(
 
   // ถ้าเป็น string array (รองรับทั้ง proto enum และ string ภาษาไทย)
   const map: Record<string, EquipmentType> = {
-    OXYGEN: "ถังออกซิเจน (ออกซิเจนCannula/mask with bag)",
+    OXYGEN: "ถังออกซิเจน (ออกซิเจนCannula / mask with bag)",
     SALINE_POLE: "เสาน้ำเกลือ",
     ICD_BOX: "กล่องวางขวด ICD",
     CLOTH_TIED: "ผ้าผูกตรึงร่างกาย",
     OTHER: "อื่นๆ ระบุ",
-    // Backward compatibility
-    TUBE: "กล่องวางขวด ICD",
-    IV_PUMP: "เสาน้ำเกลือ",
-    VENTILATOR: "ผ้าผูกตรึงร่างกาย",
-    MONITOR: "อื่นๆ ระบุ",
-    SUCTION: "อื่นๆ ระบุ",
   };
 
   return (equipment as string[])

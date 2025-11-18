@@ -21,7 +21,7 @@ export type UrgencyLevel = "ปกติ" | "ด่วน" | "ฉุกเฉิ
  * อุปกรณ์ที่ต้องการ
  */
 export type EquipmentType =
-  | "ถังออกซิเจน (ออกซิเจนCannula/mask with bag)"
+  | "ถังออกซิเจน (ออกซิเจนCannula / mask with bag)"
   | "เสาน้ำเกลือ"
   | "กล่องวางขวด ICD"
   | "ผ้าผูกตรึงร่างกาย"
@@ -109,6 +109,43 @@ export interface StaffMember {
   name: string;
   department?: string;
   title?: string;
+}
+
+/**
+ * Interface สำหรับประเภทการจ้าง
+ */
+export interface EmploymentType {
+  id: string;
+  name: string;
+  status: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Interface สำหรับตำแหน่ง
+ */
+export interface Position {
+  id: string;
+  name: string;
+  status: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Interface สำหรับข้อมูลเจ้าหน้าที่เปล
+ */
+export interface PorterEmployee {
+  id: string;
+  citizenId: string;
+  firstName: string;
+  lastName: string;
+  employmentType: string; // ชื่อ (สำหรับ backward compatibility)
+  employmentTypeId: string;
+  position: string; // ชื่อ (สำหรับ backward compatibility)
+  positionId: string;
+  status: boolean;
 }
 
 /**
