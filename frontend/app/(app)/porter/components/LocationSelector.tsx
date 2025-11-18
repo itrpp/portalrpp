@@ -64,9 +64,9 @@ export function LocationSelector({
         const result = await response.json();
 
         if (result.success && result.data) {
-          const convertedBuildings = result.data.map((b: any) =>
-            convertBuildingFromProto(b),
-          );
+          const convertedBuildings = result.data
+            .map((b: any) => convertBuildingFromProto(b))
+            .filter((building: Building) => building.status === true);
 
           setBuildings(convertedBuildings);
         }
@@ -98,9 +98,9 @@ export function LocationSelector({
         const result = await response.json();
 
         if (result.success && result.data) {
-          const convertedFloors = result.data.map((f: any) =>
-            convertFloorDepartmentFromProto(f),
-          );
+          const convertedFloors = result.data
+            .map((f: any) => convertFloorDepartmentFromProto(f))
+            .filter((floor: FloorDepartment) => floor.status === true);
 
           setFloors(convertedFloors);
         }
@@ -280,9 +280,14 @@ export function LocationSelector({
             }
           }}
         >
-          {floors.map((floor) => (
-            <SelectItem key={floor.id}>{floor.name}</SelectItem>
-          ))}
+          {floors.map((floor) => {
+            // สร้างชื่อที่แสดง โดยรวมชั้นและชื่อหน่วยงาน
+            const displayName = floor.floorNumber
+              ? `ชั้น ${floor.floorNumber} - ${floor.name}`
+              : floor.name;
+
+            return <SelectItem key={floor.id}>{displayName}</SelectItem>;
+          })}
         </Select>
 
         {/* เลือกห้อง/เตียง */}

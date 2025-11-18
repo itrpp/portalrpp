@@ -115,6 +115,7 @@ model Building {
   id        String   @id @default(cuid())
   name      String   @db.VarChar(200)
   floorCount Int?    // จำนวนชั้น
+  status    Boolean  @default(true) // true = ใช้งาน, false = ไม่ใช้งาน
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -122,6 +123,7 @@ model Building {
   floors FloorDepartment[]
 
   @@index([name])
+  @@index([status])
 }
 
 /**
@@ -132,6 +134,7 @@ model FloorDepartment {
   name      String   @db.VarChar(200)
   buildingId String
   floorNumber Int?   // หมายเลขชั้น
+  status    Boolean  @default(true) // true = ใช้งาน, false = ไม่ใช้งาน
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -156,6 +159,7 @@ model FloorDepartment {
 
   @@index([buildingId])
   @@index([departmentType])
+  @@index([status])
 }
 
 // ========================================

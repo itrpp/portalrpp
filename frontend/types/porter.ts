@@ -215,6 +215,7 @@ export interface FloorDepartment {
   roomType?: number; // ประเภทห้องพัก (ID: 1 = "ห้องพิเศษ", 2 = "ห้องรวม", 3 = "ห้องพิเศษและห้องรวม")
   roomCount?: number; // จำนวนห้อง (ถ้ามี)
   bedCount?: number; // จำนวนเตียง (ถ้ามี)
+  status: boolean; // true = ใช้งาน, false = ไม่ใช้งาน
   rooms?: RoomBed[]; // ถ้ามีห้อง/เตียง (สำหรับ backward compatibility)
 }
 
@@ -225,6 +226,7 @@ export interface Building {
   id: string;
   name: string;
   floorCount?: number; // จำนวนชั้น
+  status: boolean; // true = ใช้งาน, false = ไม่ใช้งาน
   floors: FloorDepartment[];
 }
 

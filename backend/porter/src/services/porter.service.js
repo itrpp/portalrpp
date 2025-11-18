@@ -423,11 +423,12 @@ function convertToProtoResponse(porterRequest) {
  * สร้าง Building ใหม่
  */
 export const createBuilding = async (requestData) => {
-  const { id, name, floor_count } = requestData;
+  const { id, name, floor_count, status } = requestData;
 
   const createData = {
     name: name.trim(),
     floorCount: floor_count ?? null,
+    status: status !== undefined ? status : true,
   };
 
   // ถ้ามี id ที่ระบุมา ให้ใช้ id นั้น (สำหรับ custom ID)
@@ -509,6 +510,9 @@ export const updateBuilding = async (id, updateData) => {
   if (updateData.floor_count !== undefined) {
     data.floorCount = updateData.floor_count ?? null;
   }
+  if (updateData.status !== undefined) {
+    data.status = updateData.status;
+  }
 
   const building = await prisma.building.update({
     where: { id },
@@ -545,6 +549,7 @@ export const createFloorDepartment = async (requestData) => {
     room_type,
     room_count,
     bed_count,
+    status,
   } = requestData;
 
   const createData = {
@@ -555,6 +560,7 @@ export const createFloorDepartment = async (requestData) => {
     roomType: room_type ?? null,
     roomCount: room_count ?? null,
     bedCount: bed_count ?? null,
+    status: status !== undefined ? status : true,
   };
 
   // ถ้ามี id ที่ระบุมา ให้ใช้ id นั้น (สำหรับ custom ID)
@@ -651,10 +657,15 @@ export const updateFloorDepartment = async (id, updateData) => {
     data.roomType = updateData.room_type ?? null;
   }
   if (updateData.room_count !== undefined) {
-    data.roomCount = updateData.room_count ?? null;
+    // ถ้าเป็น 0 ให้ set เป็น null เพื่อลบข้อมูล (proto3 ไม่รองรับ null โดยตรง)
+    data.roomCount = updateData.room_count === 0 ? null : (updateData.room_count ?? null);
   }
   if (updateData.bed_count !== undefined) {
-    data.bedCount = updateData.bed_count ?? null;
+    // ถ้าเป็น 0 ให้ set เป็น null เพื่อลบข้อมูล (proto3 ไม่รองรับ null โดยตรง)
+    data.bedCount = updateData.bed_count === 0 ? null : (updateData.bed_count ?? null);
+  }
+  if (updateData.status !== undefined) {
+    data.status = updateData.status;
   }
 
   const floorDepartment = await prisma.floorDepartment.update({
@@ -685,6 +696,7 @@ function convertBuildingToProto(building) {
     id: building.id,
     name: building.name,
     floor_count: building.floorCount ?? undefined,
+    status: building.status,
     created_at: building.createdAt.toISOString(),
     updated_at: building.updatedAt.toISOString(),
     floors: building.floors?.map((f) => convertFloorDepartmentToProto(f)) || [],
@@ -704,6 +716,7 @@ function convertFloorDepartmentToProto(floorDepartment) {
     room_type: floorDepartment.roomType || undefined,
     room_count: floorDepartment.roomCount ?? undefined,
     bed_count: floorDepartment.bedCount ?? undefined,
+    status: floorDepartment.status,
     created_at: floorDepartment.createdAt.toISOString(),
     updated_at: floorDepartment.updatedAt.toISOString(),
     rooms: [], // RoomBed model ถูกลบออกแล้ว ใช้ API แยกสำหรับดึงข้อมูลห้อง/เตียง

@@ -94,6 +94,10 @@ export async function PUT(
     if (requestData.floorCount !== undefined) {
       protoRequest.floor_count = requestData.floorCount;
     }
+    // ถ้ามี status ที่ระบุมา
+    if (requestData.status !== undefined) {
+      protoRequest.status = requestData.status;
+    }
 
     // เรียก gRPC service
     const response = await callPorterService<any>(
