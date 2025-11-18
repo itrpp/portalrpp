@@ -17,6 +17,7 @@ interface CancelJobModalProps {
   isOpen: boolean;
   isSubmitting?: boolean;
   cancelReason: string;
+  errorMessage?: string;
   onClose: () => void;
   onConfirm: () => void;
   onCancelReasonChange: (reason: string) => void;
@@ -29,6 +30,7 @@ export default function CancelJobModal({
   isOpen,
   isSubmitting = false,
   cancelReason,
+  errorMessage,
   onClose,
   onConfirm,
   onCancelReasonChange,
@@ -63,8 +65,10 @@ export default function CancelJobModal({
             </div>
             <div>
               <Textarea
-                label="เหตุผลการยกเลิก (ไม่บังคับ)"
-                placeholder="ระบุเหตุผลการยกเลิกงาน (ถ้ามี)"
+                isRequired
+                errorMessage={errorMessage}
+                label="เหตุผลการยกเลิก"
+                placeholder="ระบุเหตุผลการยกเลิกงาน"
                 value={cancelReason}
                 variant="bordered"
                 onChange={(e) => onCancelReasonChange(e.target.value)}
@@ -78,7 +82,7 @@ export default function CancelJobModal({
           </Button>
           <Button
             color="danger"
-            isDisabled={isSubmitting}
+            isDisabled={isSubmitting || !cancelReason.trim()}
             isLoading={isSubmitting}
             startContent={<XMarkIcon className="w-4 h-4" />}
             onPress={onConfirm}
