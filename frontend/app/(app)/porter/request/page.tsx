@@ -103,6 +103,7 @@ export default function PorterRequestPage() {
     null,
   );
   const [cancelReason, setCancelReason] = useState<string>("");
+  const [cancelReasonError, setCancelReasonError] = useState<string>("");
   const [isCancelling, setIsCancelling] = useState(false);
   const {
     isOpen: isCancelModalOpen,
@@ -140,9 +141,20 @@ export default function PorterRequestPage() {
 
       if (result.success && result.data) {
         // กรองเฉพาะคำขอที่อยู่ในสถานะ waiting และ in-progress
+        // และเป็นคำขอที่ user ปัจจุบันสร้างขึ้นเท่านั้น
         const filteredRequests = (result.data as PorterJobItem[]).filter(
-          (request) =>
-            request.status === "waiting" || request.status === "in-progress",
+          (request) => {
+            // ตรวจสอบสถานะ
+            const hasValidStatus =
+              request.status === "waiting" || request.status === "in-progress";
+
+            // ตรวจสอบว่าเป็นคำขอที่ user ปัจจุบันสร้างขึ้น
+            // โดยเปรียบเทียบชื่อผู้แจ้งกับชื่อ user ปัจจุบัน
+            const isUserRequest =
+              request.form.requesterName === session.user.name;
+
+            return hasValidStatus && isUserRequest;
+          },
         );
 
         // จัดเรียงตาม urgency level และเวลา
@@ -597,6 +609,7 @@ export default function PorterRequestPage() {
   const handleOpenCancelModal = (requestId: string) => {
     setSelectedRequestId(requestId);
     setCancelReason("");
+    setCancelReasonError("");
     onCancelModalOpen();
   };
 
@@ -606,6 +619,14 @@ export default function PorterRequestPage() {
       return;
     }
 
+    // Validate cancelReason
+    if (!cancelReason.trim()) {
+      setCancelReasonError("กรุณาระบุเหตุผลการยกเลิกงาน");
+
+      return;
+    }
+
+    setCancelReasonError("");
     setIsCancelling(true);
 
     try {
@@ -633,6 +654,7 @@ export default function PorterRequestPage() {
         onCancelModalClose();
         setSelectedRequestId(null);
         setCancelReason("");
+        setCancelReasonError("");
 
         // Refresh รายการคำขอหลังจากยกเลิกสำเร็จ
         fetchUserRequests();
@@ -1359,9 +1381,16 @@ export default function PorterRequestPage() {
       {/* Cancel Confirmation Modal */}
       <CancelJobModal
         cancelReason={cancelReason}
+        errorMessage={cancelReasonError}
         isOpen={isCancelModalOpen}
         isSubmitting={isCancelling}
-        onCancelReasonChange={setCancelReason}
+        onCancelReasonChange={(reason) => {
+          setCancelReason(reason);
+          // ล้าง error เมื่อผู้ใช้เริ่มกรอกข้อมูล
+          if (cancelReasonError) {
+            setCancelReasonError("");
+          }
+        }}
         onClose={onCancelModalClose}
         onConfirm={handleCancelJob}
       />

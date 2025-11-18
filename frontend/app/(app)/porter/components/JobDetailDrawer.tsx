@@ -100,6 +100,7 @@ export default function JobDetailDrawer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string>("");
   const [cancelReason, setCancelReason] = useState<string>("");
+  const [cancelReasonError, setCancelReasonError] = useState<string>("");
   const {
     isOpen: isCancelModalOpen,
     onOpen: onCancelModalOpen,
@@ -220,32 +221,45 @@ export default function JobDetailDrawer({
   const handleCancelJob = () => {
     // เปิด Modal confirm
     setCancelReason("");
+    setCancelReasonError("");
     onCancelModalOpen();
   };
 
   const handleConfirmCancel = async () => {
-    if (onCancelJob) {
-      setIsSubmitting(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        onCancelJob(job.id, cancelReason.trim() || undefined);
-        addToast({
-          title: "ยกเลิกงานสำเร็จ",
-          description: "งานนี้ได้ถูกยกเลิกเรียบร้อยแล้ว",
-          color: "warning",
-        });
-        onCancelModalClose();
-        setCancelReason("");
-        onClose();
-      } catch {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถยกเลิกงานได้",
-          color: "danger",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
+    if (!onCancelJob) {
+      return;
+    }
+
+    // Validate cancelReason
+    if (!cancelReason.trim()) {
+      setCancelReasonError("กรุณาระบุเหตุผลการยกเลิกงาน");
+
+      return;
+    }
+
+    setCancelReasonError("");
+    setIsSubmitting(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      onCancelJob(job.id, cancelReason.trim());
+      addToast({
+        title: "ยกเลิกงานสำเร็จ",
+        description: "งานนี้ได้ถูกยกเลิกเรียบร้อยแล้ว",
+        color: "warning",
+      });
+      onCancelModalClose();
+      setCancelReason("");
+      setCancelReasonError("");
+      onClose();
+    } catch {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถยกเลิกงานได้",
+        color: "danger",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1159,9 +1173,16 @@ export default function JobDetailDrawer({
       {/* Cancel Confirmation Modal */}
       <CancelJobModal
         cancelReason={cancelReason}
+        errorMessage={cancelReasonError}
         isOpen={isCancelModalOpen}
         isSubmitting={isSubmitting}
-        onCancelReasonChange={setCancelReason}
+        onCancelReasonChange={(reason) => {
+          setCancelReason(reason);
+          // ล้าง error เมื่อผู้ใช้เริ่มกรอกข้อมูล
+          if (cancelReasonError) {
+            setCancelReasonError("");
+          }
+        }}
         onClose={onCancelModalClose}
         onConfirm={handleConfirmCancel}
       />

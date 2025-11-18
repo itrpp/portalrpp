@@ -374,7 +374,7 @@ export default function PorterJobListPage() {
                         setSelectedJob(data);
                       }
 
-                      // แสดง toast notification และเล่นเสียงสำหรับ status change
+                      // แสดง toast notification สำหรับ status change
                       if (type === "STATUS_CHANGED") {
                         const urgencyLevel = data.form
                           ?.urgencyLevel as UrgencyLevel;
@@ -388,8 +388,6 @@ export default function PorterJobListPage() {
                                 : "ยกเลิก";
 
                         if (urgencyLevel === "ฉุกเฉิน") {
-                          // UrgencyLevel ฉุกเฉิน - เล่นเสียงไซเรน
-                          playSirenSound();
                           addToast({
                             title: "สถานะเปลี่ยน - ฉุกเฉิน",
                             description: `สถานะของคำขอฉุกเฉิน (HN: ${data.form?.patientHN || "ไม่ระบุ"}) เปลี่ยนเป็น ${statusText}`,
@@ -399,9 +397,6 @@ export default function PorterJobListPage() {
                           urgencyLevel === "ด่วน" ||
                           urgencyLevel === "ปกติ"
                         ) {
-                          // UrgencyLevel ปกติ, ด่วน - เล่นเสียงแจ้งเตือน
-                          playNotificationSound();
-
                           const urgencyText =
                             urgencyLevel === "ด่วน" ? "ด่วน" : "ปกติ";
 
@@ -413,7 +408,6 @@ export default function PorterJobListPage() {
                           });
                         } else {
                           // กรณีไม่มี UrgencyLevel หรือไม่ทราบค่า
-                          playNotificationSound();
                           addToast({
                             title: "สถานะเปลี่ยน",
                             description: `สถานะของคำขอ ${data.form?.patientHN || "ไม่ระบุ"} เปลี่ยนเป็น ${statusText}`,
