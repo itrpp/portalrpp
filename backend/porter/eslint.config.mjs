@@ -1,33 +1,37 @@
+import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
-export default [
+export default tseslint.config(
   {
-    ignores: ['node_modules', 'dist', 'coverage', 'prisma/generated']
+    ignores: ['dist', 'node_modules', 'coverage', 'prisma/generated']
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.ts']
+  },
+  {
     languageOptions: {
+      parser: tseslint.parser,
       globals: {
-        ...globals.node,
-        ...globals.es2021
+        ...globals.node
       },
       ecmaVersion: 2022,
       sourceType: 'module'
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin
     },
     rules: {
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
       'no-var': 'error',
       'prefer-const': 'error',
-      'no-unused-vars': [
+      '@typescript-eslint/no-unused-vars': [
         'error',
         {
           argsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
           varsIgnorePattern: '^_'
         }
-      ],
-      'no-undef': 'error'
+      ]
     }
   }
-];
+);
 
