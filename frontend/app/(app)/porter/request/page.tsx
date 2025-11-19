@@ -53,6 +53,7 @@ import {
   ClipboardListIcon,
   XMarkIcon,
   PencilIcon,
+  MagnifyingGlassIcon,
 } from "@/components/ui/icons";
 
 // ========================================
@@ -97,6 +98,9 @@ export default function PorterRequestPage() {
   // State สำหรับรายการคำขอ
   const [userRequests, setUserRequests] = useState<PorterJobItem[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+
+  // State สำหรับค้นหาข้อมูลผู้ป่วย
+  const [isLoadingPatient, setIsLoadingPatient] = useState(false);
 
   // State สำหรับยกเลิกงาน
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
@@ -593,6 +597,84 @@ export default function PorterRequestPage() {
     }
   };
 
+  // Handler สำหรับค้นหาข้อมูลผู้ป่วยจาก HN/AN
+  const handleSearchPatient = async () => {
+    if (!formData.patientHN || !formData.patientHN.trim()) {
+      addToast({
+        title: "ข้อมูลไม่ครบถ้วน",
+        description: "กรุณากรอกหมายเลข HN / AN",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    setIsLoadingPatient(true);
+
+    try {
+      const response = await fetch("/api/porter/patient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientHN: formData.patientHN.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        throw new Error(
+          errorData.message || `HTTP ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const patientData = result.data;
+
+        // นำ PNAME + FNAME + LNAME มาใส่ใน patientName
+        const patientName = [
+          patientData.PNAME || "",
+          patientData.FNAME || "",
+          patientData.LNAME || "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        if (patientName) {
+          handleInputChange("patientName", patientName);
+          addToast({
+            title: "ค้นหาสำเร็จ",
+            description: "พบข้อมูลผู้ป่วยและเติมชื่ออัตโนมัติแล้ว",
+            color: "success",
+          });
+        } else {
+          addToast({
+            title: "ไม่พบข้อมูล",
+            description: "ไม่พบชื่อผู้ป่วยในระบบ",
+            color: "warning",
+          });
+        }
+      } else {
+        throw new Error(result.message || "ไม่พบข้อมูลผู้ป่วย");
+      }
+    } catch (error: any) {
+      console.error("Error searching patient:", error);
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description:
+          error.message ||
+          "ไม่สามารถค้นหาข้อมูลผู้ป่วยได้ กรุณาลองใหม่อีกครั้ง",
+        color: "danger",
+      });
+    } finally {
+      setIsLoadingPatient(false);
+    }
+  };
+
   // Get CalendarDateTime value for DatePicker
   const getDateTimeValue = (): CalendarDateTime => {
     return stringToCalendarDateTime(formData.requestedDateTime);
@@ -784,6 +866,18 @@ export default function PorterRequestPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   isRequired
+                  endContent={
+                    <Button
+                      isIconOnly
+                      isDisabled={isLoadingPatient}
+                      isLoading={isLoadingPatient}
+                      size="sm"
+                      variant="flat"
+                      onPress={handleSearchPatient}
+                    >
+                      <MagnifyingGlassIcon className="w-4 h-4 text-default-400" />
+                    </Button>
+                  }
                   label="หมายเลข HN / AN"
                   name="patientHN"
                   placeholder="เช่น 123456/68"

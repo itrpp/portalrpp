@@ -764,6 +764,19 @@ export const PencilIcon = (props: IconProps) => (
   />
 );
 
+export const MagnifyingGlassIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:search"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
 // Backward compatibility - ยังคง export Icons object สำหรับการใช้งานแบบเดิม
 export const Icons = {
   home: HomeIcon,

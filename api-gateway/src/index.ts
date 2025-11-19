@@ -9,6 +9,7 @@ import { errorHandler } from './middlewares/error';
 import { healthRouter } from './routes/health';
 import { proxyRouter } from './routes/proxy';
 import { porterRouter } from './routes/porter';
+import { ephisRouter } from './routes/ephis';
 import { config } from './config/env';
 import { setupGracefulShutdown } from './utils/shutdown';
 
@@ -30,6 +31,7 @@ app.use(apiRateLimiter);
 app.use('/api-gateway', healthRouter);
 app.use('/api-gateway', proxyRouter);
 app.use('/api-gateway/porter', porterRouter);
+app.use('/api-gateway/ephis', ephisRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Not Found' });

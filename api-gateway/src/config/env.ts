@@ -13,7 +13,10 @@ const EnvSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   REVENUE_SERVICE_URL: z.string().url().optional(),
   PORTER_SERVICE_GRPC_URL: z.string().optional(),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').default('your-super-secret-key-change-this-in-production')
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').default('your-super-secret-key-change-this-in-production'),
+  EPHIS_API_BASE_URL: z.string().url().optional(),
+  EPHIS_API_USER: z.string().optional(),
+  EPHIS_API_PASSWORD: z.string().optional()
 });
 
 type Env = z.infer<typeof EnvSchema>;
@@ -32,6 +35,7 @@ export type AppConfig = {
   services: {
     revenue?: { baseUrl: string };
     porter?: { grpcUrl: string };
+    ephis?: { baseUrl: string; user: string; password: string };
   };
   jwt: {
     secret: string;
@@ -61,6 +65,13 @@ export const config: AppConfig = {
       : undefined,
     porter: parsed.PORTER_SERVICE_GRPC_URL
       ? { grpcUrl: parsed.PORTER_SERVICE_GRPC_URL }
+      : undefined,
+    ephis: parsed.EPHIS_API_BASE_URL && parsed.EPHIS_API_USER && parsed.EPHIS_API_PASSWORD
+      ? {
+          baseUrl: parsed.EPHIS_API_BASE_URL,
+          user: parsed.EPHIS_API_USER,
+          password: parsed.EPHIS_API_PASSWORD
+        }
       : undefined
   },
   jwt: {
