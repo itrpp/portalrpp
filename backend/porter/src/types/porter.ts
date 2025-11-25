@@ -34,6 +34,7 @@ export interface PorterRequestMessage {
   requester_department: string;
   requester_name: string;
   requester_phone: string;
+  requester_user_id: string;
   patient_name: string;
   patient_hn: string;
   patient_condition?: string;
@@ -72,6 +73,7 @@ export interface CreatePorterRequestInput {
   requester_department: string;
   requester_name: string;
   requester_phone: string;
+  requester_user_id: string;
   patient_name: string;
   patient_hn: string;
   patient_condition?: string | string[] | null;
@@ -97,6 +99,7 @@ export interface CreatePorterRequestInput {
 export interface ListPorterRequestsFilters {
   status?: PorterStatus | number | null;
   urgency_level?: UrgencyLevel | number | null;
+  requester_user_id?: string | null;
   assigned_to_id?: string | null;
   page?: number;
   page_size?: number;
@@ -134,6 +137,7 @@ export interface UpdatePorterRequestStatusInput {
   status: PorterStatus | number;
   assigned_to_id?: string;
   cancelled_reason?: string;
+  cancelled_by_id?: string;
 }
 
 export interface UpdatePorterRequestTimestampsInput {

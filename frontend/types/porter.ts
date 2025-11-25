@@ -77,6 +77,8 @@ export interface PorterJobItem {
   completedAt?: string; // ISO 8601 format - เวลาที่เสร็จสิ้น
   cancelledAt?: string; // ISO 8601 format - เวลาที่ยกเลิก
   cancelledReason?: string; // เหตุผลการยกเลิก
+  cancelledById?: string; // ID ของผู้ยกเลิก
+  cancelledByName?: string; // ชื่อของผู้ยกเลิก (Populate จาก User ID)
   pickupAt?: string; // ISO 8601 format - เวลาที่ถึงจุดรับ
   deliveryAt?: string; // ISO 8601 format - เวลาที่ถึงจุดส่ง
   returnAt?: string; // ISO 8601 format - เวลาที่ถึงจุดส่งกลับ

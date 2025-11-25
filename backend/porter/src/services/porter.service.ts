@@ -67,6 +67,7 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     requester_department,
     requester_name,
     requester_phone,
+    requester_user_id,
     patient_name,
     patient_hn,
     patient_condition,
@@ -93,6 +94,7 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     requesterDepartment: requester_department,
     requesterName: requester_name,
     requesterPhone: requester_phone,
+    requesterUserID: requester_user_id,
     patientName: patient_name,
     patientHN: patient_hn,
     patientCondition: patientConditionValue,
@@ -154,7 +156,7 @@ export const getPorterRequestById = async (id: string): Promise<PorterRequestMes
 export const listPorterRequests = async (
   filters: ListPorterRequestsFilters
 ): Promise<PaginationResult<PorterRequestMessage>> => {
-  const { status, urgency_level, assigned_to_id, page = 1, page_size = 20 } = filters;
+  const { status, urgency_level, requester_user_id, assigned_to_id, page = 1, page_size = 20 } = filters;
 
   const where: Prisma.PorterRequestWhereInput = {};
 
@@ -163,6 +165,9 @@ export const listPorterRequests = async (
   }
   if (urgency_level !== undefined && urgency_level !== null) {
     where.urgencyLevel = mapUrgencyLevelToPrisma(urgency_level);
+  }
+  if (requester_user_id) {
+    where.requesterUserID = requester_user_id;
   }
   if (assigned_to_id) {
     where.assignedToId = assigned_to_id;
@@ -333,7 +338,7 @@ export const updatePorterRequestStatus = async (
   id: string,
   statusData: Omit<UpdatePorterRequestStatusInput, 'id'>
 ): Promise<PorterRequestMessage> => {
-  const { status, assigned_to_id, cancelled_reason } = statusData;
+  const { status, assigned_to_id, cancelled_reason, cancelled_by_id } = statusData;
   const newStatus = mapStatusToPrisma(status);
 
   const oldRequest = await prisma.porterRequest.findUnique({ where: { id } });
@@ -351,6 +356,9 @@ export const updatePorterRequestStatus = async (
     data.cancelledAt = new Date();
     if (cancelled_reason) {
       data.cancelledReason = cancelled_reason;
+    }
+    if (cancelled_by_id) {
+      data.cancelledById = cancelled_by_id;
     }
   }
 
@@ -916,6 +924,7 @@ const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): 
     requester_department: porterRequest.requesterDepartment,
     requester_name: porterRequest.requesterName,
     requester_phone: porterRequest.requesterPhone,
+    requester_user_id: porterRequest.requesterUserID,
     patient_name: porterRequest.patientName,
     patient_hn: porterRequest.patientHN,
     patient_condition: formatPatientCondition(porterRequest.patientCondition),
@@ -945,6 +954,7 @@ const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): 
     completed_at: porterRequest.completedAt?.toISOString() || undefined,
     cancelled_at: porterRequest.cancelledAt?.toISOString() || undefined,
     cancelled_reason: porterRequest.cancelledReason || undefined,
+    cancelled_by_id: porterRequest.cancelledById || undefined,
     pickup_at: porterRequest.pickupAt?.toISOString() || undefined,
     delivery_at: porterRequest.deliveryAt?.toISOString() || undefined,
     return_at: porterRequest.returnAt?.toISOString() || undefined

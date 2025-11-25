@@ -440,7 +440,7 @@ export default function JobDetailDrawer({
                 </CardHeader>
                 <CardBody className="pt-4">
                   {Array.isArray(formData.patientCondition) &&
-                  formData.patientCondition.length > 0 ? (
+                    formData.patientCondition.length > 0 ? (
                     <div className="space-y-2">
                       {formData.patientCondition.map((condition) => (
                         <div
@@ -495,9 +495,9 @@ export default function JobDetailDrawer({
                             setFormData((prev) =>
                               prev
                                 ? {
-                                    ...prev,
-                                    pickupLocationDetail: location,
-                                  }
+                                  ...prev,
+                                  pickupLocationDetail: location,
+                                }
                                 : null,
                             );
                           }}
@@ -511,9 +511,9 @@ export default function JobDetailDrawer({
                             setFormData((prev) =>
                               prev
                                 ? {
-                                    ...prev,
-                                    deliveryLocationDetail: location,
-                                  }
+                                  ...prev,
+                                  deliveryLocationDetail: location,
+                                }
                                 : null,
                             );
                           }}
@@ -606,7 +606,7 @@ export default function JobDetailDrawer({
                               isDisabled={!canEdit || !isEditMode}
                               startContent={
                                 option.value === "ฉุกเฉิน" ||
-                                option.value === "ด่วน" ? (
+                                  option.value === "ด่วน" ? (
                                   <AmbulanceIcon className="w-4 h-4" />
                                 ) : (
                                   <ClipboardListIcon className="w-4 h-4" />
@@ -916,32 +916,29 @@ export default function JobDetailDrawer({
                     <div className="space-y-3">
                       {formData.urgencyLevel && (
                         <div
-                          className={`rounded-lg p-4 border ${
-                            formData.urgencyLevel === "ฉุกเฉิน"
+                          className={`rounded-lg p-4 border ${formData.urgencyLevel === "ฉุกเฉิน"
                               ? "bg-danger-50 dark:bg-danger-50/20 border-danger-200"
                               : formData.urgencyLevel === "ด่วน"
                                 ? "bg-warning-50 dark:bg-warning-50/20 border-warning-200"
                                 : "bg-success-50 dark:bg-success-50/20 border-success-200"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start gap-3">
                             <div
-                              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
-                                formData.urgencyLevel === "ฉุกเฉิน"
+                              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${formData.urgencyLevel === "ฉุกเฉิน"
                                   ? "bg-danger-100 dark:bg-danger-500/30"
                                   : formData.urgencyLevel === "ด่วน"
                                     ? "bg-warning-100 dark:bg-warning-500/30"
                                     : "bg-success-100 dark:bg-success-500/30"
-                              }`}
+                                }`}
                             >
                               {formData.urgencyLevel === "ฉุกเฉิน" ||
-                              formData.urgencyLevel === "ด่วน" ? (
+                                formData.urgencyLevel === "ด่วน" ? (
                                 <AmbulanceIcon
-                                  className={`w-5 h-5 ${
-                                    formData.urgencyLevel === "ฉุกเฉิน"
+                                  className={`w-5 h-5 ${formData.urgencyLevel === "ฉุกเฉิน"
                                       ? "text-danger-600 dark:text-danger-400"
                                       : "text-warning-600 dark:text-warning-400"
-                                  }`}
+                                    }`}
                                 />
                               ) : (
                                 <ClockIcon className="w-5 h-5 text-success-600 dark:text-success-400" />
@@ -962,7 +959,7 @@ export default function JobDetailDrawer({
                                 size="sm"
                                 startContent={
                                   formData.urgencyLevel === "ฉุกเฉิน" ||
-                                  formData.urgencyLevel === "ด่วน" ? (
+                                    formData.urgencyLevel === "ด่วน" ? (
                                     <AmbulanceIcon className="w-3 h-3" />
                                   ) : null
                                 }
@@ -1059,6 +1056,24 @@ export default function JobDetailDrawer({
                                   </Chip>
                                 ))}
                               </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.specialNotes && (
+                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
+                              <DocumentTextIcon className="w-5 h-5 text-default-600 dark:text-default-700" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
+                                รายละเอียดเพิ่มเติม
+                              </div>
+                              <p className="text-sm font-medium text-foreground whitespace-pre-wrap">
+                                {formData.specialNotes}
+                              </p>
                             </div>
                           </div>
                         </div>

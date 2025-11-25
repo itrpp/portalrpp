@@ -4,12 +4,10 @@ import { PorterJobItem } from "@/types/porter";
 
 interface UseUserRequestsOptions {
   userId?: string;
-  requesterName?: string | null;
 }
 
 export function useUserRequests({
   userId,
-  requesterName,
 }: UseUserRequestsOptions) {
   const [userRequests, setUserRequests] = useState<PorterJobItem[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
@@ -42,10 +40,8 @@ export function useUserRequests({
           (request) => {
             const statusAllowed =
               request.status === "waiting" || request.status === "in-progress";
-            const isUserOwner =
-              requesterName && request.form.requesterName === requesterName;
 
-            return statusAllowed && isUserOwner;
+            return statusAllowed;
           },
         );
 
@@ -75,7 +71,7 @@ export function useUserRequests({
     } finally {
       setIsLoadingRequests(false);
     }
-  }, [userId, requesterName]);
+  }, [userId]);
 
   useEffect(() => {
     fetchUserRequests();

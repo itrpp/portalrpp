@@ -23,6 +23,7 @@ model PorterRequest {
   requesterDepartment String
   requesterName       String
   requesterPhone      String @db.VarChar(20)
+  requesterUserID     String @map("requester_user_id")
 
   /// Patient Information
   patientName     String
@@ -59,6 +60,7 @@ model PorterRequest {
   completedAt DateTime?
   cancelledAt DateTime?
   cancelledReason String? @db.Text
+  cancelledById String? @db.VarChar(200)
 
   pickupAt   DateTime?
   deliveryAt DateTime?

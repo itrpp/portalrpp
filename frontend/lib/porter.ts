@@ -610,6 +610,8 @@ export function convertProtoToFrontend(protoData: any): PorterJobItem {
     cancelledAt: protoData.cancelled_at || protoData.cancelledAt || undefined,
     cancelledReason:
       protoData.cancelled_reason || protoData.cancelledReason || undefined,
+    cancelledById:
+      protoData.cancelled_by_id || protoData.cancelledById || undefined,
     pickupAt: protoData.pickup_at || protoData.pickupAt || undefined,
     deliveryAt: protoData.delivery_at || protoData.deliveryAt || undefined,
     returnAt: protoData.return_at || protoData.returnAt || undefined,

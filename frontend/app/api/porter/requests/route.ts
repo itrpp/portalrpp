@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { callPorterService } from "@/lib/grpcClient";
+import { prisma } from "@/lib/prisma";
 import {
   mapStatusToProto,
   mapUrgencyLevelToProto,
@@ -71,10 +72,39 @@ export async function GET(request: Request) {
     );
 
     if (response.success) {
-      // แปลงข้อมูลจาก Proto format เป็น Frontend format
-      const frontendData = (response.data || []).map((item: any) =>
+      let frontendData = (response.data || []).map((item: any) =>
         convertProtoToFrontend(item),
       );
+
+      // ดึงข้อมูลชื่อผู้ยกเลิก (CancelledBy) จาก User table
+      const cancelledUserIds = frontendData
+        .filter((item: any) => item.status === "cancelled" && item.cancelledById)
+        .map((item: any) => item.cancelledById)
+        .filter((id: any, index: any, self: any) => self.indexOf(id) === index); // unique ids
+
+      if (cancelledUserIds.length > 0) {
+        const users = await prisma.user.findMany({
+          where: {
+            id: { in: cancelledUserIds },
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+
+        const userMap = new Map(users.map((u) => [u.id, u.name]));
+
+        frontendData = frontendData.map((item: any) => {
+          if (item.status === "cancelled" && item.cancelledById) {
+            return {
+              ...item,
+              cancelledByName: userMap.get(item.cancelledById) || undefined,
+            };
+          }
+          return item;
+        });
+      }
 
       return NextResponse.json(
         {
@@ -170,6 +200,7 @@ export async function POST(request: Request) {
       requester_department: requestData.requesterDepartment,
       requester_name: requestData.requesterName,
       requester_phone: requestData.requesterPhone,
+      requester_user_id: session.user.id,
 
       patient_name: requestData.patientName,
       patient_hn: requestData.patientHN,

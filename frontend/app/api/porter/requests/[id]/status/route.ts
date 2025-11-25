@@ -41,6 +41,11 @@ export async function PUT(
     }
     if (requestData.cancelledReason) {
       protoRequest.cancelled_reason = requestData.cancelledReason;
+      
+      // เพิ่มข้อมูลผู้ยกเลิก ถ้ามี session
+      if (session?.user?.id) {
+        protoRequest.cancelled_by_id = session.user.id;
+      }
     }
 
     // เรียก gRPC service

@@ -51,7 +51,9 @@ export const renderStatusChip = (job: PorterJobItem) => {
   }
 
   if (job.status === "cancelled") {
-    const label = job.assignedTo ? `ยกเลิก [ID: ${job.assignedTo}]` : "ยกเลิก";
+    const staffInfo =
+      job.cancelledByName || (job.cancelledById ? `ID: ${job.cancelledById}` : "");
+    const label = staffInfo ? `ยกเลิก [${staffInfo}]` : "ยกเลิก";
 
     return (
       <Chip color="danger" size="sm" variant="flat">

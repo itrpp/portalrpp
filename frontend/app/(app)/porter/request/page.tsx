@@ -77,7 +77,6 @@ export default function PorterRequestPage() {
   const { userRequests, isLoadingRequests, refreshUserRequests } =
     useUserRequests({
       userId: session?.user?.id,
-      requesterName: session?.user?.name || null,
     });
 
   // State สำหรับค้นหาข้อมูลผู้ป่วย
