@@ -40,10 +40,6 @@ import {
 } from "@/types/porter";
 import { convertBuildingFromProto } from "@/lib/porter";
 
-// ========================================
-// LOCATION SETTINGS PAGE
-// ========================================
-
 /**
  * Modal สำหรับเพิ่ม/แก้ไขอาคาร
  */
@@ -1012,94 +1008,96 @@ export default function LocationSettingsPage() {
                 <p>กำลังโหลดข้อมูล...</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {buildings.map((building) => (
-                  <div
-                    key={building.id}
-                    className={`cursor-pointer transition-all border rounded-lg ${
-                      selectedBuildingId === building.id
-                        ? "border-primary bg-primary-50 dark:bg-primary-900/20"
-                        : "border-default-200 hover:border-primary-300"
-                    }`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleSelectBuilding(building)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleSelectBuilding(building);
-                      }
-                    }}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <BuildingOfficeIcon
-                              className={`w-5 h-5 ${
-                                selectedBuildingId === building.id
-                                  ? "text-primary"
-                                  : "text-default-500"
-                              }`}
-                            />
-                            <span
-                              className={`font-medium ${
-                                selectedBuildingId === building.id
-                                  ? "text-primary"
-                                  : "text-foreground"
-                              }`}
-                            >
-                              {building.name}
-                            </span>
-                            <Chip
-                              color={building.status ? "success" : "default"}
-                              size="sm"
-                              variant="flat"
-                            >
-                              {building.status ? "ใช้งาน" : "ไม่ใช้งาน"}
-                            </Chip>
+              <ScrollShadow className="h-[600px]">
+                <div className="space-y-2 pb-2">
+                  {buildings.map((building) => (
+                    <div
+                      key={building.id}
+                      className={`cursor-pointer transition-all border rounded-lg ${
+                        selectedBuildingId === building.id
+                          ? "border-primary bg-primary-50 dark:bg-primary-900/20"
+                          : "border-default-200 hover:border-primary-300"
+                      }`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleSelectBuilding(building)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleSelectBuilding(building);
+                        }
+                      }}
+                    >
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <BuildingOfficeIcon
+                                className={`w-5 h-5 ${
+                                  selectedBuildingId === building.id
+                                    ? "text-primary"
+                                    : "text-default-500"
+                                }`}
+                              />
+                              <span
+                                className={`font-medium ${
+                                  selectedBuildingId === building.id
+                                    ? "text-primary"
+                                    : "text-foreground"
+                                }`}
+                              >
+                                {building.name}
+                              </span>
+                              <Chip
+                                color={building.status ? "success" : "default"}
+                                size="sm"
+                                variant="flat"
+                              >
+                                {building.status ? "ใช้งาน" : "ไม่ใช้งาน"}
+                              </Chip>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex gap-1" role="group">
-                          <Button
-                            isIconOnly
-                            color="primary"
-                            isDisabled={
-                              isDeletingBuilding === building.id ||
-                              isSavingBuilding
-                            }
-                            size="sm"
-                            variant="light"
-                            onPress={() => handleEditBuilding(building)}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            isIconOnly
-                            color="danger"
-                            isDisabled={isDeletingBuilding === building.id}
-                            isLoading={isDeletingBuilding === building.id}
-                            size="sm"
-                            variant="light"
-                            onPress={() => handleDeleteBuilding(building.id)}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </Button>
+                          <div className="flex gap-1" role="group">
+                            <Button
+                              isIconOnly
+                              color="primary"
+                              isDisabled={
+                                isDeletingBuilding === building.id ||
+                                isSavingBuilding
+                              }
+                              size="sm"
+                              variant="light"
+                              onPress={() => handleEditBuilding(building)}
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              isIconOnly
+                              color="danger"
+                              isDisabled={isDeletingBuilding === building.id}
+                              isLoading={isDeletingBuilding === building.id}
+                              size="sm"
+                              variant="light"
+                              onPress={() => handleDeleteBuilding(building.id)}
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {buildings.length === 0 && (
-                  <div className="text-center py-8 text-default-500">
-                    <BuildingOfficeIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>ยังไม่มีข้อมูลอาคาร</p>
-                    <p className="text-sm">
-                      คลิกปุ่ม &quot;เพิ่มอาคาร&quot; เพื่อเพิ่มข้อมูล
-                    </p>
-                  </div>
-                )}
-              </div>
+                  ))}
+                  {buildings.length === 0 && (
+                    <div className="text-center py-8 text-default-500">
+                      <BuildingOfficeIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>ยังไม่มีข้อมูลอาคาร</p>
+                      <p className="text-sm">
+                        คลิกปุ่ม &quot;เพิ่มอาคาร&quot; เพื่อเพิ่มข้อมูล
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </ScrollShadow>
             )}
           </CardBody>
         </Card>
@@ -1146,8 +1144,8 @@ export default function LocationSettingsPage() {
           </CardHeader>
           <CardBody className="pt-4">
             {selectedBuilding ? (
-              <ScrollShadow className="max-h-[calc(70vh-120px)]">
-                <div className="space-y-2">
+              <ScrollShadow className="h-[600px]">
+                <div className="space-y-2 pb-2">
                   {[...selectedBuilding.floors]
                     .sort((a, b) => {
                       // เรียงตาม floorNumber จากมากไปน้อย

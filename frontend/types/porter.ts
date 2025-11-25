@@ -41,9 +41,7 @@ export interface PorterRequestFormData {
   patientHN: string;
 
   // ข้อมูลการเคลื่อนย้าย
-  pickupLocation: string; // เก็บเป็น string สำหรับ backward compatibility
   pickupLocationDetail: DetailedLocation | null; // ข้อมูลสถานที่รับแบบละเอียด
-  deliveryLocation: string; // เก็บเป็น string สำหรับ backward compatibility
   deliveryLocationDetail: DetailedLocation | null; // ข้อมูลสถานที่ส่งแบบละเอียด
   requestedDateTime: string;
   urgencyLevel: UrgencyLevel | "";
@@ -72,6 +70,7 @@ export interface PorterJobItem {
   status: JobListTab;
   form: PorterRequestFormData;
   assignedTo?: string; // ID ของผู้ดำเนินการ
+  assignedToName?: string; // ชื่อของผู้ดำเนินการ
   createdAt?: string; // ISO 8601 format
   updatedAt?: string; // ISO 8601 format
   acceptedAt?: string; // ISO 8601 format - เวลาที่รับงาน
@@ -236,8 +235,8 @@ export interface Building {
 export interface DetailedLocation {
   buildingId: string;
   buildingName: string;
-  floorDepartmentId: string;
-  floorDepartmentName: string;
+  floorDepartmentId?: string;
+  floorDepartmentName?: string;
   roomBedId?: string;
   roomBedName?: string;
 }

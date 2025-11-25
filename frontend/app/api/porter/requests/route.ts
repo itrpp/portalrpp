@@ -179,18 +179,16 @@ export async function POST(request: Request) {
           ? requestData.patientCondition.join(", ")
           : null,
 
-      pickup_location: requestData.pickupLocation,
       pickup_building_id: requestData.pickupLocationDetail?.buildingId || null,
       pickup_floor_department_id:
-        requestData.pickupLocationDetail?.floorDepartmentId || null,
+        requestData.pickupLocationDetail?.floorDepartmentId || "",
       pickup_room_bed_name:
         requestData.pickupLocationDetail?.roomBedName || null,
 
-      delivery_location: requestData.deliveryLocation,
       delivery_building_id:
         requestData.deliveryLocationDetail?.buildingId || null,
       delivery_floor_department_id:
-        requestData.deliveryLocationDetail?.floorDepartmentId || null,
+        requestData.deliveryLocationDetail?.floorDepartmentId || "",
       delivery_room_bed_name:
         requestData.deliveryLocationDetail?.roomBedName || null,
 

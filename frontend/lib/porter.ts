@@ -62,11 +62,12 @@ export const PATIENT_CONDITION_OPTIONS = [
  */
 export const TRANSPORT_REASON_OPTIONS = [
   "รับผู้ป่วยเข้าหอผู้ป่วย (Admission)",
-  "ส่งผู้ป่วยไปตรวจวินิจฉัย (X-Ray/CT/MRI/US/Echo/Lab)",
+  "เคลื่อนย้ายต่างหน่วยงาน (ส่งผู้ป่วยไปหน่วยงานอื่น)",
+  "เคลื่อนย้ายภายในหน่วยงาน (เปลี่ยนเตียง/เคลื่อนเข้าห้องแยก)",
+  "ส่งผู้ป่วยไปตรวจวินิจฉัย (ปรึกษาทางคลินิก/X-Ray/CT/MRI/US/Echo/Lab)",
   "ส่งผู้ป่วยไปห้องผ่าตัด/ทำหัตถการ ",
   "ส่งผู้ป่วยกลับหอผู้ป่วย/กลับบ้าน (Discharge)",
   "ส่งผู้ป่วย Refer ไปสถานพยาบาลอื่น/ศูนย์เวชศาสตร์เมืองราชพิพัฒน์ฯ",
-  "เคลื่อนย้ายภายในหน่วยงาน (เปลี่ยนเตียง/เคลื่อนเข้าห้องแยก)",
 ] as const;
 
 /**
@@ -124,13 +125,8 @@ export function validateField(
     case "patientHN":
       return !stringValue ? "กรุณากรอกหมายเลข HN" : undefined;
 
-    case "pickupLocation":
-      // Validate ผ่าน pickupLocationDetail แทน
-      return !stringValue ? "กรุณาระบุสถานที่รับ" : undefined;
-
-    case "deliveryLocation":
-      // Validate ผ่าน deliveryLocationDetail แทน
-      return !stringValue ? "กรุณาระบุสถานที่ส่ง" : undefined;
+    case "patientHN":
+      return !stringValue ? "กรุณากรอกหมายเลข HN" : undefined;
 
     case "requestedDateTime":
       return !stringValue
@@ -172,8 +168,8 @@ export function validateForm(data: PorterRequestFormData): {
     "requesterPhone",
     "patientName",
     "patientHN",
-    "pickupLocation",
-    "deliveryLocation",
+    "patientName",
+    "patientHN",
     "requestedDateTime",
     "transportReason",
     "urgencyLevel",
@@ -183,31 +179,32 @@ export function validateForm(data: PorterRequestFormData): {
   ];
 
   requiredFields.forEach((field) => {
-    // ตรวจสอบสถานที่ผ่าน Detail แทน string
-    if (field === "pickupLocation") {
-      const error = !data.pickupLocationDetail
-        ? "กรุณาระบุสถานที่รับ"
-        : undefined;
+    const error = validateField(field, data[field]);
 
-      if (error) {
-        newErrors[field] = error;
-      }
-    } else if (field === "deliveryLocation") {
-      const error = !data.deliveryLocationDetail
-        ? "กรุณาระบุสถานที่ส่ง"
-        : undefined;
-
-      if (error) {
-        newErrors[field] = error;
-      }
-    } else {
-      const error = validateField(field, data[field]);
-
-      if (error) {
-        newErrors[field] = error;
-      }
+    if (error) {
+      newErrors[field] = error;
     }
   });
+
+  // Validate Pickup Location
+  if (!data.pickupLocationDetail) {
+    newErrors["pickupLocation"] = "กรุณาระบุสถานที่รับ";
+  }
+
+  // Validate Delivery Location
+  if (!data.deliveryLocationDetail) {
+    newErrors["deliveryLocation"] = "กรุณาระบุสถานที่ส่ง";
+  } else {
+    const delivery = data.deliveryLocationDetail;
+
+    if (delivery.buildingName === "โรงพยาบาลอื่น") {
+      // Strict check on specialNotes for "Other Hospital"
+      if (!data.specialNotes || !data.specialNotes.trim()) {
+        newErrors["specialNotes"] =
+          "กรุณาระบุชื่อโรงพยาบาลปลายทางในช่องรายละเอียดเพิ่มเติม";
+      }
+    }
+  }
 
   return {
     isValid: Object.keys(newErrors).length === 0,
@@ -512,56 +509,110 @@ function mapEquipmentFromProto(
  * แปลงข้อมูลจาก Proto format เป็น Frontend format
  */
 export function convertProtoToFrontend(protoData: any): PorterJobItem {
+  if (!protoData) {
+    throw new Error("protoData is null or undefined");
+  }
+
   return {
     id: protoData.id,
     status: mapStatusFromProto(protoData.status),
     form: {
-      requesterDepartment: protoData.requester_department,
-      requesterName: protoData.requester_name,
-      requesterPhone: protoData.requester_phone,
-      patientName: protoData.patient_name,
-      patientHN: protoData.patient_hn,
-      pickupLocation: protoData.pickup_location,
-      pickupLocationDetail: protoData.pickup_building_id
-        ? {
-            buildingId: protoData.pickup_building_id,
-            buildingName: "", // ต้องดึงจาก API แยก
-            floorDepartmentId: protoData.pickup_floor_department_id,
-            floorDepartmentName: "", // ต้องดึงจาก API แยก
-            roomBedId: undefined, // ไม่มีใน proto แล้ว
-            roomBedName: protoData.pickup_room_bed_name || undefined,
-          }
-        : null,
-      deliveryLocation: protoData.delivery_location,
-      deliveryLocationDetail: protoData.delivery_building_id
-        ? {
-            buildingId: protoData.delivery_building_id,
-            buildingName: "", // ต้องดึงจาก API แยก
-            floorDepartmentId: protoData.delivery_floor_department_id,
-            floorDepartmentName: "", // ต้องดึงจาก API แยก
-            roomBedId: undefined, // ไม่มีใน proto แล้ว
-            roomBedName: protoData.delivery_room_bed_name || undefined,
-          }
-        : null,
-      requestedDateTime: protoData.requested_date_time,
-      urgencyLevel: mapUrgencyLevelFromProto(protoData.urgency_level),
-      vehicleType: mapVehicleTypeFromProto(protoData.vehicle_type),
-      hasVehicle: mapHasVehicleFromProto(protoData.has_vehicle),
-      returnTrip: mapReturnTripFromProto(protoData.return_trip),
-      transportReason: protoData.transport_reason,
+      requesterDepartment:
+        protoData.requester_department || protoData.requesterDepartment || "",
+      requesterName: protoData.requester_name || protoData.requesterName || "",
+      requesterPhone:
+        protoData.requester_phone || protoData.requesterPhone || "",
+      patientName: protoData.patient_name || protoData.patientName || "",
+      patientHN: protoData.patient_hn || protoData.patientHN || "",
+      pickupLocationDetail:
+        protoData.pickup_building_id || protoData.pickupBuildingId
+          ? {
+              buildingId:
+                protoData.pickup_building_id || protoData.pickupBuildingId,
+              buildingName:
+                protoData.pickup_building_name ||
+                protoData.pickupBuildingName ||
+                "",
+              floorDepartmentId:
+                protoData.pickup_floor_department_id ||
+                protoData.pickupFloorDepartmentId,
+              floorDepartmentName:
+                protoData.pickup_floor_department_name ||
+                protoData.pickupFloorDepartmentName ||
+                "",
+              roomBedId: undefined, // ไม่มีใน proto แล้ว
+              roomBedName:
+                protoData.pickup_room_bed_name ||
+                protoData.pickupRoomBedName ||
+                undefined,
+            }
+          : null,
+      deliveryLocationDetail:
+        protoData.delivery_building_id || protoData.deliveryBuildingId
+          ? {
+              buildingId:
+                protoData.delivery_building_id || protoData.deliveryBuildingId,
+              buildingName:
+                protoData.delivery_building_name ||
+                protoData.deliveryBuildingName ||
+                "",
+              floorDepartmentId:
+                protoData.delivery_floor_department_id ||
+                protoData.deliveryFloorDepartmentId,
+              floorDepartmentName:
+                protoData.delivery_floor_department_name ||
+                protoData.deliveryFloorDepartmentName ||
+                "",
+              roomBedId: undefined, // ไม่มีใน proto แล้ว
+              roomBedName:
+                protoData.delivery_room_bed_name ||
+                protoData.deliveryRoomBedName ||
+                undefined,
+            }
+          : null,
+      requestedDateTime:
+        protoData.requested_date_time || protoData.requestedDateTime || "",
+      urgencyLevel: mapUrgencyLevelFromProto(
+        protoData.urgency_level || protoData.urgencyLevel,
+      ),
+      vehicleType: mapVehicleTypeFromProto(
+        protoData.vehicle_type || protoData.vehicleType,
+      ),
+      hasVehicle: mapHasVehicleFromProto(
+        protoData.has_vehicle || protoData.hasVehicle,
+      ),
+      returnTrip: mapReturnTripFromProto(
+        protoData.return_trip || protoData.returnTrip,
+      ),
+      transportReason:
+        protoData.transport_reason || protoData.transportReason || "",
       equipment: mapEquipmentFromProto(protoData.equipment || []),
-      equipmentOther: protoData.equipment_other || undefined,
-      specialNotes: protoData.special_notes || "",
+      equipmentOther:
+        protoData.equipment_other || protoData.equipmentOther || undefined,
+      specialNotes: protoData.special_notes || protoData.specialNotes || "",
       patientCondition: Array.isArray(protoData.patient_condition)
         ? protoData.patient_condition
         : protoData.patient_condition
           ? protoData.patient_condition.split(", ").filter(Boolean)
-          : [],
+          : Array.isArray(protoData.patientCondition)
+            ? protoData.patientCondition
+            : protoData.patientCondition
+              ? protoData.patientCondition.split(", ").filter(Boolean)
+              : [],
     },
-    assignedTo: protoData.assigned_to_id || undefined,
-    createdAt: protoData.created_at || undefined,
-    updatedAt: protoData.updated_at || undefined,
-    returnAt: protoData.return_at || undefined,
+    assignedTo: protoData.assigned_to_id || protoData.assignedToId || undefined,
+    assignedToName:
+      protoData.assigned_to_name || protoData.assignedToName || undefined,
+    createdAt: protoData.created_at || protoData.createdAt || undefined,
+    updatedAt: protoData.updated_at || protoData.updatedAt || undefined,
+    acceptedAt: protoData.accepted_at || protoData.acceptedAt || undefined,
+    completedAt: protoData.completed_at || protoData.completedAt || undefined,
+    cancelledAt: protoData.cancelled_at || protoData.cancelledAt || undefined,
+    cancelledReason:
+      protoData.cancelled_reason || protoData.cancelledReason || undefined,
+    pickupAt: protoData.pickup_at || protoData.pickupAt || undefined,
+    deliveryAt: protoData.delivery_at || protoData.deliveryAt || undefined,
+    returnAt: protoData.return_at || protoData.returnAt || undefined,
   };
 }
 

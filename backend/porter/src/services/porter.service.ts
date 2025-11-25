@@ -45,7 +45,6 @@ import {
   HealthCheckResult
 } from '../types/porter';
 
-type PorterRequestEntity = PorterRequest;
 type BuildingWithFloors = Prisma.BuildingGetPayload<{ include: { floors: true } }>;
 type FloorDepartmentEntity = FloorDepartment;
 type PorterEmployeeWithRelations = PorterEmployee & {
@@ -53,10 +52,15 @@ type PorterEmployeeWithRelations = PorterEmployee & {
   position?: Position | null;
 };
 
-/**
- * Porter Service
- * จัดการ business logic และ database operations สำหรับ Porter Request
- */
+type PorterRequestWithLocationNames = PorterRequest & {
+  pickupBuildingName?: string;
+  pickupFloorDepartmentName?: string;
+  deliveryBuildingName?: string;
+  deliveryFloorDepartmentName?: string;
+  assignedToName?: string;
+};
+
+/** Porter Service: รวม business logic และ database operations สำหรับ Porter */
 
 export const createPorterRequest = async (requestData: CreatePorterRequestInput): Promise<PorterRequestMessage> => {
   const {
@@ -66,11 +70,9 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     patient_name,
     patient_hn,
     patient_condition,
-    pickup_location,
     pickup_building_id,
     pickup_floor_department_id,
     pickup_room_bed_name,
-    delivery_location,
     delivery_building_id,
     delivery_floor_department_id,
     delivery_room_bed_name,
@@ -94,11 +96,9 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     patientName: patient_name,
     patientHN: patient_hn,
     patientCondition: patientConditionValue,
-    pickupLocation: pickup_location,
     pickupBuildingId: pickup_building_id,
     pickupFloorDepartmentId: pickup_floor_department_id,
     pickupRoomBedName: pickup_room_bed_name ?? null,
-    deliveryLocation: delivery_location,
     deliveryBuildingId: delivery_building_id,
     deliveryFloorDepartmentId: delivery_floor_department_id,
     deliveryRoomBedName: delivery_room_bed_name ?? null,
@@ -123,7 +123,32 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
 
 export const getPorterRequestById = async (id: string): Promise<PorterRequestMessage | null> => {
   const porterRequest = await prisma.porterRequest.findUnique({ where: { id } });
-  return porterRequest ? convertToProtoResponse(porterRequest) : null;
+  if (!porterRequest) return null;
+
+  // Fetch building and floor department names
+  const [pickupBuilding, pickupFloorDepartment, deliveryBuilding, deliveryFloorDepartment, assignedEmployee] = await Promise.all([
+    prisma.building.findUnique({ where: { id: porterRequest.pickupBuildingId }, select: { name: true } }),
+    prisma.floorDepartment.findUnique({ where: { id: porterRequest.pickupFloorDepartmentId }, select: { name: true } }),
+    prisma.building.findUnique({ where: { id: porterRequest.deliveryBuildingId }, select: { name: true } }),
+    prisma.floorDepartment.findUnique({ where: { id: porterRequest.deliveryFloorDepartmentId }, select: { name: true } }),
+    porterRequest.assignedToId
+      ? prisma.porterEmployee.findUnique({
+          where: { id: porterRequest.assignedToId },
+          select: { firstName: true, lastName: true }
+        })
+      : Promise.resolve(null)
+  ]);
+
+  const requestWithNames: PorterRequestWithLocationNames = {
+    ...porterRequest,
+    pickupBuildingName: pickupBuilding?.name,
+    pickupFloorDepartmentName: pickupFloorDepartment?.name,
+    deliveryBuildingName: deliveryBuilding?.name,
+    deliveryFloorDepartmentName: deliveryFloorDepartment?.name,
+    assignedToName: assignedEmployee ? `${assignedEmployee.firstName} ${assignedEmployee.lastName}` : undefined
+  };
+
+  return convertToProtoResponse(requestWithNames);
 };
 
 export const listPorterRequests = async (
@@ -155,8 +180,56 @@ export const listPorterRequests = async (
     prisma.porterRequest.count({ where })
   ]);
 
+  // Fetch all unique building and floor department IDs
+  const buildingIds = new Set<string>();
+  const floorDepartmentIds = new Set<string>();
+  const employeeIds = new Set<string>();
+
+  porterRequests.forEach(req => {
+    buildingIds.add(req.pickupBuildingId);
+    buildingIds.add(req.deliveryBuildingId);
+    floorDepartmentIds.add(req.pickupFloorDepartmentId);
+    floorDepartmentIds.add(req.deliveryFloorDepartmentId);
+    if (req.assignedToId) {
+      employeeIds.add(req.assignedToId);
+    }
+  });
+
+  // Fetch all buildings and floor departments in parallel
+  const [buildings, floorDepartments, employees] = await Promise.all([
+    prisma.building.findMany({
+      where: { id: { in: Array.from(buildingIds) } },
+      select: { id: true, name: true }
+    }),
+    prisma.floorDepartment.findMany({
+      where: { id: { in: Array.from(floorDepartmentIds) } },
+      select: { id: true, name: true }
+    }),
+    prisma.porterEmployee.findMany({
+      where: { id: { in: Array.from(employeeIds) } },
+      select: { id: true, firstName: true, lastName: true }
+    })
+  ]);
+
+  // Create lookup maps
+  const buildingMap = new Map(buildings.map(b => [b.id, b.name]));
+  const floorDepartmentMap = new Map(floorDepartments.map(f => [f.id, f.name]));
+  const employeeMap = new Map(
+    employees.map(e => [e.id, `${e.firstName} ${e.lastName}`])
+  );
+
+  // Enrich porter requests with location names
+  const requestsWithNames: PorterRequestWithLocationNames[] = porterRequests.map(req => ({
+    ...req,
+    pickupBuildingName: buildingMap.get(req.pickupBuildingId),
+    pickupFloorDepartmentName: floorDepartmentMap.get(req.pickupFloorDepartmentId),
+    deliveryBuildingName: buildingMap.get(req.deliveryBuildingId),
+    deliveryFloorDepartmentName: floorDepartmentMap.get(req.deliveryFloorDepartmentId),
+    assignedToName: req.assignedToId ? employeeMap.get(req.assignedToId) : undefined
+  }));
+
   return {
-    data: porterRequests.map(convertToProtoResponse),
+    data: requestsWithNames.map(convertToProtoResponse),
     total,
     page,
     page_size
@@ -187,25 +260,19 @@ export const updatePorterRequest = async (
   if (updateData.patient_condition !== undefined) {
     data.patientCondition = normalizePatientCondition(updateData.patient_condition);
   }
-  if (updateData.pickup_location) {
-    data.pickupLocation = updateData.pickup_location;
-  }
   if (updateData.pickup_building_id) {
     data.pickupBuildingId = updateData.pickup_building_id;
   }
-  if (updateData.pickup_floor_department_id) {
+  if (updateData.pickup_floor_department_id !== undefined) {
     data.pickupFloorDepartmentId = updateData.pickup_floor_department_id;
   }
   if (updateData.pickup_room_bed_name !== undefined) {
     data.pickupRoomBedName = updateData.pickup_room_bed_name ?? null;
   }
-  if (updateData.delivery_location) {
-    data.deliveryLocation = updateData.delivery_location;
-  }
   if (updateData.delivery_building_id) {
     data.deliveryBuildingId = updateData.delivery_building_id;
   }
-  if (updateData.delivery_floor_department_id) {
+  if (updateData.delivery_floor_department_id !== undefined) {
     data.deliveryFloorDepartmentId = updateData.delivery_floor_department_id;
   }
   if (updateData.delivery_room_bed_name !== undefined) {
@@ -245,7 +312,18 @@ export const updatePorterRequest = async (
     data
   });
 
-  const protoResponse = convertToProtoResponse(porterRequest);
+  let assignedToName: string | undefined;
+  if (porterRequest.assignedToId) {
+    const employee = await prisma.porterEmployee.findUnique({
+      where: { id: porterRequest.assignedToId },
+      select: { firstName: true, lastName: true }
+    });
+    if (employee) {
+      assignedToName = `${employee.firstName} ${employee.lastName}`;
+    }
+  }
+
+  const protoResponse = convertToProtoResponse({ ...porterRequest, assignedToName });
   porterEventEmitter.emit('porterRequestUpdated', protoResponse);
 
   return protoResponse;
@@ -285,7 +363,18 @@ export const updatePorterRequestStatus = async (
     data
   });
 
-  const protoResponse = convertToProtoResponse(porterRequest);
+  let assignedToName: string | undefined;
+  if (porterRequest.assignedToId) {
+    const employee = await prisma.porterEmployee.findUnique({
+      where: { id: porterRequest.assignedToId },
+      select: { firstName: true, lastName: true }
+    });
+    if (employee) {
+      assignedToName = `${employee.firstName} ${employee.lastName}`;
+    }
+  }
+
+  const protoResponse = convertToProtoResponse({ ...porterRequest, assignedToName });
 
   if (oldStatus !== newStatus) {
     porterEventEmitter.emit('porterRequestStatusChanged', protoResponse);
@@ -345,9 +434,7 @@ export const healthCheck = async (): Promise<HealthCheckResult> => {
   };
 };
 
-// ========================================
-// LOCATION SETTINGS SERVICE
-// ========================================
+// ----- Location Settings Service -----
 
 export const createBuilding = async (requestData: CreateBuildingInput): Promise<BuildingMessage> => {
   const { id, name, floor_count, status } = requestData;
@@ -573,9 +660,7 @@ export const deleteFloorDepartment = async (id: string): Promise<void> => {
   await prisma.floorDepartment.delete({ where: { id } });
 };
 
-// ========================================
-// EMPLOYEE MANAGEMENT SERVICE
-// ========================================
+// ----- Employee Management Service -----
 
 export const createEmployee = async (requestData: CreateEmployeeInput): Promise<PorterEmployeeMessage> => {
   const { citizen_id, first_name, last_name, employment_type_id, position_id, status } = requestData;
@@ -691,9 +776,7 @@ export const deleteEmployee = async (id: string): Promise<void> => {
   await prisma.porterEmployee.delete({ where: { id } });
 };
 
-// ========================================
-// EMPLOYMENT TYPE MANAGEMENT SERVICE
-// ========================================
+// ----- Employment Type Management Service -----
 
 export const createEmploymentType = async (
   requestData: CreateEmploymentTypeInput
@@ -750,9 +833,7 @@ export const deleteEmploymentType = async (id: string): Promise<void> => {
   await prisma.employmentType.delete({ where: { id } });
 };
 
-// ========================================
-// POSITION MANAGEMENT SERVICE
-// ========================================
+// ----- Position Management Service -----
 
 export const createPosition = async (requestData: CreatePositionInput): Promise<PositionMessage> => {
   const { name, status = true } = requestData;
@@ -807,9 +888,7 @@ export const deletePosition = async (id: string): Promise<void> => {
   await prisma.position.delete({ where: { id } });
 };
 
-// ========================================
-// Helper functions
-// ========================================
+// ----- Helper functions -----
 
 const normalizePatientCondition = (
   value: string | string[] | null | undefined
@@ -829,43 +908,50 @@ const normalizePatientCondition = (
   return Prisma.DbNull;
 };
 
-const convertToProtoResponse = (porterRequest: PorterRequestEntity): PorterRequestMessage => ({
-  id: porterRequest.id,
-  created_at: porterRequest.createdAt.toISOString(),
-  updated_at: porterRequest.updatedAt.toISOString(),
-  requester_department: porterRequest.requesterDepartment,
-  requester_name: porterRequest.requesterName,
-  requester_phone: porterRequest.requesterPhone,
-  patient_name: porterRequest.patientName,
-  patient_hn: porterRequest.patientHN,
-  patient_condition: formatPatientCondition(porterRequest.patientCondition),
-  pickup_location: porterRequest.pickupLocation,
-  pickup_building_id: porterRequest.pickupBuildingId,
-  pickup_floor_department_id: porterRequest.pickupFloorDepartmentId,
-  pickup_room_bed_name: porterRequest.pickupRoomBedName || undefined,
-  delivery_location: porterRequest.deliveryLocation,
-  delivery_building_id: porterRequest.deliveryBuildingId,
-  delivery_floor_department_id: porterRequest.deliveryFloorDepartmentId,
-  delivery_room_bed_name: porterRequest.deliveryRoomBedName || undefined,
-  requested_date_time: porterRequest.requestedDateTime.toISOString(),
-  urgency_level: mapUrgencyLevelToProto(porterRequest.urgencyLevel),
-  vehicle_type: mapVehicleTypeToProto(porterRequest.vehicleType),
-  has_vehicle: mapHasVehicleToProto(porterRequest.hasVehicle),
-  return_trip: mapReturnTripToProto(porterRequest.returnTrip),
-  transport_reason: porterRequest.transportReason,
-  equipment: mapEquipmentToProto(porterRequest.equipment as string | Equipment[] | null),
-  equipment_other: porterRequest.equipmentOther || undefined,
-  special_notes: porterRequest.specialNotes || undefined,
-  status: mapStatusToProto(porterRequest.status),
-  assigned_to_id: porterRequest.assignedToId || undefined,
-  accepted_at: porterRequest.acceptedAt?.toISOString() || undefined,
-  completed_at: porterRequest.completedAt?.toISOString() || undefined,
-  cancelled_at: porterRequest.cancelledAt?.toISOString() || undefined,
-  cancelled_reason: porterRequest.cancelledReason || undefined,
-  pickup_at: porterRequest.pickupAt?.toISOString() || undefined,
-  delivery_at: porterRequest.deliveryAt?.toISOString() || undefined,
-  return_at: porterRequest.returnAt?.toISOString() || undefined
-});
+const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): PorterRequestMessage => {
+  const result = {
+    id: porterRequest.id,
+    created_at: porterRequest.createdAt.toISOString(),
+    updated_at: porterRequest.updatedAt.toISOString(),
+    requester_department: porterRequest.requesterDepartment,
+    requester_name: porterRequest.requesterName,
+    requester_phone: porterRequest.requesterPhone,
+    patient_name: porterRequest.patientName,
+    patient_hn: porterRequest.patientHN,
+    patient_condition: formatPatientCondition(porterRequest.patientCondition),
+    pickup_building_id: porterRequest.pickupBuildingId,
+    pickup_building_name: porterRequest.pickupBuildingName || undefined,
+    pickup_floor_department_id: porterRequest.pickupFloorDepartmentId,
+    pickup_floor_department_name: porterRequest.pickupFloorDepartmentName || undefined,
+    pickup_room_bed_name: porterRequest.pickupRoomBedName || undefined,
+    delivery_building_id: porterRequest.deliveryBuildingId,
+    delivery_building_name: porterRequest.deliveryBuildingName || undefined,
+    delivery_floor_department_id: porterRequest.deliveryFloorDepartmentId,
+    delivery_floor_department_name: porterRequest.deliveryFloorDepartmentName || undefined,
+    delivery_room_bed_name: porterRequest.deliveryRoomBedName || undefined,
+    requested_date_time: porterRequest.requestedDateTime.toISOString(),
+    urgency_level: mapUrgencyLevelToProto(porterRequest.urgencyLevel),
+    vehicle_type: mapVehicleTypeToProto(porterRequest.vehicleType),
+    has_vehicle: mapHasVehicleToProto(porterRequest.hasVehicle),
+    return_trip: mapReturnTripToProto(porterRequest.returnTrip),
+    transport_reason: porterRequest.transportReason,
+    equipment: mapEquipmentToProto(porterRequest.equipment as string | Equipment[] | null),
+    equipment_other: porterRequest.equipmentOther || undefined,
+    special_notes: porterRequest.specialNotes || undefined,
+    status: mapStatusToProto(porterRequest.status),
+    assigned_to_id: porterRequest.assignedToId || undefined,
+    assigned_to_name: porterRequest.assignedToName || undefined,
+    accepted_at: porterRequest.acceptedAt?.toISOString() || undefined,
+    completed_at: porterRequest.completedAt?.toISOString() || undefined,
+    cancelled_at: porterRequest.cancelledAt?.toISOString() || undefined,
+    cancelled_reason: porterRequest.cancelledReason || undefined,
+    pickup_at: porterRequest.pickupAt?.toISOString() || undefined,
+    delivery_at: porterRequest.deliveryAt?.toISOString() || undefined,
+    return_at: porterRequest.returnAt?.toISOString() || undefined
+  };
+
+  return result;
+};
 
 const formatPatientCondition = (value: Prisma.JsonValue | null): string | undefined => {
   if (!value) {

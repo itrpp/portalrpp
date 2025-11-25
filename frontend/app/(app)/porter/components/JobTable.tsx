@@ -12,8 +12,14 @@ import {
   TableRow,
 } from "@heroui/react";
 
+import {
+  buildMetaChipData,
+  getUrgencyStyle,
+  renderStatusChip,
+} from "./helpers/jobPresentation";
+
 import { formatThaiDateTimeShort } from "@/lib/utils";
-import { JobTableProps } from "@/types/porter";
+import { JobTableProps, formatLocationString } from "@/types/porter";
 
 export default function JobTable({
   items,
@@ -55,15 +61,8 @@ export default function JobTable({
             <TableRow key={item.id}>
               <TableCell>
                 <div
-                  className={`w-full rounded-md border ${
-                    item.form.urgencyLevel === "ฉุกเฉิน"
-                      ? "bg-danger-50/30 border-danger-200"
-                      : item.form.urgencyLevel === "ด่วน"
-                        ? "bg-warning-50/30 border-warning-200"
-                        : "bg-content1 border-default-200"
-                  } p-3`}
+                  className={`w-full rounded-md border ${getUrgencyStyle(item.form.urgencyLevel).containerClass} p-3`}
                 >
-                  {/* แถวบน: เวลาและแถบ tags หลัก */}
                   <div className="flex items-center gap-2 text-sm">
                     <Chip color="success" size="sm" variant="dot">
                       {formatThaiDateTimeShort(
@@ -73,9 +72,7 @@ export default function JobTable({
                     {item.form.urgencyLevel !== "ปกติ" && (
                       <Chip
                         color={
-                          item.form.urgencyLevel === "ฉุกเฉิน"
-                            ? "danger"
-                            : "warning"
+                          getUrgencyStyle(item.form.urgencyLevel).chipColor
                         }
                         size="sm"
                         variant="flat"
@@ -84,10 +81,10 @@ export default function JobTable({
                       </Chip>
                     )}
                     <span className="text-default-700 font-medium">
-                      {`รับผู้ป่วยจาก ${item.form.pickupLocation}`}
+                      {`รับผู้ป่วยจาก ${formatLocationString(item.form.pickupLocationDetail)}`}
                     </span>
                     <span className="text-default-700 font-medium">
-                      ➜ {item.form.deliveryLocation}
+                      ➜ {formatLocationString(item.form.deliveryLocationDetail)}
                     </span>
 
                     <Chip color="default" size="sm" variant="bordered">
@@ -95,51 +92,14 @@ export default function JobTable({
                     </Chip>
                   </div>
 
-                  {/* แถวล่าง: สถานะ + ปุ่มการจัดการ */}
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <div>
-                      {item.status === "in-progress" && (
-                        <Chip color="warning" size="sm" variant="flat">
-                          {item.assignedTo
-                            ? `กำลังดำเนินการ [ID: ${item.assignedTo}]`
-                            : "กำลังดำเนินการ"}
-                        </Chip>
-                      )}
-                      {item.status === "completed" && (
-                        <Chip color="success" size="sm" variant="flat">
-                          เสร็จสิ้น
-                        </Chip>
-                      )}
-                      {item.status === "cancelled" && (
-                        <Chip color="danger" size="sm" variant="flat">
-                          {item.assignedTo
-                            ? `ยกเลิก [ID: ${item.assignedTo}]`
-                            : "ยกเลิก"}
-                        </Chip>
-                      )}
-                    </div>
+                    <div>{renderStatusChip(item)}</div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-default-600">
-                      <Chip size="sm" variant="flat">
-                        {item.form.requesterDepartment}
-                      </Chip>
-                      <Chip size="sm" variant="flat">
-                        {item.form.vehicleType}
-                      </Chip>
-                      {item.form.hasVehicle && (
-                        <Chip size="sm" variant="flat">
-                          {`มีรถแล้ว: ${item.form.hasVehicle}`}
+                      {buildMetaChipData(item).map((label) => (
+                        <Chip key={label} size="sm" variant="flat">
+                          {label}
                         </Chip>
-                      )}
-                      {item.form.returnTrip && (
-                        <Chip size="sm" variant="flat">
-                          {item.form.returnTrip}
-                        </Chip>
-                      )}
-                      {item.form.equipment.length > 0 && (
-                        <Chip color="warning" size="sm" variant="flat">
-                          {`อุปกรณ์ ${item.form.equipment.length} รายการ`}
-                        </Chip>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -149,7 +109,6 @@ export default function JobTable({
         </TableBody>
       </Table>
 
-      {/* Pagination */}
       {sortedJobs.length > 0 && (
         <div className="flex items-center justify-between mt-4 px-2">
           <div className="text-sm text-default-600">

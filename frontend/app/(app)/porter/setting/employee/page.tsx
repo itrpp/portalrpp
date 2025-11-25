@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Card,
@@ -19,6 +19,7 @@ import {
 } from "@heroui/react";
 
 import { EmployeeModal } from "../../components";
+import { usePagination } from "../../hooks/usePagination";
 
 import {
   UserIcon,
@@ -28,10 +29,6 @@ import {
 } from "@/components/ui/icons";
 import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
 
-// ========================================
-// EMPLOYEE MANAGEMENT PAGE
-// ========================================
-
 export default function EmployeeManagementPage() {
   const [employees, setEmployees] = useState<PorterEmployee[]>([]);
   const [employmentTypes, setEmploymentTypes] = useState<EmploymentType[]>([]);
@@ -39,10 +36,17 @@ export default function EmployeeManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const {
+    currentPage,
+    rowsPerPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    paginatedItems: currentEmployees,
+    setCurrentPage,
+    setRowsPerPage,
+  } = usePagination(employees, { initialRowsPerPage: 10 });
 
-  // Modal state
   const {
     isOpen: isEmployeeModalOpen,
     onOpen: onEmployeeModalOpen,
@@ -114,15 +118,6 @@ export default function EmployeeManagementPage() {
 
     loadEmployees();
   }, []);
-
-  // Pagination
-  const totalPages = Math.ceil(employees.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  const paginatedEmployees = useMemo(() => {
-    return employees.slice(startIndex, endIndex);
-  }, [employees, startIndex, endIndex]);
 
   // Handlers
   const handleAddEmployee = () => {
@@ -347,7 +342,7 @@ export default function EmployeeManagementPage() {
                 </TableHeader>
                 <TableBody
                   emptyContent="ยังไม่มีข้อมูลเจ้าหน้าที่"
-                  items={paginatedEmployees}
+                  items={currentEmployees}
                 >
                   {(item) => (
                     <TableRow key={item.id}>

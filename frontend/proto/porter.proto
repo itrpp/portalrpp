@@ -2,40 +2,36 @@ syntax = "proto3";
 
 package porter;
 
-// ========================================
-// Porter Request Service
-// ========================================
+// ===== Porter Request Service =====
 
 service PorterService {
-  // สร้าง Porter Request ใหม่
+  // Create a new porter request
   rpc CreatePorterRequest(CreatePorterRequestRequest) returns (PorterRequestResponse);
 
-  // ดึงข้อมูล Porter Request โดย ID
+  // Fetch a porter request by ID
   rpc GetPorterRequest(GetPorterRequestRequest) returns (PorterRequestResponse);
 
-  // ดึงรายการ Porter Request ทั้งหมด (พร้อม filters)
+  // List porter requests with optional filters
   rpc ListPorterRequests(ListPorterRequestsRequest) returns (ListPorterRequestsResponse);
 
-  // อัปเดตข้อมูล Porter Request
+  // Update porter request fields
   rpc UpdatePorterRequest(UpdatePorterRequestRequest) returns (PorterRequestResponse);
 
-  // อัปเดตสถานะ Porter Request
+  // Update porter request status
   rpc UpdatePorterRequestStatus(UpdatePorterRequestStatusRequest) returns (PorterRequestResponse);
-  // อัปเดต Timestamps ของ Porter Request (pickup, delivery, return)
+  // Update porter request timestamps (pickup, delivery, return)
   rpc UpdatePorterRequestTimestamps(UpdatePorterRequestTimestampsRequest) returns (PorterRequestResponse);
 
-  // ลบ Porter Request
+  // Delete porter request
   rpc DeletePorterRequest(DeletePorterRequestRequest) returns (DeletePorterRequestResponse);
 
   // Health check
   rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 
-  // Stream สำหรับ real-time updates เมื่อมีการเปลี่ยนแปลงคำขอ
+  // Stream real-time updates
   rpc StreamPorterRequests(StreamPorterRequestsRequest) returns (stream PorterRequestUpdate);
 
-  // ========================================
-  // Location Settings Service
-  // ========================================
+  // ===== Location Settings Service =====
 
   // Building CRUD
   rpc CreateBuilding(CreateBuildingRequest) returns (BuildingResponse);
@@ -51,9 +47,7 @@ service PorterService {
   rpc UpdateFloorDepartment(UpdateFloorDepartmentRequest) returns (FloorDepartmentResponse);
   rpc DeleteFloorDepartment(DeleteFloorDepartmentRequest) returns (DeleteFloorDepartmentResponse);
 
-  // ========================================
-  // Employee Management Service
-  // ========================================
+  // ===== Employee Management Service =====
 
   // Employee CRUD
   rpc CreateEmployee(CreateEmployeeRequest) returns (EmployeeResponse);
@@ -77,9 +71,7 @@ service PorterService {
   rpc DeletePosition(DeletePositionRequest) returns (DeletePositionResponse);
 }
 
-// ========================================
-// Request Messages
-// ========================================
+// ===== Request Messages =====
 
 message CreatePorterRequestRequest {
   // ข้อมูลผู้แจ้ง (Requester Information)
@@ -93,13 +85,13 @@ message CreatePorterRequestRequest {
   optional string patient_condition = 6;
 
   // ข้อมูลสถานที่รับ (Pickup Location)
-  string pickup_location = 7;
+
   string pickup_building_id = 8;
   string pickup_floor_department_id = 9;
   optional string pickup_room_bed_name = 10;
 
   // ข้อมูลสถานที่ส่ง (Delivery Location)
-  string delivery_location = 11;
+
   string delivery_building_id = 12;
   string delivery_floor_department_id = 13;
   optional string delivery_room_bed_name = 14;
@@ -140,9 +132,9 @@ message UpdatePorterRequestRequest {
   optional string patient_name = 5;
   optional string patient_hn = 6;
   optional string patient_condition = 7;
-  optional string pickup_location = 8;
+
   optional string pickup_building_id = 9;
-  optional string delivery_location = 10;
+
   optional string delivery_building_id = 11;
   optional string requested_date_time = 12;
   optional string urgency_level = 13; // NORMAL, RUSH, EMERGENCY
@@ -180,9 +172,7 @@ message StreamPorterRequestsRequest {
   optional string urgency_level = 2; // NORMAL, RUSH, EMERGENCY
 }
 
-// ========================================
-// Response Messages
-// ========================================
+// ===== Response Messages =====
 
 message PorterRequestResponse {
   bool success = 1;
@@ -211,9 +201,7 @@ message HealthCheckResponse {
   string timestamp = 3;
 }
 
-// ========================================
-// Data Models
-// ========================================
+// ===== Data Models =====
 
 message PorterRequest {
   string id = 1;
@@ -231,15 +219,19 @@ message PorterRequest {
   optional string patient_condition = 9;
 
   // ข้อมูลสถานที่รับ
-  string pickup_location = 10;
+
   string pickup_building_id = 11;
+  optional string pickup_building_name = 36; // ชื่ออาคาร
   string pickup_floor_department_id = 12;
+  optional string pickup_floor_department_name = 37; // ชื่อชั้น/หน่วยงาน
   optional string pickup_room_bed_name = 13;
 
   // ข้อมูลสถานที่ส่ง
-  string delivery_location = 14;
+
   string delivery_building_id = 15;
+  optional string delivery_building_name = 38; // ชื่ออาคาร
   string delivery_floor_department_id = 16;
+  optional string delivery_floor_department_name = 39; // ชื่อชั้น/หน่วยงาน
   optional string delivery_room_bed_name = 17;
 
   // ข้อมูลการเคลื่อนย้าย
@@ -271,11 +263,11 @@ message PorterRequest {
   optional string pickup_at = 33;   // เวลาที่ถึงจุดรับ
   optional string delivery_at = 34; // เวลาที่ถึงจุดส่ง
   optional string return_at = 35;   // เวลาที่ถึงจุดส่งกลับ (สำหรับ ROUND_TRIP)
+  
+  optional string assigned_to_name = 40; // ชื่อผู้ดำเนินการ
 }
 
-// ========================================
-// Streaming Messages
-// ========================================
+// ===== Streaming Messages =====
 
 message PorterRequestUpdate {
   enum UpdateType {
@@ -288,9 +280,7 @@ message PorterRequestUpdate {
   PorterRequest request = 2;
 }
 
-// ========================================
-// Location Settings Messages
-// ========================================
+// ===== Location Settings Messages =====
 
 // Building Messages
 message CreateBuildingRequest {
@@ -426,9 +416,7 @@ message FloorDepartment {
   bool status = 10; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
-// ========================================
-// Employee Management Messages
-// ========================================
+// ===== Employee Management Messages =====
 
 // Employee Request Messages
 message CreateEmployeeRequest {
@@ -502,9 +490,7 @@ message Employee {
   string updated_at = 11; // ISO 8601 format
 }
 
-// ========================================
-// EmploymentType Management Messages
-// ========================================
+// ===== EmploymentType Management Messages =====
 
 // EmploymentType Request Messages
 message CreateEmploymentTypeRequest {
@@ -556,9 +542,7 @@ message EmploymentType {
   string updated_at = 5; // ISO 8601 format
 }
 
-// ========================================
-// Position Management Messages
-// ========================================
+// ===== Position Management Messages =====
 
 // Position Request Messages
 message CreatePositionRequest {

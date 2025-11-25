@@ -42,7 +42,6 @@ porterRouter.post(
         patient_hn: requestData.patientHN,
         patient_condition: requestData.patientCondition || undefined,
 
-        pickup_location: requestData.pickupLocation,
         pickup_building_id: requestData.pickupLocationDetail?.buildingId,
         pickup_building_name: requestData.pickupLocationDetail?.buildingName,
         pickup_floor_department_id: requestData.pickupLocationDetail?.floorDepartmentId,
@@ -50,7 +49,6 @@ porterRouter.post(
         pickup_room_bed_id: requestData.pickupLocationDetail?.roomBedId || undefined,
         pickup_room_bed_name: requestData.pickupLocationDetail?.roomBedName || undefined,
 
-        delivery_location: requestData.deliveryLocation,
         delivery_building_id: requestData.deliveryLocationDetail?.buildingId,
         delivery_building_name: requestData.deliveryLocationDetail?.buildingName,
         delivery_floor_department_id: requestData.deliveryLocationDetail?.floorDepartmentId,
@@ -83,7 +81,6 @@ porterRouter.post(
         });
       }
     } catch (error: any) {
-      console.error('Error creating porter request:', error);
 
       // Handle gRPC errors
       if (error.code === 14) { // UNAVAILABLE
@@ -174,7 +171,6 @@ porterRouter.get(
         });
       }
     } catch (error: any) {
-      console.error('Error listing porter requests:', error);
 
       // Handle gRPC errors
       if (error.code === 14) {
@@ -221,27 +217,25 @@ function convertProtoToFrontend(protoData: any) {
       requesterPhone: protoData.requester_phone,
       patientName: protoData.patient_name,
       patientHN: protoData.patient_hn,
-      pickupLocation: protoData.pickup_location,
       pickupLocationDetail: protoData.pickup_building_id
         ? {
-            buildingId: protoData.pickup_building_id,
-            buildingName: protoData.pickup_building_name,
-            floorDepartmentId: protoData.pickup_floor_department_id,
-            floorDepartmentName: protoData.pickup_floor_department_name,
-            roomBedId: protoData.pickup_room_bed_id || undefined,
-            roomBedName: protoData.pickup_room_bed_name || undefined,
-          }
+          buildingId: protoData.pickup_building_id,
+          buildingName: protoData.pickup_building_name,
+          floorDepartmentId: protoData.pickup_floor_department_id,
+          floorDepartmentName: protoData.pickup_floor_department_name,
+          roomBedId: protoData.pickup_room_bed_id || undefined,
+          roomBedName: protoData.pickup_room_bed_name || undefined,
+        }
         : null,
-      deliveryLocation: protoData.delivery_location,
       deliveryLocationDetail: protoData.delivery_building_id
         ? {
-            buildingId: protoData.delivery_building_id,
-            buildingName: protoData.delivery_building_name,
-            floorDepartmentId: protoData.delivery_floor_department_id,
-            floorDepartmentName: protoData.delivery_floor_department_name,
-            roomBedId: protoData.delivery_room_bed_id || undefined,
-            roomBedName: protoData.delivery_room_bed_name || undefined,
-          }
+          buildingId: protoData.delivery_building_id,
+          buildingName: protoData.delivery_building_name,
+          floorDepartmentId: protoData.delivery_floor_department_id,
+          floorDepartmentName: protoData.delivery_floor_department_name,
+          roomBedId: protoData.delivery_room_bed_id || undefined,
+          roomBedName: protoData.delivery_room_bed_name || undefined,
+        }
         : null,
       requestedDateTime: protoData.requested_date_time,
       urgencyLevel: mapUrgencyLevelFromProto(protoData.urgency_level),
@@ -406,17 +400,12 @@ porterRouter.get(
     try {
       const { status, urgency_level } = req.query;
 
-      console.log('[API Gateway] SSE stream request received', {
-        status,
-        urgency_level,
-      });
-
       // ตั้งค่า headers สำหรับ SSE
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-Accel-Buffering', 'no'); // ปิดการ buffer ของ nginx (ถ้ามี)
-      
+
       // Flush headers เพื่อให้แน่ใจว่า headers ถูกส่งไปก่อน
       res.flushHeaders();
 
@@ -429,60 +418,39 @@ porterRouter.get(
         protoRequest.urgency_level = mapUrgencyLevelToProto(urgency_level as string);
       }
 
-      console.log('[API Gateway] Creating gRPC stream with request:', protoRequest);
-
       // สร้าง gRPC stream
       const stream = streamPorterRequests(protoRequest);
-
-      console.log('[API Gateway] gRPC stream created');
 
       // ส่งข้อมูลเมื่อได้รับ stream
       stream.on('data', (update: any) => {
         try {
-          console.log('[API Gateway] Received gRPC stream update:', {
-            type: update.type,
-            hasRequest: !!update.request,
-          });
-
           // แปลงข้อมูลจาก Proto format เป็น Frontend format
           if (update.request) {
             const frontendData = convertProtoToFrontend(update.request);
             const updateData = {
-              type: update.type === 0 ? 'CREATED' : 
-                    update.type === 1 ? 'UPDATED' : 
-                    update.type === 2 ? 'STATUS_CHANGED' : 'DELETED',
+              type: update.type === 0 ? 'CREATED' :
+                update.type === 1 ? 'UPDATED' :
+                  update.type === 2 ? 'STATUS_CHANGED' : 'DELETED',
               data: frontendData,
             };
 
             // ส่งข้อมูลผ่าน SSE
-            const sseMessage = `data: ${JSON.stringify(updateData)}\n\n`;
-            
+            const sseMessage = `data: ${JSON.stringify(updateData)}\\n\\n`;
+
             // ตรวจสอบว่า response ยังเปิดอยู่
             if (!res.writableEnded && !res.destroyed) {
-              const success = res.write(sseMessage);
-              console.log('[API Gateway] Sent SSE message:', updateData.type, 'write success:', success);
-              
-              // ถ้า write buffer เต็ม ให้รอ drain event
-              if (!success) {
-                res.once('drain', () => {
-                  console.log('[API Gateway] Write buffer drained');
-                });
-              }
-            } else {
-              console.warn('[API Gateway] Response ended or destroyed, cannot write');
+              res.write(sseMessage);
             }
-          } else {
-            console.warn('[API Gateway] Received update without request data');
           }
-        } catch (error) {
-          console.error('[API Gateway] Error processing stream data:', error);
+        } catch {
+          // Silent error handling
         }
       });
 
       // จัดการ error
       stream.on('error', (error: any) => {
         console.error('gRPC stream error:', error);
-        res.write(`event: error\ndata: ${JSON.stringify({ error: error.message || 'Stream error' })}\n\n`);
+        res.write(`event: error\\ndata: ${JSON.stringify({ error: error.message || 'Stream error' })}\\n\\n`);
         res.end();
       });
 
@@ -501,15 +469,12 @@ porterRouter.get(
       const keepAliveInterval = setInterval(() => {
         try {
           if (!res.writableEnded && !res.destroyed) {
-            res.write(': keep-alive\n\n');
-            console.log('[API Gateway] Sent keep-alive message');
+            res.write(': keep-alive\\n\\n');
           } else {
-            console.log('[API Gateway] Response ended, clearing keep-alive');
             clearInterval(keepAliveInterval);
           }
-        } catch (error) {
+        } catch {
           // Connection closed
-          console.log('[API Gateway] Connection closed, clearing keep-alive:', error);
           clearInterval(keepAliveInterval);
         }
       }, 20000);

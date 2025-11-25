@@ -15,6 +15,7 @@ import {
 import { CalendarDate } from "@internationalized/date";
 
 import { JobTable, JobDetailDrawer } from "../components";
+import { usePagination } from "../hooks/usePagination";
 
 import {
   ClockIcon,
@@ -32,15 +33,9 @@ import {
 } from "@/types/porter";
 import { sortJobs, playNotificationSound, playSirenSound } from "@/lib/porter";
 
-// ========================================
-// PORTER JOB LIST PAGE
-// ========================================
-
 export default function PorterJobListPage() {
   const [selectedTab, setSelectedTab] = useState<JobListTab>("waiting");
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -636,15 +631,21 @@ export default function PorterJobListPage() {
     setCancelledEndDate(null);
   };
 
-  // คำนวณข้อมูลสำหรับ pagination
-  const totalPages = Math.ceil(sortedJobs.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedJobs = sortedJobs.slice(startIndex, endIndex);
+  const {
+    currentPage,
+    rowsPerPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    paginatedItems,
+    setCurrentPage: updateCurrentPage,
+    setRowsPerPage: updateRowsPerPage,
+  } = usePagination(sortedJobs, { initialRowsPerPage: 5 });
+  const paginatedJobs = paginatedItems;
 
   // รีเซ็ตหน้าไปที่ 1 เมื่อเปลี่ยนแท็บหรือ date filter
   useEffect(() => {
-    setCurrentPage(1);
+    updateCurrentPage(1);
     setSelectedKeys(new Set());
     setSelectedJob(null);
     setIsDrawerOpen(false);
@@ -654,6 +655,7 @@ export default function PorterJobListPage() {
     completedEndDate,
     cancelledStartDate,
     cancelledEndDate,
+    updateCurrentPage,
   ]);
 
   // Handler สำหรับ refresh ข้อมูล
@@ -959,8 +961,8 @@ export default function PorterJobListPage() {
                     sortedJobs={sortedJobs}
                     startIndex={startIndex}
                     totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    onRowsPerPageChange={setRowsPerPage}
+                    onPageChange={updateCurrentPage}
+                    onRowsPerPageChange={updateRowsPerPage}
                     onSelectionChange={handleSelectionChange}
                   />
                 </Tab>
@@ -991,8 +993,8 @@ export default function PorterJobListPage() {
                     sortedJobs={sortedJobs}
                     startIndex={startIndex}
                     totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    onRowsPerPageChange={setRowsPerPage}
+                    onPageChange={updateCurrentPage}
+                    onRowsPerPageChange={updateRowsPerPage}
                     onSelectionChange={handleSelectionChange}
                   />
                 </Tab>
@@ -1073,8 +1075,8 @@ export default function PorterJobListPage() {
                       sortedJobs={sortedJobs}
                       startIndex={startIndex}
                       totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                      onRowsPerPageChange={setRowsPerPage}
+                      onPageChange={updateCurrentPage}
+                      onRowsPerPageChange={updateRowsPerPage}
                       onSelectionChange={handleSelectionChange}
                     />
                   </div>
@@ -1156,8 +1158,8 @@ export default function PorterJobListPage() {
                       sortedJobs={sortedJobs}
                       startIndex={startIndex}
                       totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                      onRowsPerPageChange={setRowsPerPage}
+                      onPageChange={updateCurrentPage}
+                      onRowsPerPageChange={updateRowsPerPage}
                       onSelectionChange={handleSelectionChange}
                     />
                   </div>

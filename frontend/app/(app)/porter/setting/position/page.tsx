@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState } from "react";
 import {
   Button,
   Card,
@@ -19,6 +19,8 @@ import {
 } from "@heroui/react";
 
 import { PositionModal } from "../../components";
+import { usePagination } from "../../hooks/usePagination";
+import { useCrudResource } from "../hooks/useCrudResource";
 
 import {
   UserGroupIcon,
@@ -28,17 +30,21 @@ import {
 } from "@/components/ui/icons";
 import { Position } from "@/types/porter";
 
-// ========================================
-// POSITION MANAGEMENT PAGE
-// ========================================
-
 export default function PositionManagementPage() {
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    items: positions,
+    setItems: setPositions,
+    isLoading,
+  } = useCrudResource<Position>("positions", {
+    onError: (message) =>
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: message,
+        color: "danger",
+      }),
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Modal state
   const {
@@ -47,46 +53,16 @@ export default function PositionManagementPage() {
     onClose: onPositionModalClose,
   } = useDisclosure();
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
-
-  // โหลดข้อมูลจาก API
-  useEffect(() => {
-    const loadPositions = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/porter/positions");
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          setPositions(result.data);
-        } else {
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถโหลดข้อมูลตำแหน่งได้",
-            color: "danger",
-          });
-        }
-      } catch {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดข้อมูลตำแหน่งได้",
-          color: "danger",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPositions();
-  }, []);
-
-  // Pagination
-  const totalPages = Math.ceil(positions.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  const paginatedPositions = useMemo(() => {
-    return positions.slice(startIndex, endIndex);
-  }, [positions, startIndex, endIndex]);
+  const {
+    currentPage,
+    rowsPerPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    paginatedItems: currentPositions,
+    setCurrentPage,
+    setRowsPerPage,
+  } = usePagination(positions, { initialRowsPerPage: 10 });
 
   // Handlers
   const handleAddPosition = () => {
@@ -297,7 +273,7 @@ export default function PositionManagementPage() {
                 </TableHeader>
                 <TableBody
                   emptyContent="ยังไม่มีข้อมูลตำแหน่ง"
-                  items={paginatedPositions}
+                  items={currentPositions}
                 >
                   {(item) => (
                     <TableRow key={item.id}>

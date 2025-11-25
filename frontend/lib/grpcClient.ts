@@ -16,14 +16,9 @@ function getProtoPath(): string {
     const fs = require("fs");
 
     if (fs.existsSync(protoPath)) {
-      // eslint-disable-next-line no-console
-      console.log("[gRPC Client] Using proto file:", protoPath);
-
       return protoPath;
     }
-  } catch (error) {
-    console.error("[gRPC Client] Error checking proto file:", error);
-  }
+  } catch {}
 
   // ถ้าหาไม่เจอ ให้ throw error แทนการใช้ default path
   throw new Error(
@@ -50,13 +45,7 @@ const porterProto = grpc.loadPackageDefinition(packageDefinition).porter as any;
 export function getPorterClient(): any {
   // อ่าน gRPC URL จาก environment variable
   // ใช้ NEXT_PUBLIC_ prefix สำหรับ client-side แต่ใน API route ใช้ process.env ได้
-  const grpcUrl =
-    process.env.PORTER_SERVICE_GRPC_URL ||
-    process.env.NEXT_PUBLIC_PORTER_SERVICE_GRPC_URL ||
-    "localhost:50051";
-
-  // eslint-disable-next-line no-console
-  console.log("[gRPC Client] Connecting to gRPC service at:", grpcUrl);
+  const grpcUrl = process.env.PORTER_GRPC_URL || "localhost:50051";
 
   if (!grpcUrl) {
     throw new Error("PORTER_SERVICE_GRPC_URL is not configured");
@@ -110,12 +99,8 @@ export function streamPorterRequests(request: any): any {
     const client = getPorterClient();
     const stream = client.StreamPorterRequests(request);
 
-    // eslint-disable-next-line no-console
-    console.log("[gRPC Client] Stream created successfully");
-
     return stream;
   } catch (error) {
-    console.error("[gRPC Client] Error creating stream:", error);
     throw error;
   }
 }

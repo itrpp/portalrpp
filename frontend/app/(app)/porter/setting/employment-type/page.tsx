@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState } from "react";
 import {
   Button,
   Card,
@@ -19,6 +19,8 @@ import {
 } from "@heroui/react";
 
 import { EmploymentTypeModal } from "../../components";
+import { usePagination } from "../../hooks/usePagination";
+import { useCrudResource } from "../hooks/useCrudResource";
 
 import {
   BriefcaseIcon,
@@ -28,17 +30,21 @@ import {
 } from "@/components/ui/icons";
 import { EmploymentType } from "@/types/porter";
 
-// ========================================
-// EMPLOYMENT TYPE MANAGEMENT PAGE
-// ========================================
-
 export default function EmploymentTypeManagementPage() {
-  const [employmentTypes, setEmploymentTypes] = useState<EmploymentType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    items: employmentTypes,
+    setItems: setEmploymentTypes,
+    isLoading,
+  } = useCrudResource<EmploymentType>("employment-types", {
+    onError: (message) =>
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: message,
+        color: "danger",
+      }),
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Modal state
   const {
@@ -48,47 +54,16 @@ export default function EmploymentTypeManagementPage() {
   } = useDisclosure();
   const [editingEmploymentType, setEditingEmploymentType] =
     useState<EmploymentType | null>(null);
-
-  // โหลดข้อมูลจาก API
-  useEffect(() => {
-    const loadEmploymentTypes = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/porter/employment-types");
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          setEmploymentTypes(result.data);
-        } else {
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description:
-              result.message || "ไม่สามารถโหลดข้อมูลประเภทการจ้างได้",
-            color: "danger",
-          });
-        }
-      } catch {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดข้อมูลประเภทการจ้างได้",
-          color: "danger",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadEmploymentTypes();
-  }, []);
-
-  // Pagination
-  const totalPages = Math.ceil(employmentTypes.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  const paginatedEmploymentTypes = useMemo(() => {
-    return employmentTypes.slice(startIndex, endIndex);
-  }, [employmentTypes, startIndex, endIndex]);
+  const {
+    currentPage,
+    rowsPerPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    paginatedItems: currentEmploymentTypes,
+    setCurrentPage,
+    setRowsPerPage,
+  } = usePagination(employmentTypes, { initialRowsPerPage: 10 });
 
   // Handlers
   const handleAddEmploymentType = () => {
@@ -313,7 +288,7 @@ export default function EmploymentTypeManagementPage() {
                 </TableHeader>
                 <TableBody
                   emptyContent="ยังไม่มีข้อมูลประเภทการจ้าง"
-                  items={paginatedEmploymentTypes}
+                  items={currentEmploymentTypes}
                 >
                   {(item) => (
                     <TableRow key={item.id}>

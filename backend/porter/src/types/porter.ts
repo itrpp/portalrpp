@@ -37,13 +37,15 @@ export interface PorterRequestMessage {
   patient_name: string;
   patient_hn: string;
   patient_condition?: string;
-  pickup_location: string;
   pickup_building_id: string;
+  pickup_building_name?: string;
   pickup_floor_department_id: string;
+  pickup_floor_department_name?: string;
   pickup_room_bed_name?: string;
-  delivery_location: string;
   delivery_building_id: string;
+  delivery_building_name?: string;
   delivery_floor_department_id: string;
+  delivery_floor_department_name?: string;
   delivery_room_bed_name?: string;
   requested_date_time: string;
   urgency_level: UrgencyLevel;
@@ -56,6 +58,7 @@ export interface PorterRequestMessage {
   special_notes?: string;
   status: PorterStatus;
   assigned_to_id?: string;
+  assigned_to_name?: string;
   accepted_at?: string;
   completed_at?: string;
   cancelled_at?: string;

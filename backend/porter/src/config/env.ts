@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const requiredEnvVars = ['NODE_ENV', 'PORT'] as const;
+const requiredEnvVars = ['NODE_ENV', 'PORT', 'DATABASE_URL'] as const;
 
 const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
@@ -23,13 +23,13 @@ const env = requiredEnvVars.reduce<EnvRecord>((acc, key) => {
 export interface AppConfig {
   nodeEnv: string;
   port: number;
-  databaseUrl?: string;
+  databaseUrl: string;
 }
 
 export const config: AppConfig = {
   nodeEnv: env.NODE_ENV || 'development',
   port: Number.parseInt(env.PORT, 10) || 3000,
-  databaseUrl: process.env.DATABASE_URL
+  databaseUrl: env.DATABASE_URL
 };
 
 

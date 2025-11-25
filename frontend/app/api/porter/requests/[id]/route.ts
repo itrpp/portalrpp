@@ -64,32 +64,36 @@ export async function PUT(
           ? requestData.patientCondition.join(", ")
           : null;
     }
-    if (requestData.pickupLocation !== undefined) {
-      protoRequest.pickup_location = requestData.pickupLocation;
-    }
+
     if (requestData.pickupLocationDetail?.buildingId !== undefined) {
       protoRequest.pickup_building_id =
         requestData.pickupLocationDetail?.buildingId || null;
     }
     if (requestData.pickupLocationDetail?.floorDepartmentId !== undefined) {
       protoRequest.pickup_floor_department_id =
-        requestData.pickupLocationDetail?.floorDepartmentId || null;
+        requestData.pickupLocationDetail?.floorDepartmentId || "";
+    } else if (requestData.pickupLocationDetail) {
+      // If object exists but field is missing (undefined), it means it should be empty (e.g. cleared)
+      protoRequest.pickup_floor_department_id = "";
     }
+
     if (requestData.pickupLocationDetail?.roomBedName !== undefined) {
       protoRequest.pickup_room_bed_name =
         requestData.pickupLocationDetail?.roomBedName || null;
     }
-    if (requestData.deliveryLocation !== undefined) {
-      protoRequest.delivery_location = requestData.deliveryLocation;
-    }
+
     if (requestData.deliveryLocationDetail?.buildingId !== undefined) {
       protoRequest.delivery_building_id =
         requestData.deliveryLocationDetail?.buildingId || null;
     }
     if (requestData.deliveryLocationDetail?.floorDepartmentId !== undefined) {
       protoRequest.delivery_floor_department_id =
-        requestData.deliveryLocationDetail?.floorDepartmentId || null;
+        requestData.deliveryLocationDetail?.floorDepartmentId || "";
+    } else if (requestData.deliveryLocationDetail) {
+      // If object exists but field is missing (undefined), it means it should be empty (e.g. cleared)
+      protoRequest.delivery_floor_department_id = "";
     }
+
     if (requestData.deliveryLocationDetail?.roomBedName !== undefined) {
       protoRequest.delivery_room_bed_name =
         requestData.deliveryLocationDetail?.roomBedName || null;

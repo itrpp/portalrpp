@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import {
+  Card,
+  CardBody,
+  CardHeader,
   Drawer,
   DrawerBody,
   DrawerContent,
@@ -99,6 +102,7 @@ export default function JobDetailDrawer({
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [isEditMode, setIsEditMode] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelReasonError, setCancelReasonError] = useState<string>("");
   const {
@@ -142,6 +146,7 @@ export default function JobDetailDrawer({
   // Sync form data with job when it changes
   useEffect(() => {
     if (job) {
+      setIsEditMode(false);
       setFormData({ ...job.form });
       setSelectedStaffId(job.assignedTo || "");
     }
@@ -306,6 +311,7 @@ export default function JobDetailDrawer({
         });
       } finally {
         setIsSubmitting(false);
+        setIsEditMode(false);
       }
     }
   };
@@ -349,110 +355,345 @@ export default function JobDetailDrawer({
           </div>
         </DrawerHeader>
         <DrawerBody className="overflow-y-auto">
-          <div className="space-y-6">
-            {/* ข้อมูลหน่วยงานและผู้แจ้ง */}
-            <section>
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <BuildingOfficeIcon className="w-5 h-5 text-primary" />
-                ข้อมูลหน่วยงานผู้แจ้ง
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="text-sm text-default-600 block mb-1">
-                    หน่วยงาน
-                  </div>
+          <div className="space-y-4">
+            {/* ข้อมูลผู้แจ้ง และผู้ป่วย */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="shadow-sm border border-default-200 bg-content1">
+                <CardHeader className="pb-0 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <Chip variant="flat">{formData.requesterDepartment}</Chip>
+                    <BuildingOfficeIcon className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-foreground">
+                      ข้อมูลผู้แจ้ง
+                    </h3>
                   </div>
-                </div>
-                <div>
-                  <div className="text-sm text-default-600 block mb-1">
-                    ชื่อผู้แจ้ง
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <UserIcon className="w-4 h-4 text-default-400" />
-                    <span className="text-foreground">
-                      {formData.requesterName}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-default-600 block mb-1">
-                    เบอร์โทรศัพท์
-                  </div>
-                  <span className="text-foreground">
-                    {formData.requesterPhone}
+                  <span className="text-sm text-default-500 font-medium truncate text-right">
+                    {formData.requesterDepartment || "-"}
                   </span>
-                </div>
-              </div>
-            </section>
+                </CardHeader>
+                <CardBody className="pt-4">
+                  <div className="space-y-3 text-sm text-default-600">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-medium text-foreground min-w-fit">
+                        ผู้แจ้ง
+                      </span>
+                      <span className="text-foreground text-right break-words flex-1">
+                        {formData.requesterName || "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-medium text-foreground min-w-fit">
+                        เบอร์โทรศัพท์
+                      </span>
+                      <span className="text-foreground text-right break-words flex-1">
+                        {formData.requesterPhone || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card className="shadow-sm border border-default-200 bg-content1">
+                <CardHeader className="pb-0 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <UserIcon className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-foreground">
+                      ข้อมูลผู้ป่วย
+                    </h3>
+                  </div>
+                  {/* <span className="text-sm text-default-500 font-medium truncate text-right">
+                    HN : {formData.patientHN || "-"}
+                  </span> */}
+                </CardHeader>
+                <CardBody className="pt-4">
+                  <div className="space-y-3 text-sm text-default-600">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-medium text-foreground min-w-fit">
+                        HN
+                      </span>
+                      <span className="text-foreground text-right break-words flex-1">
+                        {formData.patientHN || "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-medium text-foreground min-w-fit">
+                        ชื่อผู้ป่วย
+                      </span>
+                      <span className="text-foreground text-right break-words flex-1">
+                        {formData.patientName || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
+
+            {/* ข้อมูลอาการผู้ป่วยเบื้องต้น */}
+            <div className="grid grid-cols-1 gap-6">
+              <Card className="shadow-sm border border-default-200 bg-content1">
+                <CardHeader className="pb-0">
+                  <div className="flex items-center gap-2">
+                    <BuildingOfficeIcon className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-foreground">
+                      อาการผู้ป่วยเบื้องต้น
+                    </h3>
+                  </div>
+                </CardHeader>
+                <CardBody className="pt-4">
+                  {Array.isArray(formData.patientCondition) &&
+                  formData.patientCondition.length > 0 ? (
+                    <div className="space-y-2">
+                      {formData.patientCondition.map((condition) => (
+                        <div
+                          key={condition}
+                          className="flex items-center gap-2 text-sm text-foreground"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-primary" />
+                          <span className="flex-1">{condition}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-foreground">ไม่ได้ระบุ</p>
+                  )}
+                </CardBody>
+              </Card>
+            </div>
 
             <Divider />
-
-            {/* ข้อมูลผู้ป่วย */}
-            <section>
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <UserIcon className="w-5 h-5 text-primary" />
-                ข้อมูลผู้ป่วย
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-default-600 block mb-1">
-                    HN / AN
-                  </div>
-                  <span className="text-foreground">{formData.patientHN}</span>
-                </div>
-                <div>
-                  <div className="text-sm text-default-600 block mb-1">
-                    ชื่อผู้ป่วย
-                  </div>
-                  <span className="text-foreground">
-                    {formData.patientName}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-4">
-                <div className="text-sm text-default-600 block mb-1">
-                  สภาพผู้ป่วย
-                </div>
-                {Array.isArray(formData.patientCondition) &&
-                formData.patientCondition.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {formData.patientCondition.map((condition) => (
-                      <Chip
-                        key={condition}
-                        color="primary"
-                        size="sm"
-                        variant="bordered"
-                      >
-                        {condition}
-                      </Chip>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-foreground">-</p>
-                )}
-              </div>
-            </section>
-
-            <Divider />
-
-            {/* Timeline Section - แสดงเมื่อ canAcceptJob = true */}
-            {canAcceptJob == false ? (
+            {isEditMode ? (
               <>
-                <div className="grid grid-cols-2 gap-2">
+                {canEdit && isEditMode && (
+                  <section>
+                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <MapPinIcon className="w-5 h-5 text-primary" />
+                      แก้ไขข้อมูลการเคลื่อนย้าย
+                    </h3>
+                    <div className="space-y-4">
+                      <Select
+                        defaultSelectedKeys={[formData.transportReason]}
+                        isDisabled={!canEdit || !isEditMode}
+                        label="เหตุผลการเคลื่อนย้าย"
+                        selectedKeys={[formData.transportReason]}
+                        variant="bordered"
+                        onSelectionChange={(keys) => {
+                          const selected = Array.from(keys)[0] as string;
+
+                          handleInputChange("transportReason", selected || "");
+                        }}
+                      >
+                        {TRANSPORT_REASON_OPTIONS.map((reason) => (
+                          <SelectItem key={reason}>{reason}</SelectItem>
+                        ))}
+                      </Select>
+                      <div className="space-y-4">
+                        <LocationSelector
+                          isDisabled={!canEdit || !isEditMode}
+                          isRequired={canEdit && isEditMode}
+                          label="สถานที่รับ"
+                          value={formData.pickupLocationDetail}
+                          onChange={(location) => {
+                            setFormData((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    pickupLocationDetail: location,
+                                  }
+                                : null,
+                            );
+                          }}
+                        />
+                        <LocationSelector
+                          isDisabled={!canEdit || !isEditMode}
+                          isRequired={canEdit && isEditMode}
+                          label="สถานที่ส่ง"
+                          value={formData.deliveryLocationDetail}
+                          onChange={(location) => {
+                            setFormData((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    deliveryLocationDetail: location,
+                                  }
+                                : null,
+                            );
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-sm font-medium text-foreground mb-2 block">
+                            ประเภทรถ
+                          </div>
+                          <Select
+                            disallowEmptySelection
+                            isDisabled={!canEdit || !isEditMode}
+                            selectedKeys={[formData.vehicleType]}
+                            variant="bordered"
+                            onSelectionChange={(keys) => {
+                              const selected = Array.from(
+                                keys,
+                              )[0] as VehicleType;
+
+                              handleInputChange("vehicleType", selected);
+                            }}
+                          >
+                            {VEHICLE_TYPE_OPTIONS.map((type) => (
+                              <SelectItem key={type}>{type}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-foreground mb-2 block">
+                            มีรถแล้วหรือยัง
+                          </div>
+                          <RadioGroup
+                            isDisabled={!canEdit || !isEditMode}
+                            orientation="horizontal"
+                            value={formData.hasVehicle || "ไม่มี"}
+                            onValueChange={(value) =>
+                              handleInputChange(
+                                "hasVehicle",
+                                value as "มี" | "ไม่มี" | "",
+                              )
+                            }
+                          >
+                            <Radio size="sm" value="มี">
+                              มี
+                            </Radio>
+                            <Radio size="sm" value="ไม่มี">
+                              ไม่มี
+                            </Radio>
+                          </RadioGroup>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-foreground mb-2 block">
+                            ส่งกลับหรือไม่
+                          </div>
+                          <RadioGroup
+                            className="gap-3"
+                            isDisabled={!canEdit || !isEditMode}
+                            orientation="horizontal"
+                            value={formData.returnTrip || ""}
+                            onValueChange={(val) =>
+                              handleInputChange(
+                                "returnTrip",
+                                val as "ไปส่งอย่างเดียว" | "รับกลับด้วย" | "",
+                              )
+                            }
+                          >
+                            <Radio size="sm" value="ไปส่งอย่างเดียว">
+                              ไปส่งอย่างเดียว
+                            </Radio>
+                            <Radio size="sm" value="รับกลับด้วย">
+                              รับกลับด้วย
+                            </Radio>
+                          </RadioGroup>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-foreground mb-2 block">
+                          ความเร่งด่วน
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {URGENCY_OPTIONS.map((option) => (
+                            <Chip
+                              key={option.value}
+                              className={
+                                canEdit && isEditMode ? "cursor-pointer" : ""
+                              }
+                              color={option.color}
+                              isDisabled={!canEdit || !isEditMode}
+                              startContent={
+                                option.value === "ฉุกเฉิน" ||
+                                option.value === "ด่วน" ? (
+                                  <AmbulanceIcon className="w-4 h-4" />
+                                ) : (
+                                  <ClipboardListIcon className="w-4 h-4" />
+                                )
+                              }
+                              variant={
+                                formData.urgencyLevel === option.value
+                                  ? "solid"
+                                  : "bordered"
+                              }
+                              onClick={() => {
+                                if (canEdit && isEditMode) {
+                                  handleInputChange(
+                                    "urgencyLevel",
+                                    option.value,
+                                  );
+                                }
+                              }}
+                            >
+                              {option.label}
+                            </Chip>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <CheckboxGroup
+                          isDisabled={!canEdit || !isEditMode}
+                          label="อุปกรณ์ที่ต้องการ"
+                          orientation="horizontal"
+                          value={formData.equipment}
+                          onValueChange={(values) => {
+                            handleInputChange(
+                              "equipment",
+                              values as EquipmentType[],
+                            );
+                            if (!values.includes("อื่นๆ ระบุ")) {
+                              handleInputChange("equipmentOther", "");
+                            }
+                          }}
+                        >
+                          {EQUIPMENT_OPTIONS.map((eq) => (
+                            <Checkbox key={eq} value={eq}>
+                              {eq}
+                            </Checkbox>
+                          ))}
+                        </CheckboxGroup>
+                      </div>
+                      {formData.equipment.includes("อื่นๆ ระบุ") && (
+                        <Input
+                          className="mt-3"
+                          isDisabled={!canEdit || !isEditMode}
+                          label="ระบุอุปกรณ์อื่นๆ"
+                          placeholder="กรุณาระบุอุปกรณ์ที่ต้องการ"
+                          value={formData.equipmentOther || ""}
+                          variant="bordered"
+                          onChange={(e) => {
+                            handleInputChange("equipmentOther", e.target.value);
+                          }}
+                        />
+                      )}
+                      <Textarea
+                        isDisabled={!canEdit || !isEditMode}
+                        label="หมายเหตุพิเศษ"
+                        placeholder="กรอกหมายเหตุเพิ่มเติม (ถ้ามี)"
+                        value={formData.specialNotes}
+                        variant="bordered"
+                        onChange={(e) =>
+                          handleInputChange("specialNotes", e.target.value)
+                        }
+                      />
+                    </div>
+                  </section>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Timeline + สรุปข้อมูลงาน (ใช้ทั้งใน tab รอรับงาน และสถานะอื่น) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <section>
                     <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                       <ClockIcon className="w-5 h-5 text-primary" />
                       Timeline รายละเอียดงาน
                     </h3>
                     <div className="relative">
-                      {/* Timeline Line */}
                       <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-default-200" />
 
-                      {/* Timeline Items */}
                       <div className="space-y-6">
-                        {/* Item 1: งานถูกสร้าง */}
                         <div className="relative flex gap-4">
                           <div className="relative z-10 flex-shrink-0">
                             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -483,64 +724,46 @@ export default function JobDetailDrawer({
                           </div>
                         </div>
 
-                        {/* Item 2: รับงาน (แสดงเมื่อมี acceptedAt) */}
-                        {job.acceptedAt && (
-                          <div className="relative flex gap-4">
-                            <div className="relative z-10 flex-shrink-0">
-                              <div className="w-8 h-8 rounded-full bg-warning flex items-center justify-center">
-                                <CheckCircleIcon className="w-4 h-4 text-white" />
-                              </div>
-                            </div>
-                            <div className="flex-1 pb-6">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="text-sm font-semibold text-foreground">
-                                  รับงาน
-                                </h4>
-                              </div>
-                              <p className="text-xs text-default-500 mb-2">
-                                {formatDate(job.acceptedAt)}
-                              </p>
-                              <div className="text-sm text-default-600 space-y-1">
-                                {job.assignedTo && (
-                                  <p>
-                                    <span className="font-medium">
-                                      ผู้ปฎิบัติงาน ID:
-                                    </span>{" "}
-                                    {job.assignedTo}
-                                  </p>
-                                )}
-                              </div>
+                        <div className="relative flex gap-4">
+                          <div className="relative z-10 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
+                              <ClockIcon className="w-4 h-4 text-default-600" />
                             </div>
                           </div>
-                        )}
-
-                        {/* Item 3: รอรับงาน (แสดงเมื่อยังไม่รับงาน) */}
-                        {!job.acceptedAt && job.status === "waiting" && (
-                          <div className="relative flex gap-4">
-                            <div className="relative z-10 flex-shrink-0">
-                              <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
-                                <ClockIcon className="w-4 h-4 text-default-600" />
-                              </div>
+                          <div className="flex-1 pb-6">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-semibold text-foreground">
+                                ศูนย์เปลรับงาน
+                              </h4>
                             </div>
-                            <div className="flex-1 pb-6">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="text-sm font-semibold text-foreground">
-                                  รอศูนย์เปลรับงาน
-                                </h4>
-                              </div>
+                            {job.acceptedAt ? (
+                              <>
+                                <p className="text-xs text-default-500 mb-2">
+                                  {formatDate(job.acceptedAt)}
+                                </p>
+                                <div className="text-sm text-default-600 space-y-1">
+                                  {job.assignedTo && (
+                                    <p>
+                                      <span className="font-medium">
+                                        ผู้ปฎิบัติงาน :
+                                      </span>{" "}
+                                      {job.assignedToName}
+                                    </p>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
                               <p className="text-xs text-default-500 mb-2">
                                 กำลังรอการรับงาน
                               </p>
-                            </div>
+                            )}
                           </div>
-                        )}
+                        </div>
 
-                        {/* Timeline การเคลื่อนย้าย (ถ้ามีข้อมูลการเคลื่อนย้าย) */}
                         {formData.transportReason &&
-                          formData.pickupLocation &&
-                          formData.deliveryLocation && (
+                          formData.pickupLocationDetail &&
+                          formData.deliveryLocationDetail && (
                             <>
-                              {/* จุดรับ - เริ่มต้น */}
                               <div className="relative flex gap-4">
                                 <div className="relative z-10 flex-shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -553,20 +776,21 @@ export default function JobDetailDrawer({
                                       จุดรับ
                                     </h4>
                                   </div>
-                                  <p className="text-xs text-default-500 mb-2">
+                                  {/* <p className="text-xs text-default-500 mb-2">
                                     {job.acceptedAt
                                       ? formatDate(job.acceptedAt)
                                       : formatDate(job.form.requestedDateTime)}
-                                  </p>
+                                  </p> */}
                                   <div className="text-sm text-default-600">
                                     <p className="font-medium text-foreground">
-                                      {formData.pickupLocation}
+                                      {formatLocationString(
+                                        formData.pickupLocationDetail,
+                                      )}
                                     </p>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* จุดส่ง */}
                               <div className="relative flex gap-4">
                                 <div className="relative z-10 flex-shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
@@ -579,24 +803,25 @@ export default function JobDetailDrawer({
                                       จุดส่ง
                                     </h4>
                                   </div>
-                                  <p className="text-xs text-default-500 mb-2">
+                                  {/* <p className="text-xs text-default-500 mb-2">
                                     {job.completedAt
                                       ? formatDate(job.completedAt)
                                       : job.acceptedAt
                                         ? formatDate(job.acceptedAt)
                                         : formatDate(
-                                            job.form.requestedDateTime,
-                                          )}
-                                  </p>
+                                          job.form.requestedDateTime,
+                                        )}
+                                  </p> */}
                                   <div className="text-sm text-default-600">
                                     <p className="font-medium text-foreground">
-                                      {formData.deliveryLocation}
+                                      {formatLocationString(
+                                        formData.deliveryLocationDetail,
+                                      )}
                                     </p>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* จุดส่งกลับ - แสดงเมื่อ returnTrip === "รับกลับด้วย" */}
                               {formData.returnTrip === "รับกลับด้วย" && (
                                 <div className="relative flex gap-4">
                                   <div className="relative z-10 flex-shrink-0">
@@ -610,23 +835,24 @@ export default function JobDetailDrawer({
                                         ส่งกลับ
                                       </h4>
                                     </div>
-                                    <p className="text-xs text-default-500 mb-2">
+                                    {/* <p className="text-xs text-default-500 mb-2">
                                       {job.completedAt
                                         ? formatDate(job.completedAt)
                                         : formatDate(
-                                            job.form.requestedDateTime,
-                                          )}
-                                    </p>
+                                          job.form.requestedDateTime,
+                                        )}
+                                    </p> */}
                                     <div className="text-sm text-default-600">
                                       <p className="font-medium text-foreground">
-                                        {formData.pickupLocation}
+                                        {formatLocationString(
+                                          formData.pickupLocationDetail,
+                                        )}
                                       </p>
                                     </div>
                                   </div>
                                 </div>
                               )}
 
-                              {/* เสร็จสิ้นงาน (แสดงเมื่อมี completedAt) */}
                               {job.completedAt && (
                                 <div className="relative flex gap-4">
                                   <div className="relative z-10 flex-shrink-0">
@@ -647,7 +873,6 @@ export default function JobDetailDrawer({
                                 </div>
                               )}
 
-                              {/* ยกเลิกงาน (แสดงเมื่อมี cancelledAt) */}
                               {job.cancelledAt && (
                                 <div className="relative flex gap-4">
                                   <div className="relative z-10 flex-shrink-0">
@@ -682,14 +907,13 @@ export default function JobDetailDrawer({
                       </div>
                     </div>
                   </section>
-                  {/* ข้อมูลเพิ่มเติม - ออกแบบใหม่แบบ Visual Cards */}
-                  <section className="border-l border-divider pl-6">
+
+                  <section className="border-t lg:border-t-0 lg:border-l border-divider pt-6 lg:pt-0 lg:pl-6">
                     <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                       <ClipboardListIcon className="w-5 h-5 text-primary" />
                       รายละเอียด
                     </h3>
                     <div className="space-y-3">
-                      {/* Card: ความเร่งด่วน */}
                       {formData.urgencyLevel && (
                         <div
                           className={`rounded-lg p-4 border ${
@@ -750,7 +974,7 @@ export default function JobDetailDrawer({
                           </div>
                         </div>
                       )}
-                      {/* Card: เหตุผล */}
+
                       {formData.transportReason && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
@@ -769,7 +993,6 @@ export default function JobDetailDrawer({
                         </div>
                       )}
 
-                      {/* Card: ประเภทรถ */}
                       {formData.vehicleType && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
@@ -811,7 +1034,6 @@ export default function JobDetailDrawer({
                         </div>
                       )}
 
-                      {/* Card: อุปกรณ์ */}
                       {formData.equipment.length > 0 && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
@@ -845,267 +1067,53 @@ export default function JobDetailDrawer({
                   </section>
                 </div>
               </>
-            ) : (
-              <>
-                {/* ข้อมูลการเคลื่อนย้าย */}
-                <section>
-                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <MapPinIcon className="w-5 h-5 text-primary" />
-                    ข้อมูลการเคลื่อนย้าย
-                  </h3>
-                  <div className="space-y-4">
-                    <Select
-                      defaultSelectedKeys={[formData.transportReason]}
-                      isDisabled={!canEdit}
-                      label="เหตุผลการเคลื่อนย้าย"
-                      selectedKeys={[formData.transportReason]}
-                      variant="bordered"
-                      onSelectionChange={(keys) => {
-                        const selected = Array.from(keys)[0] as string;
+            )}
 
-                        handleInputChange("transportReason", selected || "");
-                      }}
-                    >
-                      {TRANSPORT_REASON_OPTIONS.map((reason) => (
-                        <SelectItem key={reason}>{reason}</SelectItem>
-                      ))}
-                    </Select>
-                    <div className="space-y-4">
-                      <LocationSelector
-                        isDisabled={!canEdit}
-                        isRequired={canEdit}
-                        label="สถานที่รับ"
-                        value={formData.pickupLocationDetail}
-                        onChange={(location) => {
-                          setFormData((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  pickupLocationDetail: location,
-                                  pickupLocation: location
-                                    ? formatLocationString(location)
-                                    : "",
-                                }
-                              : null,
-                          );
-                        }}
-                      />
-                      <LocationSelector
-                        isDisabled={!canEdit}
-                        isRequired={canEdit}
-                        label="สถานที่ส่ง"
-                        value={formData.deliveryLocationDetail}
-                        onChange={(location) => {
-                          setFormData((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  deliveryLocationDetail: location,
-                                  deliveryLocation: location
-                                    ? formatLocationString(location)
-                                    : "",
-                                }
-                              : null,
-                          );
-                        }}
-                      />
-                    </div>
+            {/* เลือกผู้ดำเนินการ (ให้เลือกได้แม้ไม่อยู่ในโหมดแก้ไข สำหรับสถานะรอรับงาน) */}
+            {canAcceptJob && (
+              <section>
+                <Divider className="my-6" />
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <UserIcon className="w-5 h-5 text-primary" />
+                  ผู้ดำเนินการ
+                </h3>
+                <Autocomplete
+                  isRequired
+                  defaultSelectedKey={job.assignedTo || undefined}
+                  isDisabled={isLoadingEmployees}
+                  label="ผู้ดำเนินการ"
+                  placeholder={
+                    isLoadingEmployees
+                      ? "กำลังโหลดข้อมูลเจ้าหน้าที่..."
+                      : "เลือกเจ้าหน้าที่ผู้ดำเนินการ"
+                  }
+                  selectedKey={selectedStaffId || job.assignedTo || ""}
+                  variant="bordered"
+                  onSelectionChange={(key) => {
+                    setSelectedStaffId((key as string) || "");
+                  }}
+                >
+                  {employees.map((employee) => {
+                    const fullName = `${employee.firstName} ${employee.lastName}`;
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <div className="text-sm font-medium text-foreground mb-2 block">
-                          ประเภทรถ
+                    return (
+                      <AutocompleteItem key={employee.id} textValue={fullName}>
+                        <div className="flex flex-col">
+                          <span className="text-foreground font-medium">
+                            {fullName}
+                          </span>
+                          <span className="text-default-500 text-sm">
+                            {employee.position}
+                            {employee.employmentType
+                              ? ` • ${employee.employmentType}`
+                              : ""}
+                          </span>
                         </div>
-                        <Select
-                          disallowEmptySelection
-                          isDisabled={!canEdit}
-                          selectedKeys={[formData.vehicleType]}
-                          variant="bordered"
-                          onSelectionChange={(keys) => {
-                            const selected = Array.from(keys)[0] as VehicleType;
-
-                            handleInputChange("vehicleType", selected);
-                          }}
-                        >
-                          {VEHICLE_TYPE_OPTIONS.map((type) => (
-                            <SelectItem key={type}>{type}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-foreground mb-2 block">
-                          มีรถแล้วหรือยัง
-                        </div>
-                        <RadioGroup
-                          isDisabled={!canEdit}
-                          orientation="horizontal"
-                          value={formData.hasVehicle || "ไม่มี"}
-                          onValueChange={(value) =>
-                            handleInputChange(
-                              "hasVehicle",
-                              value as "มี" | "ไม่มี" | "",
-                            )
-                          }
-                        >
-                          <Radio size="sm" value="มี">
-                            มี
-                          </Radio>
-                          <Radio size="sm" value="ไม่มี">
-                            ไม่มี
-                          </Radio>
-                        </RadioGroup>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-foreground mb-2 block">
-                          ส่งกลับหรือไม่
-                        </div>
-                        <RadioGroup
-                          className="gap-3"
-                          isDisabled={!canEdit}
-                          orientation="horizontal"
-                          value={formData.returnTrip || ""}
-                          onValueChange={(val) =>
-                            handleInputChange(
-                              "returnTrip",
-                              val as "ไปส่งอย่างเดียว" | "รับกลับด้วย" | "",
-                            )
-                          }
-                        >
-                          <Radio size="sm" value="ไปส่งอย่างเดียว">
-                            ไปส่งอย่างเดียว
-                          </Radio>
-                          <Radio size="sm" value="รับกลับด้วย">
-                            รับกลับด้วย
-                          </Radio>
-                        </RadioGroup>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-foreground mb-2 block">
-                        ความเร่งด่วน
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {URGENCY_OPTIONS.map((option) => (
-                          <Chip
-                            key={option.value}
-                            className={canEdit ? "cursor-pointer" : ""}
-                            color={option.color}
-                            isDisabled={!canEdit}
-                            startContent={
-                              option.value === "ฉุกเฉิน" ||
-                              option.value === "ด่วน" ? (
-                                <AmbulanceIcon className="w-4 h-4" />
-                              ) : (
-                                <ClipboardListIcon className="w-4 h-4" />
-                              )
-                            }
-                            variant={
-                              formData.urgencyLevel === option.value
-                                ? "solid"
-                                : "bordered"
-                            }
-                            onClick={() => {
-                              if (canEdit) {
-                                handleInputChange("urgencyLevel", option.value);
-                              }
-                            }}
-                          >
-                            {option.label}
-                          </Chip>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <CheckboxGroup
-                        isDisabled={!canEdit}
-                        label="อุปกรณ์ที่ต้องการ"
-                        orientation="horizontal"
-                        value={formData.equipment}
-                        onValueChange={(values) => {
-                          handleInputChange(
-                            "equipment",
-                            values as EquipmentType[],
-                          );
-                          // ถ้าไม่ได้เลือก "อื่นๆ ระบุ" ให้ล้าง equipmentOther
-                          if (!values.includes("อื่นๆ ระบุ")) {
-                            handleInputChange("equipmentOther", "");
-                          }
-                        }}
-                      >
-                        {EQUIPMENT_OPTIONS.map((eq) => (
-                          <Checkbox key={eq} value={eq}>
-                            {eq}
-                          </Checkbox>
-                        ))}
-                      </CheckboxGroup>
-                    </div>
-                    {formData.equipment.includes("อื่นๆ ระบุ") && (
-                      <Input
-                        className="mt-3"
-                        isDisabled={!canEdit}
-                        label="ระบุอุปกรณ์อื่นๆ"
-                        placeholder="กรุณาระบุอุปกรณ์ที่ต้องการ"
-                        value={formData.equipmentOther || ""}
-                        variant="bordered"
-                        onChange={(e) => {
-                          handleInputChange("equipmentOther", e.target.value);
-                        }}
-                      />
-                    )}
-                    <Textarea
-                      isDisabled={!canEdit}
-                      label="หมายเหตุพิเศษ"
-                      placeholder="กรอกหมายเหตุเพิ่มเติม (ถ้ามี)"
-                      value={formData.specialNotes}
-                      variant="bordered"
-                      onChange={(e) =>
-                        handleInputChange("specialNotes", e.target.value)
-                      }
-                    />
-                    {canAcceptJob && (
-                      <Autocomplete
-                        isRequired
-                        defaultSelectedKey={job.assignedTo || undefined}
-                        isDisabled={isLoadingEmployees}
-                        label="ผู้ดำเนินการ"
-                        placeholder={
-                          isLoadingEmployees
-                            ? "กำลังโหลดข้อมูลเจ้าหน้าที่..."
-                            : "เลือกเจ้าหน้าที่ผู้ดำเนินการ"
-                        }
-                        selectedKey={selectedStaffId || job.assignedTo || ""}
-                        variant="bordered"
-                        onSelectionChange={(key) => {
-                          setSelectedStaffId((key as string) || "");
-                        }}
-                      >
-                        {employees.map((employee) => {
-                          const fullName = `${employee.firstName} ${employee.lastName}`;
-
-                          return (
-                            <AutocompleteItem
-                              key={employee.id}
-                              textValue={fullName}
-                            >
-                              <div className="flex flex-col">
-                                <span className="text-foreground font-medium">
-                                  {fullName}
-                                </span>
-                                <span className="text-default-500 text-sm">
-                                  {employee.position}
-                                  {employee.employmentType
-                                    ? ` • ${employee.employmentType}`
-                                    : ""}
-                                </span>
-                              </div>
-                            </AutocompleteItem>
-                          );
-                        })}
-                      </Autocomplete>
-                    )}
-                  </div>
-                </section>
-              </>
+                      </AutocompleteItem>
+                    );
+                  })}
+                </Autocomplete>
+              </section>
             )}
           </div>
         </DrawerBody>
@@ -1147,15 +1155,34 @@ export default function JobDetailDrawer({
               )}
             </div>
             <div className="flex items-center gap-2">
-              {canEdit && (
+              {canAcceptJob && (
                 <Button
                   color="primary"
                   isDisabled={isSubmitting}
                   isLoading={isSubmitting}
-                  variant="flat"
-                  onPress={handleSaveChanges}
+                  variant={isEditMode ? "solid" : "flat"}
+                  onPress={() => {
+                    if (!isEditMode) {
+                      setIsEditMode(true);
+                    } else {
+                      handleSaveChanges();
+                    }
+                  }}
                 >
-                  บันทึกการแก้ไข
+                  {isEditMode ? "บันทึกการแก้ไข" : "แก้ไขข้อมูล"}
+                </Button>
+              )}
+              {canEdit && isEditMode && (
+                <Button
+                  color="danger"
+                  isDisabled={isSubmitting}
+                  variant="light"
+                  onPress={() => {
+                    setIsEditMode(false);
+                    setFormData({ ...job.form });
+                  }}
+                >
+                  ยกเลิกการแก้ไข
                 </Button>
               )}
               <Button

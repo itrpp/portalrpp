@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Button,
@@ -26,12 +26,14 @@ import { CalendarDateTime } from "@internationalized/date";
 
 import { LocationSelector, CancelJobModal } from "../components";
 
+import { usePorterRequestForm } from "./hooks/usePorterRequestForm";
+import { useUserRequests } from "./hooks/useUserRequests";
+
 import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
   formatLocationString,
-  PorterJobItem,
 } from "@/types/porter";
 import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
 import {
@@ -41,7 +43,6 @@ import {
   TRANSPORT_REASON_OPTIONS,
   DEPARTMENT_OPTIONS,
   PATIENT_CONDITION_OPTIONS,
-  validateForm,
 } from "@/lib/porter";
 import {
   AmbulanceIcon,
@@ -56,48 +57,28 @@ import {
   MagnifyingGlassIcon,
 } from "@/components/ui/icons";
 
-// ========================================
-// PORTER REQUEST PAGE
-// ========================================
-
 export default function PorterRequestPage() {
   const { data: session } = useSession();
 
-  const [formData, setFormData] = useState<PorterRequestFormData>({
-    requesterDepartment: "",
-    requesterName: session?.user?.name || "",
-    requesterPhone: "",
+  const {
+    formData,
+    validationErrors,
+    editingRequestId,
+    isSubmitting,
+    setIsSubmitting,
+    setFormField,
+    clearFieldError,
+    runValidation,
+    resetForm,
+    loadRequestForEdit,
+    cancelEditing,
+  } = usePorterRequestForm({ requesterName: session?.user?.name ?? undefined });
 
-    patientName: "",
-    patientHN: "",
-
-    pickupLocation: "",
-    pickupLocationDetail: null,
-    deliveryLocation: "",
-    deliveryLocationDetail: null,
-    requestedDateTime: getDateTimeLocal(),
-    urgencyLevel: "ปกติ",
-    vehicleType: "",
-    equipment: [],
-    hasVehicle: "",
-    returnTrip: "",
-
-    transportReason: "",
-    equipmentOther: "",
-    specialNotes: "",
-    patientCondition: [],
-  });
-
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [shouldScrollToError, setShouldScrollToError] = useState(false);
-  const prevErrorsCountRef = React.useRef(0);
-
-  // State สำหรับรายการคำขอ
-  const [userRequests, setUserRequests] = useState<PorterJobItem[]>([]);
-  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const { userRequests, isLoadingRequests, refreshUserRequests } =
+    useUserRequests({
+      userId: session?.user?.id,
+      requesterName: session?.user?.name || null,
+    });
 
   // State สำหรับค้นหาข้อมูลผู้ป่วย
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
@@ -115,296 +96,41 @@ export default function PorterRequestPage() {
     onClose: onCancelModalClose,
   } = useDisclosure();
 
-  // State สำหรับแก้ไขคำขอ
-  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
+  // Scroll behavior handled inside usePorterRequestForm hook
 
-  // ฟังก์ชันสำหรับดึงข้อมูลรายการคำขอของผู้ใช้ปัจจุบัน
-  const fetchUserRequests = React.useCallback(async () => {
-    if (!session?.user?.id) {
+  // Handler สำหรับแก้ไขคำขอ
+  const handleEditRequest = (requestId: string) => {
+    const request = userRequests.find((r) => r.id === requestId);
+
+    if (!request) {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่พบข้อมูลคำขอ",
+        color: "danger",
+      });
+
       return;
     }
 
-    setIsLoadingRequests(true);
-
-    try {
-      // ดึงข้อมูลคำขอที่อยู่ในสถานะ waiting และ in-progress
-      const queryParams = new URLSearchParams();
-
-      queryParams.append("requester_user_id", session.user.id);
-      queryParams.append("page_size", "100");
-
-      const response = await fetch(
-        `/api/porter/requests?${queryParams.toString()}`,
-      );
-
-      if (!response.ok) {
-        throw new Error("ไม่สามารถโหลดข้อมูลรายการคำขอได้");
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        // กรองเฉพาะคำขอที่อยู่ในสถานะ waiting และ in-progress
-        // และเป็นคำขอที่ user ปัจจุบันสร้างขึ้นเท่านั้น
-        const filteredRequests = (result.data as PorterJobItem[]).filter(
-          (request) => {
-            // ตรวจสอบสถานะ
-            const hasValidStatus =
-              request.status === "waiting" || request.status === "in-progress";
-
-            // ตรวจสอบว่าเป็นคำขอที่ user ปัจจุบันสร้างขึ้น
-            // โดยเปรียบเทียบชื่อผู้แจ้งกับชื่อ user ปัจจุบัน
-            const isUserRequest =
-              request.form.requesterName === session.user.name;
-
-            return hasValidStatus && isUserRequest;
-          },
-        );
-
-        // จัดเรียงตาม urgency level และเวลา
-        const sortedRequests = filteredRequests.sort((a, b) => {
-          // จัดเรียงตาม urgency level: ฉุกเฉิน > ด่วน > ปกติ
-          const urgencyOrder: Record<string, number> = {
-            ฉุกเฉิน: 3,
-            ด่วน: 2,
-            ปกติ: 1,
-          };
-
-          const urgencyDiff =
-            (urgencyOrder[b.form.urgencyLevel] || 0) -
-            (urgencyOrder[a.form.urgencyLevel] || 0);
-
-          if (urgencyDiff !== 0) {
-            return urgencyDiff;
-          }
-
-          // ถ้า urgency เท่ากัน จัดเรียงตามเวลา
-          return (
-            new Date(a.form.requestedDateTime).getTime() -
-            new Date(b.form.requestedDateTime).getTime()
-          );
-        });
-
-        setUserRequests(sortedRequests);
-      }
-    } catch (error) {
-      console.error("Error fetching user requests:", error);
-    } finally {
-      setIsLoadingRequests(false);
-    }
-  }, [session?.user?.id]);
-
-  // ดึงข้อมูลรายการคำขอของผู้ใช้ปัจจุบัน
-  useEffect(() => {
-    fetchUserRequests();
-  }, [fetchUserRequests]);
-
-  // Scroll to first error field after validation fails (only when submit)
-  useEffect(() => {
-    const currentErrorsCount = Object.keys(validationErrors).length;
-
-    // Only scroll if:
-    // 1. There are errors
-    // 2. Errors count increased (not decreased - which means user is fixing)
-    // 3. shouldScrollToError flag is true (set when submit fails)
-    if (
-      currentErrorsCount > 0 &&
-      currentErrorsCount > prevErrorsCountRef.current &&
-      shouldScrollToError
-    ) {
-      // Small delay to ensure React has updated the DOM
-      const timer = setTimeout(() => {
-        // Find first field with error from validationErrors
-        const requiredFields: Array<keyof PorterRequestFormData> = [
-          "requesterDepartment",
-          "requesterName",
-          "requesterPhone",
-          "patientName",
-          "patientHN",
-          "pickupLocation",
-          "deliveryLocation",
-          "requestedDateTime",
-          "transportReason",
-          "urgencyLevel",
-          "vehicleType",
-          "hasVehicle",
-          "returnTrip",
-        ];
-
-        // Find first field with error
-        const firstErrorKey = requiredFields.find(
-          (field) => validationErrors[field],
-        );
-
-        if (firstErrorKey) {
-          // Map field names to label text
-          const fieldLabels: Partial<
-            Record<keyof PorterRequestFormData, string>
-          > = {
-            requesterDepartment: "หน่วยงานผู้แจ้ง",
-            requesterName: "ชื่อผู้แจ้ง",
-            requesterPhone: "เบอร์โทรติดต่อ",
-            patientHN: "หมายเลข HN",
-            patientName: "ชื่อผู้ป่วย",
-            pickupLocation: "สถานที่รับ",
-            deliveryLocation: "สถานที่ส่ง",
-            requestedDateTime: "วันที่และเวลา",
-            transportReason: "รายการเหตุผล",
-            urgencyLevel: "ความเร่งด่วน",
-            vehicleType: "ประเภทรถ",
-            hasVehicle: "มีรถแล้วหรือยัง",
-            returnTrip: "ส่งกลับหรือไม่",
-          };
-
-          const labelText = fieldLabels[firstErrorKey];
-
-          if (!labelText) {
-            return;
-          }
-
-          // Find the label and scroll to its input
-          const labels = Array.from(document.querySelectorAll("label"));
-
-          for (const label of labels) {
-            if (label.textContent?.includes(labelText)) {
-              const input = label
-                .closest("div")
-                ?.querySelector(
-                  "input, select, [role='combobox'], textarea",
-                ) as HTMLElement | null;
-
-              if (input) {
-                input.scrollIntoView({ behavior: "smooth", block: "center" });
-                // Focus to ensure error is visible
-                setTimeout(() => input.focus(), 100);
-                break;
-              }
-            }
-          }
-        }
-      }, 100);
-
-      // Reset scroll flag after scrolling
-      setShouldScrollToError(false);
-
-      return () => clearTimeout(timer);
-    }
-
-    // Update previous errors count
-    prevErrorsCountRef.current = currentErrorsCount;
-  }, [validationErrors, shouldScrollToError]);
-
-  // Handler สำหรับแก้ไขคำขอ
-  const handleEditRequest = async (requestId: string) => {
-    try {
-      // ดึงข้อมูลคำขอจากรายการที่มีอยู่
-      const request = userRequests.find((r) => r.id === requestId);
-
-      if (!request) {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่พบข้อมูลคำขอ",
-          color: "danger",
-        });
-
-        return;
-      }
-
-      // เติมข้อมูลลงในฟอร์ม
-      setFormData({
-        requesterDepartment: request.form.requesterDepartment || "",
-        requesterName: request.form.requesterName || "",
-        requesterPhone: request.form.requesterPhone || "",
-
-        patientName: request.form.patientName || "",
-        patientHN: request.form.patientHN || "",
-
-        pickupLocation: request.form.pickupLocation || "",
-        pickupLocationDetail: request.form.pickupLocationDetail || null,
-        deliveryLocation: request.form.deliveryLocation || "",
-        deliveryLocationDetail: request.form.deliveryLocationDetail || null,
-        requestedDateTime: request.form.requestedDateTime || getDateTimeLocal(),
-        urgencyLevel: request.form.urgencyLevel || "ปกติ",
-        vehicleType: request.form.vehicleType || "",
-        equipment: request.form.equipment || [],
-        hasVehicle: request.form.hasVehicle || "",
-        returnTrip: request.form.returnTrip || "",
-
-        transportReason: request.form.transportReason || "",
-        equipmentOther: request.form.equipmentOther || "",
-        specialNotes: request.form.specialNotes || "",
-        patientCondition: request.form.patientCondition || [],
-      });
-
-      // ตั้งค่า editingRequestId
-      setEditingRequestId(requestId);
-
-      // Clear validation errors
-      setValidationErrors({});
-
-      // Scroll to top of form
-      window.scrollTo({ top: 0, behavior: "smooth" });
-
-      addToast({
-        title: "โหลดข้อมูลสำเร็จ",
-        description: "ข้อมูลคำขอได้ถูกโหลดลงในฟอร์มแล้ว",
-        color: "success",
-      });
-    } catch (error) {
-      console.error("Error loading request for edit:", error);
-      addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถโหลดข้อมูลคำขอได้",
-        color: "danger",
-      });
-    }
+    loadRequestForEdit(request);
+    addToast({
+      title: "โหลดข้อมูลสำเร็จ",
+      description: "ข้อมูลคำขอได้ถูกโหลดลงในฟอร์มแล้ว",
+      color: "success",
+    });
   };
 
-  // Handler สำหรับยกเลิกการแก้ไข
   const handleCancelEdit = () => {
-    setEditingRequestId(null);
-    setFormData({
-      requesterDepartment: "",
-      requesterName: session?.user?.name || "",
-      requesterPhone: "",
-
-      patientName: "",
-      patientHN: "",
-
-      pickupLocation: "",
-      pickupLocationDetail: null,
-      deliveryLocation: "",
-      deliveryLocationDetail: null,
-      requestedDateTime: getDateTimeLocal(),
-      urgencyLevel: "ปกติ",
-      vehicleType: "",
-      equipment: [],
-      hasVehicle: "",
-      returnTrip: "",
-
-      transportReason: "",
-      equipmentOther: "",
-      specialNotes: "",
-      patientCondition: [],
-    });
-    setValidationErrors({});
+    cancelEditing();
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form first to get errors
-    const validation = validateForm(formData);
+    const validation = runValidation();
 
     if (!validation.isValid) {
-      // Set validationErrors - HeroUI Form will automatically display them
-      setValidationErrors(validation.errors);
-
-      // Set flag to scroll to error (only on submit failure)
-      setShouldScrollToError(true);
-
-      // Show toast notification
       addToast({
         title: "ข้อมูลไม่ครบถ้วน",
         description: "กรุณาตรวจสอบข้อมูลที่กรอกแล้วลองอีกครั้ง",
@@ -413,9 +139,6 @@ export default function PorterRequestPage() {
 
       return;
     }
-
-    // Clear errors if form is valid
-    setValidationErrors({});
 
     setIsSubmitting(true);
 
@@ -455,9 +178,6 @@ export default function PorterRequestPage() {
           description: "คำขอของคุณได้รับการแก้ไขเรียบร้อยแล้ว",
           color: "success",
         });
-
-        // Reset editing state
-        setEditingRequestId(null);
       } else {
         // สร้างคำขอใหม่
         response = await fetch("/api/porter/requests", {
@@ -492,36 +212,8 @@ export default function PorterRequestPage() {
         });
       }
 
-      // Refresh รายการคำขอ
-      fetchUserRequests();
-
-      // Reset form
-      setFormData({
-        requesterDepartment: "",
-        requesterName: session?.user?.name || "",
-        requesterPhone: "",
-
-        patientName: "",
-        patientHN: "",
-
-        pickupLocation: "",
-        pickupLocationDetail: null,
-        deliveryLocation: "",
-        deliveryLocationDetail: null,
-        requestedDateTime: getDateTimeLocal(),
-        urgencyLevel: "ปกติ",
-        vehicleType: "",
-        equipment: [],
-        hasVehicle: "",
-        returnTrip: "",
-
-        transportReason: "",
-        equipmentOther: "",
-        specialNotes: "",
-        patientCondition: [],
-      });
-
-      setValidationErrors({});
+      await refreshUserRequests();
+      resetForm();
     } catch (error: unknown) {
       // Log error for debugging (in production, use proper logging service)
       if (error instanceof Error) {
@@ -579,22 +271,8 @@ export default function PorterRequestPage() {
     field: keyof PorterRequestFormData,
     value: any,
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-
-    // Clear error for this field when user modifies it (HeroUI behavior)
-    // This matches HeroUI's automatic error clearing behavior
-    // Don't scroll when user is fixing errors
-    if (validationErrors[field]) {
-      setValidationErrors((prev) => {
-        const newErrors = { ...prev };
-
-        delete newErrors[field];
-
-        return newErrors;
-      });
-      // Reset scroll flag to prevent scrolling when user fixes errors
-      setShouldScrollToError(false);
-    }
+    setFormField(field, value);
+    clearFieldError(field);
   };
 
   // Handler สำหรับค้นหาข้อมูลผู้ป่วยจาก HN/AN
@@ -739,7 +417,7 @@ export default function PorterRequestPage() {
         setCancelReasonError("");
 
         // Refresh รายการคำขอหลังจากยกเลิกสำเร็จ
-        fetchUserRequests();
+        await refreshUserRequests();
       } else {
         addToast({
           title: "เกิดข้อผิดพลาด",
@@ -964,24 +642,7 @@ export default function PorterRequestPage() {
                   label="สถานที่รับ"
                   value={formData.pickupLocationDetail}
                   onChange={(location) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      pickupLocationDetail: location,
-                      pickupLocation: location
-                        ? formatLocationString(location)
-                        : "",
-                    }));
-
-                    // Clear error when user modifies
-                    if (validationErrors.pickupLocation) {
-                      setValidationErrors((prev) => {
-                        const newErrors = { ...prev };
-
-                        delete newErrors.pickupLocation;
-
-                        return newErrors;
-                      });
-                    }
+                    setFormField("pickupLocationDetail", location);
                   }}
                 />
 
@@ -991,24 +652,7 @@ export default function PorterRequestPage() {
                   label="สถานที่ส่ง"
                   value={formData.deliveryLocationDetail}
                   onChange={(location) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      deliveryLocationDetail: location,
-                      deliveryLocation: location
-                        ? formatLocationString(location)
-                        : "",
-                    }));
-
-                    // Clear error when user modifies
-                    if (validationErrors.deliveryLocation) {
-                      setValidationErrors((prev) => {
-                        const newErrors = { ...prev };
-
-                        delete newErrors.deliveryLocation;
-
-                        return newErrors;
-                      });
-                    }
+                    setFormField("deliveryLocationDetail", location);
                   }}
                 />
               </div>
@@ -1251,9 +895,26 @@ export default function PorterRequestPage() {
             <CardBody className="pt-4">
               <Textarea
                 classNames={{ input: "resize-y min-h-[40px]" }}
-                label="หมายเหตุ / ข้อมูลเพิ่มเติม"
+                errorMessage={validationErrors.specialNotes}
+                isInvalid={!!validationErrors.specialNotes}
+                isRequired={
+                  formData.deliveryLocationDetail?.buildingName ===
+                  "โรงพยาบาลอื่น"
+                }
+                label={
+                  formData.deliveryLocationDetail?.buildingName ===
+                  "โรงพยาบาลอื่น"
+                    ? "ระบุโรงพยาบาลปลายทาง (รายละเอียดเพิ่มเติม)"
+                    : "หมายเหตุ / ข้อมูลเพิ่มเติม"
+                }
                 minRows={3}
-                placeholder="ระบุข้อมูลเพิ่มเติมที่สำคัญ เช่น ข้อควรระวังพิเศษ, โรคประจำตัว, อาการพิเศษ"
+                name="specialNotes"
+                placeholder={
+                  formData.deliveryLocationDetail?.buildingName ===
+                  "โรงพยาบาลอื่น"
+                    ? "ระบุชื่อโรงพยาบาลปลายทาง"
+                    : "ระบุข้อมูลเพิ่มเติมที่สำคัญ เช่น ข้อควรระวังพิเศษ, โรคประจำตัว, อาการพิเศษ"
+                }
                 value={formData.specialNotes}
                 variant="bordered"
                 onChange={(e) => {
@@ -1281,32 +942,7 @@ export default function PorterRequestPage() {
                   size="md"
                   type="button"
                   variant="flat"
-                  onPress={() => {
-                    setFormData({
-                      requesterDepartment: "",
-                      requesterName: session?.user?.name || "",
-                      requesterPhone: "",
-
-                      patientName: "",
-                      patientHN: "",
-
-                      pickupLocation: "",
-                      pickupLocationDetail: null,
-                      deliveryLocation: "",
-                      deliveryLocationDetail: null,
-                      requestedDateTime: getDateTimeLocal(),
-                      urgencyLevel: "ปกติ",
-                      vehicleType: "",
-                      equipment: [],
-                      hasVehicle: "",
-                      returnTrip: "",
-
-                      transportReason: "",
-                      specialNotes: "",
-                      patientCondition: [],
-                    });
-                    setValidationErrors({});
-                  }}
+                  onPress={resetForm}
                 >
                   ล้างข้อมูล
                 </Button>
@@ -1363,11 +999,11 @@ export default function PorterRequestPage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
                   {userRequests.map((request) => (
                     <div
                       key={request.id}
-                      className={`rounded-lg border p-3 ${
+                      className={`min-w-[300px] md:min-w-0 rounded-lg border p-3 ${
                         request.form.urgencyLevel === "ฉุกเฉิน"
                           ? "bg-danger-50/30 border-danger-200"
                           : request.form.urgencyLevel === "ด่วน"
@@ -1426,14 +1062,14 @@ export default function PorterRequestPage() {
                       {/* บรรทัดที่ 3: สถานที่รับ */}
                       <div className="text-xs text-default-700 mb-1">
                         <span className="font-medium">
-                          {`รับผู้ป่วยจาก : ${request.form.pickupLocation || "-"}`}
+                          {`รับผู้ป่วยจาก : ${formatLocationString(request.form.pickupLocationDetail)}`}
                         </span>
                       </div>
 
                       {/* บรรทัดที่ 4: สถานที่ส่ง */}
                       <div className="text-xs text-default-700 mb-2">
                         <span className="font-medium">
-                          {`ส่งผู้ป่วยไปที่ : ${request.form.deliveryLocation || "-"}`}
+                          {`ส่งผู้ป่วยไปที่ : ${formatLocationString(request.form.deliveryLocationDetail)}`}
                         </span>
                       </div>
 
