@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 interface CrudResourceOptions<T> {
   onError?: (errorMessage: string) => void;
@@ -12,6 +12,13 @@ export function useCrudResource<T>(
   const [items, setItems] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Use ref to keep track of options without triggering re-renders/re-fetches
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
   const refresh = useCallback(async () => {
     setIsLoading(true);
 
@@ -24,8 +31,9 @@ export function useCrudResource<T>(
       }
 
       const rawItems = result.data as T[];
-      const nextItems = options.transform
-        ? options.transform(rawItems)
+      const currentOptions = optionsRef.current;
+      const nextItems = currentOptions.transform
+        ? currentOptions.transform(rawItems)
         : rawItems;
 
       setItems(nextItems);
@@ -33,11 +41,11 @@ export function useCrudResource<T>(
       const message =
         error instanceof Error ? error.message : "ไม่สามารถโหลดข้อมูลได้";
 
-      options.onError?.(message);
+      optionsRef.current.onError?.(message);
     } finally {
       setIsLoading(false);
     }
-  }, [options, resourcePath]);
+  }, [resourcePath]);
 
   useEffect(() => {
     refresh();
