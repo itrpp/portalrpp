@@ -108,16 +108,11 @@ const providers: any[] = [
       }
     },
   }),
+  LineProvider({
+    clientId: process.env.LINE_CLIENT_ID as string,
+    clientSecret: process.env.LINE_CLIENT_SECRET as string,
+  }),
 ];
-
-if (process.env.LINE_CLIENT_ID && process.env.LINE_CLIENT_SECRET) {
-  providers.push(
-    LineProvider({
-      clientId: process.env.LINE_CLIENT_ID,
-      clientSecret: process.env.LINE_CLIENT_SECRET,
-    }),
-  );
-}
 
 export const authOptions: any = {
   // ใช้ PrismaAdapter เพื่อบันทึก/ซิงค์ข้อมูลผู้ใช้ใน MySQL (ยังใช้ JWT สำหรับ session)

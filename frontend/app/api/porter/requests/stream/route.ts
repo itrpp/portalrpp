@@ -41,15 +41,6 @@ export async function GET(request: NextRequest) {
     const searchParams = url.searchParams;
     const { status, urgency_level } = Object.fromEntries(searchParams);
 
-    console.info(
-      "[Next.js API] Creating gRPC stream directly (bypassing API Gateway)",
-      {
-        queryParams: { status, urgency_level },
-        hasStatusFilter: status !== undefined && status !== null,
-        hasUrgencyFilter: urgency_level !== undefined && urgency_level !== null,
-      },
-    );
-
     // สร้าง request สำหรับ gRPC stream โดยตรง
     const protoRequest: any = {};
 

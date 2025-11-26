@@ -45,7 +45,7 @@ const porterProto = grpc.loadPackageDefinition(packageDefinition).porter as any;
 export function getPorterClient(): any {
   // อ่าน gRPC URL จาก environment variable
   // ใช้ NEXT_PUBLIC_ prefix สำหรับ client-side แต่ใน API route ใช้ process.env ได้
-  const grpcUrl = process.env.PORTER_GRPC_URL || "localhost:50051";
+  const grpcUrl = process.env.PORTER_SERVICE_GRPC_URL || "localhost:50051";
 
   if (!grpcUrl) {
     throw new Error("PORTER_SERVICE_GRPC_URL is not configured");

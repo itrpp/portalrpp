@@ -78,7 +78,9 @@ export async function GET(request: Request) {
 
       // ดึงข้อมูลชื่อผู้ยกเลิก (CancelledBy) จาก User table
       const cancelledUserIds = frontendData
-        .filter((item: any) => item.status === "cancelled" && item.cancelledById)
+        .filter(
+          (item: any) => item.status === "cancelled" && item.cancelledById,
+        )
         .map((item: any) => item.cancelledById)
         .filter((id: any, index: any, self: any) => self.indexOf(id) === index); // unique ids
 
@@ -102,6 +104,7 @@ export async function GET(request: Request) {
               cancelledByName: userMap.get(item.cancelledById) || undefined,
             };
           }
+
           return item;
         });
       }

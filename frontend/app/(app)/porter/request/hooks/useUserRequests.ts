@@ -6,9 +6,7 @@ interface UseUserRequestsOptions {
   userId?: string;
 }
 
-export function useUserRequests({
-  userId,
-}: UseUserRequestsOptions) {
+export function useUserRequests({ userId }: UseUserRequestsOptions) {
   const [userRequests, setUserRequests] = useState<PorterJobItem[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 

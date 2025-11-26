@@ -52,7 +52,8 @@ export const renderStatusChip = (job: PorterJobItem) => {
 
   if (job.status === "cancelled") {
     const staffInfo =
-      job.cancelledByName || (job.cancelledById ? `ID: ${job.cancelledById}` : "");
+      job.cancelledByName ||
+      (job.cancelledById ? `ID: ${job.cancelledById}` : "");
     const label = staffInfo ? `ยกเลิก [${staffInfo}]` : "ยกเลิก";
 
     return (
