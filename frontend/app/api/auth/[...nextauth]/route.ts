@@ -24,7 +24,7 @@ type MinimalUserRecord = {
   ldapId: string | null;
   lineDisplayName: string | null;
   lineUserId: string | null;
-  providerType: string | null;
+  displayName: string | null;
 };
 
 async function findUserById(
@@ -41,7 +41,7 @@ async function findUserById(
       ldapId: true,
       lineDisplayName: true,
       lineUserId: true,
-      providerType: true,
+      displayName: true,
     },
   });
 }
@@ -67,7 +67,7 @@ async function findUserByLineAccount(
           ldapId: true,
           lineDisplayName: true,
           lineUserId: true,
-          providerType: true,
+          displayName: true,
         },
       },
     },
@@ -266,10 +266,10 @@ export const authOptions: any = {
         // upsert โดยอิงจาก email เป็นหลัก (และเก็บ ldapId หากมี)
         const email = user.email as string | undefined;
         const ldapId = user.id as string | undefined;
-        const name = user.name as string | undefined;
+        const ldapDisplayName = user.displayName as string | undefined;
         const department = (user.department ?? null) as string | null;
-        const title = (user.title ?? null) as string | null;
-        const groups = (user.groups ?? null) as string | null;
+        const position = (user.position ?? null) as string | null;
+        const memberOf = (user.memberOf ?? null) as string | null;
         const role = (user.role ?? "user") as "admin" | "user";
 
         // หากไม่มีอีเมล ให้ fallback ใช้ ldapId เพื่อป้องกัน unique constraint
@@ -278,22 +278,19 @@ export const authOptions: any = {
         const dbUser = await prisma.user.upsert({
           where: { email: whereEmail },
           update: {
-            name,
+            ldapDisplayName,
             department,
-            title,
-            groups,
-            role,
-            providerType: "ldap",
+            position,
+            memberOf,
             ldapId,
           },
           create: {
             email: whereEmail,
-            name,
+            ldapDisplayName,
             department,
-            title,
-            groups,
+            position,
+            memberOf,
             role,
-            providerType: "ldap",
             ldapId,
           },
         });
@@ -310,8 +307,7 @@ export const authOptions: any = {
           (await findUserById(user?.id)) ??
           (await findUserByLineAccount(account.providerAccountId));
 
-        const hasLdapProof =
-          Boolean(linkedUser?.ldapId) || linkedUser?.providerType === "ldap";
+        const hasLdapProof = Boolean(linkedUser?.ldapId);
 
         if (!linkedUser || !hasLdapProof) {
           throw new Error(LINE_LOGIN_GUARD_CODE);
@@ -334,7 +330,6 @@ export const authOptions: any = {
         });
 
         const updateData: any = {
-          providerType: LINE_PROVIDER_ID,
           lineUserId,
         };
 
@@ -368,8 +363,7 @@ export const authOptions: any = {
       account: any;
     }): Promise<ExtendedToken> {
       if (account?.provider) {
-        token.provider_type =
-          account.provider === "credentials" ? "ldap" : account.provider;
+        // token.provider_type removed
       }
 
       const possibleUser = user as ExtendedUser | undefined;
@@ -384,15 +378,15 @@ export const authOptions: any = {
         select: {
           id: true,
           department: true,
-          title: true,
-          groups: true,
+          position: true,
+          memberOf: true,
           role: true,
-          providerType: true,
           phone: true,
           mobile: true,
           lineDisplayName: true,
           lineUserId: true,
           image: true,
+          ldapDisplayName: true,
         },
       });
 
@@ -402,15 +396,16 @@ export const authOptions: any = {
 
       token.sub = dbUser.id;
       token.department = dbUser.department ?? undefined;
-      token.title = dbUser.title ?? undefined;
-      token.groups = dbUser.groups ?? undefined;
+      token.position = dbUser.position ?? undefined;
+      token.memberOf = dbUser.memberOf ?? undefined;
       token.role = (dbUser.role as "admin" | "user") ?? token.role;
-      token.provider_type = dbUser.providerType ?? token.provider_type;
+      // token.provider_type = dbUser.providerType ?? token.provider_type;
       token.phone = dbUser.phone ?? null;
       token.mobile = dbUser.mobile ?? null;
       token.lineDisplayName = dbUser.lineDisplayName ?? null;
       token.lineUserId = dbUser.lineUserId ?? null;
       token.image = dbUser.image ?? null;
+      token.ldapDisplayName = dbUser.ldapDisplayName ?? null;
 
       return token;
     },
@@ -425,16 +420,16 @@ export const authOptions: any = {
       if (token) {
         session.user.id = token.sub!;
         session.user.department = (token.department as string) ?? null;
-        session.user.title = (token.title as string) ?? null;
-        session.user.groups = (token.groups as string) ?? null;
+        session.user.position = (token.position as string) ?? null;
+        session.user.memberOf = (token.memberOf as string) ?? null;
         session.user.role = token.role as "admin" | "user";
-        session.user.provider_type =
-          (token.provider_type as string) ?? undefined;
+        // session.user.provider_type removed
         session.user.phone = token.phone ?? null;
         session.user.mobile = token.mobile ?? null;
         session.user.lineDisplayName = token.lineDisplayName ?? null;
         session.user.lineUserId = token.lineUserId ?? null;
         session.user.image = token.image ?? null;
+        session.user.ldapDisplayName = token.ldapDisplayName ?? null;
       }
 
       return session as ExtendedSession;
@@ -452,12 +447,7 @@ export const authOptions: any = {
       profile?: any;
     }) {
       try {
-        const data: any = {
-          providerType:
-            account?.provider === "credentials"
-              ? "ldap"
-              : (account?.provider as string | undefined),
-        };
+        const data: any = {};
 
         if (account?.provider === LINE_PROVIDER_ID) {
           const { lineUserId, lineDisplayName, lineAvatar } =

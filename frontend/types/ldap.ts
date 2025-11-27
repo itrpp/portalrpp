@@ -14,11 +14,11 @@ export interface LDAPConfig {
 // LDAP User Data Interface
 export interface LDAPUserData {
   id: string;
-  name: string;
+  displayName: string;
   email: string;
   department: string;
-  title: string;
-  groups: string;
+  position: string;
+  memberOf: string;
   role: "admin" | "user";
 }
 
@@ -50,33 +50,33 @@ export interface LDAPAuthResult {
 // NextAuth User Interface Extension
 export interface ExtendedUser {
   id: string;
-  name: string;
+  displayName: string;
   email: string;
   department?: string;
-  title?: string;
-  groups?: string;
+  position?: string;
+  memberOf?: string;
   role: "admin" | "user";
-  provider_type?: string;
   phone?: string | null;
   mobile?: string | null;
   lineDisplayName?: string | null;
   lineUserId?: string | null;
   image?: string | null;
+  ldapDisplayName?: string | null;
 }
 
 // NextAuth Token Interface Extension
 export interface ExtendedToken {
   sub?: string;
   department?: string;
-  title?: string;
-  groups?: string;
+  position?: string;
+  memberOf?: string;
   role?: "admin" | "user";
-  provider_type?: string;
   phone?: string | null;
   mobile?: string | null;
   lineDisplayName?: string | null;
   lineUserId?: string | null;
   image?: string | null;
+  ldapDisplayName?: string | null;
 }
 
 // NextAuth Session Interface Extension

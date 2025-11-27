@@ -91,11 +91,11 @@ export async function GET(request: Request) {
           },
           select: {
             id: true,
-            name: true,
+            displayName: true,
           },
         });
 
-        const userMap = new Map(users.map((u) => [u.id, u.name]));
+        const userMap = new Map(users.map((u) => [u.id, u.displayName]));
 
         frontendData = frontendData.map((item: any) => {
           if (item.status === "cancelled" && item.cancelledById) {

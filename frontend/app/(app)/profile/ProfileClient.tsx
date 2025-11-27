@@ -153,7 +153,7 @@ export default function ProfileClient({ initialProfile }: Props) {
             <div>
               <p className="text-sm text-default-500">ข้อมูลพื้นฐาน</p>
               <h2 className="text-xl font-semibold text-foreground">
-                {profile.name || "ไม่ระบุชื่อ"}
+                {profile.displayName || "ไม่ระบุชื่อ"}
               </h2>
             </div>
           </CardHeader>
@@ -165,14 +165,14 @@ export default function ProfileClient({ initialProfile }: Props) {
               />
               <InfoItem label="บทบาท" value={profile.role} />
               <InfoItem label="แผนก" value={profile.department || "-"} />
-              <InfoItem label="ตำแหน่ง" value={profile.title || "-"} />
-              <InfoItem
-                label="Provider หลัก"
-                value={profile.providerType || "ไม่ระบุ"}
-              />
+              <InfoItem label="ตำแหน่ง" value={profile.position || "-"} />
               <InfoItem
                 label="Line Display Name"
                 value={profile.lineDisplayName || "-"}
+              />
+              <InfoItem
+                label="LDAP Display Name"
+                value={profile.ldapDisplayName || "-"}
               />
             </div>
             <div>
@@ -180,7 +180,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                 กลุ่มที่ได้รับสิทธิ์จาก LDAP
               </p>
               <div className="rounded-xl border border-default-200 dark:border-default-600 bg-content1/60 p-3 text-sm text-default-600 dark:text-default-400">
-                {profile.groups || "ไม่พบข้อมูลกลุ่ม"}
+                {profile.memberOf || "ไม่พบข้อมูลกลุ่ม"}
               </div>
             </div>
           </CardBody>

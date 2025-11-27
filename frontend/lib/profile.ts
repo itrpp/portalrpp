@@ -4,18 +4,18 @@ import { prisma } from "@/lib/prisma";
 
 export const profileSelect = {
   id: true,
-  name: true,
+  displayName: true,
   email: true,
   department: true,
-  title: true,
-  groups: true,
+  position: true,
+  memberOf: true,
   role: true,
-  providerType: true,
   phone: true,
   mobile: true,
   image: true,
   lineUserId: true,
   lineDisplayName: true,
+  ldapDisplayName: true,
 } satisfies Prisma.UserSelect;
 
 export type ProfileDTO = Prisma.UserGetPayload<{

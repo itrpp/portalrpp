@@ -47,7 +47,6 @@ export async function DELETE() {
         where: { id: user.id },
         data: {
           lineUserId: null,
-          providerType: user.ldapId ? "ldap" : null,
         },
       }),
     ]);

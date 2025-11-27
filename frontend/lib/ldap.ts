@@ -270,11 +270,11 @@ export class LDAPService {
 
     return {
       id: getAttribute("objectGUID"),
-      name: getAttribute("cn"),
+      displayName: getAttribute("cn"),
       email: getAttribute("userPrincipalName"),
       department: getFirstOU(getAttribute("distinguishedName")) || "",
-      title: getAttribute("title") || getAttribute("description") || "",
-      groups: groupsString,
+      position: getAttribute("title") || getAttribute("description") || "",
+      memberOf: groupsString,
       role: isAdmin ? "admin" : "user",
     };
   }
