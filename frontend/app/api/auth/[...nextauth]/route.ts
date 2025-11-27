@@ -10,9 +10,138 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import LineProvider from "next-auth/providers/line";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { decode } from "next-auth/jwt";
+import { cookies } from "next/headers";
 
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
+
+const LINE_PROVIDER_ID = "line";
+const LINE_LOGIN_GUARD_CODE = "LINE_LDAP_REQUIRED";
+
+type MinimalUserRecord = {
+  id: string;
+  ldapId: string | null;
+  lineDisplayName: string | null;
+  lineUserId: string | null;
+  providerType: string | null;
+};
+
+async function findUserById(
+  userId?: string,
+): Promise<MinimalUserRecord | null> {
+  if (!userId) {
+    return null;
+  }
+
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      ldapId: true,
+      lineDisplayName: true,
+      lineUserId: true,
+      providerType: true,
+    },
+  });
+}
+
+async function findUserByLineAccount(
+  providerAccountId?: string,
+): Promise<MinimalUserRecord | null> {
+  if (!providerAccountId) {
+    return null;
+  }
+
+  const account = await prisma.account.findUnique({
+    where: {
+      provider_providerAccountId: {
+        provider: LINE_PROVIDER_ID,
+        providerAccountId,
+      },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          ldapId: true,
+          lineDisplayName: true,
+          lineUserId: true,
+          providerType: true,
+        },
+      },
+    },
+  });
+
+  return account?.user ?? null;
+}
+
+async function getSessionUser(): Promise<MinimalUserRecord | null> {
+  const cookieStore = await cookies();
+  const sessionToken =
+    cookieStore.get("__Secure-next-auth.session-token")?.value ||
+    cookieStore.get("next-auth.session-token")?.value;
+
+  const secret = process.env.NEXTAUTH_SECRET || "your-secret-key-here";
+
+  if (!sessionToken || !secret) {
+    return null;
+  }
+
+  const decoded = await decode({
+    token: sessionToken,
+    secret,
+  });
+
+  if (!decoded?.sub) {
+    return null;
+  }
+
+  return findUserById(decoded.sub);
+}
+
+async function assertLineOwnership({
+  targetLineUserId,
+  currentUserId,
+}: {
+  targetLineUserId?: string | null;
+  currentUserId?: string | null;
+}) {
+  if (!targetLineUserId || !currentUserId) {
+    return;
+  }
+
+  const existing = await prisma.user.findFirst({
+    where: {
+      lineUserId: targetLineUserId,
+      NOT: { id: currentUserId },
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    throw new Error("LINE_ACCOUNT_IN_USE");
+  }
+}
+
+function extractLineProfileInfo(account: any, profile: any) {
+  const lineUserId =
+    account?.providerAccountId ?? profile?.userId ?? profile?.sub ?? null;
+  const lineDisplayName = profile?.displayName ?? profile?.name ?? null;
+  const pictureFromProfile =
+    typeof profile?.picture === "string"
+      ? profile.picture
+      : (profile?.picture?.url ?? null);
+  const lineAvatar =
+    profile?.pictureUrl ??
+    pictureFromProfile ??
+    account?.pictureUrl ??
+    account?.profile?.pictureUrl ??
+    account?.image_url ??
+    null;
+
+  return { lineUserId, lineDisplayName, lineAvatar };
+}
 
 /**
  * LDAP Authentication Function - ใช้ LDAPService ใหม่
@@ -171,6 +300,60 @@ export const authOptions: any = {
 
         // บังคับให้ NextAuth ใช้ id ของเรคคอร์ดในฐานข้อมูลเป็น user.id (จะไปอยู่ใน token.sub)
         user.id = dbUser.id;
+
+        return true;
+      }
+
+      if (account?.provider === LINE_PROVIDER_ID) {
+        const linkedUser =
+          (await getSessionUser()) ??
+          (await findUserById(user?.id)) ??
+          (await findUserByLineAccount(account.providerAccountId));
+
+        const hasLdapProof =
+          Boolean(linkedUser?.ldapId) || linkedUser?.providerType === "ldap";
+
+        if (!linkedUser || !hasLdapProof) {
+          throw new Error(LINE_LOGIN_GUARD_CODE);
+        }
+
+        const { lineUserId, lineDisplayName, lineAvatar } =
+          extractLineProfileInfo(account, _profile);
+
+        if (!lineUserId) {
+          throw new Error("LINE_ACCOUNT_ID_MISSING");
+        }
+
+        if (linkedUser.lineUserId && linkedUser.lineUserId !== lineUserId) {
+          throw new Error("LINE_ACCOUNT_ALREADY_LINKED");
+        }
+
+        await assertLineOwnership({
+          targetLineUserId: lineUserId,
+          currentUserId: linkedUser.id,
+        });
+
+        const updateData: any = {
+          providerType: LINE_PROVIDER_ID,
+          lineUserId,
+        };
+
+        if (lineDisplayName) {
+          updateData.lineDisplayName = lineDisplayName;
+        }
+
+        if (lineAvatar) {
+          updateData.image = lineAvatar;
+        }
+
+        await prisma.user.update({
+          where: { id: linkedUser.id },
+          data: updateData,
+        });
+
+        user.id = linkedUser.id;
+
+        return true;
       }
 
       return true;
@@ -184,19 +367,50 @@ export const authOptions: any = {
       user: any;
       account: any;
     }): Promise<ExtendedToken> {
-      if (user) {
-        const extendedUser = user as ExtendedUser;
-
-        token.department = extendedUser.department;
-        token.title = extendedUser.title;
-        token.groups = extendedUser.groups;
-        token.role = extendedUser.role;
-        // ตั้งค่า provider_type จาก account เมื่อมีการล็อกอินครั้งนี้
-        if (account?.provider) {
-          token.provider_type =
-            account.provider === "credentials" ? "ldap" : account.provider;
-        }
+      if (account?.provider) {
+        token.provider_type =
+          account.provider === "credentials" ? "ldap" : account.provider;
       }
+
+      const possibleUser = user as ExtendedUser | undefined;
+      const userId = possibleUser?.id ?? token.sub;
+
+      if (!userId) {
+        return token;
+      }
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          department: true,
+          title: true,
+          groups: true,
+          role: true,
+          providerType: true,
+          phone: true,
+          mobile: true,
+          lineDisplayName: true,
+          lineUserId: true,
+          image: true,
+        },
+      });
+
+      if (!dbUser) {
+        return token;
+      }
+
+      token.sub = dbUser.id;
+      token.department = dbUser.department ?? undefined;
+      token.title = dbUser.title ?? undefined;
+      token.groups = dbUser.groups ?? undefined;
+      token.role = (dbUser.role as "admin" | "user") ?? token.role;
+      token.provider_type = dbUser.providerType ?? token.provider_type;
+      token.phone = dbUser.phone ?? null;
+      token.mobile = dbUser.mobile ?? null;
+      token.lineDisplayName = dbUser.lineDisplayName ?? null;
+      token.lineUserId = dbUser.lineUserId ?? null;
+      token.image = dbUser.image ?? null;
 
       return token;
     },
@@ -210,11 +424,17 @@ export const authOptions: any = {
       // สำหรับ JWT session (LDAP และ LINE users)
       if (token) {
         session.user.id = token.sub!;
-        session.user.department = token.department as string;
-        session.user.title = token.title as string;
-        session.user.groups = token.groups as string;
+        session.user.department = (token.department as string) ?? null;
+        session.user.title = (token.title as string) ?? null;
+        session.user.groups = (token.groups as string) ?? null;
         session.user.role = token.role as "admin" | "user";
-        session.user.provider_type = token.provider_type as string;
+        session.user.provider_type =
+          (token.provider_type as string) ?? undefined;
+        session.user.phone = token.phone ?? null;
+        session.user.mobile = token.mobile ?? null;
+        session.user.lineDisplayName = token.lineDisplayName ?? null;
+        session.user.lineUserId = token.lineUserId ?? null;
+        session.user.image = token.image ?? null;
       }
 
       return session as ExtendedSession;
@@ -222,16 +442,47 @@ export const authOptions: any = {
   },
   events: {
     // อัปเดต providerType ใน DB หลังจากเชื่อมบัญชี OAuth/LINE สำเร็จ
-    async linkAccount({ user, account }: { user: any; account: any }) {
+    async linkAccount({
+      user,
+      account,
+      profile,
+    }: {
+      user: any;
+      account: any;
+      profile?: any;
+    }) {
       try {
+        const data: any = {
+          providerType:
+            account?.provider === "credentials"
+              ? "ldap"
+              : (account?.provider as string | undefined),
+        };
+
+        if (account?.provider === LINE_PROVIDER_ID) {
+          const { lineUserId, lineDisplayName, lineAvatar } =
+            extractLineProfileInfo(account, profile);
+
+          if (lineUserId) {
+            await assertLineOwnership({
+              targetLineUserId: lineUserId,
+              currentUserId: user?.id,
+            });
+            data.lineUserId = lineUserId;
+          }
+
+          if (lineDisplayName) {
+            data.lineDisplayName = lineDisplayName;
+          }
+
+          if (lineAvatar) {
+            data.image = lineAvatar;
+          }
+        }
+
         await prisma.user.update({
           where: { id: user.id },
-          data: {
-            providerType:
-              account?.provider === "credentials"
-                ? "ldap"
-                : (account?.provider as string | undefined),
-          },
+          data,
         });
       } catch (e) {
         console.warn("Failed to update providerType on linkAccount:", e);

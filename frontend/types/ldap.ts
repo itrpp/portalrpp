@@ -52,10 +52,16 @@ export interface ExtendedUser {
   id: string;
   name: string;
   email: string;
-  department: string;
-  title: string;
-  groups: string;
+  department?: string;
+  title?: string;
+  groups?: string;
   role: "admin" | "user";
+  provider_type?: string;
+  phone?: string | null;
+  mobile?: string | null;
+  lineDisplayName?: string | null;
+  lineUserId?: string | null;
+  image?: string | null;
 }
 
 // NextAuth Token Interface Extension
@@ -65,6 +71,12 @@ export interface ExtendedToken {
   title?: string;
   groups?: string;
   role?: "admin" | "user";
+  provider_type?: string;
+  phone?: string | null;
+  mobile?: string | null;
+  lineDisplayName?: string | null;
+  lineUserId?: string | null;
+  image?: string | null;
 }
 
 // NextAuth Session Interface Extension

@@ -10,23 +10,27 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String?   @unique
-  emailVerified  DateTime?
-  image          String?
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
 
   // Relations
-  accounts       Account[]
-  sessions       Session[]
+  accounts Account[]
+  sessions Session[]
 
   // Custom fields for LDAP/LINE
-  department     String?
-  title          String?
-  groups         String?
-  role           String    @default("user")
-  providerType   String?
-  ldapId         String?   @unique
+  department      String?
+  title           String?
+  groups          String? @db.Text
+  role            String  @default("user")
+  providerType    String?
+  ldapId          String? @unique
+  phone           String?
+  mobile          String?
+  lineUserId      String? @unique
+  lineDisplayName String?
 }
 
 model Account {
@@ -46,6 +50,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
 }
 
 model Session {
@@ -64,5 +69,3 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
-
-

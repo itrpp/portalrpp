@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { Input, Button, Divider, Card, CardBody } from "@heroui/react";
+import { addToast } from "@heroui/toast";
 
 import { siteConfig } from "@/config/site";
 import {
@@ -24,10 +25,33 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLineLoading, setIsLineLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [shouldRedirect, setShouldRedirect] = useState(false);
+  const lastAuthErrorRef = useRef<string | null>(null);
+
+  const authErrorParam = searchParams.get("error");
+
+  const mapAuthErrorToMessage = (code: string) => {
+    switch (code) {
+      case "LINE_LDAP_REQUIRED":
+        return "กรุณาเข้าสู่ระบบด้วยบัญชีโรงพยาบาล (LDAP) อย่างน้อยหนึ่งครั้งก่อน แล้วค่อยเชื่อมบัญชี LINE";
+      case "LINE_ACCOUNT_IN_USE":
+        return "บัญชี LINE นี้ถูกผูกไว้กับผู้ใช้อื่นแล้ว กรุณาให้เจ้าของบัญชีนั้นยกเลิกก่อน";
+      case "LINE_ACCOUNT_ALREADY_LINKED":
+        return "บัญชีของคุณมีการเชื่อม LINE อยู่แล้ว กรุณายกเลิกการเชื่อมเดิมก่อน";
+      case "LINE_ACCOUNT_ID_MISSING":
+        return "ไม่พบข้อมูลผู้ใช้จาก LINE กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
+      case "OAuthAccountNotLinked":
+        return "บัญชี LINE นี้เชื่อมกับผู้ใช้อื่น หรือยังไม่ได้ยืนยันกับ LDAP";
+      case "AccessDenied":
+        return "การเข้าถึงถูกปฏิเสธ กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
+      default:
+        return "";
+    }
+  };
 
   // อ่าน callbackUrl จาก query string และ decode
   const callbackUrl = searchParams.get("callbackUrl")
@@ -47,6 +71,34 @@ export default function LoginPage() {
       router.push(callbackUrl);
     }
   }, [shouldRedirect, router, callbackUrl]);
+
+  useEffect(() => {
+    if (!authErrorParam) {
+      lastAuthErrorRef.current = null;
+      return;
+    }
+
+    const message = mapAuthErrorToMessage(authErrorParam);
+
+    if (!message) {
+      lastAuthErrorRef.current = authErrorParam;
+      return;
+    }
+
+    if (lastAuthErrorRef.current === authErrorParam) {
+      return;
+    }
+
+    lastAuthErrorRef.current = authErrorParam;
+    setError(message);
+    addToast({
+      title: "ไม่สามารถเชื่อม LINE",
+      description: message,
+      color: "danger",
+      severity: "danger",
+      variant: "flat",
+    });
+  }, [authErrorParam]);
 
   if (status === "loading") {
     return (
@@ -103,6 +155,21 @@ export default function LoginPage() {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLineLogin = async () => {
+    setError("");
+    setSuccessMessage("");
+    setIsLineLoading(true);
+
+    try {
+      await signIn("line", { callbackUrl });
+    } catch {
+      setError(
+        "ไม่สามารถเริ่มการเข้าสู่ระบบผ่าน LINE ได้ กรุณาลองใหม่อีกครั้ง",
+      );
+      setIsLineLoading(false);
     }
   };
 
@@ -219,17 +286,32 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button
-                className="w-full font-semibold shadow-md"
-                color="primary"
-                // disabled={!username || !password}
-                isLoading={isLoading}
-                size="lg"
-                startContent={<LockClosedIcon className="w-5 h-5" />}
-                type="submit"
-              >
-                {isLoading ? "กำลังตรวจสอบ LDAP..." : "เข้าสู่ระบบ"}
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  className="w-full font-semibold shadow-md"
+                  color="primary"
+                  // disabled={!username || !password}
+                  isLoading={isLoading}
+                  size="lg"
+                  startContent={<LockClosedIcon className="w-5 h-5" />}
+                  type="submit"
+                >
+                  {isLoading ? "กำลังตรวจสอบ LDAP..." : "เข้าสู่ระบบผ่าน LDAP"}
+                </Button>
+
+                <Button
+                  className="w-full font-semibold shadow-md"
+                  color="success"
+                  isLoading={isLineLoading}
+                  size="lg"
+                  startContent={<LockClosedIcon className="w-5 h-5" />}
+                  type="button"
+                  variant="flat"
+                  onClick={handleLineLogin}
+                >
+                  {isLineLoading ? "กำลังเปิด LINE..." : "เข้าสู่ระบบผ่าน LINE"}
+                </Button>
+              </div>
             </form>
 
             <div className="flex justify-between items-center mt-4 text-xs text-default-600 dark:text-default-400">
