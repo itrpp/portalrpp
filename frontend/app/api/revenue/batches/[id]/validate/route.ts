@@ -51,8 +51,8 @@ export async function POST(
       {
         sub: session.user.id,
         department: session.user.department,
-        title: session.user.title,
-        groups: session.user.groups,
+        position: session.user.position,
+        memberOf: session.user.memberOf,
         role: session.user.role,
       },
       jwtSecret,
