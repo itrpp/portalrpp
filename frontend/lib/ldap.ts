@@ -5,7 +5,7 @@ import type {
   LDAPSearchResult,
 } from "@/types/ldap";
 
-import { Client } from "ldapts";
+import { Client, EqualityFilter } from "ldapts";
 
 import { validateEnvironment } from "./env";
 
@@ -277,6 +277,109 @@ export class LDAPService {
       memberOf: groupsString,
       role: isAdmin ? "admin" : "user",
     };
+  }
+  // ... (skip unchanged parts)
+
+  /**
+   * แปลง GUID string เป็น Raw Hex string (reordered for AD)
+   * e.g. "6b29fc40-ca47-1067-b31d-00dd010662da" -> "40fc296b47ca6710b31d00dd010662da"
+   */
+  private guidToRawHex(guid: string): string {
+    // Remove all non-hex characters
+    const hex = guid.replace(/[^0-9a-fA-F]/g, "");
+
+    if (hex.length !== 32) {
+      throw new Error("Invalid GUID format");
+    }
+
+    const parts = [
+      hex.substring(0, 8),
+      hex.substring(8, 12),
+      hex.substring(12, 16),
+      hex.substring(16, 20),
+      hex.substring(20),
+    ];
+
+    // Little-endian parts
+    const p1 = parts[0].match(/../g)!.reverse().join("");
+    const p2 = parts[1].match(/../g)!.reverse().join("");
+    const p3 = parts[2].match(/../g)!.reverse().join("");
+
+    // Big-endian parts
+    const p4 = parts[3];
+    const p5 = parts[4];
+
+    return p1 + p2 + p3 + p4 + p5;
+  }
+
+  /**
+   * ตรวจสอบสถานะ Account ด้วย LDAP ID (ObjectGUID)
+   */
+  public async checkAccountStatusByLdapId(
+    ldapId: string,
+  ): Promise<{ success: boolean; errorCode?: string }> {
+    const client = await this.createClient();
+
+    try {
+      await client.bind(this.config.bindDN, this.config.bindPassword);
+
+      const rawHex = this.guidToRawHex(ldapId);
+      const filter = new EqualityFilter({
+        attribute: "objectGUID",
+        value: Buffer.from(rawHex, "hex"),
+      });
+
+      const { searchEntries } = await client.search(this.config.baseDN, {
+        scope: "sub",
+        filter: filter,
+        attributes: ["userAccountControl"],
+      });
+
+      if (searchEntries.length === 0) {
+        return {
+          success: false,
+          errorCode: "USER_NOT_FOUND",
+        };
+      }
+
+      const entry = searchEntries[0];
+      const attributes = Object.entries(entry).map(([type, values]) => {
+        const vals = Array.isArray(values) ? values : [values];
+        return {
+          type,
+          values: vals.map((v) =>
+            Buffer.isBuffer(v) ? v.toString() : String(v),
+          ),
+        };
+      });
+
+      if (this.isAccountDisabled(attributes)) {
+        return {
+          success: false,
+          errorCode: "ACCOUNT_DISABLED",
+        };
+      }
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("LDAP check status error:", error);
+
+      if (this.isConnectionError(error)) {
+        return {
+          success: false,
+          errorCode: "CONNECTION_ERROR",
+        };
+      }
+
+      return {
+        success: false,
+        errorCode: "INTERNAL_ERROR",
+      };
+    } finally {
+      await this.closeClient();
+    }
   }
 
   /**

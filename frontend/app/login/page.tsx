@@ -48,6 +48,8 @@ export default function LoginPage() {
         return "บัญชี LINE นี้เชื่อมกับผู้ใช้อื่น หรือยังไม่ได้ยืนยันกับ LDAP";
       case "AccessDenied":
         return "การเข้าถึงถูกปฏิเสธ กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
+      case "ACCOUNT_DISABLED":
+        return "บัญชีของคุณถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
       default:
         return "";
     }

@@ -170,7 +170,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center space-x-4">
             {/* Theme Toggle */}
-            {/* <ThemeToggle /> */}
 
             {/* User Menu - แสดงเฉพาะเมื่อมี session */}
             {session?.user && (
@@ -184,8 +183,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                           ? "success"
                           : "primary"
                       }
-                      name={(session.user as any).role === "admin" ? "A" : "U"}
+                      fallback={
+                        <UserIcon className="w-4 h-4 text-default-400" />
+                      }
+                      name={
+                        session.user.image
+                          ? undefined
+                          : (session.user as any).role === "admin"
+                            ? "A"
+                            : "U"
+                      }
                       size="sm"
+                      src={session.user.image ?? undefined}
                     />
                     <div className="hidden md:block text-left">
                       <p className="text-sm font-medium text-foreground">

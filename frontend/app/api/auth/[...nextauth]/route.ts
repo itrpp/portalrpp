@@ -279,8 +279,6 @@ export const authOptions: any = {
           where: { email: whereEmail },
           update: {
             ldapDisplayName,
-            department,
-            position,
             memberOf,
             ldapId,
           },
@@ -311,6 +309,13 @@ export const authOptions: any = {
 
         if (!linkedUser || !hasLdapProof) {
           throw new Error(LINE_LOGIN_GUARD_CODE);
+        }
+
+        const ldapService = createLDAPService();
+        const check = await ldapService.checkAccountStatusByLdapId(linkedUser.ldapId!);
+
+        if (!check.success) {
+          throw new Error(check.errorCode);
         }
 
         const { lineUserId, lineDisplayName, lineAvatar } =
@@ -377,6 +382,7 @@ export const authOptions: any = {
         where: { id: userId },
         select: {
           id: true,
+          displayName: true,
           department: true,
           position: true,
           memberOf: true,
@@ -394,12 +400,12 @@ export const authOptions: any = {
         return token;
       }
 
+      token.displayName = dbUser.displayName ?? undefined;
       token.sub = dbUser.id;
       token.department = dbUser.department ?? undefined;
       token.position = dbUser.position ?? undefined;
       token.memberOf = dbUser.memberOf ?? undefined;
       token.role = (dbUser.role as "admin" | "user") ?? token.role;
-      // token.provider_type = dbUser.providerType ?? token.provider_type;
       token.phone = dbUser.phone ?? null;
       token.mobile = dbUser.mobile ?? null;
       token.lineDisplayName = dbUser.lineDisplayName ?? null;
@@ -418,12 +424,12 @@ export const authOptions: any = {
     }): Promise<ExtendedSession> {
       // สำหรับ JWT session (LDAP และ LINE users)
       if (token) {
+        session.user.name = token.displayName ?? undefined;
         session.user.id = token.sub!;
         session.user.department = (token.department as string) ?? null;
         session.user.position = (token.position as string) ?? null;
         session.user.memberOf = (token.memberOf as string) ?? null;
         session.user.role = token.role as "admin" | "user";
-        // session.user.provider_type removed
         session.user.phone = token.phone ?? null;
         session.user.mobile = token.mobile ?? null;
         session.user.lineDisplayName = token.lineDisplayName ?? null;

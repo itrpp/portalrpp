@@ -20,17 +20,19 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  // Custom fields for LDAP/LINE
+  // Custom fields for LLINE
+  phone           String?
+  mobile          String?
+  lineUserId      String? @unique
+  lineDisplayName String?
+
+  // Custom fields for LDAP
   department      String?
   position        String?
   memberOf        String? @db.Text
   role            String  @default("user")
   ldapId          String? @unique
   ldapDisplayName String?
-  phone           String?
-  mobile          String?
-  lineUserId      String? @unique
-  lineDisplayName String?
 }
 
 model Account {

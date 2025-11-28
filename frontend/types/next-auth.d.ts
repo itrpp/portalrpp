@@ -10,9 +10,13 @@ declare module "next-auth" {
       image?: string | null;
       role?: "admin" | "user" | null;
       department?: string;
-      title?: string;
-      groups?: string;
-      provider_type?: string;
+      position?: string;
+      memberOf?: string;
+      phone?: string | null;
+      mobile?: string | null;
+      lineDisplayName?: string | null;
+      lineUserId?: string | null;
+      ldapDisplayName?: string | null;
     };
     accessToken?: string;
     sessionToken?: string;
@@ -25,9 +29,13 @@ declare module "next-auth" {
     image?: string | null;
     role?: "admin" | "user" | null;
     department?: string;
-    title?: string;
-    groups?: string;
-    provider_type?: string;
+    position?: string;
+    memberOf?: string;
+    phone?: string | null;
+    mobile?: string | null;
+    lineDisplayName?: string | null;
+    lineUserId?: string | null;
+    ldapDisplayName?: string | null;
   }
 }
 
@@ -35,8 +43,12 @@ declare module "next-auth/jwt" {
   interface JWT {
     role?: "admin" | "user" | null;
     department?: string;
-    title?: string;
-    groups?: string;
-    provider_type?: string;
+    position?: string;
+    memberOf?: string;
+    phone?: string | null;
+    mobile?: string | null;
+    lineDisplayName?: string | null;
+    lineUserId?: string | null;
+    ldapDisplayName?: string | null;
   }
 }
