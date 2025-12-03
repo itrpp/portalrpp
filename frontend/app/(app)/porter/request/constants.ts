@@ -33,8 +33,9 @@ export const REQUEST_FIELD_LABELS: Partial<
 export const createDefaultFormData = (
   requesterName: string | undefined,
   requesterPhone?: string | undefined,
+  requesterDepartment?: string | undefined,
 ): PorterRequestFormData => ({
-  requesterDepartment: "",
+  requesterDepartment: requesterDepartment || "",
   requesterName: requesterName || "",
   requesterPhone: requesterPhone || "",
 

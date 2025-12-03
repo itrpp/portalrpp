@@ -198,9 +198,15 @@ export async function POST(request: Request) {
     // อ่านข้อมูลจาก request body
     const requestData = await request.json();
 
+    // หน่วยงานผู้แจ้งควรถูกกำหนดจากโปรไฟล์ผู้ใช้งาน (legacy department string)
+    const requesterDepartment =
+      (session.user as any)?.department ??
+      requestData.requesterDepartment ??
+      "";
+
     // แปลงข้อมูลจาก Frontend format เป็น Proto format
     const protoRequest = {
-      requester_department: requestData.requesterDepartment,
+      requester_department: requesterDepartment,
       requester_name: requestData.requesterName,
       requester_phone: requestData.requesterPhone,
       requester_user_id: session.user.id,

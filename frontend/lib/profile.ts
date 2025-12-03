@@ -6,6 +6,7 @@ export const profileSelect = {
   id: true,
   displayName: true,
   email: true,
+  // legacy text fields (ใช้สำหรับแสดงผลช่วง transition)
   department: true,
   position: true,
   memberOf: true,
@@ -16,9 +17,15 @@ export const profileSelect = {
   lineUserId: true,
   lineDisplayName: true,
   ldapDisplayName: true,
-} satisfies Prisma.UserSelect;
+  // โครงสร้างองค์กรแบบอิง ID จาก HRD
+  personTypeId: true,
+  positionId: true,
+  departmentId: true,
+  departmentSubId: true,
+  departmentSubSubId: true,
+} satisfies Prisma.userSelect;
 
-export type ProfileDTO = Prisma.UserGetPayload<{
+export type ProfileDTO = Prisma.userGetPayload<{
   select: typeof profileSelect;
 }>;
 

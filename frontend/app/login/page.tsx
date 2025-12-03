@@ -77,6 +77,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!authErrorParam) {
       lastAuthErrorRef.current = null;
+
       return;
     }
 
@@ -84,6 +85,7 @@ export default function LoginPage() {
 
     if (!message) {
       lastAuthErrorRef.current = authErrorParam;
+
       return;
     }
 

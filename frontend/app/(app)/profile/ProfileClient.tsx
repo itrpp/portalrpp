@@ -2,7 +2,7 @@
 
 import type { ProfileDTO } from "@/lib/profile";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import {
   Avatar,
@@ -13,6 +13,8 @@ import {
   Chip,
   Divider,
   Input,
+  Autocomplete,
+  AutocompleteItem,
   Select,
   SelectItem,
 } from "@heroui/react";
@@ -36,9 +38,12 @@ type EditableFields = {
   displayName: string;
   phone: string;
   mobile: string;
-  department: string;
-  position: string;
   role: string;
+  personTypeId: string | null;
+  positionId: string | null;
+  departmentId: string | null;
+  departmentSubId: string | null;
+  departmentSubSubId: string | null;
 };
 
 const ROLE_OPTIONS = [
@@ -116,13 +121,17 @@ function getErrorMessage(errorCode: string): string {
     PHONE_INVALID_FORMAT: "โทรศัพท์สำนักงานต้องมีตัวเลขอย่างน้อย 3 ตัว",
     MOBILE_INVALID_FORMAT: "รูปแบบหมายเลขมือถือไม่ถูกต้อง",
 
-    // Department
-    DEPARTMENT_REQUIRED: "กรุณากรอกฝ่าย/หน่วยงาน",
-    DEPARTMENT_TOO_LONG: "ฝ่าย/หน่วยงานต้องมีความยาวไม่เกิน 100 ตัวอักษร",
-
-    // Position
-    POSITION_REQUIRED: "กรุณากรอกตำแหน่ง",
-    POSITION_TOO_LONG: "ตำแหน่งต้องมีความยาวไม่เกิน 100 ตัวอักษร",
+    // Organization by ID (HRD)
+    PERSON_TYPE_REQUIRED: "กรุณาเลือกกลุ่มบุคลากร",
+    PERSON_TYPE_NOT_FOUND: "ไม่พบกลุ่มบุคลากรที่เลือก",
+    POSITION_REQUIRED: "กรุณาเลือกตำแหน่ง",
+    POSITION_NOT_FOUND: "ไม่พบตำแหน่งที่เลือก",
+    DEPARTMENT_ID_REQUIRED: "กรุณาเลือกกลุ่มภารกิจ",
+    DEPARTMENT_ID_NOT_FOUND: "ไม่พบกลุ่มภารกิจที่เลือก",
+    DEPARTMENT_SUB_ID_REQUIRED: "กรุณาเลือกกลุ่มงาน",
+    DEPARTMENT_SUB_ID_NOT_FOUND: "ไม่พบกลุ่มงานที่เลือก",
+    DEPARTMENT_SUB_SUB_ID_REQUIRED: "กรุณาเลือกหน่วยงาน",
+    DEPARTMENT_SUB_SUB_ID_NOT_FOUND: "ไม่พบหน่วยงานที่เลือก",
 
     // Role
     ROLE_REQUIRED: "กรุณาเลือกบทบาท",
@@ -130,6 +139,7 @@ function getErrorMessage(errorCode: string): string {
 
     // General
     INVALID_TYPE: "ประเภทข้อมูลไม่ถูกต้อง",
+    INVALID_ID_TYPE: "รูปแบบรหัสอ้างอิงไม่ถูกต้อง",
     INVALID_REQUEST: "ข้อมูลไม่ถูกต้อง",
     NO_MUTATIONS: "ไม่มีการเปลี่ยนแปลงข้อมูล",
     UNAUTHORIZED: "คุณไม่มีสิทธิ์เข้าถึง",
@@ -146,9 +156,22 @@ export default function ProfileClient({ initialProfile }: Props) {
     displayName: initialProfile.displayName ?? "",
     phone: initialProfile.phone ?? "",
     mobile: initialProfile.mobile ?? "",
-    department: initialProfile.department ?? "",
-    position: initialProfile.position ?? "",
     role: initialProfile.role ?? "user",
+    personTypeId: initialProfile.personTypeId
+      ? String(initialProfile.personTypeId)
+      : null,
+    positionId: initialProfile.positionId
+      ? String(initialProfile.positionId)
+      : null,
+    departmentId: initialProfile.departmentId
+      ? String(initialProfile.departmentId)
+      : null,
+    departmentSubId: initialProfile.departmentSubId
+      ? String(initialProfile.departmentSubId)
+      : null,
+    departmentSubSubId: initialProfile.departmentSubSubId
+      ? String(initialProfile.departmentSubSubId)
+      : null,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
@@ -157,11 +180,33 @@ export default function ProfileClient({ initialProfile }: Props) {
     message: string;
   } | null>(null);
 
+  type HrdOption = {
+    key: string;
+    label: string;
+  };
+
+  const [personTypeOptions, setPersonTypeOptions] = useState<HrdOption[]>([]);
+  const [positionOptions, setPositionOptions] = useState<HrdOption[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<HrdOption[]>([]);
+  const [departmentSubOptions, setDepartmentSubOptions] = useState<HrdOption[]>(
+    [],
+  );
+  const [departmentSubSubOptions, setDepartmentSubSubOptions] = useState<
+    HrdOption[]
+  >([]);
+
+  const [isLoadingPersonTypes, setIsLoadingPersonTypes] = useState(false);
+  const [isLoadingPositions, setIsLoadingPositions] = useState(false);
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+  const [isLoadingDepartmentSubs, setIsLoadingDepartmentSubs] = useState(false);
+  const [isLoadingDepartmentSubSubs, setIsLoadingDepartmentSubSubs] =
+    useState(false);
+
   // ตรวจสอบสิทธิ์: เฉพาะ admin เท่านั้นที่สามารถแก้ไข role ได้
   const canEditRole = session?.user?.role === "admin";
 
-  const handleInputChange =
-    (field: keyof EditableFields) => (value: string) => {
+  const handleTextInputChange =
+    (field: "displayName" | "phone" | "mobile" | "role") => (value: string) => {
       setFormData((prev) => ({
         ...prev,
         [field]: value,
@@ -169,24 +214,233 @@ export default function ProfileClient({ initialProfile }: Props) {
       setFeedback(null);
     };
 
+  const handleOrgSelectChange =
+    (
+      field:
+        | "personTypeId"
+        | "positionId"
+        | "departmentId"
+        | "departmentSubId"
+        | "departmentSubSubId",
+    ) =>
+    (key: string | number | null) => {
+      const value = key != null ? String(key) : null;
+
+      setFormData((prev) => {
+        const next: EditableFields = {
+          ...prev,
+          [field]: value,
+        };
+
+        // จัดการ chain ของกลุ่มภารกิจ → กลุ่มงาน → หน่วยงาน
+        if (field === "departmentId") {
+          next.departmentSubId = null;
+          next.departmentSubSubId = null;
+          setDepartmentSubOptions([]);
+          setDepartmentSubSubOptions([]);
+        } else if (field === "departmentSubId") {
+          next.departmentSubSubId = null;
+          setDepartmentSubSubOptions([]);
+        }
+
+        return next;
+      });
+
+      setFeedback(null);
+    };
+
+  async function fetchPersonTypes() {
+    try {
+      setIsLoadingPersonTypes(true);
+      const response = await fetch("/api/hrd/person-types");
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มบุคลากรได้");
+      }
+
+      setPersonTypeOptions(
+        (payload.data as Array<{ id: number; name: string }>).map((item) => ({
+          key: String(item.id),
+          label: item.name,
+        })),
+      );
+    } catch (error) {
+      // ในที่นี้ขอไม่แสดง error แยก เพิ่มได้ภายหลังหากต้องการ
+    } finally {
+      setIsLoadingPersonTypes(false);
+    }
+  }
+
+  async function fetchPositions() {
+    try {
+      setIsLoadingPositions(true);
+      const response = await fetch("/api/hrd/positions");
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "ไม่สามารถโหลดตำแหน่งได้");
+      }
+
+      setPositionOptions(
+        (payload.data as Array<{ id: number; name: string }>).map((item) => ({
+          key: String(item.id),
+          label: item.name,
+        })),
+      );
+    } catch (error) {
+      // เงียบไว้ก่อน
+    } finally {
+      setIsLoadingPositions(false);
+    }
+  }
+
+  async function fetchDepartments() {
+    try {
+      setIsLoadingDepartments(true);
+      const response = await fetch("/api/hrd/departments");
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มภารกิจได้");
+      }
+
+      setDepartmentOptions(
+        (payload.data as Array<{ id: number; name: string }>).map((item) => ({
+          key: String(item.id),
+          label: item.name,
+        })),
+      );
+    } catch (error) {
+      // เงียบไว้ก่อน
+    } finally {
+      setIsLoadingDepartments(false);
+    }
+  }
+
+  async function fetchDepartmentSubs(departmentId: string | null) {
+    if (!departmentId) {
+      setDepartmentSubOptions([]);
+
+      return;
+    }
+
+    try {
+      setIsLoadingDepartmentSubs(true);
+      const response = await fetch(
+        `/api/hrd/department-subs?departmentId=${encodeURIComponent(
+          departmentId,
+        )}`,
+      );
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มงานได้");
+      }
+
+      setDepartmentSubOptions(
+        (payload.data as Array<{ id: number; name: string }>).map((item) => ({
+          key: String(item.id),
+          label: item.name,
+        })),
+      );
+    } catch (error) {
+      // เงียบไว้ก่อน
+    } finally {
+      setIsLoadingDepartmentSubs(false);
+    }
+  }
+
+  async function fetchDepartmentSubSubs(departmentSubId: string | null) {
+    if (!departmentSubId) {
+      setDepartmentSubSubOptions([]);
+
+      return;
+    }
+
+    try {
+      setIsLoadingDepartmentSubSubs(true);
+      const response = await fetch(
+        `/api/hrd/department-sub-subs?departmentSubId=${encodeURIComponent(
+          departmentSubId,
+        )}`,
+      );
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "ไม่สามารถโหลดหน่วยงานได้");
+      }
+
+      setDepartmentSubSubOptions(
+        (payload.data as Array<{ id: number; name: string }>).map((item) => ({
+          key: String(item.id),
+          label: item.name,
+        })),
+      );
+    } catch (error) {
+      // เงียบไว้ก่อน
+    } finally {
+      setIsLoadingDepartmentSubSubs(false);
+    }
+  }
+
+  useEffect(() => {
+    // โหลดข้อมูลพื้นฐานสำหรับ Autocomplete
+    void fetchPersonTypes();
+    void fetchPositions();
+    void fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    // เมื่อมี departmentId ให้โหลดกลุ่มงาน
+    void fetchDepartmentSubs(formData.departmentId);
+  }, [formData.departmentId]);
+
+  useEffect(() => {
+    // เมื่อมี departmentSubId ให้โหลดหน่วยงาน
+    void fetchDepartmentSubSubs(formData.departmentSubId);
+  }, [formData.departmentSubId]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
+
     // ป้องกันการ submit ซ้ำ
     if (isSaving) {
       return;
     }
-    
+
     setIsSaving(true);
     setFeedback(null);
 
     try {
+      const payloadToSubmit = {
+        displayName: formData.displayName,
+        phone: formData.phone,
+        mobile: formData.mobile,
+        role: formData.role,
+        personTypeId: formData.personTypeId
+          ? Number.parseInt(formData.personTypeId, 10)
+          : null,
+        positionId: formData.positionId
+          ? Number.parseInt(formData.positionId, 10)
+          : null,
+        departmentId: formData.departmentId
+          ? Number.parseInt(formData.departmentId, 10)
+          : null,
+        departmentSubId: formData.departmentSubId
+          ? Number.parseInt(formData.departmentSubId, 10)
+          : null,
+        departmentSubSubId: formData.departmentSubSubId
+          ? Number.parseInt(formData.departmentSubSubId, 10)
+          : null,
+      };
+
       const response = await fetch("/api/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payloadToSubmit),
       });
       const payload = await response.json();
 
@@ -203,9 +457,22 @@ export default function ProfileClient({ initialProfile }: Props) {
         displayName: payload.data.displayName ?? "",
         phone: payload.data.phone ?? "",
         mobile: payload.data.mobile ?? "",
-        department: payload.data.department ?? "",
-        position: payload.data.position ?? "",
         role: payload.data.role ?? "user",
+        personTypeId: payload.data.personTypeId
+          ? String(payload.data.personTypeId)
+          : null,
+        positionId: payload.data.positionId
+          ? String(payload.data.positionId)
+          : null,
+        departmentId: payload.data.departmentId
+          ? String(payload.data.departmentId)
+          : null,
+        departmentSubId: payload.data.departmentSubId
+          ? String(payload.data.departmentSubId)
+          : null,
+        departmentSubSubId: payload.data.departmentSubSubId
+          ? String(payload.data.departmentSubSubId)
+          : null,
       });
       setFeedback({
         type: "success",
@@ -250,9 +517,22 @@ export default function ProfileClient({ initialProfile }: Props) {
         displayName: payload.data.displayName ?? "",
         phone: payload.data.phone ?? "",
         mobile: payload.data.mobile ?? "",
-        department: payload.data.department ?? "",
-        position: payload.data.position ?? "",
         role: payload.data.role ?? "user",
+        personTypeId: payload.data.personTypeId
+          ? String(payload.data.personTypeId)
+          : null,
+        positionId: payload.data.positionId
+          ? String(payload.data.positionId)
+          : null,
+        departmentId: payload.data.departmentId
+          ? String(payload.data.departmentId)
+          : null,
+        departmentSubId: payload.data.departmentSubId
+          ? String(payload.data.departmentSubId)
+          : null,
+        departmentSubSubId: payload.data.departmentSubSubId
+          ? String(payload.data.departmentSubSubId)
+          : null,
       });
       setFeedback({
         type: "success",
@@ -273,9 +553,16 @@ export default function ProfileClient({ initialProfile }: Props) {
       displayName: profile.displayName ?? "",
       phone: profile.phone ?? "",
       mobile: profile.mobile ?? "",
-      department: profile.department ?? "",
-      position: profile.position ?? "",
       role: profile.role ?? "user",
+      personTypeId: profile.personTypeId ? String(profile.personTypeId) : null,
+      positionId: profile.positionId ? String(profile.positionId) : null,
+      departmentId: profile.departmentId ? String(profile.departmentId) : null,
+      departmentSubId: profile.departmentSubId
+        ? String(profile.departmentSubId)
+        : null,
+      departmentSubSubId: profile.departmentSubSubId
+        ? String(profile.departmentSubSubId)
+        : null,
     });
     setFeedback(null);
   };
@@ -285,9 +572,17 @@ export default function ProfileClient({ initialProfile }: Props) {
     formData.displayName !== (profile.displayName ?? "") ||
     formData.phone !== (profile.phone ?? "") ||
     formData.mobile !== (profile.mobile ?? "") ||
-    formData.department !== (profile.department ?? "") ||
-    formData.position !== (profile.position ?? "") ||
-    formData.role !== (profile.role ?? "user");
+    formData.role !== (profile.role ?? "user") ||
+    (formData.personTypeId ?? null) !==
+      (profile.personTypeId ? String(profile.personTypeId) : null) ||
+    (formData.positionId ?? null) !==
+      (profile.positionId ? String(profile.positionId) : null) ||
+    (formData.departmentId ?? null) !==
+      (profile.departmentId ? String(profile.departmentId) : null) ||
+    (formData.departmentSubId ?? null) !==
+      (profile.departmentSubId ? String(profile.departmentSubId) : null) ||
+    (formData.departmentSubSubId ?? null) !==
+      (profile.departmentSubSubId ? String(profile.departmentSubSubId) : null);
 
   return (
     <div className="space-y-6">
@@ -375,7 +670,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                     }
                     value={formData.displayName}
                     variant="bordered"
-                    onValueChange={handleInputChange("displayName")}
+                    onValueChange={handleTextInputChange("displayName")}
                   />
                   <Select
                     isRequired
@@ -390,7 +685,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                     onSelectionChange={(keys) => {
                       const selected = Array.from(keys)[0] as string;
 
-                      handleInputChange("role")(selected);
+                      handleTextInputChange("role")(selected);
                     }}
                   >
                     {ROLE_OPTIONS.map((option) => (
@@ -418,7 +713,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                     }
                     value={formData.phone}
                     variant="bordered"
-                    onValueChange={handleInputChange("phone")}
+                    onValueChange={handleTextInputChange("phone")}
                   />
                   <Input
                     isDisabled={isSaving}
@@ -429,7 +724,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                     }
                     value={formData.mobile}
                     variant="bordered"
-                    onValueChange={handleInputChange("mobile")}
+                    onValueChange={handleTextInputChange("mobile")}
                   />
                 </div>
               </div>
@@ -441,31 +736,119 @@ export default function ProfileClient({ initialProfile }: Props) {
                 <h4 className="text-sm font-semibold text-default-700 dark:text-default-300 uppercase tracking-wide">
                   ข้อมูลองค์กร
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    isRequired
-                    isDisabled={isSaving}
-                    label="ฝ่าย/หน่วยงาน"
-                    placeholder="กรุณากรอกฝ่าย/หน่วยงาน"
-                    startContent={
-                      <BuildingOfficeIcon className="w-5 h-5 text-default-400" />
-                    }
-                    value={formData.department}
-                    variant="bordered"
-                    onValueChange={handleInputChange("department")}
-                  />
-                  <Input
-                    isRequired
-                    isDisabled={isSaving}
-                    label="ตำแหน่ง"
-                    placeholder="กรุณากรอกตำแหน่ง"
-                    startContent={
-                      <BriefcaseIcon className="w-5 h-5 text-default-400" />
-                    }
-                    value={formData.position}
-                    variant="bordered"
-                    onValueChange={handleInputChange("position")}
-                  />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Autocomplete
+                      isRequired
+                      defaultItems={personTypeOptions}
+                      isDisabled={isSaving}
+                      isLoading={isLoadingPersonTypes}
+                      label="กลุ่มบุคลากร"
+                      placeholder="เลือกกลุ่มบุคลากร"
+                      selectedKey={formData.personTypeId ?? undefined}
+                      startContent={
+                        <UserIcon className="w-5 h-5 text-default-400" />
+                      }
+                      variant="bordered"
+                      onSelectionChange={handleOrgSelectChange("personTypeId")}
+                    >
+                      {(item) => (
+                        <AutocompleteItem key={item.key}>
+                          {item.label}
+                        </AutocompleteItem>
+                      )}
+                    </Autocomplete>
+
+                    <Autocomplete
+                      isRequired
+                      defaultItems={positionOptions}
+                      isDisabled={isSaving}
+                      isLoading={isLoadingPositions}
+                      label="ตำแหน่ง"
+                      placeholder="เลือกตำแหน่ง"
+                      selectedKey={formData.positionId ?? undefined}
+                      startContent={
+                        <BriefcaseIcon className="w-5 h-5 text-default-400" />
+                      }
+                      variant="bordered"
+                      onSelectionChange={handleOrgSelectChange("positionId")}
+                    >
+                      {(item) => (
+                        <AutocompleteItem key={item.key}>
+                          {item.label}
+                        </AutocompleteItem>
+                      )}
+                    </Autocomplete>
+
+                    <Autocomplete
+                      isRequired
+                      defaultItems={departmentOptions}
+                      isDisabled={isSaving}
+                      isLoading={isLoadingDepartments}
+                      label="กลุ่มภารกิจ"
+                      placeholder="เลือกกลุ่มภารกิจ"
+                      selectedKey={formData.departmentId ?? undefined}
+                      startContent={
+                        <BuildingOfficeIcon className="w-5 h-5 text-default-400" />
+                      }
+                      variant="bordered"
+                      onSelectionChange={handleOrgSelectChange("departmentId")}
+                    >
+                      {(item) => (
+                        <AutocompleteItem key={item.key}>
+                          {item.label}
+                        </AutocompleteItem>
+                      )}
+                    </Autocomplete>
+
+                    <Autocomplete
+                      isRequired
+                      defaultItems={departmentSubOptions}
+                      isDisabled={isSaving || !formData.departmentId}
+                      isLoading={isLoadingDepartmentSubs}
+                      label="กลุ่มงาน"
+                      placeholder={
+                        formData.departmentId
+                          ? "เลือกกลุ่มงาน"
+                          : "กรุณาเลือกกลุ่มภารกิจก่อน"
+                      }
+                      selectedKey={formData.departmentSubId ?? undefined}
+                      variant="bordered"
+                      onSelectionChange={handleOrgSelectChange(
+                        "departmentSubId",
+                      )}
+                    >
+                      {(item) => (
+                        <AutocompleteItem key={item.key}>
+                          {item.label}
+                        </AutocompleteItem>
+                      )}
+                    </Autocomplete>
+
+                    <Autocomplete
+                      isRequired
+                      defaultItems={departmentSubSubOptions}
+                      isDisabled={isSaving || !formData.departmentSubId}
+                      isLoading={isLoadingDepartmentSubSubs}
+                      label="หน่วยงาน"
+                      placeholder={
+                        formData.departmentSubId
+                          ? "เลือกหน่วยงาน"
+                          : "กรุณาเลือกกลุ่มงานก่อน"
+                      }
+                      selectedKey={formData.departmentSubSubId ?? undefined}
+                      variant="bordered"
+                      onSelectionChange={handleOrgSelectChange(
+                        "departmentSubSubId",
+                      )}
+                    >
+                      {(item) => (
+                        <AutocompleteItem key={item.key}>
+                          {item.label}
+                        </AutocompleteItem>
+                      )}
+                    </Autocomplete>
+                  </div>
                 </div>
               </div>
 

@@ -1,5 +1,3 @@
-// Prisma schema for NextAuth + custom user fields (MySQL)
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,33 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  displayName   String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?   @db.Text
-
-  // Relations
-  accounts Account[]
-  sessions Session[]
-
-  // Custom fields for LLINE
-  phone           String?
-  mobile          String?
-  lineUserId      String? @unique
-  lineDisplayName String?
-
-  // Custom fields for LDAP
-  department      String?
-  position        String?
-  memberOf        String? @db.Text
-  role            String  @default("user")
-  ldapId          String? @unique
-  ldapDisplayName String?
-}
-
-model Account {
+model account {
   id                String  @id @default(cuid())
   userId            String
   type              String
@@ -48,26 +20,146 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
+  user              user    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Account_userId_fkey")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@unique([userId, provider])
+  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
+  @@unique([userId, provider], map: "Account_userId_provider_key")
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
+model hrd_department {
+  HR_DEPARTMENT_ID   Int                    @id @default(autoincrement())
+  HR_DEPARTMENT_NAME String?                @default("") @db.VarChar(100)
+  BOOK_NUM           String?                @default("") @db.VarChar(255)
+  ACTIVE             hrd_department_ACTIVE? @default(True)
+  BOOK_HR_ID         String?                @default("") @db.VarChar(10)
+  LEADER_HR_ID       String?                @default("") @db.VarChar(10)
+  PHONE_IN           String?                @default("") @db.VarChar(30)
+  updated_at         DateTime?              @db.DateTime(0)
+  created_at         DateTime?              @db.DateTime(0)
+}
+
+model hrd_department_sub {
+  HR_DEPARTMENT_SUB_ID   Int                        @id @default(autoincrement())
+  HR_DEPARTMENT_ID       String?                    @default("") @db.VarChar(11)
+  HR_DEPARTMENT_SUB_NAME String?                    @default("") @db.VarChar(100)
+  ACTIVE                 hrd_department_sub_ACTIVE? @default(True)
+  BOOK_NUM               String?                    @default("") @db.VarChar(30)
+  BOOK_HR_ID             String?                    @default("") @db.VarChar(10)
+  LEADER_HR_ID           String?                    @default("") @db.VarChar(11)
+  INVEN_HR_ID            String?                    @default("") @db.VarChar(10)
+  INVEN_LOCATION_ID      String?                    @default("") @db.VarChar(10)
+  INVEN_ORDER_HR_ID      String?                    @default("") @db.VarChar(10)
+  INVEN_WRITE_HR_ID      String?                    @default("") @db.VarChar(10)
+  INVEN_BUY_HR_ID        String?                    @default("") @db.VarChar(10)
+  INVEN_BUY_POSITION     String?                    @default("") @db.VarChar(100)
+  INVEN_TYPE_ID          String?                    @default("") @db.VarChar(10)
+  PHONE_IN               String?                    @default("") @db.VarChar(30)
+  updated_at             DateTime?                  @db.DateTime(0)
+  created_at             DateTime?                  @db.DateTime(0)
+}
+
+model hrd_department_sub_sub {
+  HR_DEPARTMENT_SUB_SUB_ID   Int                            @id @default(autoincrement())
+  HR_DEPARTMENT_SUB_SUB_NAME String?                        @default("") @db.VarChar(255)
+  BOOK_NUM                   String?                        @default("") @db.VarChar(255)
+  LEADER_HR_ID               String?                        @default("") @db.VarChar(10)
+  ACTIVE                     hrd_department_sub_sub_ACTIVE? @default(True)
+  HR_DEPARTMENT_SUB_ID       String?                        @default("") @db.VarChar(10)
+  DEP_CODE                   String?                        @default("") @db.VarChar(10)
+  PHONE_IN                   String?                        @default("") @db.VarChar(50)
+  updated_at                 DateTime?                      @db.DateTime(0)
+  created_at                 DateTime?                      @db.DateTime(0)
+  LINE_TOKEN                 String?                        @db.VarChar(255)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model hrd_person_type {
+  HR_PERSON_TYPE_ID   Int       @id @default(autoincrement())
+  HR_PERSON_TYPE_NAME String?   @default("") @db.VarChar(100)
+  HR_LEAVE04_CON      String?   @db.Text
+  HR_LEAVE04_CMD      String?   @default("") @db.VarChar(255)
+  HR_LEAVE04_DAY      Int?
+  max_leave_day       Int       @db.UnsignedMediumInt
+  updated_at          DateTime? @db.DateTime(0)
+  created_at          DateTime? @db.DateTime(0)
+
+  @@index([HR_PERSON_TYPE_ID], map: "IX_HR_PERSON_TYPE_ID")
+}
+
+model hrd_position {
+  HR_POSITION_ID            Int                                     @id
+  HR_POSITION_NAME          String?                                 @default("") @db.VarChar(100)
+  POSITION_SP_ID            String?                                 @default("") @db.VarChar(10)
+  HR_POSITION_CHECK_HOLIDAY hrd_position_HR_POSITION_CHECK_HOLIDAY?
+  updated_at                DateTime?                               @db.DateTime(0)
+  created_at                DateTime?                               @db.DateTime(0)
+}
+
+model session {
+  id           String   @id  @default(cuid())
+  sessionToken String   @unique(map: "Session_sessionToken_key")
   userId       String
   expires      DateTime
+  user         user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Session_userId_fkey")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId], map: "Session_userId_fkey")
 }
 
-model VerificationToken {
+model user {
+  id                   String    @id @default(cuid())
+  email                String?   @unique(map: "User_email_key")
+  emailVerified        DateTime?
+  image                String?   @db.Text
+
+  /// ข้อมูลโครงสร้างองค์กร (เก็บเป็น ID จากตาราง HRD)
+  personTypeId         Int?
+  positionId           Int?
+  departmentId         Int?
+  departmentSubId      Int?
+  departmentSubSubId   Int?
+
+  /// ฟิลด์ legacy เดิม (เก็บเป็นข้อความ) - ควรถูกเลิกใช้ในอนาคต
+  department           String?
+  position             String?
+
+  role                 String    @default("user")
+  ldapId               String?   @unique(map: "User_ldapId_key")
+  lineDisplayName      String?
+  lineUserId           String?   @unique(map: "User_lineUserId_key")
+  mobile               String?
+  phone                String?
+  displayName          String?
+  ldapDisplayName      String?
+  memberOf             String?   @db.Text
+
+  account              account[]
+  session              session[]
+}
+
+model verificationtoken {
   identifier String
-  token      String   @unique
+  token      String   @unique(map: "VerificationToken_token_key")
   expires    DateTime
 
-  @@unique([identifier, token])
+  @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
+}
+
+enum hrd_position_HR_POSITION_CHECK_HOLIDAY {
+  True
+  False
+}
+
+enum hrd_department_sub_ACTIVE {
+  True
+  False
+}
+
+enum hrd_department_ACTIVE {
+  True
+  False
+}
+
+enum hrd_department_sub_sub_ACTIVE {
+  True
+  False
 }

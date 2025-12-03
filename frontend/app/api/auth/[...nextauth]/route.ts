@@ -312,7 +312,9 @@ export const authOptions: any = {
         }
 
         const ldapService = createLDAPService();
-        const check = await ldapService.checkAccountStatusByLdapId(linkedUser.ldapId!);
+        const check = await ldapService.checkAccountStatusByLdapId(
+          linkedUser.ldapId!,
+        );
 
         if (!check.success) {
           throw new Error(check.errorCode);

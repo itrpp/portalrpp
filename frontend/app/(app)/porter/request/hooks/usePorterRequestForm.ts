@@ -14,14 +14,16 @@ type ValidationErrors = Record<string, string>;
 interface UsePorterRequestFormOptions {
   requesterName?: string;
   requesterPhone?: string;
+  requesterDepartment?: string;
 }
 
 export function usePorterRequestForm({
   requesterName,
   requesterPhone,
+  requesterDepartment,
 }: UsePorterRequestFormOptions = {}) {
   const [formData, setFormData] = useState<PorterRequestFormData>(() =>
-    createDefaultFormData(requesterName, requesterPhone),
+    createDefaultFormData(requesterName, requesterPhone, requesterDepartment),
   );
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {},
@@ -32,7 +34,9 @@ export function usePorterRequestForm({
   const previousErrorsCountRef = useRef(0);
 
   const resetForm = useCallback(() => {
-    setFormData(createDefaultFormData(requesterName, requesterPhone));
+    setFormData(
+      createDefaultFormData(requesterName, requesterPhone, requesterDepartment),
+    );
     setValidationErrors({});
     setEditingRequestId(null);
   }, [requesterName, requesterPhone]);

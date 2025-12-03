@@ -91,7 +91,7 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
   const patientConditionValue = normalizePatientCondition(patient_condition);
 
   const createData: Prisma.PorterRequestUncheckedCreateInput = {
-    requesterDepartment: requester_department || null,
+    requesterDepartment: requester_department ?? '',
     requesterName: requester_name,
     requesterPhone: requester_phone,
     requesterUserID: requester_user_id,
@@ -248,7 +248,7 @@ export const updatePorterRequest = async (
   const data: Prisma.PorterRequestUpdateInput = {};
 
   if (updateData.requester_department !== undefined) {
-    data.requesterDepartment = updateData.requester_department || null;
+    data.requesterDepartment = updateData.requester_department;
   }
   if (updateData.requester_name) {
     data.requesterName = updateData.requester_name;

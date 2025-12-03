@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Button,
@@ -41,7 +41,6 @@ import {
   VEHICLE_TYPE_OPTIONS,
   EQUIPMENT_OPTIONS,
   TRANSPORT_REASON_OPTIONS,
-  DEPARTMENT_OPTIONS,
   PATIENT_CONDITION_OPTIONS,
 } from "@/lib/porter";
 import {
@@ -75,7 +74,17 @@ export default function PorterRequestPage() {
   } = usePorterRequestForm({
     requesterName: session?.user?.name ?? undefined,
     requesterPhone: (session?.user as any)?.phone ?? undefined,
+    requesterDepartment: (session?.user as any)?.department ?? undefined,
   });
+
+  // Sync หน่วยงานผู้แจ้งจาก session ให้กับฟอร์มเมื่อ session โหลดแล้ว
+  useEffect(() => {
+    const department = (session?.user as any)?.department;
+
+    if (department && !formData.requesterDepartment) {
+      setFormField("requesterDepartment", department);
+    }
+  }, [session?.user, formData.requesterDepartment, setFormField]);
 
   const { userRequests, isLoadingRequests, refreshUserRequests } =
     useUserRequests({
@@ -471,28 +480,17 @@ export default function PorterRequestPage() {
             </CardHeader>
             <CardBody className="pt-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select
-                  isDisabled
+                <Input
+                  readOnly
                   label="หน่วยงานผู้แจ้ง"
                   name="requesterDepartment"
-                  placeholder="เลือกหน่วยงาน"
-                  selectedKeys={
-                    formData.requesterDepartment
-                      ? [formData.requesterDepartment]
-                      : []
+                  placeholder="หน่วยงานผู้แจ้งจากโปรไฟล์"
+                  startContent={
+                    <BuildingOfficeIcon className="w-4 h-4 text-default-400" />
                   }
-                  startContent={<BuildingOfficeIcon className="w-4 h-4" />}
+                  value={formData.requesterDepartment}
                   variant="bordered"
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as string;
-
-                    handleInputChange("requesterDepartment", selected);
-                  }}
-                >
-                  {DEPARTMENT_OPTIONS.map((dept) => (
-                    <SelectItem key={dept}>{dept}</SelectItem>
-                  ))}
-                </Select>
+                />
 
                 <Input
                   isRequired
@@ -547,11 +545,14 @@ export default function PorterRequestPage() {
                 <div className="space-y-2">
                   <Input
                     isRequired
+                    description="กรอกหมายเลข HN / AN แล้วกดปุ่มค้นหาเพื่อดึงข้อมูลผู้ป่วย"
                     endContent={
                       <Button
-                        color="primary"
                         isIconOnly
-                        isDisabled={isLoadingPatient || !formData.patientHN?.trim()}
+                        color="primary"
+                        isDisabled={
+                          isLoadingPatient || !formData.patientHN?.trim()
+                        }
                         isLoading={isLoadingPatient}
                         size="sm"
                         variant="solid"
@@ -560,7 +561,6 @@ export default function PorterRequestPage() {
                         <MagnifyingGlassIcon className="w-4 h-4 text-white" />
                       </Button>
                     }
-                    description="กรอกหมายเลข HN / AN แล้วกดปุ่มค้นหาเพื่อดึงข้อมูลผู้ป่วย"
                     label="หมายเลข HN / AN"
                     name="patientHN"
                     placeholder="เช่น 123456/68"

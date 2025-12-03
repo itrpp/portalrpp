@@ -345,6 +345,7 @@ export class LDAPService {
       const entry = searchEntries[0];
       const attributes = Object.entries(entry).map(([type, values]) => {
         const vals = Array.isArray(values) ? values : [values];
+
         return {
           type,
           values: vals.map((v) =>

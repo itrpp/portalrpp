@@ -42,8 +42,11 @@ export async function PUT(
       id,
     };
 
-    if (requestData.requesterDepartment !== undefined) {
-      protoRequest.requester_department = requestData.requesterDepartment;
+    // หน่วยงานผู้แจ้งควรถูกอัปเดตจากโปรไฟล์ผู้ใช้งาน (legacy department string)
+    const requesterDepartment = (session.user as any)?.department;
+
+    if (requesterDepartment) {
+      protoRequest.requester_department = requesterDepartment;
     }
     if (requestData.requesterName !== undefined) {
       protoRequest.requester_name = requestData.requesterName;

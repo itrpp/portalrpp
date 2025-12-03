@@ -192,10 +192,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* User Menu - แสดงเฉพาะเมื่อมี session */}
             {session?.user && (
-              <Dropdown
-                isDisabled={isNavigating}
-                placement="bottom-end"
-              >
+              <Dropdown isDisabled={isNavigating} placement="bottom-end">
                 <DropdownTrigger>
                   <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2">
                     <Avatar

@@ -443,9 +443,7 @@ export default function Sidebar() {
           </Button>
         ) : (
           <Button
-            className={`sidebar-item w-full justify-start h-10 group ${
-              isNavigating && pathname !== item.href ? "opacity-50" : ""
-            }`}
+            className={`sidebar-item w-full justify-start h-10 group`}
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
@@ -465,9 +463,6 @@ export default function Sidebar() {
                     }`}
                   />
                 )}
-                {isNavigating && pathname !== item.href && (
-                  <span className="animate-spin text-primary-500">⏳</span>
-                )}
               </div>
             }
             isDisabled={isNavigating}
@@ -481,11 +476,7 @@ export default function Sidebar() {
           >
             {!isCollapsed && (
               <div className="flex items-center justify-between w-full">
-                <span>
-                  {isNavigating && pathname !== item.href
-                    ? "กำลังโหลด..."
-                    : item.name}
-                </span>
+                <span>{item.name}</span>
                 {item.count && (
                   <Chip
                     className="sidebar-chip-primary"

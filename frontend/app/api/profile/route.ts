@@ -48,6 +48,81 @@ function validatePhone(value: string | null, field: string) {
   }
 }
 
+function normalizeNumericId(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const asNumber =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : NaN;
+
+  if (!Number.isInteger(asNumber) || asNumber <= 0) {
+    throw new Error("INVALID_ID_TYPE");
+  }
+
+  return asNumber;
+}
+
+async function assertHrdIdExists(
+  type:
+    | "personType"
+    | "position"
+    | "department"
+    | "departmentSub"
+    | "departmentSubSub",
+  id: number | null,
+) {
+  if (id === null) {
+    return;
+  }
+
+  let count = 0;
+
+  if (type === "personType") {
+    count = await prisma.hrd_person_type.count({
+      where: { HR_PERSON_TYPE_ID: id },
+    });
+  } else if (type === "position") {
+    count = await prisma.hrd_position.count({
+      where: { HR_POSITION_ID: id },
+    });
+  } else if (type === "department") {
+    count = await prisma.hrd_department.count({
+      where: { HR_DEPARTMENT_ID: id },
+    });
+  } else if (type === "departmentSub") {
+    count = await prisma.hrd_department_sub.count({
+      where: { HR_DEPARTMENT_SUB_ID: id },
+    });
+  } else if (type === "departmentSubSub") {
+    count = await prisma.hrd_department_sub_sub.count({
+      where: { HR_DEPARTMENT_SUB_SUB_ID: id },
+    });
+  }
+
+  if (count === 0) {
+    if (type === "personType") {
+      throw new Error("PERSON_TYPE_NOT_FOUND");
+    }
+    if (type === "position") {
+      throw new Error("POSITION_NOT_FOUND");
+    }
+    if (type === "department") {
+      throw new Error("DEPARTMENT_ID_NOT_FOUND");
+    }
+    if (type === "departmentSub") {
+      throw new Error("DEPARTMENT_SUB_ID_NOT_FOUND");
+    }
+    if (type === "departmentSubSub") {
+      throw new Error("DEPARTMENT_SUB_SUB_ID_NOT_FOUND");
+    }
+  }
+}
+
 export async function GET() {
   const session = (await getServerSession(
     authOptions as any,
@@ -129,38 +204,111 @@ export async function PUT(request: Request) {
   }
 
   const payload = await request.json();
-  const editableFields = [
-    "displayName",
-    "phone",
-    "mobile",
-    "department",
-    "position",
-    "role",
-  ] as const;
-  const updateData: Record<string, string | null> = {};
+
+  const updateData: Record<string, string | number | null> = {};
 
   try {
-    for (const field of editableFields) {
-      if (field in payload) {
-        const normalized = normalizeStringValue(payload[field]);
+    // ฟิลด์ข้อความพื้นฐาน
+    if ("displayName" in payload) {
+      const normalized = normalizeStringValue(payload.displayName);
 
-        if (field === "displayName") {
-          validateDisplayName(normalized);
-          updateData[field] = normalized;
-        } else if (field === "phone" || field === "mobile") {
-          validatePhone(normalized, field);
-          updateData[field] = normalized;
-        } else if (field === "role") {
-          validateRole(normalized);
-          updateData[field] = normalized;
-        } else if (field === "department") {
-          validateDepartment(normalized);
-          updateData[field] = normalized;
-        } else if (field === "position") {
-          validatePosition(normalized);
-          updateData[field] = normalized;
-        }
-      }
+      validateDisplayName(normalized);
+      updateData.displayName = normalized;
+    }
+
+    if ("phone" in payload) {
+      const normalized = normalizeStringValue(payload.phone);
+
+      validatePhone(normalized, "phone");
+      updateData.phone = normalized;
+    }
+
+    if ("mobile" in payload) {
+      const normalized = normalizeStringValue(payload.mobile);
+
+      validatePhone(normalized, "mobile");
+      updateData.mobile = normalized;
+    }
+
+    if ("role" in payload) {
+      const normalized = normalizeStringValue(payload.role);
+
+      validateRole(normalized);
+      updateData.role = normalized;
+    }
+
+    // ฟิลด์โครงสร้างองค์กร (ID จาก HRD)
+    const personTypeId =
+      "personTypeId" in payload
+        ? normalizeNumericId(payload.personTypeId)
+        : undefined;
+    const positionId =
+      "positionId" in payload
+        ? normalizeNumericId(payload.positionId)
+        : undefined;
+    const departmentId =
+      "departmentId" in payload
+        ? normalizeNumericId(payload.departmentId)
+        : undefined;
+    const departmentSubId =
+      "departmentSubId" in payload
+        ? normalizeNumericId(payload.departmentSubId)
+        : undefined;
+    const departmentSubSubId =
+      "departmentSubSubId" in payload
+        ? normalizeNumericId(payload.departmentSubSubId)
+        : undefined;
+
+    // กติกา required ขั้นพื้นฐาน (ใช้เมื่อ client ส่ง field นั้นมา)
+    if ("personTypeId" in payload && personTypeId === null) {
+      throw new Error("PERSON_TYPE_REQUIRED");
+    }
+    if ("positionId" in payload && positionId === null) {
+      throw new Error("POSITION_REQUIRED");
+    }
+    if ("departmentId" in payload && departmentId === null) {
+      throw new Error("DEPARTMENT_ID_REQUIRED");
+    }
+    if ("departmentSubId" in payload && departmentSubId === null) {
+      throw new Error("DEPARTMENT_SUB_ID_REQUIRED");
+    }
+    if ("departmentSubSubId" in payload && departmentSubSubId === null) {
+      throw new Error("DEPARTMENT_SUB_SUB_ID_REQUIRED");
+    }
+
+    // ตรวจสอบว่า ID มีอยู่จริงในตาราง HRD
+    await Promise.all([
+      "personTypeId" in payload
+        ? assertHrdIdExists("personType", personTypeId ?? null)
+        : Promise.resolve(),
+      "positionId" in payload
+        ? assertHrdIdExists("position", positionId ?? null)
+        : Promise.resolve(),
+      "departmentId" in payload
+        ? assertHrdIdExists("department", departmentId ?? null)
+        : Promise.resolve(),
+      "departmentSubId" in payload
+        ? assertHrdIdExists("departmentSub", departmentSubId ?? null)
+        : Promise.resolve(),
+      "departmentSubSubId" in payload
+        ? assertHrdIdExists("departmentSubSub", departmentSubSubId ?? null)
+        : Promise.resolve(),
+    ]);
+
+    if ("personTypeId" in payload) {
+      updateData.personTypeId = personTypeId ?? null;
+    }
+    if ("positionId" in payload) {
+      updateData.positionId = positionId ?? null;
+    }
+    if ("departmentId" in payload) {
+      updateData.departmentId = departmentId ?? null;
+    }
+    if ("departmentSubId" in payload) {
+      updateData.departmentSubId = departmentSubId ?? null;
+    }
+    if ("departmentSubSubId" in payload) {
+      updateData.departmentSubSubId = departmentSubSubId ?? null;
     }
   } catch (error: any) {
     return NextResponse.json(
