@@ -921,7 +921,7 @@ const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): 
     id: porterRequest.id,
     created_at: porterRequest.createdAt.toISOString(),
     updated_at: porterRequest.updatedAt.toISOString(),
-    requester_department: porterRequest.requesterDepartment,
+    requester_department: porterRequest.requesterDepartment ?? undefined,
     requester_name: porterRequest.requesterName,
     requester_phone: porterRequest.requesterPhone,
     requester_user_id: porterRequest.requesterUserID,
