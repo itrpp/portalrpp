@@ -17,6 +17,7 @@ declare module "next-auth" {
       lineDisplayName?: string | null;
       lineUserId?: string | null;
       ldapDisplayName?: string | null;
+      departmentSubSubId?: number | null;
     };
     accessToken?: string;
     sessionToken?: string;
@@ -36,6 +37,7 @@ declare module "next-auth" {
     lineDisplayName?: string | null;
     lineUserId?: string | null;
     ldapDisplayName?: string | null;
+    departmentSubSubId?: number | null;
   }
 }
 
@@ -50,5 +52,6 @@ declare module "next-auth/jwt" {
     lineDisplayName?: string | null;
     lineUserId?: string | null;
     ldapDisplayName?: string | null;
+    departmentSubSubId?: number | null;
   }
 }

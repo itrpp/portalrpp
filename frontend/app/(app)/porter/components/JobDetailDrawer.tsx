@@ -145,12 +145,12 @@ export default function JobDetailDrawer({
 
   // Sync form data with job when it changes
   useEffect(() => {
-    if (job) {
+    if (job && !isEditMode) {
       setIsEditMode(false);
       setFormData({ ...job.form });
       setSelectedStaffId(job.assignedTo || "");
     }
-  }, [job]);
+  }, [job, isEditMode]);
 
   if (!job || !formData) return null;
 
@@ -293,26 +293,56 @@ export default function JobDetailDrawer({
   };
 
   const handleSaveChanges = async () => {
-    if (onUpdateJob) {
-      setIsSubmitting(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        onUpdateJob(job.id, formData);
-        addToast({
-          title: "บันทึกสำเร็จ",
-          description: "ข้อมูลถูกอัปเดตเรียบร้อยแล้ว",
-          color: "success",
-        });
-      } catch {
+    if (!onUpdateJob || !job) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/porter/requests/${job.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        const errorMessage =
+          result.error === "UNAUTHORIZED"
+            ? "กรุณาเข้าสู่ระบบก่อนแก้ไขคำขอ"
+            : result.message || "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองอีกครั้ง";
+
         addToast({
           title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถบันทึกข้อมูลได้",
+          description: errorMessage,
           color: "danger",
         });
-      } finally {
-        setIsSubmitting(false);
-        setIsEditMode(false);
+
+        return;
       }
+
+      // อัปเดต state ใน parent component ด้วยข้อมูลที่ได้จาก API
+      const updatedForm = result.data?.form || formData;
+      onUpdateJob(job.id, updatedForm);
+
+      addToast({
+        title: "บันทึกสำเร็จ",
+        description: "ข้อมูลถูกอัปเดตเรียบร้อยแล้ว",
+        color: "success",
+      });
+
+      setIsEditMode(false);
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองอีกครั้ง",
+        color: "danger",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -820,19 +850,53 @@ export default function JobDetailDrawer({
                                 อุปกรณ์ที่ต้องการ
                               </div>
                               <div className="flex flex-wrap gap-2">
-                                {formData.equipment.map((eq, index) => (
-                                  <Chip
-                                    key={index}
-                                    color="default"
-                                    size="sm"
-                                    startContent={
-                                      <MedicalBagIcon className="w-3 h-3" />
-                                    }
-                                    variant="flat"
-                                  >
-                                    {eq}
-                                  </Chip>
-                                ))}
+                                {formData.equipment.map((eq, index) => {
+                                  // ถ้าเป็น "อื่นๆ ระบุ" และมีค่า equipmentOther ให้แสดงทั้งสองค่า
+                                  if (
+                                    eq === "อื่นๆ ระบุ" &&
+                                    formData.equipmentOther?.trim()
+                                  ) {
+                                    return (
+                                      <React.Fragment key={index}>
+                                        <Chip
+                                          color="default"
+                                          size="sm"
+                                          startContent={
+                                            <MedicalBagIcon className="w-3 h-3" />
+                                          }
+                                          variant="flat"
+                                        >
+                                          {eq}
+                                        </Chip>
+                                        <Chip
+                                          color="primary"
+                                          size="sm"
+                                          startContent={
+                                            <MedicalBagIcon className="w-3 h-3" />
+                                          }
+                                          variant="flat"
+                                        >
+                                          {formData.equipmentOther}
+                                        </Chip>
+                                      </React.Fragment>
+                                    );
+                                  }
+
+                                  // สำหรับอุปกรณ์อื่นๆ แสดงตามปกติ
+                                  return (
+                                    <Chip
+                                      key={index}
+                                      color="default"
+                                      size="sm"
+                                      startContent={
+                                        <MedicalBagIcon className="w-3 h-3" />
+                                      }
+                                      variant="flat"
+                                    >
+                                      {eq}
+                                    </Chip>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>

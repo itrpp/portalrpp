@@ -244,21 +244,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     )}
                   </DropdownItem>
                   <DropdownItem
-                    key="settings"
-                    isDisabled={isNavigating}
-                    startContent={<SettingsIcon className="w-4 h-4" />}
-                    onPress={() => handleNavigate("/settings")}
-                  >
-                    {isNavigating && pathname === "/settings" ? (
-                      <span className="flex items-center gap-2">
-                        <span className="animate-spin">⏳</span>
-                        กำลังโหลด...
-                      </span>
-                    ) : (
-                      "ตั้งค่า"
-                    )}
-                  </DropdownItem>
-                  <DropdownItem
                     key="logout"
                     color="danger"
                     isDisabled={isNavigating}

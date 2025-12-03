@@ -54,10 +54,11 @@ import {
   XMarkIcon,
   PencilIcon,
   MagnifyingGlassIcon,
+  RefreshIcon,
 } from "@/components/ui/icons";
 
 export default function PorterRequestPage() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
 
   const {
     formData,
@@ -737,7 +738,7 @@ export default function PorterRequestPage() {
                         color={option.color}
                         startContent={
                           option.value === "ฉุกเฉิน" ||
-                          option.value === "ด่วน" ? (
+                            option.value === "ด่วน" ? (
                             <AmbulanceIcon className="w-4 h-4" />
                           ) : (
                             <ClipboardListIcon className="w-4 h-4" />
@@ -855,7 +856,7 @@ export default function PorterRequestPage() {
                 </label>
                 <CheckboxGroup
                   id="equipment-group"
-                  value={formData.equipment}
+                  value={Array.isArray(formData.equipment) ? formData.equipment : []}
                   onValueChange={(values) => {
                     handleInputChange("equipment", values as EquipmentType[]);
                     // ถ้าไม่ได้เลือก "อื่นๆ ระบุ" ให้ล้าง equipmentOther
@@ -872,7 +873,8 @@ export default function PorterRequestPage() {
                     ))}
                   </div>
                 </CheckboxGroup>
-                {formData.equipment.includes("อื่นๆ ระบุ") && (
+                {Array.isArray(formData.equipment) &&
+                  formData.equipment.includes("อื่นๆ ระบุ") && (
                   <Input
                     className="mt-3"
                     label="ระบุอุปกรณ์อื่นๆ"
@@ -909,7 +911,7 @@ export default function PorterRequestPage() {
                 }
                 label={
                   formData.deliveryLocationDetail?.buildingName ===
-                  "โรงพยาบาลอื่น"
+                    "โรงพยาบาลอื่น"
                     ? "ระบุโรงพยาบาลปลายทาง (รายละเอียดเพิ่มเติม)"
                     : "หมายเหตุ / ข้อมูลเพิ่มเติม"
                 }
@@ -917,7 +919,7 @@ export default function PorterRequestPage() {
                 name="specialNotes"
                 placeholder={
                   formData.deliveryLocationDetail?.buildingName ===
-                  "โรงพยาบาลอื่น"
+                    "โรงพยาบาลอื่น"
                     ? "ระบุชื่อโรงพยาบาลปลายทาง"
                     : "ระบุข้อมูลเพิ่มเติมที่สำคัญ เช่น ข้อควรระวังพิเศษ, โรคประจำตัว, อาการพิเศษ"
                 }
@@ -978,18 +980,31 @@ export default function PorterRequestPage() {
         <aside className="space-y-4">
           <Card className="shadow-lg border border-default-200">
             <CardHeader className="pl-0">
-              <div className="flex items-center justify-between gap-2 pl-2">
+              <div className="flex items-center justify-between w-full pl-2 pr-2">
                 <div className="flex items-center gap-2">
                   <ClipboardListIcon className="w-6 h-6 text-primary" />
                   <h2 className="text-lg font-semibold text-foreground">
                     รายการคำขอ
                   </h2>
+                  {userRequests.length > 0 && (
+                    <Chip color="primary" size="sm" variant="flat">
+                      {userRequests.length}
+                    </Chip>
+                  )}
                 </div>
-                {userRequests.length > 0 && (
-                  <Chip color="primary" size="sm" variant="flat">
-                    {userRequests.length}
-                  </Chip>
-                )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    isIconOnly
+                    color="primary"
+                    isLoading={isLoadingRequests}
+                    size="sm"
+                    title="รีเฟรชข้อมูล"
+                    variant="solid"
+                    onPress={refreshUserRequests}
+                  >
+                    <RefreshIcon className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardBody className="pt-4">
@@ -1009,13 +1024,12 @@ export default function PorterRequestPage() {
                   {userRequests.map((request) => (
                     <div
                       key={request.id}
-                      className={`min-w-[300px] md:min-w-0 rounded-lg border p-3 ${
-                        request.form.urgencyLevel === "ฉุกเฉิน"
-                          ? "bg-danger-50/30 border-danger-200"
-                          : request.form.urgencyLevel === "ด่วน"
-                            ? "bg-warning-50/30 border-warning-200"
-                            : "bg-content1 border-default-200"
-                      }`}
+                      className={`min-w-[300px] md:min-w-0 rounded-lg border p-3 ${request.form.urgencyLevel === "ฉุกเฉิน"
+                        ? "bg-danger-50/30 border-danger-200"
+                        : request.form.urgencyLevel === "ด่วน"
+                          ? "bg-warning-50/30 border-warning-200"
+                          : "bg-content1 border-default-200"
+                        }`}
                     >
                       {/* บรรทัดที่ 1: สถานะ กับ เวลาที่แจ้ง */}
                       <div className="flex items-center justify-between text-sm mb-2">
@@ -1082,29 +1096,29 @@ export default function PorterRequestPage() {
                       {/* บรรทัดที่ 5: ปุ่มแก้ไขและยกเลิกงาน */}
                       {(request.status === "waiting" ||
                         request.status === "in-progress") && (
-                        <div className="flex items-center justify-end gap-2 mt-2">
-                          {request.status === "waiting" && (
+                          <div className="flex items-center justify-end gap-2 mt-2">
+                            {request.status === "waiting" && (
+                              <Button
+                                color="primary"
+                                size="sm"
+                                startContent={<PencilIcon className="w-4 h-4" />}
+                                variant="flat"
+                                onPress={() => handleEditRequest(request.id)}
+                              >
+                                แก้ไข
+                              </Button>
+                            )}
                             <Button
-                              color="primary"
+                              color="danger"
                               size="sm"
-                              startContent={<PencilIcon className="w-4 h-4" />}
+                              startContent={<XMarkIcon className="w-4 h-4" />}
                               variant="flat"
-                              onPress={() => handleEditRequest(request.id)}
+                              onPress={() => handleOpenCancelModal(request.id)}
                             >
-                              แก้ไข
+                              ยกเลิกงาน
                             </Button>
-                          )}
-                          <Button
-                            color="danger"
-                            size="sm"
-                            startContent={<XMarkIcon className="w-4 h-4" />}
-                            variant="flat"
-                            onPress={() => handleOpenCancelModal(request.id)}
-                          >
-                            ยกเลิกงาน
-                          </Button>
-                        </div>
-                      )}
+                          </div>
+                        )}
                     </div>
                   ))}
                 </div>

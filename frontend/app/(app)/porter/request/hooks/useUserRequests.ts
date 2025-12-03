@@ -12,6 +12,9 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
 
   const fetchUserRequests = useCallback(async () => {
     if (!userId) {
+      setUserRequests([]);
+      setIsLoadingRequests(false);
+
       return;
     }
 
@@ -65,12 +68,19 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
         });
 
         setUserRequests(sortedRequests);
+      } else {
+        setUserRequests([]);
       }
+    } catch (error) {
+      console.error("Error fetching user requests:", error);
+      setUserRequests([]);
     } finally {
       setIsLoadingRequests(false);
     }
   }, [userId]);
 
+  // โหลดข้อมูลเมื่อ userId เปลี่ยน (รวมถึงเมื่อเปลี่ยนจาก undefined เป็น string)
+  // ใช้ fetchUserRequests ใน dependency เพื่อให้ trigger เมื่อ callback เปลี่ยน
   useEffect(() => {
     fetchUserRequests();
   }, [fetchUserRequests]);

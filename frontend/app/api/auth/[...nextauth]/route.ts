@@ -395,6 +395,7 @@ export const authOptions: any = {
           lineUserId: true,
           image: true,
           ldapDisplayName: true,
+          departmentSubSubId: true,
         },
       });
 
@@ -414,6 +415,7 @@ export const authOptions: any = {
       token.lineUserId = dbUser.lineUserId ?? null;
       token.image = dbUser.image ?? null;
       token.ldapDisplayName = dbUser.ldapDisplayName ?? null;
+      token.departmentSubSubId = dbUser.departmentSubSubId ?? null;
 
       return token;
     },
@@ -438,6 +440,7 @@ export const authOptions: any = {
         session.user.lineUserId = token.lineUserId ?? null;
         session.user.image = token.image ?? null;
         session.user.ldapDisplayName = token.ldapDisplayName ?? null;
+        session.user.departmentSubSubId = token.departmentSubSubId ?? null;
       }
 
       return session as ExtendedSession;

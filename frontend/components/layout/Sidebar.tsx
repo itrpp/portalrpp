@@ -77,32 +77,28 @@ export default function Sidebar() {
     setExpandedItems(newExpandedItems);
   }, [pathname]);
 
-  // ตรวจสอบ theme เมื่อ component mount
-  // useEffect(() => {
-  //   // ฟังก์ชันสำหรับติดตามการเปลี่ยนแปลง theme
-  //   const handleThemeChange = () => {
-  //     // Handle theme change
-  //   };
+  // ตรวจสอบว่าเป็น superadmin (ฝ่ายวิชาการ admin)
+  const isSuperAdmin = () => {
+    const departmentSubSubId = session?.user?.departmentSubSubId;
+    const role = session?.user?.role;
 
-  //   // ใช้ MutationObserver เพื่อติดตามการเปลี่ยนแปลง data-theme
-  //   const observer = new MutationObserver((mutations) => {
-  //     mutations.forEach((mutation) => {
-  //       if (
-  //         mutation.type === "attributes" &&
-  //         mutation.attributeName === "data-theme"
-  //       ) {
-  //         handleThemeChange();
-  //       }
-  //     });
-  //   });
+    return departmentSubSubId === 170000 && role === "admin";
+  };
 
-  //   observer.observe(document.documentElement, {
-  //     attributes: true,
-  //     attributeFilter: ["data-theme"],
-  //   });
+  // ตรวจสอบสิทธิ์การเข้าถึงเมนูศูนย์เปล
+  const canAccessPorterCenter = () => {
+    const departmentSubSubId = session?.user?.departmentSubSubId;
 
-  //   return () => observer.disconnect();
-  // }, []);
+    return isSuperAdmin() || departmentSubSubId === 4007;
+  };
+
+  // ตรวจสอบสิทธิ์การเข้าถึงเมนูตั้งค่าศูนย์เปล (เฉพาะ admin ของศูนย์เปล หรือ superadmin)
+  const canAccessPorterCenterSettings = () => {
+    const departmentSubSubId = session?.user?.departmentSubSubId;
+    const role = session?.user?.role;
+
+    return isSuperAdmin() || (departmentSubSubId === 4007 && role === "admin");
+  };
 
   const navigationSections: SidebarSection[] = [
     {
@@ -130,56 +126,63 @@ export default function Sidebar() {
           href: "/porter/request",
           icon: EmergencyBedIcon,
         },
-
-        {
-          name: "ศูนย์เปล",
-          href: "#",
-          icon: BedIcon,
-          subItems: [
-            {
-              name: "เจ้าหน้าที่เวรเปล",
-              href: "#",
-              icon: EmergencyBedIcon,
-            },
-            {
-              name: "สถิติการดำเนินการ",
-              href: "#",
-              icon: ChartBarIcon,
-            },
-            {
-              name: "รายการคำขอ",
-              href: "/porter/joblist",
-              icon: ClipboardListIcon,
-            },
-            {
-              name: "ตั้งค่า",
-              href: "#",
-              icon: SettingsIcon,
-              subItems: [
-                {
-                  name: "จุดรับ - ส่ง",
-                  href: "/porter/setting/location",
-                  icon: SettingsIcon,
-                },
-                {
-                  name: "รายชื่อเจ้าหน้าที่เปล",
-                  href: "/porter/setting/employee",
-                  icon: UserIcon,
-                },
-                {
-                  name: "ประเภทการจ้าง",
-                  href: "/porter/setting/employment-type",
-                  icon: BriefcaseIcon,
-                },
-                {
-                  name: "ตำแหน่ง",
-                  href: "/porter/setting/position",
-                  icon: UserGroupIcon,
-                },
-              ],
-            },
-          ],
-        },
+        ...(canAccessPorterCenter()
+          ? [
+              {
+                name: "ศูนย์เปล",
+                href: "#",
+                icon: BedIcon,
+                subItems: [
+                  {
+                    name: "เจ้าหน้าที่เวรเปล",
+                    href: "#",
+                    icon: EmergencyBedIcon,
+                  },
+                  {
+                    name: "สถิติการดำเนินการ",
+                    href: "#",
+                    icon: ChartBarIcon,
+                  },
+                  {
+                    name: "รายการคำขอ",
+                    href: "/porter/joblist",
+                    icon: ClipboardListIcon,
+                  },
+                  ...(canAccessPorterCenterSettings()
+                    ? [
+                        {
+                          name: "ตั้งค่า",
+                          href: "#",
+                          icon: SettingsIcon,
+                          subItems: [
+                            {
+                              name: "จุดรับ - ส่ง",
+                              href: "/porter/setting/location",
+                              icon: SettingsIcon,
+                            },
+                            {
+                              name: "รายชื่อเจ้าหน้าที่เปล",
+                              href: "/porter/setting/employee",
+                              icon: UserIcon,
+                            },
+                            {
+                              name: "ประเภทการจ้าง",
+                              href: "/porter/setting/employment-type",
+                              icon: BriefcaseIcon,
+                            },
+                            {
+                              name: "ตำแหน่ง",
+                              href: "/porter/setting/position",
+                              icon: UserGroupIcon,
+                            },
+                          ],
+                        } as SidebarItem,
+                      ]
+                    : []),
+                ],
+              } as SidebarItem,
+            ]
+          : []),
       ],
     },
     {
@@ -235,7 +238,7 @@ export default function Sidebar() {
 
     {
       title: "ผู้ดูแลระบบ",
-      isDisabled: session?.user?.role !== "admin",
+      isDisabled: !isSuperAdmin(),
       items: [
         {
           name: "รายชื่อผู้ใช้งาน",

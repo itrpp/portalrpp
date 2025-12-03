@@ -62,6 +62,7 @@ export interface ExtendedUser {
   lineUserId?: string | null;
   image?: string | null;
   ldapDisplayName?: string | null;
+  departmentSubSubId?: number | null;
 }
 
 // NextAuth Token Interface Extension
@@ -77,6 +78,7 @@ export interface ExtendedToken {
   lineUserId?: string | null;
   image?: string | null;
   ldapDisplayName?: string | null;
+  departmentSubSubId?: number | null;
 }
 
 // NextAuth Session Interface Extension
