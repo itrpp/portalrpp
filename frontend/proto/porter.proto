@@ -75,7 +75,7 @@ service PorterService {
 
 message CreatePorterRequestRequest {
   // ข้อมูลผู้แจ้ง (Requester Information)
-  string requester_department = 1;
+  optional string requester_department = 1;
   string requester_name = 2;
   string requester_phone = 3;
 
@@ -213,7 +213,7 @@ message PorterRequest {
   string updated_at = 3; // ISO 8601 format
 
   // ข้อมูลผู้แจ้ง
-  string requester_department = 4;
+  optional string requester_department = 4;
   string requester_name = 5;
   string requester_phone = 6;
 

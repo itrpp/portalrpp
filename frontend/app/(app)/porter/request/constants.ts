@@ -2,7 +2,6 @@ import { PorterRequestFormData } from "@/types/porter";
 import { getDateTimeLocal } from "@/lib/utils";
 
 export const REQUEST_REQUIRED_FIELDS: Array<keyof PorterRequestFormData> = [
-  "requesterDepartment",
   "requesterName",
   "requesterPhone",
   "patientName",
@@ -33,10 +32,11 @@ export const REQUEST_FIELD_LABELS: Partial<
 
 export const createDefaultFormData = (
   requesterName: string | undefined,
+  requesterPhone?: string | undefined,
 ): PorterRequestFormData => ({
   requesterDepartment: "",
   requesterName: requesterName || "",
-  requesterPhone: "",
+  requesterPhone: requesterPhone || "",
 
   patientName: "",
   patientHN: "",

@@ -357,7 +357,7 @@ export default function JobDetailDrawer({
         <DrawerBody className="overflow-y-auto">
           <div className="space-y-4">
             {/* ข้อมูลผู้แจ้ง และผู้ป่วย */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="shadow-sm border border-default-200 bg-content1">
                 <CardHeader className="pb-0 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
@@ -371,20 +371,20 @@ export default function JobDetailDrawer({
                   </span>
                 </CardHeader>
                 <CardBody className="pt-4">
-                  <div className="space-y-3 text-sm text-default-600">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="font-medium text-foreground min-w-fit">
+                  <div className="grid grid-cols-2 gap-3 text-sm text-default-600">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium text-foreground">
                         ผู้แจ้ง
                       </span>
-                      <span className="text-foreground text-right break-words flex-1">
+                      <span className="text-foreground break-words">
                         {formData.requesterName || "-"}
                       </span>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="font-medium text-foreground min-w-fit">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium text-foreground">
                         เบอร์โทรศัพท์
                       </span>
-                      <span className="text-foreground text-right break-words flex-1">
+                      <span className="text-foreground break-words">
                         {formData.requesterPhone || "-"}
                       </span>
                     </div>
@@ -405,20 +405,18 @@ export default function JobDetailDrawer({
                   </span> */}
                 </CardHeader>
                 <CardBody className="pt-4">
-                  <div className="space-y-3 text-sm text-default-600">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="font-medium text-foreground min-w-fit">
-                        HN
-                      </span>
-                      <span className="text-foreground text-right break-words flex-1">
+                  <div className="grid grid-cols-2 gap-3 text-sm text-default-600">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium text-foreground">HN</span>
+                      <span className="text-foreground break-words">
                         {formData.patientHN || "-"}
                       </span>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="font-medium text-foreground min-w-fit">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium text-foreground">
                         ชื่อผู้ป่วย
                       </span>
-                      <span className="text-foreground text-right break-words flex-1">
+                      <span className="text-foreground break-words">
                         {formData.patientName || "-"}
                       </span>
                     </div>
@@ -683,9 +681,185 @@ export default function JobDetailDrawer({
               </>
             ) : (
               <>
-                {/* Timeline + สรุปข้อมูลงาน (ใช้ทั้งใน tab รอรับงาน และสถานะอื่น) */}
+                {/* รายละเอียด + Timeline (ใช้ทั้งใน tab รอรับงาน และสถานะอื่น) */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <section>
+                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <ClipboardListIcon className="w-5 h-5 text-primary" />
+                      รายละเอียด
+                    </h3>
+                    <div className="space-y-3">
+                      {formData.urgencyLevel && (
+                        <div
+                          className={`rounded-lg p-4 border ${
+                            formData.urgencyLevel === "ฉุกเฉิน"
+                              ? "bg-danger-50 dark:bg-danger-50/20 border-danger-200"
+                              : formData.urgencyLevel === "ด่วน"
+                                ? "bg-warning-50 dark:bg-warning-50/20 border-warning-200"
+                                : "bg-success-50 dark:bg-success-50/20 border-success-200"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                                formData.urgencyLevel === "ฉุกเฉิน"
+                                  ? "bg-danger-100 dark:bg-danger-500/30"
+                                  : formData.urgencyLevel === "ด่วน"
+                                    ? "bg-warning-100 dark:bg-warning-500/30"
+                                    : "bg-success-100 dark:bg-success-500/30"
+                              }`}
+                            >
+                              {formData.urgencyLevel === "ฉุกเฉิน" ||
+                              formData.urgencyLevel === "ด่วน" ? (
+                                <AmbulanceIcon
+                                  className={`w-5 h-5 ${
+                                    formData.urgencyLevel === "ฉุกเฉิน"
+                                      ? "text-danger-600 dark:text-danger-400"
+                                      : "text-warning-600 dark:text-warning-400"
+                                  }`}
+                                />
+                              ) : (
+                                <ClockIcon className="w-5 h-5 text-success-600 dark:text-success-400" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-2">
+                                ความเร่งด่วน
+                              </div>
+                              <Chip
+                                color={
+                                  formData.urgencyLevel === "ฉุกเฉิน"
+                                    ? "danger"
+                                    : formData.urgencyLevel === "ด่วน"
+                                      ? "warning"
+                                      : "success"
+                                }
+                                size="sm"
+                                startContent={
+                                  formData.urgencyLevel === "ฉุกเฉิน" ||
+                                  formData.urgencyLevel === "ด่วน" ? (
+                                    <AmbulanceIcon className="w-3 h-3" />
+                                  ) : null
+                                }
+                                variant="flat"
+                              >
+                                {formData.urgencyLevel}
+                              </Chip>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.transportReason && (
+                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <InfoCircleIcon className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
+                                เหตุผลการเคลื่อนย้าย
+                              </div>
+                              <p className="text-sm font-medium text-foreground">
+                                {formData.transportReason}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.vehicleType && (
+                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <CarIcon className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
+                                  ประเภทรถ
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {formData.vehicleType === "รถนั่ง" && (
+                                    <StretcherIcon className="w-4 h-4 text-default-400" />
+                                  )}
+                                  {formData.vehicleType === "รถนอน" && (
+                                    <BedIcon className="w-4 h-4 text-default-400" />
+                                  )}
+                                  {formData.vehicleType === "รถกอล์ฟ" && (
+                                    <CarIcon className="w-4 h-4 text-default-400" />
+                                  )}
+                                  <p className="text-sm font-medium text-foreground">
+                                    {formData.vehicleType}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
+                                  มีรถแล้วหรือไม่
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-foreground">
+                                    {formData.hasVehicle}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.equipment.length > 0 && (
+                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
+                              <ToolsIcon className="w-5 h-5 text-default-600 dark:text-default-700" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-2">
+                                อุปกรณ์ที่ต้องการ
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {formData.equipment.map((eq, index) => (
+                                  <Chip
+                                    key={index}
+                                    color="default"
+                                    size="sm"
+                                    startContent={
+                                      <MedicalBagIcon className="w-3 h-3" />
+                                    }
+                                    variant="flat"
+                                  >
+                                    {eq}
+                                  </Chip>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.specialNotes && (
+                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
+                              <DocumentTextIcon className="w-5 h-5 text-default-600 dark:text-default-700" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
+                                รายละเอียดเพิ่มเติม
+                              </div>
+                              <p className="text-sm font-medium text-foreground whitespace-pre-wrap">
+                                {formData.specialNotes}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="border-t lg:border-t-0 lg:border-l border-divider pt-6 lg:pt-0 lg:pl-6">
                     <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                       <ClockIcon className="w-5 h-5 text-primary" />
                       Timeline รายละเอียดงาน
@@ -905,182 +1079,6 @@ export default function JobDetailDrawer({
                             </>
                           )}
                       </div>
-                    </div>
-                  </section>
-
-                  <section className="border-t lg:border-t-0 lg:border-l border-divider pt-6 lg:pt-0 lg:pl-6">
-                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <ClipboardListIcon className="w-5 h-5 text-primary" />
-                      รายละเอียด
-                    </h3>
-                    <div className="space-y-3">
-                      {formData.urgencyLevel && (
-                        <div
-                          className={`rounded-lg p-4 border ${
-                            formData.urgencyLevel === "ฉุกเฉิน"
-                              ? "bg-danger-50 dark:bg-danger-50/20 border-danger-200"
-                              : formData.urgencyLevel === "ด่วน"
-                                ? "bg-warning-50 dark:bg-warning-50/20 border-warning-200"
-                                : "bg-success-50 dark:bg-success-50/20 border-success-200"
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
-                                formData.urgencyLevel === "ฉุกเฉิน"
-                                  ? "bg-danger-100 dark:bg-danger-500/30"
-                                  : formData.urgencyLevel === "ด่วน"
-                                    ? "bg-warning-100 dark:bg-warning-500/30"
-                                    : "bg-success-100 dark:bg-success-500/30"
-                              }`}
-                            >
-                              {formData.urgencyLevel === "ฉุกเฉิน" ||
-                              formData.urgencyLevel === "ด่วน" ? (
-                                <AmbulanceIcon
-                                  className={`w-5 h-5 ${
-                                    formData.urgencyLevel === "ฉุกเฉิน"
-                                      ? "text-danger-600 dark:text-danger-400"
-                                      : "text-warning-600 dark:text-warning-400"
-                                  }`}
-                                />
-                              ) : (
-                                <ClockIcon className="w-5 h-5 text-success-600 dark:text-success-400" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-2">
-                                ความเร่งด่วน
-                              </div>
-                              <Chip
-                                color={
-                                  formData.urgencyLevel === "ฉุกเฉิน"
-                                    ? "danger"
-                                    : formData.urgencyLevel === "ด่วน"
-                                      ? "warning"
-                                      : "success"
-                                }
-                                size="sm"
-                                startContent={
-                                  formData.urgencyLevel === "ฉุกเฉิน" ||
-                                  formData.urgencyLevel === "ด่วน" ? (
-                                    <AmbulanceIcon className="w-3 h-3" />
-                                  ) : null
-                                }
-                                variant="flat"
-                              >
-                                {formData.urgencyLevel}
-                              </Chip>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {formData.transportReason && (
-                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <InfoCircleIcon className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
-                                เหตุผลการเคลื่อนย้าย
-                              </div>
-                              <p className="text-sm font-medium text-foreground">
-                                {formData.transportReason}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {formData.vehicleType && (
-                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <CarIcon className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
-                                  ประเภทรถ
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {formData.vehicleType === "รถนั่ง" && (
-                                    <StretcherIcon className="w-4 h-4 text-default-400" />
-                                  )}
-                                  {formData.vehicleType === "รถนอน" && (
-                                    <BedIcon className="w-4 h-4 text-default-400" />
-                                  )}
-                                  {formData.vehicleType === "รถกอล์ฟ" && (
-                                    <CarIcon className="w-4 h-4 text-default-400" />
-                                  )}
-                                  <p className="text-sm font-medium text-foreground">
-                                    {formData.vehicleType}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
-                                  มีรถแล้วหรือไม่
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-foreground">
-                                    {formData.hasVehicle}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {formData.equipment.length > 0 && (
-                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
-                              <ToolsIcon className="w-5 h-5 text-default-600 dark:text-default-700" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-2">
-                                อุปกรณ์ที่ต้องการ
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {formData.equipment.map((eq, index) => (
-                                  <Chip
-                                    key={index}
-                                    color="default"
-                                    size="sm"
-                                    startContent={
-                                      <MedicalBagIcon className="w-3 h-3" />
-                                    }
-                                    variant="flat"
-                                  >
-                                    {eq}
-                                  </Chip>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {formData.specialNotes && (
-                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
-                              <DocumentTextIcon className="w-5 h-5 text-default-600 dark:text-default-700" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
-                                รายละเอียดเพิ่มเติม
-                              </div>
-                              <p className="text-sm font-medium text-foreground whitespace-pre-wrap">
-                                {formData.specialNotes}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </section>
                 </div>

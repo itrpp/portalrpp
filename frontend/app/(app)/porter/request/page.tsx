@@ -72,7 +72,10 @@ export default function PorterRequestPage() {
     resetForm,
     loadRequestForEdit,
     cancelEditing,
-  } = usePorterRequestForm({ requesterName: session?.user?.name ?? undefined });
+  } = usePorterRequestForm({
+    requesterName: session?.user?.name ?? undefined,
+    requesterPhone: (session?.user as any)?.phone ?? undefined,
+  });
 
   const { userRequests, isLoadingRequests, refreshUserRequests } =
     useUserRequests({
@@ -469,7 +472,7 @@ export default function PorterRequestPage() {
             <CardBody className="pt-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
-                  isRequired
+                  isDisabled
                   label="หน่วยงานผู้แจ้ง"
                   name="requesterDepartment"
                   placeholder="เลือกหน่วยงาน"
@@ -541,29 +544,33 @@ export default function PorterRequestPage() {
             </CardHeader>
             <CardBody className="pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  isRequired
-                  endContent={
-                    <Button
-                      isIconOnly
-                      isDisabled={isLoadingPatient}
-                      isLoading={isLoadingPatient}
-                      size="sm"
-                      variant="flat"
-                      onPress={handleSearchPatient}
-                    >
-                      <MagnifyingGlassIcon className="w-4 h-4 text-default-400" />
-                    </Button>
-                  }
-                  label="หมายเลข HN / AN"
-                  name="patientHN"
-                  placeholder="เช่น 123456/68"
-                  value={formData.patientHN}
-                  variant="bordered"
-                  onChange={(e) => {
-                    handleInputChange("patientHN", e.target.value);
-                  }}
-                />
+                <div className="space-y-2">
+                  <Input
+                    isRequired
+                    endContent={
+                      <Button
+                        color="primary"
+                        isIconOnly
+                        isDisabled={isLoadingPatient || !formData.patientHN?.trim()}
+                        isLoading={isLoadingPatient}
+                        size="sm"
+                        variant="solid"
+                        onPress={handleSearchPatient}
+                      >
+                        <MagnifyingGlassIcon className="w-4 h-4 text-white" />
+                      </Button>
+                    }
+                    description="กรอกหมายเลข HN / AN แล้วกดปุ่มค้นหาเพื่อดึงข้อมูลผู้ป่วย"
+                    label="หมายเลข HN / AN"
+                    name="patientHN"
+                    placeholder="เช่น 123456/68"
+                    value={formData.patientHN}
+                    variant="bordered"
+                    onChange={(e) => {
+                      handleInputChange("patientHN", e.target.value);
+                    }}
+                  />
+                </div>
 
                 <Input
                   isRequired

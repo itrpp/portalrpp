@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -38,6 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // ตรวจสอบ authentication status
   useEffect(() => {
@@ -57,6 +58,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       redirect: true,
       callbackUrl: "/login",
     });
+  };
+
+  const handleNavigate = async (href: string) => {
+    if (isNavigating || pathname === href) {
+      return;
+    }
+
+    setIsNavigating(true);
+    try {
+      await router.push(href);
+    } catch (error) {
+      console.error("Navigation error:", error);
+    } finally {
+      // Reset loading state after a short delay to allow navigation to start
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 300);
+    }
   };
 
   // แสดง loading spinner ขณะตรวจสอบ authentication
@@ -135,7 +154,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         {/* Top Bar */}
-        <div className="h-16 bg-background border-b border-divider flex items-center justify-end md:justify-between px-6 lg:px-6 lg:pt-0">
+        <div className="h-16 bg-background border-b border-divider flex items-center justify-end md:justify-between px-6 lg:px-6 lg:pt-0 lg:pl-6 pl-20">
           <div className="hidden md:flex items-center space-x-4">
             <Breadcrumbs
               itemClasses={{
@@ -173,7 +192,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* User Menu - แสดงเฉพาะเมื่อมี session */}
             {session?.user && (
-              <Dropdown placement="bottom-end">
+              <Dropdown
+                isDisabled={isNavigating}
+                placement="bottom-end"
+              >
                 <DropdownTrigger>
                   <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2">
                     <Avatar
@@ -211,19 +233,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenu aria-label="เมนูผู้ใช้">
                   <DropdownItem
                     key="profile"
+                    isDisabled={isNavigating}
                     startContent={<UserIcon className="w-4 h-4" />}
+                    onPress={() => handleNavigate("/profile")}
                   >
-                    <Link href="/profile">โปรไฟล์</Link>
+                    {isNavigating && pathname === "/profile" ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin">⏳</span>
+                        กำลังโหลด...
+                      </span>
+                    ) : (
+                      "โปรไฟล์"
+                    )}
                   </DropdownItem>
                   <DropdownItem
                     key="settings"
+                    isDisabled={isNavigating}
                     startContent={<SettingsIcon className="w-4 h-4" />}
+                    onPress={() => handleNavigate("/settings")}
                   >
-                    <Link href="/settings">ตั้งค่า</Link>
+                    {isNavigating && pathname === "/settings" ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin">⏳</span>
+                        กำลังโหลด...
+                      </span>
+                    ) : (
+                      "ตั้งค่า"
+                    )}
                   </DropdownItem>
                   <DropdownItem
                     key="logout"
                     color="danger"
+                    isDisabled={isNavigating}
                     startContent={
                       <ArrowRightOnRectangleIcon className="w-4 h-4" />
                     }

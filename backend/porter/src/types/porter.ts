@@ -31,7 +31,7 @@ export interface PorterRequestMessage {
   id: string;
   created_at: string;
   updated_at: string;
-  requester_department: string;
+  requester_department?: string;
   requester_name: string;
   requester_phone: string;
   requester_user_id: string;
@@ -70,7 +70,7 @@ export interface PorterRequestMessage {
 }
 
 export interface CreatePorterRequestInput {
-  requester_department: string;
+  requester_department?: string;
   requester_name: string;
   requester_phone: string;
   requester_user_id: string;

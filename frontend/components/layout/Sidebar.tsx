@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Button, Chip, Link as HeroUILink } from "@heroui/react";
+import { Button, Chip } from "@heroui/react";
 
 import {
   HomeIcon,
@@ -42,10 +42,12 @@ interface SidebarSection {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
   const [isCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Auto-expand parent items when on sub-items
   useEffect(() => {
@@ -76,31 +78,31 @@ export default function Sidebar() {
   }, [pathname]);
 
   // ตรวจสอบ theme เมื่อ component mount
-  useEffect(() => {
-    // ฟังก์ชันสำหรับติดตามการเปลี่ยนแปลง theme
-    const handleThemeChange = () => {
-      // Handle theme change
-    };
+  // useEffect(() => {
+  //   // ฟังก์ชันสำหรับติดตามการเปลี่ยนแปลง theme
+  //   const handleThemeChange = () => {
+  //     // Handle theme change
+  //   };
 
-    // ใช้ MutationObserver เพื่อติดตามการเปลี่ยนแปลง data-theme
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "data-theme"
-        ) {
-          handleThemeChange();
-        }
-      });
-    });
+  //   // ใช้ MutationObserver เพื่อติดตามการเปลี่ยนแปลง data-theme
+  //   const observer = new MutationObserver((mutations) => {
+  //     mutations.forEach((mutation) => {
+  //       if (
+  //         mutation.type === "attributes" &&
+  //         mutation.attributeName === "data-theme"
+  //       ) {
+  //         handleThemeChange();
+  //       }
+  //     });
+  //   });
 
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
+  //   observer.observe(document.documentElement, {
+  //     attributes: true,
+  //     attributeFilter: ["data-theme"],
+  //   });
 
-    return () => observer.disconnect();
-  }, []);
+  //   return () => observer.disconnect();
+  // }, []);
 
   const navigationSections: SidebarSection[] = [
     {
@@ -282,6 +284,25 @@ export default function Sidebar() {
     });
   };
 
+  const handleNavigate = async (href: string) => {
+    if (isNavigating || pathname === href) {
+      return;
+    }
+
+    setIsNavigating(true);
+    handleMobileClose();
+    try {
+      await router.push(href);
+    } catch (error) {
+      console.error("Navigation error:", error);
+    } finally {
+      // Reset loading state after a short delay to allow navigation to start
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 300);
+    }
+  };
+
   const renderSidebarItem = (item: SidebarItem, isSubItem = false) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
     const isExpanded = expandedItems.has(item.name);
@@ -328,10 +349,14 @@ export default function Sidebar() {
             onPress={() => {
               if (hasSubItems) {
                 toggleExpanded(item.name);
+                // ไม่ปิด sidebar เมื่อกดปุ่มที่มี sub-items
               } else if (item.name === "ออกจากระบบ") {
                 // handleLogout();
+                handleMobileClose();
+              } else {
+                // ปิด sidebar เฉพาะเมื่อกดปุ่มที่ไม่มี sub-items
+                handleMobileClose();
               }
-              handleMobileClose();
             }}
           >
             {!isCollapsed && (
@@ -418,8 +443,9 @@ export default function Sidebar() {
           </Button>
         ) : (
           <Button
-            as={HeroUILink}
-            className={`sidebar-item w-full justify-start h-10 group`}
+            className={`sidebar-item w-full justify-start h-10 group ${
+              isNavigating && pathname !== item.href ? "opacity-50" : ""
+            }`}
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
@@ -439,20 +465,27 @@ export default function Sidebar() {
                     }`}
                   />
                 )}
+                {isNavigating && pathname !== item.href && (
+                  <span className="animate-spin text-primary-500">⏳</span>
+                )}
               </div>
             }
-            href={item.href}
+            isDisabled={isNavigating}
             startContent={
               <item.icon
                 className={`w-4 h-4 transition-colors text-default-600 group-hover:text-primary-500`}
               />
             }
             variant="light"
-            onPress={handleMobileClose}
+            onPress={() => handleNavigate(item.href)}
           >
             {!isCollapsed && (
               <div className="flex items-center justify-between w-full">
-                <span>{item.name}</span>
+                <span>
+                  {isNavigating && pathname !== item.href
+                    ? "กำลังโหลด..."
+                    : item.name}
+                </span>
                 {item.count && (
                   <Chip
                     className="sidebar-chip-primary"
@@ -491,17 +524,19 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button
-          isIconOnly
-          className="bg-background border border-divider shadow-lg hover:bg-content2 transition-colors"
-          size="sm"
-          variant="light"
-          onPress={() => setIsMobileOpen(true)}
-        >
-          <Bars3Icon className="w-4 h-4 text-foreground" />
-        </Button>
-      </div>
+      {!isMobileOpen && (
+        <div className="lg:hidden fixed top-4 left-4 z-50">
+          <Button
+            isIconOnly
+            className="bg-background border border-divider shadow-lg hover:bg-content2 transition-colors"
+            size="sm"
+            variant="light"
+            onPress={() => setIsMobileOpen(true)}
+          >
+            <Bars3Icon className="w-4 h-4 text-foreground" />
+          </Button>
+        </div>
+      )}
 
       {/* Mobile Overlay */}
       {isMobileOpen && (

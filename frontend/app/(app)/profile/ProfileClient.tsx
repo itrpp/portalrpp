@@ -3,7 +3,7 @@
 import type { ProfileDTO } from "@/lib/profile";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import {
   Avatar,
   Button,
@@ -140,6 +140,7 @@ function getErrorMessage(errorCode: string): string {
 }
 
 export default function ProfileClient({ initialProfile }: Props) {
+  const { data: session } = useSession();
   const [profile, setProfile] = useState(initialProfile);
   const [formData, setFormData] = useState<EditableFields>({
     displayName: initialProfile.displayName ?? "",
@@ -156,6 +157,9 @@ export default function ProfileClient({ initialProfile }: Props) {
     message: string;
   } | null>(null);
 
+  // ตรวจสอบสิทธิ์: เฉพาะ admin เท่านั้นที่สามารถแก้ไข role ได้
+  const canEditRole = session?.user?.role === "admin";
+
   const handleInputChange =
     (field: keyof EditableFields) => (value: string) => {
       setFormData((prev) => ({
@@ -167,6 +171,12 @@ export default function ProfileClient({ initialProfile }: Props) {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    
+    // ป้องกันการ submit ซ้ำ
+    if (isSaving) {
+      return;
+    }
+    
     setIsSaving(true);
     setFeedback(null);
 
@@ -357,6 +367,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     isRequired
+                    isDisabled={isSaving}
                     label="ชื่อที่แสดง"
                     placeholder="กรุณากรอกชื่อที่ต้องการแสดง"
                     startContent={
@@ -368,6 +379,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                   />
                   <Select
                     isRequired
+                    isDisabled={!canEditRole || isSaving}
                     label="บทบาท"
                     placeholder="เลือกบทบาท"
                     selectedKeys={[formData.role]}
@@ -398,6 +410,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     isRequired
+                    isDisabled={isSaving}
                     label="โทรศัพท์สำนักงาน"
                     placeholder="เช่น 02-xxx-xxxx"
                     startContent={
@@ -408,6 +421,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                     onValueChange={handleInputChange("phone")}
                   />
                   <Input
+                    isDisabled={isSaving}
                     label="มือถือ"
                     placeholder="เช่น 08x-xxx-xxxx"
                     startContent={
@@ -430,6 +444,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     isRequired
+                    isDisabled={isSaving}
                     label="ฝ่าย/หน่วยงาน"
                     placeholder="กรุณากรอกฝ่าย/หน่วยงาน"
                     startContent={
@@ -441,6 +456,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                   />
                   <Input
                     isRequired
+                    isDisabled={isSaving}
                     label="ตำแหน่ง"
                     placeholder="กรุณากรอกตำแหน่ง"
                     startContent={
@@ -468,7 +484,7 @@ export default function ProfileClient({ initialProfile }: Props) {
               <div className="flex justify-end gap-3 pt-4">
                 <Button
                   color="default"
-                  isDisabled={!hasChanges}
+                  isDisabled={!hasChanges || isSaving}
                   variant="flat"
                   onPress={handleReset}
                 >
@@ -476,7 +492,7 @@ export default function ProfileClient({ initialProfile }: Props) {
                 </Button>
                 <Button
                   color="primary"
-                  isDisabled={!hasChanges}
+                  isDisabled={!hasChanges || isSaving}
                   isLoading={isSaving}
                   type="submit"
                 >

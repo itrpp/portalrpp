@@ -100,9 +100,6 @@ export function validateField(
   const stringValue = value != null ? String(value).trim() : "";
 
   switch (field) {
-    case "requesterDepartment":
-      return !stringValue ? "กรุณากรอกหน่วยงานผู้แจ้ง" : undefined;
-
     case "requesterName":
       return !stringValue ? "กรุณากรอกชื่อผู้แจ้ง" : undefined;
 
@@ -163,7 +160,6 @@ export function validateForm(data: PorterRequestFormData): {
   const newErrors: Record<string, string> = {};
 
   const requiredFields: Array<keyof PorterRequestFormData> = [
-    "requesterDepartment",
     "requesterName",
     "requesterPhone",
     "patientName",
@@ -332,7 +328,7 @@ export function mapReturnTripToProto(returnTrip: string): string {
  */
 export function mapEquipmentToProto(equipment: string[]): string[] {
   const map: Record<string, string> = {
-    "ถังออกซิเจน (ออกซิเจนCannula/mask with bag)": "OXYGEN",
+    "ถังออกซิเจน (ออกซิเจนCannula / mask with bag)": "OXYGEN",
     เสาน้ำเกลือ: "SALINE_POLE",
     "กล่องวางขวด ICD": "ICD_BOX",
     ผ้าผูกตรึงร่างกาย: "CLOTH_TIED",
