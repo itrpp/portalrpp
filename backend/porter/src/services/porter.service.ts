@@ -90,8 +90,16 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
 
   const patientConditionValue = normalizePatientCondition(patient_condition);
 
+  // แปลง requester_department เป็น number (รองรับทั้ง number และ string สำหรับ backward compatibility)
+  const requesterDepartmentValue =
+    requester_department !== null && requester_department !== undefined
+      ? typeof requester_department === "number"
+        ? requester_department
+        : Number.parseInt(String(requester_department), 10) || null
+      : null;
+
   const createData: Prisma.PorterRequestUncheckedCreateInput = {
-    requesterDepartment: requester_department ?? '',
+    requesterDepartment: requesterDepartmentValue,
     requesterName: requester_name,
     requesterPhone: requester_phone,
     requesterUserID: requester_user_id,
@@ -248,7 +256,15 @@ export const updatePorterRequest = async (
   const data: Prisma.PorterRequestUpdateInput = {};
 
   if (updateData.requester_department !== undefined) {
-    data.requesterDepartment = updateData.requester_department;
+    // แปลง requester_department เป็น number (รองรับทั้ง number และ string สำหรับ backward compatibility)
+    const requesterDepartmentValue =
+      updateData.requester_department !== null &&
+      updateData.requester_department !== undefined
+        ? typeof updateData.requester_department === "number"
+          ? updateData.requester_department
+          : Number.parseInt(String(updateData.requester_department), 10) || null
+        : null;
+    data.requesterDepartment = requesterDepartmentValue;
   }
   if (updateData.requester_name) {
     data.requesterName = updateData.requester_name;

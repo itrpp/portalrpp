@@ -42,10 +42,10 @@ export async function PUT(
       id,
     };
 
-    // หน่วยงานผู้แจ้งควรถูกอัปเดตจากโปรไฟล์ผู้ใช้งาน (legacy department string)
-    const requesterDepartment = (session.user as any)?.department;
+    // หน่วยงานผู้แจ้งควรถูกอัปเดตจากโปรไฟล์ผู้ใช้งาน (departmentSubSubId)
+    const requesterDepartment = (session.user as any)?.departmentSubSubId;
 
-    if (requesterDepartment) {
+    if (requesterDepartment !== null && requesterDepartment !== undefined) {
       protoRequest.requester_department = requesterDepartment;
     }
     if (requestData.requesterName !== undefined) {

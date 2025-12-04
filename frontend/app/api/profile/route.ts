@@ -20,7 +20,7 @@ function normalizeStringValue(value: unknown) {
 }
 
 function validatePhone(value: string | null, field: string) {
-  // สำหรับโทรศัพท์สำนักงาน (phone) ต้องบังคับกรอก
+  // สำหรับโทรศัพท์ภายใน (phone) ต้องบังคับกรอก
   if (field === "phone") {
     if (!value) {
       throw new Error("PHONE_REQUIRED");
@@ -171,26 +171,6 @@ function validateRole(value: string | null) {
   }
 }
 
-function validateDepartment(value: string | null) {
-  if (!value) {
-    throw new Error("DEPARTMENT_REQUIRED");
-  }
-
-  if (value.trim().length > 100) {
-    throw new Error("DEPARTMENT_TOO_LONG");
-  }
-}
-
-function validatePosition(value: string | null) {
-  if (!value) {
-    throw new Error("POSITION_REQUIRED");
-  }
-
-  if (value.trim().length > 100) {
-    throw new Error("POSITION_TOO_LONG");
-  }
-}
-
 export async function PUT(request: Request) {
   const session = (await getServerSession(
     authOptions as any,
@@ -309,6 +289,29 @@ export async function PUT(request: Request) {
     }
     if ("departmentSubSubId" in payload) {
       updateData.departmentSubSubId = departmentSubSubId ?? null;
+
+      // อัพเดทฟิลด์ department (legacy) จากชื่อหน่วยงานที่ดึงจาก departmentSubSubId
+      if (departmentSubSubId !== null && departmentSubSubId !== undefined) {
+        const departmentSubSub = await prisma.hrd_department_sub_sub.findUnique(
+          {
+            where: {
+              HR_DEPARTMENT_SUB_SUB_ID: departmentSubSubId,
+            },
+            select: {
+              HR_DEPARTMENT_SUB_SUB_NAME: true,
+            },
+          },
+        );
+
+        if (departmentSubSub?.HR_DEPARTMENT_SUB_SUB_NAME) {
+          updateData.department = departmentSubSub.HR_DEPARTMENT_SUB_SUB_NAME;
+        } else {
+          updateData.department = null;
+        }
+      } else {
+        // ถ้า departmentSubSubId เป็น null ให้ตั้ง department เป็น null ด้วย
+        updateData.department = null;
+      }
     }
   } catch (error: any) {
     return NextResponse.json(

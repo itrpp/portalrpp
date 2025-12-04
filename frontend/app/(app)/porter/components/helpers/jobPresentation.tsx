@@ -66,10 +66,20 @@ export const renderStatusChip = (job: PorterJobItem) => {
   return null;
 };
 
-export const buildMetaChipData = (job: PorterJobItem) => {
+export const buildMetaChipData = (
+  job: PorterJobItem,
+  departmentName?: string | null,
+) => {
   const chips: string[] = [];
 
-  chips.push(job.form.requesterDepartment);
+  // ใช้ชื่อหน่วยงานถ้ามี ถ้าไม่มีให้แสดง ID หรือ "-"
+  if (departmentName) {
+    chips.push(departmentName);
+  } else if (job.form.requesterDepartment !== null) {
+    chips.push(`หน่วยงาน ID: ${job.form.requesterDepartment}`);
+  } else {
+    chips.push("-");
+  }
   chips.push(job.form.vehicleType);
 
   if (job.form.hasVehicle) {

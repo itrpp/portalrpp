@@ -241,8 +241,8 @@ export default function Sidebar() {
       isDisabled: !isSuperAdmin(),
       items: [
         {
-          name: "รายชื่อผู้ใช้งาน",
-          href: "/admin/users",
+          name: "จัดการผู้ใช้",
+          href: "/setting/users",
           icon: UserIcon,
         },
       ],

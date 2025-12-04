@@ -11,6 +11,12 @@ import {
   DropdownMenu,
   DropdownItem,
   Avatar,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
 } from "@heroui/react";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -22,7 +28,6 @@ import {
   HomeIcon,
   ChevronRightIcon,
   UserIcon,
-  SettingsIcon,
   ArrowRightOnRectangleIcon,
 } from "@/components/ui/icons";
 import HomeFooter from "@/components/layout/HomeFooter";
@@ -33,12 +38,43 @@ interface BreadcrumbItemType {
   icon?: React.ComponentType<{ className?: string }>;
 }
 
+type OrgStructureUser = {
+  personTypeId?: number | null;
+  positionId?: number | null;
+  departmentId?: number | null;
+  departmentSubId?: number | null;
+  departmentSubSubId?: number | null;
+};
+
+function isProfileOrgIncomplete(user: OrgStructureUser | null | undefined) {
+  if (!user) {
+    return true;
+  }
+
+  const {
+    personTypeId,
+    positionId,
+    departmentId,
+    departmentSubId,
+    departmentSubSubId,
+  } = user;
+
+  return (
+    personTypeId == null ||
+    positionId == null ||
+    departmentId == null ||
+    departmentSubId == null ||
+    departmentSubSubId == null
+  );
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isProfileOrgModalOpen, setIsProfileOrgModalOpen] = useState(false);
 
   // ตรวจสอบ authentication status
   useEffect(() => {
@@ -53,11 +89,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, router, pathname, searchParams]);
 
+  // บังคับให้ผู้ใช้ที่ยังไม่ได้กรอกโครงสร้างองค์กรครบ ไปหน้าโปรไฟล์
+  useEffect(() => {
+    if (status !== "authenticated") {
+      return;
+    }
+
+    if (!session?.user) {
+      return;
+    }
+
+    // อย่าบังคับบนหน้าโปรไฟล์เอง เพื่อลดความเสี่ยง loop
+    if (pathname === "/profile") {
+      return;
+    }
+
+    if (isProfileOrgIncomplete(session.user as OrgStructureUser)) {
+      setIsProfileOrgModalOpen(true);
+    }
+  }, [status, session, pathname]);
+
   const handleLogout = async () => {
     await signOut({
       redirect: true,
       callbackUrl: "/login",
     });
+  };
+
+  const handleConfirmUpdateProfile = () => {
+    setIsProfileOrgModalOpen(false);
+    router.push("/profile");
   };
 
   const handleNavigate = async (href: string) => {
@@ -262,6 +323,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto bg-default-50">{children}</div>
+
+        {/* Modal บังคับให้ผู้ใช้ไปปรับปรุงข้อมูลโครงสร้างองค์กรในโปรไฟล์ */}
+        <Modal
+          isOpen={isProfileOrgModalOpen}
+          onOpenChange={setIsProfileOrgModalOpen}
+          isDismissable={false}
+          isKeyboardDismissDisabled
+        >
+          <ModalContent>
+            {() => (
+              <>
+                <ModalHeader className="flex flex-col gap-1">
+                  กรุณาปรับปรุงข้อมูลโปรไฟล์
+                </ModalHeader>
+                <ModalBody>
+                  <p>
+                    ระบบตรวจพบว่าข้อมูลโครงสร้างองค์กรของคุณยังไม่ครบถ้วน
+                    กรุณาไปที่หน้าจอโปรไฟล์เพื่อกรอกข้อมูล
+                    เช่น กลุ่มบุคลากร, ตำแหน่ง, กลุ่มภารกิจ, กลุ่มงาน และหน่วยงาน
+                  </p>
+                </ModalBody>
+                <ModalFooter>
+                  <Button color="primary" onPress={handleConfirmUpdateProfile}>
+                    ไปที่หน้าปรับปรุงข้อมูลโปรไฟล์
+                  </Button>
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
 
         {/* App Footer */}
         <HomeFooter />

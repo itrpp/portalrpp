@@ -58,7 +58,7 @@ import {
 } from "@/components/ui/icons";
 
 export default function PorterRequestPage() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session } = useSession();
 
   const {
     formData,
@@ -75,17 +75,57 @@ export default function PorterRequestPage() {
   } = usePorterRequestForm({
     requesterName: session?.user?.name ?? undefined,
     requesterPhone: (session?.user as any)?.phone ?? undefined,
-    requesterDepartment: (session?.user as any)?.department ?? undefined,
+    requesterDepartment:
+      (session?.user as any)?.departmentSubSubId ?? undefined,
   });
+
+  // State สำหรับเก็บชื่อหน่วยงาน
+  const [requesterDepartmentName, setRequesterDepartmentName] = useState<
+    string | null
+  >(null);
 
   // Sync หน่วยงานผู้แจ้งจาก session ให้กับฟอร์มเมื่อ session โหลดแล้ว
   useEffect(() => {
-    const department = (session?.user as any)?.department;
+    const departmentSubSubId = (session?.user as any)?.departmentSubSubId;
 
-    if (department && !formData.requesterDepartment) {
-      setFormField("requesterDepartment", department);
+    if (departmentSubSubId && !formData.requesterDepartment) {
+      setFormField("requesterDepartment", departmentSubSubId);
     }
   }, [session?.user, formData.requesterDepartment, setFormField]);
+
+  // ดึงชื่อหน่วยงานจาก departmentSubSubId
+  useEffect(() => {
+    const fetchDepartmentName = async () => {
+      if (!formData.requesterDepartment) {
+        setRequesterDepartmentName(null);
+
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/hrd/department-sub-subs/${formData.requesterDepartment}`,
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            setRequesterDepartmentName(result.data.name);
+          } else {
+            setRequesterDepartmentName(null);
+          }
+        } else {
+          setRequesterDepartmentName(null);
+        }
+      } catch (error) {
+        console.error("Error fetching department name:", error);
+        setRequesterDepartmentName(null);
+      }
+    };
+
+    void fetchDepartmentName();
+  }, [formData.requesterDepartment]);
 
   const { userRequests, isLoadingRequests, refreshUserRequests } =
     useUserRequests({
@@ -489,7 +529,7 @@ export default function PorterRequestPage() {
                   startContent={
                     <BuildingOfficeIcon className="w-4 h-4 text-default-400" />
                   }
-                  value={formData.requesterDepartment}
+                  value={requesterDepartmentName || "-"}
                   variant="bordered"
                 />
 
@@ -514,9 +554,9 @@ export default function PorterRequestPage() {
                     input:
                       "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
                   }}
-                  label="เบอร์โทรติดต่อ"
+                  label="โทรศัพท์ภายใน"
                   name="requesterPhone"
-                  placeholder="IP-Phone / เบอร์โทรศัพท์"
+                  placeholder="IP-Phone / เบอร์ 4 ตัว"
                   startContent={
                     <PhoneIcon className="w-4 h-4 text-default-400" />
                   }
@@ -738,7 +778,7 @@ export default function PorterRequestPage() {
                         color={option.color}
                         startContent={
                           option.value === "ฉุกเฉิน" ||
-                            option.value === "ด่วน" ? (
+                          option.value === "ด่วน" ? (
                             <AmbulanceIcon className="w-4 h-4" />
                           ) : (
                             <ClipboardListIcon className="w-4 h-4" />
@@ -856,7 +896,9 @@ export default function PorterRequestPage() {
                 </label>
                 <CheckboxGroup
                   id="equipment-group"
-                  value={Array.isArray(formData.equipment) ? formData.equipment : []}
+                  value={
+                    Array.isArray(formData.equipment) ? formData.equipment : []
+                  }
                   onValueChange={(values) => {
                     handleInputChange("equipment", values as EquipmentType[]);
                     // ถ้าไม่ได้เลือก "อื่นๆ ระบุ" ให้ล้าง equipmentOther
@@ -875,17 +917,17 @@ export default function PorterRequestPage() {
                 </CheckboxGroup>
                 {Array.isArray(formData.equipment) &&
                   formData.equipment.includes("อื่นๆ ระบุ") && (
-                  <Input
-                    className="mt-3"
-                    label="ระบุอุปกรณ์อื่นๆ"
-                    placeholder="กรุณาระบุอุปกรณ์ที่ต้องการ"
-                    value={formData.equipmentOther || ""}
-                    variant="bordered"
-                    onChange={(e) => {
-                      handleInputChange("equipmentOther", e.target.value);
-                    }}
-                  />
-                )}
+                    <Input
+                      className="mt-3"
+                      label="ระบุอุปกรณ์อื่นๆ"
+                      placeholder="กรุณาระบุอุปกรณ์ที่ต้องการ"
+                      value={formData.equipmentOther || ""}
+                      variant="bordered"
+                      onChange={(e) => {
+                        handleInputChange("equipmentOther", e.target.value);
+                      }}
+                    />
+                  )}
               </div>
             </CardBody>
           </Card>
@@ -911,7 +953,7 @@ export default function PorterRequestPage() {
                 }
                 label={
                   formData.deliveryLocationDetail?.buildingName ===
-                    "โรงพยาบาลอื่น"
+                  "โรงพยาบาลอื่น"
                     ? "ระบุโรงพยาบาลปลายทาง (รายละเอียดเพิ่มเติม)"
                     : "หมายเหตุ / ข้อมูลเพิ่มเติม"
                 }
@@ -919,7 +961,7 @@ export default function PorterRequestPage() {
                 name="specialNotes"
                 placeholder={
                   formData.deliveryLocationDetail?.buildingName ===
-                    "โรงพยาบาลอื่น"
+                  "โรงพยาบาลอื่น"
                     ? "ระบุชื่อโรงพยาบาลปลายทาง"
                     : "ระบุข้อมูลเพิ่มเติมที่สำคัญ เช่น ข้อควรระวังพิเศษ, โรคประจำตัว, อาการพิเศษ"
                 }
@@ -1024,12 +1066,13 @@ export default function PorterRequestPage() {
                   {userRequests.map((request) => (
                     <div
                       key={request.id}
-                      className={`min-w-[300px] md:min-w-0 rounded-lg border p-3 ${request.form.urgencyLevel === "ฉุกเฉิน"
-                        ? "bg-danger-50/30 border-danger-200"
-                        : request.form.urgencyLevel === "ด่วน"
-                          ? "bg-warning-50/30 border-warning-200"
-                          : "bg-content1 border-default-200"
-                        }`}
+                      className={`min-w-[300px] md:min-w-0 rounded-lg border p-3 ${
+                        request.form.urgencyLevel === "ฉุกเฉิน"
+                          ? "bg-danger-50/30 border-danger-200"
+                          : request.form.urgencyLevel === "ด่วน"
+                            ? "bg-warning-50/30 border-warning-200"
+                            : "bg-content1 border-default-200"
+                      }`}
                     >
                       {/* บรรทัดที่ 1: สถานะ กับ เวลาที่แจ้ง */}
                       <div className="flex items-center justify-between text-sm mb-2">
@@ -1096,29 +1139,29 @@ export default function PorterRequestPage() {
                       {/* บรรทัดที่ 5: ปุ่มแก้ไขและยกเลิกงาน */}
                       {(request.status === "waiting" ||
                         request.status === "in-progress") && (
-                          <div className="flex items-center justify-end gap-2 mt-2">
-                            {request.status === "waiting" && (
-                              <Button
-                                color="primary"
-                                size="sm"
-                                startContent={<PencilIcon className="w-4 h-4" />}
-                                variant="flat"
-                                onPress={() => handleEditRequest(request.id)}
-                              >
-                                แก้ไข
-                              </Button>
-                            )}
+                        <div className="flex items-center justify-end gap-2 mt-2">
+                          {request.status === "waiting" && (
                             <Button
-                              color="danger"
+                              color="primary"
                               size="sm"
-                              startContent={<XMarkIcon className="w-4 h-4" />}
+                              startContent={<PencilIcon className="w-4 h-4" />}
                               variant="flat"
-                              onPress={() => handleOpenCancelModal(request.id)}
+                              onPress={() => handleEditRequest(request.id)}
                             >
-                              ยกเลิกงาน
+                              แก้ไข
                             </Button>
-                          </div>
-                        )}
+                          )}
+                          <Button
+                            color="danger"
+                            size="sm"
+                            startContent={<XMarkIcon className="w-4 h-4" />}
+                            variant="flat"
+                            onPress={() => handleOpenCancelModal(request.id)}
+                          >
+                            ยกเลิกงาน
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

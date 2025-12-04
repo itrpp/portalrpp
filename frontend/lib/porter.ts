@@ -91,13 +91,13 @@ export function validateField(
 
     case "requesterPhone":
       if (!stringValue) {
-        return "กรุณากรอกเบอร์โทรติดต่อ";
+        return "กรุณากรอกโทรศัพท์ภายใน";
       }
 
       const phoneDigits = stringValue.replace(/[- ]/g, "");
 
       if (phoneDigits.length < 3) {
-        return "เบอร์โทรติดต่อต้องระบุอย่างน้อย 3 หลัก";
+        return "โทรศัพท์ภายในต้องระบุอย่างน้อย 3 หลัก";
       }
 
       return undefined;
@@ -500,7 +500,19 @@ export function convertProtoToFrontend(protoData: any): PorterJobItem {
     status: mapStatusFromProto(protoData.status),
     form: {
       requesterDepartment:
-        protoData.requester_department || protoData.requesterDepartment || "",
+        protoData.requester_department !== null &&
+        protoData.requester_department !== undefined
+          ? typeof protoData.requester_department === "number"
+            ? protoData.requester_department
+            : Number.parseInt(String(protoData.requester_department), 10) ||
+              null
+          : protoData.requesterDepartment !== null &&
+              protoData.requesterDepartment !== undefined
+            ? typeof protoData.requesterDepartment === "number"
+              ? protoData.requesterDepartment
+              : Number.parseInt(String(protoData.requesterDepartment), 10) ||
+                null
+            : null,
       requesterName: protoData.requester_name || protoData.requesterName || "",
       requesterPhone:
         protoData.requester_phone || protoData.requesterPhone || "",

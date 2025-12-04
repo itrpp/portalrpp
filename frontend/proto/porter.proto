@@ -75,7 +75,7 @@ service PorterService {
 
 message CreatePorterRequestRequest {
   // ข้อมูลผู้แจ้ง (Requester Information)
-  optional string requester_department = 1;
+  optional int32 requester_department = 1; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   string requester_name = 2;
   string requester_phone = 3;
 
@@ -129,7 +129,7 @@ message ListPorterRequestsRequest {
 
 message UpdatePorterRequestRequest {
   string id = 1;
-  optional string requester_department = 2;
+  optional int32 requester_department = 2; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   optional string requester_name = 3;
   optional string requester_phone = 4;
   optional string patient_name = 5;
@@ -213,7 +213,7 @@ message PorterRequest {
   string updated_at = 3; // ISO 8601 format
 
   // ข้อมูลผู้แจ้ง
-  optional string requester_department = 4;
+  optional int32 requester_department = 4; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   string requester_name = 5;
   string requester_phone = 6;
 

@@ -17,6 +17,11 @@ declare module "next-auth" {
       lineDisplayName?: string | null;
       lineUserId?: string | null;
       ldapDisplayName?: string | null;
+      // โครงสร้างองค์กรอิง ID จาก HRD
+      personTypeId?: number | null;
+      positionId?: number | null;
+      departmentId?: number | null;
+      departmentSubId?: number | null;
       departmentSubSubId?: number | null;
     };
     accessToken?: string;
@@ -37,6 +42,11 @@ declare module "next-auth" {
     lineDisplayName?: string | null;
     lineUserId?: string | null;
     ldapDisplayName?: string | null;
+    // โครงสร้างองค์กรอิง ID จาก HRD
+    personTypeId?: number | null;
+    positionId?: number | null;
+    departmentId?: number | null;
+    departmentSubId?: number | null;
     departmentSubSubId?: number | null;
   }
 }
@@ -52,6 +62,11 @@ declare module "next-auth/jwt" {
     lineDisplayName?: string | null;
     lineUserId?: string | null;
     ldapDisplayName?: string | null;
+    // โครงสร้างองค์กรอิง ID จาก HRD
+    personTypeId?: number | null;
+    positionId?: number | null;
+    departmentId?: number | null;
+    departmentSubId?: number | null;
     departmentSubSubId?: number | null;
   }
 }

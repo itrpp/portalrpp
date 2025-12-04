@@ -17,9 +17,44 @@ import {
   getUrgencyStyle,
   renderStatusChip,
 } from "./helpers/jobPresentation";
+import { useDepartmentName } from "./helpers/useDepartmentName";
 
 import { formatThaiDateTimeShort } from "@/lib/utils";
-import { JobTableProps, formatLocationString } from "@/types/porter";
+import {
+  JobTableProps,
+  formatLocationString,
+  PorterJobItem,
+} from "@/types/porter";
+
+// Component สำหรับแสดงชื่อหน่วยงาน
+function DepartmentNameChip({
+  departmentSubSubId,
+}: {
+  departmentSubSubId: number | null;
+}) {
+  const departmentName = useDepartmentName(departmentSubSubId);
+
+  return (
+    <Chip color="default" size="sm" variant="bordered">
+      {departmentName || "-"}
+    </Chip>
+  );
+}
+
+// Component สำหรับแสดง meta chips
+function MetaChips({ job }: { job: PorterJobItem }) {
+  const departmentName = useDepartmentName(job.form.requesterDepartment);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-default-600">
+      {buildMetaChipData(job, departmentName).map((label) => (
+        <Chip key={label} size="sm" variant="flat">
+          {label}
+        </Chip>
+      ))}
+    </div>
+  );
+}
 
 export default function JobTable({
   items,
@@ -58,7 +93,7 @@ export default function JobTable({
         </TableHeader>
         <TableBody emptyContent="ไม่มีรายการคำขอในหมวดนี้" items={items}>
           {(item) => (
-            <TableRow key={item.id}>
+            <TableRow>
               <TableCell>
                 <div
                   className={`w-full rounded-md border ${getUrgencyStyle(item.form.urgencyLevel).containerClass} p-3`}
@@ -87,20 +122,14 @@ export default function JobTable({
                       ➜ {formatLocationString(item.form.deliveryLocationDetail)}
                     </span>
 
-                    <Chip color="default" size="sm" variant="bordered">
-                      {item.form.requesterDepartment}
-                    </Chip>
+                    <DepartmentNameChip
+                      departmentSubSubId={item.form.requesterDepartment ?? null}
+                    />
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <div>{renderStatusChip(item)}</div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-default-600">
-                      {buildMetaChipData(item).map((label) => (
-                        <Chip key={label} size="sm" variant="flat">
-                          {label}
-                        </Chip>
-                      ))}
-                    </div>
+                    <MetaChips job={item} />
                   </div>
                 </div>
               </TableCell>

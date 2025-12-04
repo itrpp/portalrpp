@@ -32,7 +32,7 @@ export type EquipmentType =
  */
 export interface PorterRequestFormData {
   // ข้อมูลหน่วยงานและผู้แจ้ง
-  requesterDepartment: string;
+  requesterDepartment: number | null; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   requesterName: string;
   requesterPhone: string;
 

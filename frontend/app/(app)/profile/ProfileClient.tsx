@@ -3,6 +3,7 @@
 import type { ProfileDTO } from "@/lib/profile";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import {
   Avatar,
@@ -117,8 +118,8 @@ function getErrorMessage(errorCode: string): string {
     DISPLAY_NAME_TOO_LONG: "ชื่อที่แสดงต้องมีความยาวไม่เกิน 100 ตัวอักษร",
 
     // Phone
-    PHONE_REQUIRED: "กรุณากรอกโทรศัพท์สำนักงาน",
-    PHONE_INVALID_FORMAT: "โทรศัพท์สำนักงานต้องมีตัวเลขอย่างน้อย 3 ตัว",
+    PHONE_REQUIRED: "กรุณากรอกโทรศัพท์ภายใน",
+    PHONE_INVALID_FORMAT: "โทรศัพท์ภายในต้องมีตัวเลขอย่างน้อย 3 ตัว",
     MOBILE_INVALID_FORMAT: "รูปแบบหมายเลขมือถือไม่ถูกต้อง",
 
     // Organization by ID (HRD)
@@ -150,7 +151,8 @@ function getErrorMessage(errorCode: string): string {
 }
 
 export default function ProfileClient({ initialProfile }: Props) {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, update } = useSession();
   const [profile, setProfile] = useState(initialProfile);
   const [formData, setFormData] = useState<EditableFields>({
     displayName: initialProfile.displayName ?? "",
@@ -265,7 +267,7 @@ export default function ProfileClient({ initialProfile }: Props) {
           label: item.name,
         })),
       );
-    } catch (error) {
+    } catch {
       // ในที่นี้ขอไม่แสดง error แยก เพิ่มได้ภายหลังหากต้องการ
     } finally {
       setIsLoadingPersonTypes(false);
@@ -288,7 +290,7 @@ export default function ProfileClient({ initialProfile }: Props) {
           label: item.name,
         })),
       );
-    } catch (error) {
+    } catch {
       // เงียบไว้ก่อน
     } finally {
       setIsLoadingPositions(false);
@@ -311,7 +313,7 @@ export default function ProfileClient({ initialProfile }: Props) {
           label: item.name,
         })),
       );
-    } catch (error) {
+    } catch {
       // เงียบไว้ก่อน
     } finally {
       setIsLoadingDepartments(false);
@@ -344,7 +346,7 @@ export default function ProfileClient({ initialProfile }: Props) {
           label: item.name,
         })),
       );
-    } catch (error) {
+    } catch {
       // เงียบไว้ก่อน
     } finally {
       setIsLoadingDepartmentSubs(false);
@@ -377,7 +379,7 @@ export default function ProfileClient({ initialProfile }: Props) {
           label: item.name,
         })),
       );
-    } catch (error) {
+    } catch {
       // เงียบไว้ก่อน
     } finally {
       setIsLoadingDepartmentSubSubs(false);
@@ -452,6 +454,7 @@ export default function ProfileClient({ initialProfile }: Props) {
         throw new Error(errorMessage);
       }
 
+      // อัปเดต state ภายในหน้าโปรไฟล์
       setProfile(payload.data);
       setFormData({
         displayName: payload.data.displayName ?? "",
@@ -474,6 +477,22 @@ export default function ProfileClient({ initialProfile }: Props) {
           ? String(payload.data.departmentSubSubId)
           : null,
       });
+
+      // อัปเดตค่าใน NextAuth session ทันที เพื่อให้ layout ตรวจโครงสร้างองค์กรจากค่าใหม่ได้เลย
+      await update({
+        user: {
+          ...(session?.user ?? {}),
+          personTypeId: payload.data.personTypeId ?? null,
+          positionId: payload.data.positionId ?? null,
+          departmentId: payload.data.departmentId ?? null,
+          departmentSubId: payload.data.departmentSubId ?? null,
+          departmentSubSubId: payload.data.departmentSubSubId ?? null,
+        },
+      });
+
+      // รีเฟรชหน้าเพื่อดึง initialProfile ใหม่จาก server ให้ตรงกับข้อมูลล่าสุด
+      router.refresh();
+
       setFeedback({
         type: "success",
         message: "บันทึกข้อมูลสำเร็จแล้ว",
@@ -706,8 +725,8 @@ export default function ProfileClient({ initialProfile }: Props) {
                   <Input
                     isRequired
                     isDisabled={isSaving}
-                    label="โทรศัพท์สำนักงาน"
-                    placeholder="เช่น 02-xxx-xxxx"
+                    label="โทรศัพท์ภายใน"
+                    placeholder="IP-Phone / เบอร์ 4 ตัว"
                     startContent={
                       <PhoneIcon className="w-5 h-5 text-default-400" />
                     }

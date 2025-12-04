@@ -19,7 +19,7 @@ export const REQUEST_FIELD_LABELS: Partial<
 > = {
   requesterDepartment: "หน่วยงานผู้แจ้ง",
   requesterName: "ชื่อผู้แจ้ง",
-  requesterPhone: "เบอร์โทรติดต่อ",
+  requesterPhone: "โทรศัพท์ภายใน",
   patientHN: "หมายเลข HN",
   patientName: "ชื่อผู้ป่วย",
   requestedDateTime: "วันที่และเวลา",
@@ -33,9 +33,9 @@ export const REQUEST_FIELD_LABELS: Partial<
 export const createDefaultFormData = (
   requesterName: string | undefined,
   requesterPhone?: string | undefined,
-  requesterDepartment?: string | undefined,
+  requesterDepartment?: number | null | undefined,
 ): PorterRequestFormData => ({
-  requesterDepartment: requesterDepartment || "",
+  requesterDepartment: requesterDepartment ?? null,
   requesterName: requesterName || "",
   requesterPhone: requesterPhone || "",
 

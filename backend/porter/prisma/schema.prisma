@@ -20,7 +20,7 @@ model PorterRequest {
   updatedAt DateTime @updatedAt
 
   /// Requester Information
-  requesterDepartment String?
+  requesterDepartment Int? // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   requesterName       String
   requesterPhone      String @db.VarChar(20)
   requesterUserID     String @map("requester_user_id")

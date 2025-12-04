@@ -105,6 +105,9 @@ export default function JobDetailDrawer({
   const [isEditMode, setIsEditMode] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelReasonError, setCancelReasonError] = useState<string>("");
+  const [requesterDepartmentName, setRequesterDepartmentName] = useState<
+    string | null
+  >(null);
   const {
     isOpen: isCancelModalOpen,
     onOpen: onCancelModalOpen,
@@ -151,6 +154,40 @@ export default function JobDetailDrawer({
       setSelectedStaffId(job.assignedTo || "");
     }
   }, [job, isEditMode]);
+
+  // ดึงชื่อหน่วยงานจาก departmentSubSubId
+  useEffect(() => {
+    const fetchDepartmentName = async () => {
+      if (!formData?.requesterDepartment) {
+        setRequesterDepartmentName(null);
+
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/hrd/department-sub-subs/${formData.requesterDepartment}`,
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            setRequesterDepartmentName(result.data.name);
+          } else {
+            setRequesterDepartmentName(null);
+          }
+        } else {
+          setRequesterDepartmentName(null);
+        }
+      } catch (error) {
+        console.error("Error fetching department name:", error);
+        setRequesterDepartmentName(null);
+      }
+    };
+
+    void fetchDepartmentName();
+  }, [formData?.requesterDepartment]);
 
   if (!job || !formData) return null;
 
@@ -325,6 +362,7 @@ export default function JobDetailDrawer({
 
       // อัปเดต state ใน parent component ด้วยข้อมูลที่ได้จาก API
       const updatedForm = result.data?.form || formData;
+
       onUpdateJob(job.id, updatedForm);
 
       addToast({
@@ -397,7 +435,7 @@ export default function JobDetailDrawer({
                     </h3>
                   </div>
                   <span className="text-sm text-default-500 font-medium truncate text-right">
-                    {formData.requesterDepartment || "-"}
+                    {requesterDepartmentName || "-"}
                   </span>
                 </CardHeader>
                 <CardBody className="pt-4">
@@ -412,7 +450,7 @@ export default function JobDetailDrawer({
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="font-medium text-foreground">
-                        เบอร์โทรศัพท์
+                        โทรศัพท์ภายใน
                       </span>
                       <span className="text-foreground break-words">
                         {formData.requesterPhone || "-"}
@@ -956,7 +994,7 @@ export default function JobDetailDrawer({
                               </p>
                               <p>
                                 <span className="font-medium">หน่วยงาน:</span>{" "}
-                                {formData.requesterDepartment}
+                                {requesterDepartmentName || "-"}
                               </p>
                             </div>
                           </div>

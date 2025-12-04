@@ -14,7 +14,7 @@ type ValidationErrors = Record<string, string>;
 interface UsePorterRequestFormOptions {
   requesterName?: string;
   requesterPhone?: string;
-  requesterDepartment?: string;
+  requesterDepartment?: number | null;
 }
 
 export function usePorterRequestForm({
@@ -144,7 +144,7 @@ export function usePorterRequestForm({
   const loadRequestForEdit = useCallback(
     (request: PorterJobItem) => {
       setFormData({
-        requesterDepartment: request.form.requesterDepartment || "",
+        requesterDepartment: request.form.requesterDepartment ?? null,
         requesterName: request.form.requesterName || requesterName || "",
         requesterPhone: request.form.requesterPhone || "",
         patientName: request.form.patientName || "",

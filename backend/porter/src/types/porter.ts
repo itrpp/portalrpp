@@ -31,7 +31,7 @@ export interface PorterRequestMessage {
   id: string;
   created_at: string;
   updated_at: string;
-  requester_department?: string;
+  requester_department?: number | null; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   requester_name: string;
   requester_phone: string;
   requester_user_id: string;
@@ -70,7 +70,7 @@ export interface PorterRequestMessage {
 }
 
 export interface CreatePorterRequestInput {
-  requester_department?: string;
+  requester_department?: number | null; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   requester_name: string;
   requester_phone: string;
   requester_user_id: string;
@@ -107,7 +107,7 @@ export interface ListPorterRequestsFilters {
 
 export interface UpdatePorterRequestInput {
   id: string;
-  requester_department?: string;
+  requester_department?: number | null; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
   requester_name?: string;
   requester_phone?: string;
   patient_name?: string;

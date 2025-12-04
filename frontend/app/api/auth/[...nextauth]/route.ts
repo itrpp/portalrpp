@@ -395,6 +395,11 @@ export const authOptions: any = {
           lineUserId: true,
           image: true,
           ldapDisplayName: true,
+          // โครงสร้างองค์กรอิง ID จาก HRD
+          personTypeId: true,
+          positionId: true,
+          departmentId: true,
+          departmentSubId: true,
           departmentSubSubId: true,
         },
       });
@@ -415,6 +420,11 @@ export const authOptions: any = {
       token.lineUserId = dbUser.lineUserId ?? null;
       token.image = dbUser.image ?? null;
       token.ldapDisplayName = dbUser.ldapDisplayName ?? null;
+      // โครงสร้างองค์กรอิง ID จาก HRD
+      token.personTypeId = dbUser.personTypeId ?? null;
+      token.positionId = dbUser.positionId ?? null;
+      token.departmentId = dbUser.departmentId ?? null;
+      token.departmentSubId = dbUser.departmentSubId ?? null;
       token.departmentSubSubId = dbUser.departmentSubSubId ?? null;
 
       return token;
@@ -440,6 +450,11 @@ export const authOptions: any = {
         session.user.lineUserId = token.lineUserId ?? null;
         session.user.image = token.image ?? null;
         session.user.ldapDisplayName = token.ldapDisplayName ?? null;
+        // โครงสร้างองค์กรอิง ID จาก HRD
+        session.user.personTypeId = token.personTypeId ?? null;
+        session.user.positionId = token.positionId ?? null;
+        session.user.departmentId = token.departmentId ?? null;
+        session.user.departmentSubId = token.departmentSubId ?? null;
         session.user.departmentSubSubId = token.departmentSubSubId ?? null;
       }
 
