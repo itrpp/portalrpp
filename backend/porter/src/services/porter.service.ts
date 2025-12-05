@@ -724,7 +724,7 @@ export const getEmployeeById = async (id: string): Promise<PorterEmployeeMessage
 export const listEmployees = async (
   filters: ListEmployeesFilters
 ): Promise<PaginationResult<PorterEmployeeMessage>> => {
-  const { employment_type_id, position_id, status, page = 1, page_size = 20 } = filters;
+  const { employment_type_id, position_id, status, page = 1, page_size } = filters;
 
   const where: Prisma.PorterEmployeeWhereInput = {};
 
@@ -738,19 +738,27 @@ export const listEmployees = async (
     where.status = status;
   }
 
-  const skip = (page - 1) * page_size;
+  // ถ้า page_size เป็น undefined หรือ null ให้ดึงข้อมูลทั้งหมด
+  const shouldPaginate = page_size !== undefined && page_size !== null;
+  const skip = shouldPaginate ? (page - 1) * page_size : undefined;
+  const take = shouldPaginate ? page_size : undefined;
+
+  const queryOptions: any = {
+    where,
+    include: {
+      employmentType: true,
+      position: true
+    },
+    orderBy: { createdAt: 'desc' }
+  };
+
+  if (shouldPaginate) {
+    queryOptions.skip = skip;
+    queryOptions.take = take;
+  }
 
   const [employees, total] = await Promise.all([
-    prisma.porterEmployee.findMany({
-      where,
-      skip,
-      take: page_size,
-      include: {
-        employmentType: true,
-        position: true
-      },
-      orderBy: { createdAt: 'desc' }
-    }),
+    prisma.porterEmployee.findMany(queryOptions),
     prisma.porterEmployee.count({ where })
   ]);
 
@@ -758,7 +766,7 @@ export const listEmployees = async (
     data: employees.map(convertEmployeeToProto),
     total,
     page,
-    page_size
+    page_size: page_size || total
   };
 };
 
