@@ -68,10 +68,24 @@ export default function Sidebar() {
       newExpandedItems.add("ศูนย์เปล");
     }
 
+    // Auto-expand "สถิติการดำเนินการ" when on stat pages
+    if (pathname.startsWith("/porter/stat")) {
+      newExpandedItems.add("ศูนย์เปล");
+    }
+
     // Auto-expand "ตั้งค่า" when on setting pages
     if (pathname.startsWith("/porter/setting/")) {
       newExpandedItems.add("ศูนย์เปล");
       newExpandedItems.add("ตั้งค่า");
+    }
+
+    // Auto-expand "ตั้งค่าข้อมูลบุคคล" when on HRD setting pages
+    if (pathname.startsWith("/setting/departments") ||
+      pathname.startsWith("/setting/department-subs") ||
+      pathname.startsWith("/setting/department-sub-subs") ||
+      pathname.startsWith("/setting/person-types") ||
+      pathname.startsWith("/setting/positions")) {
+      newExpandedItems.add("ตั้งค่าข้อมูลบุคคล");
     }
 
     setExpandedItems(newExpandedItems);
@@ -128,60 +142,55 @@ export default function Sidebar() {
         },
         ...(canAccessPorterCenter()
           ? [
-              {
-                name: "ศูนย์เปล",
-                href: "#",
-                icon: BedIcon,
-                subItems: [
-                  {
-                    name: "เจ้าหน้าที่เวรเปล",
-                    href: "#",
-                    icon: EmergencyBedIcon,
-                  },
-                  {
-                    name: "สถิติการดำเนินการ",
-                    href: "#",
-                    icon: ChartBarIcon,
-                  },
-                  {
-                    name: "รายการคำขอ",
-                    href: "/porter/joblist",
-                    icon: ClipboardListIcon,
-                  },
-                  ...(canAccessPorterCenterSettings()
-                    ? [
+            {
+              name: "ศูนย์เปล",
+              href: "#",
+              icon: BedIcon,
+              subItems: [
+                {
+                  name: "สถิติการดำเนินการ",
+                  href: "/porter/stat",
+                  icon: ChartBarIcon,
+                },
+                {
+                  name: "รายการคำขอ",
+                  href: "/porter/joblist",
+                  icon: ClipboardListIcon,
+                },
+                ...(canAccessPorterCenterSettings()
+                  ? [
+                    {
+                      name: "ตั้งค่า",
+                      href: "#",
+                      icon: SettingsIcon,
+                      subItems: [
                         {
-                          name: "ตั้งค่า",
-                          href: "#",
+                          name: "จุดรับ - ส่ง",
+                          href: "/porter/setting/location",
                           icon: SettingsIcon,
-                          subItems: [
-                            {
-                              name: "จุดรับ - ส่ง",
-                              href: "/porter/setting/location",
-                              icon: SettingsIcon,
-                            },
-                            {
-                              name: "รายชื่อเจ้าหน้าที่เปล",
-                              href: "/porter/setting/employee",
-                              icon: UserIcon,
-                            },
-                            {
-                              name: "ประเภทการจ้าง",
-                              href: "/porter/setting/employment-type",
-                              icon: BriefcaseIcon,
-                            },
-                            {
-                              name: "ตำแหน่ง",
-                              href: "/porter/setting/position",
-                              icon: UserGroupIcon,
-                            },
-                          ],
-                        } as SidebarItem,
-                      ]
-                    : []),
-                ],
-              } as SidebarItem,
-            ]
+                        },
+                        {
+                          name: "รายชื่อเจ้าหน้าที่เปล",
+                          href: "/porter/setting/employee",
+                          icon: UserIcon,
+                        },
+                        {
+                          name: "ประเภทการจ้าง",
+                          href: "/porter/setting/employment-type",
+                          icon: BriefcaseIcon,
+                        },
+                        {
+                          name: "ตำแหน่ง",
+                          href: "/porter/setting/position",
+                          icon: UserGroupIcon,
+                        },
+                      ],
+                    } as SidebarItem,
+                  ]
+                  : []),
+              ],
+            } as SidebarItem,
+          ]
           : []),
       ],
     },
@@ -244,6 +253,38 @@ export default function Sidebar() {
           name: "จัดการผู้ใช้",
           href: "/setting/users",
           icon: UserIcon,
+        },
+        {
+          name: "ตั้งค่าข้อมูลบุคคล",
+          href: "#",
+          icon: UserGroupIcon,
+          subItems: [
+            {
+              name: "กลุ่มภารกิจ",
+              href: "/setting/departments",
+              icon: BriefcaseIcon,
+            },
+            {
+              name: "กลุ่มงาน",
+              href: "/setting/department-subs",
+              icon: BriefcaseIcon,
+            },
+            {
+              name: "หน่วยงาน",
+              href: "/setting/department-sub-subs",
+              icon: BriefcaseIcon,
+            },
+            {
+              name: "กลุ่มบุคลากร",
+              href: "/setting/person-types",
+              icon: UserGroupIcon,
+            },
+            {
+              name: "ตำแหน่ง",
+              href: "/setting/positions",
+              icon: UserGroupIcon,
+            },
+          ],
         },
       ],
     },
@@ -315,9 +356,8 @@ export default function Sidebar() {
       <div key={item.name} className={`px-2 ${isSubItem ? "ml-4" : ""}`}>
         {item.href === "#" ? (
           <Button
-            className={`sidebar-item w-full justify-start h-10 group ${
-              isItemActive ? "active" : ""
-            }`}
+            className={`sidebar-item w-full justify-start h-10 group ${isItemActive ? "active" : ""
+              }`}
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
@@ -332,20 +372,18 @@ export default function Sidebar() {
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${
-                      isExpanded ? "rotate-90" : ""
-                    }`}
+                    className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-90" : ""
+                      }`}
                   />
                 )}
               </div>
             }
             startContent={
               <item.icon
-                className={`w-4 h-4 transition-colors ${
-                  isItemActive
-                    ? "text-white"
-                    : "text-default-600 group-hover:text-primary-500"
-                }`}
+                className={`w-4 h-4 transition-colors ${isItemActive
+                  ? "text-white"
+                  : "text-default-600 group-hover:text-primary-500"
+                  }`}
               />
             }
             variant="light"
@@ -461,9 +499,8 @@ export default function Sidebar() {
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${
-                      isExpanded ? "rotate-90" : ""
-                    }`}
+                    className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-90" : ""
+                      }`}
                   />
                 )}
               </div>

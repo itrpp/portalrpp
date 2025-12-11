@@ -5,8 +5,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 
 /**
- * GET /api/hrd/department-sub-subs/[id]
- * ดึงข้อมูลหน่วยงานโดย ID
+ * GET /api/hrd/department-subs/[id]
+ * ดึงข้อมูลกลุ่มงานโดย ID
  */
 export async function GET(
   request: NextRequest,
@@ -25,9 +25,9 @@ export async function GET(
     }
 
     const { id } = await context.params;
-    const departmentSubSubId = Number.parseInt(id, 10);
+    const departmentSubId = Number.parseInt(id, 10);
 
-    if (!Number.isInteger(departmentSubSubId) || departmentSubSubId <= 0) {
+    if (!Number.isInteger(departmentSubId) || departmentSubId <= 0) {
       return NextResponse.json(
         {
           success: false,
@@ -38,42 +38,42 @@ export async function GET(
       );
     }
 
-    const departmentSubSub = await prisma.hrd_department_sub_sub.findUnique({
+    const departmentSub = await prisma.hrd_department_sub.findUnique({
       where: {
-        HR_DEPARTMENT_SUB_SUB_ID: departmentSubSubId,
+        HR_DEPARTMENT_SUB_ID: departmentSubId,
       },
       select: {
-        HR_DEPARTMENT_SUB_SUB_ID: true,
-        HR_DEPARTMENT_SUB_SUB_NAME: true,
         HR_DEPARTMENT_SUB_ID: true,
+        HR_DEPARTMENT_SUB_NAME: true,
+        HR_DEPARTMENT_ID: true,
         ACTIVE: true,
         created_at: true,
         updated_at: true,
       },
     });
 
-    if (!departmentSubSub) {
+    if (!departmentSub) {
       return NextResponse.json(
         {
           success: false,
           error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลหน่วยงาน",
+          message: "ไม่พบข้อมูลกลุ่มงาน",
         },
         { status: 404 },
       );
     }
 
-    // ดึงชื่อ department_sub
-    const departmentSub = departmentSubSub.HR_DEPARTMENT_SUB_ID
-      ? await prisma.hrd_department_sub.findUnique({
+    // ดึงชื่อ department
+    const department = departmentSub.HR_DEPARTMENT_ID
+      ? await prisma.hrd_department.findUnique({
           where: {
-            HR_DEPARTMENT_SUB_ID: Number.parseInt(
-              departmentSubSub.HR_DEPARTMENT_SUB_ID,
+            HR_DEPARTMENT_ID: Number.parseInt(
+              departmentSub.HR_DEPARTMENT_ID,
               10,
             ),
           },
           select: {
-            HR_DEPARTMENT_SUB_NAME: true,
+            HR_DEPARTMENT_NAME: true,
           },
         })
       : null;
@@ -81,20 +81,17 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: {
-        id: departmentSubSub.HR_DEPARTMENT_SUB_SUB_ID,
-        name: departmentSubSub.HR_DEPARTMENT_SUB_SUB_NAME ?? "",
-        departmentSubId: Number.parseInt(
-          departmentSubSub.HR_DEPARTMENT_SUB_ID || "0",
-          10,
-        ),
-        departmentSubName: departmentSub?.HR_DEPARTMENT_SUB_NAME ?? "",
-        active: departmentSubSub.ACTIVE === "True",
-        createdAt: departmentSubSub.created_at?.toISOString(),
-        updatedAt: departmentSubSub.updated_at?.toISOString(),
+        id: departmentSub.HR_DEPARTMENT_SUB_ID,
+        name: departmentSub.HR_DEPARTMENT_SUB_NAME ?? "",
+        departmentId: Number.parseInt(departmentSub.HR_DEPARTMENT_ID || "0", 10),
+        departmentName: department?.HR_DEPARTMENT_NAME ?? "",
+        active: departmentSub.ACTIVE === "True",
+        createdAt: departmentSub.created_at?.toISOString(),
+        updatedAt: departmentSub.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error fetching department sub sub:", error);
+    console.error("Error fetching department sub:", error);
 
     return NextResponse.json(
       {
@@ -108,8 +105,8 @@ export async function GET(
 }
 
 /**
- * PUT /api/hrd/department-sub-subs/[id]
- * อัปเดตข้อมูลหน่วยงาน
+ * PUT /api/hrd/department-subs/[id]
+ * อัปเดตข้อมูลกลุ่มงาน
  */
 export async function PUT(
   request: Request,
@@ -128,9 +125,9 @@ export async function PUT(
     }
 
     const { id } = await context.params;
-    const departmentSubSubId = Number.parseInt(id, 10);
+    const departmentSubId = Number.parseInt(id, 10);
 
-    if (!Number.isInteger(departmentSubSubId) || departmentSubSubId <= 0) {
+    if (!Number.isInteger(departmentSubId) || departmentSubId <= 0) {
       return NextResponse.json(
         {
           success: false,
@@ -142,12 +139,12 @@ export async function PUT(
     }
 
     const requestData = await request.json();
-    const { name, departmentSubId, active } = requestData;
+    const { name, departmentId, active } = requestData;
 
     // ตรวจสอบว่ามีข้อมูลอยู่หรือไม่
-    const existing = await prisma.hrd_department_sub_sub.findUnique({
+    const existing = await prisma.hrd_department_sub.findUnique({
       where: {
-        HR_DEPARTMENT_SUB_SUB_ID: departmentSubSubId,
+        HR_DEPARTMENT_SUB_ID: departmentSubId,
       },
     });
 
@@ -156,7 +153,7 @@ export async function PUT(
         {
           success: false,
           error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลหน่วยงาน",
+          message: "ไม่พบข้อมูลกลุ่มงาน",
         },
         { status: 404 },
       );
@@ -169,38 +166,38 @@ export async function PUT(
           {
             success: false,
             error: "VALIDATION_ERROR",
-            message: "กรุณากรอกชื่อหน่วยงาน",
+            message: "กรุณากรอกชื่อกลุ่มงาน",
           },
           { status: 400 },
         );
       }
     }
 
-    if (departmentSubId !== undefined) {
-      if (typeof departmentSubId !== "number") {
+    if (departmentId !== undefined) {
+      if (typeof departmentId !== "number") {
         return NextResponse.json(
           {
             success: false,
             error: "VALIDATION_ERROR",
-            message: "กรุณาเลือกกลุ่มงาน",
+            message: "กรุณาเลือกกลุ่มภารกิจ",
           },
           { status: 400 },
         );
       }
 
-      // ตรวจสอบ departmentSubId มีอยู่จริง
-      const departmentSub = await prisma.hrd_department_sub.findUnique({
+      // ตรวจสอบ departmentId มีอยู่จริง
+      const department = await prisma.hrd_department.findUnique({
         where: {
-          HR_DEPARTMENT_SUB_ID: departmentSubId,
+          HR_DEPARTMENT_ID: departmentId,
         },
       });
 
-      if (!departmentSub) {
+      if (!department) {
         return NextResponse.json(
           {
             success: false,
-            error: "DEPARTMENT_SUB_NOT_FOUND",
-            message: "ไม่พบข้อมูลกลุ่มงาน",
+            error: "DEPARTMENT_NOT_FOUND",
+            message: "ไม่พบข้อมูลกลุ่มภารกิจ",
           },
           { status: 404 },
         );
@@ -209,19 +206,19 @@ export async function PUT(
 
     // ตรวจสอบชื่อซ้ำ (ยกเว้นตัวที่กำลังแก้ไข)
     if (name !== undefined) {
-      const finalDepartmentSubId =
-        departmentSubId !== undefined
-          ? departmentSubId
-          : Number.parseInt(existing.HR_DEPARTMENT_SUB_ID || "0", 10);
+      const finalDepartmentId =
+        departmentId !== undefined
+          ? departmentId
+          : Number.parseInt(existing.HR_DEPARTMENT_ID || "0", 10);
 
-      const duplicate = await prisma.hrd_department_sub_sub.findFirst({
+      const duplicate = await prisma.hrd_department_sub.findFirst({
         where: {
-          HR_DEPARTMENT_SUB_ID: String(finalDepartmentSubId),
-          HR_DEPARTMENT_SUB_SUB_NAME: {
+          HR_DEPARTMENT_ID: String(finalDepartmentId),
+          HR_DEPARTMENT_SUB_NAME: {
             equals: name.trim(),
           },
-          HR_DEPARTMENT_SUB_SUB_ID: {
-            not: departmentSubSubId,
+          HR_DEPARTMENT_SUB_ID: {
+            not: departmentSubId,
           },
         },
       });
@@ -231,7 +228,7 @@ export async function PUT(
           {
             success: false,
             error: "DUPLICATE_NAME",
-            message: "ชื่อหน่วยงานนี้มีอยู่ในกลุ่มงานนี้แล้ว",
+            message: "ชื่อกลุ่มงานนี้มีอยู่ในกลุ่มภารกิจนี้แล้ว",
           },
           { status: 409 },
         );
@@ -242,58 +239,58 @@ export async function PUT(
     const updateData: any = {};
 
     if (name !== undefined) {
-      updateData.HR_DEPARTMENT_SUB_SUB_NAME = name.trim();
+      updateData.HR_DEPARTMENT_SUB_NAME = name.trim();
     }
-    if (departmentSubId !== undefined) {
-      updateData.HR_DEPARTMENT_SUB_ID = String(departmentSubId);
+    if (departmentId !== undefined) {
+      updateData.HR_DEPARTMENT_ID = String(departmentId);
     }
     if (active !== undefined) {
       updateData.ACTIVE = active ? "True" : "False";
     }
 
-    const updated = await prisma.hrd_department_sub_sub.update({
+    const updated = await prisma.hrd_department_sub.update({
       where: {
-        HR_DEPARTMENT_SUB_SUB_ID: departmentSubSubId,
+        HR_DEPARTMENT_SUB_ID: departmentSubId,
       },
       data: updateData,
       select: {
-        HR_DEPARTMENT_SUB_SUB_ID: true,
-        HR_DEPARTMENT_SUB_SUB_NAME: true,
         HR_DEPARTMENT_SUB_ID: true,
+        HR_DEPARTMENT_SUB_NAME: true,
+        HR_DEPARTMENT_ID: true,
         ACTIVE: true,
         created_at: true,
         updated_at: true,
       },
     });
 
-    // ดึงชื่อ department_sub
-    const finalDepartmentSubId = Number.parseInt(
-      updated.HR_DEPARTMENT_SUB_ID || "0",
+    // ดึงชื่อ department
+    const finalDepartmentId = Number.parseInt(
+      updated.HR_DEPARTMENT_ID || "0",
       10,
     );
-    const departmentSub = await prisma.hrd_department_sub.findUnique({
+    const department = await prisma.hrd_department.findUnique({
       where: {
-        HR_DEPARTMENT_SUB_ID: finalDepartmentSubId,
+        HR_DEPARTMENT_ID: finalDepartmentId,
       },
       select: {
-        HR_DEPARTMENT_SUB_NAME: true,
+        HR_DEPARTMENT_NAME: true,
       },
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        id: updated.HR_DEPARTMENT_SUB_SUB_ID,
-        name: updated.HR_DEPARTMENT_SUB_SUB_NAME ?? "",
-        departmentSubId: finalDepartmentSubId,
-        departmentSubName: departmentSub?.HR_DEPARTMENT_SUB_NAME ?? "",
+        id: updated.HR_DEPARTMENT_SUB_ID,
+        name: updated.HR_DEPARTMENT_SUB_NAME ?? "",
+        departmentId: finalDepartmentId,
+        departmentName: department?.HR_DEPARTMENT_NAME ?? "",
         active: updated.ACTIVE === "True",
         createdAt: updated.created_at?.toISOString(),
         updatedAt: updated.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error updating department sub sub:", error);
+    console.error("Error updating department sub:", error);
 
     return NextResponse.json(
       {
@@ -307,8 +304,8 @@ export async function PUT(
 }
 
 /**
- * DELETE /api/hrd/department-sub-subs/[id]
- * ลบหน่วยงาน
+ * DELETE /api/hrd/department-subs/[id]
+ * ลบกลุ่มงาน
  */
 export async function DELETE(
   request: NextRequest,
@@ -327,9 +324,9 @@ export async function DELETE(
     }
 
     const { id } = await context.params;
-    const departmentSubSubId = Number.parseInt(id, 10);
+    const departmentSubId = Number.parseInt(id, 10);
 
-    if (!Number.isInteger(departmentSubSubId) || departmentSubSubId <= 0) {
+    if (!Number.isInteger(departmentSubId) || departmentSubId <= 0) {
       return NextResponse.json(
         {
           success: false,
@@ -341,9 +338,9 @@ export async function DELETE(
     }
 
     // ตรวจสอบว่ามีข้อมูลอยู่หรือไม่
-    const existing = await prisma.hrd_department_sub_sub.findUnique({
+    const existing = await prisma.hrd_department_sub.findUnique({
       where: {
-        HR_DEPARTMENT_SUB_SUB_ID: departmentSubSubId,
+        HR_DEPARTMENT_SUB_ID: departmentSubId,
       },
     });
 
@@ -352,43 +349,43 @@ export async function DELETE(
         {
           success: false,
           error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลหน่วยงาน",
+          message: "ไม่พบข้อมูลกลุ่มงาน",
         },
         { status: 404 },
       );
     }
 
-    // ตรวจสอบว่ามี user ใช้อยู่หรือไม่
-    const userCount = await prisma.user.count({
+    // ตรวจสอบว่ามี department_sub_sub ใช้อยู่หรือไม่
+    const departmentSubSubCount = await prisma.hrd_department_sub_sub.count({
       where: {
-        departmentSubSubId: departmentSubSubId,
+        HR_DEPARTMENT_SUB_ID: String(departmentSubId),
       },
     });
 
-    if (userCount > 0) {
+    if (departmentSubSubCount > 0) {
       return NextResponse.json(
         {
           success: false,
           error: "IN_USE",
-          message: `ไม่สามารถลบได้ เนื่องจากมีผู้ใช้ ${userCount} รายการที่ใช้หน่วยงานนี้อยู่`,
+          message: `ไม่สามารถลบได้ เนื่องจากมีหน่วยงาน ${departmentSubSubCount} รายการที่ใช้กลุ่มงานนี้อยู่`,
         },
         { status: 400 },
       );
     }
 
     // ลบข้อมูล
-    await prisma.hrd_department_sub_sub.delete({
+    await prisma.hrd_department_sub.delete({
       where: {
-        HR_DEPARTMENT_SUB_SUB_ID: departmentSubSubId,
+        HR_DEPARTMENT_SUB_ID: departmentSubId,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: "ลบหน่วยงานสำเร็จ",
+      message: "ลบกลุ่มงานสำเร็จ",
     });
   } catch (error: any) {
-    console.error("Error deleting department sub sub:", error);
+    console.error("Error deleting department sub:", error);
 
     return NextResponse.json(
       {
@@ -400,3 +397,4 @@ export async function DELETE(
     );
   }
 }
+

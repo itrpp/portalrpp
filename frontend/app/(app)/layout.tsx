@@ -189,7 +189,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         perks: "สิทธิประโยชน์",
         expenses: "ค่าใช้จ่าย",
         settings: "ตั้งค่า",
-
+        departments: "กลุ่มภารกิจ",
+        "department-subs": "กลุ่มงาน",
+        "department-sub-subs": "หน่วยงาน",
+        "person-types": "กลุ่มบุคลากร",
+        positions: "ตำแหน่ง",
         help: "ช่วยเหลือและข้อมูล",
       };
 
