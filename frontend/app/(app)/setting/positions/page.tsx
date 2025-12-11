@@ -18,8 +18,8 @@ import {
 } from "@heroui/react";
 
 import PositionModal from "./components/PositionModal";
-import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 
+import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 import {
   UserGroupIcon,
   PlusIcon,
@@ -97,9 +97,7 @@ export default function PositionManagementPage() {
   const handleDeletePosition = async (positionId: number) => {
     const position = positions.find((p) => p.id === positionId);
 
-    if (
-      !confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบตำแหน่ง "${position?.name}"?`)
-    ) {
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบตำแหน่ง "${position?.name}"?`)) {
       return;
     }
 
@@ -176,9 +174,7 @@ export default function PositionManagementPage() {
 
         if (result.success && result.data) {
           setPositions((prev) =>
-            prev.map((p) =>
-              p.id === editingPosition.id ? result.data : p,
-            ),
+            prev.map((p) => (p.id === editingPosition.id ? result.data : p)),
           );
           addToast({
             title: "แก้ไขตำแหน่งสำเร็จ",
@@ -251,9 +247,7 @@ export default function PositionManagementPage() {
             <UserGroupIcon className="w-8 h-8 text-primary" />
             จัดการตำแหน่ง
           </h1>
-          <p className="text-default-600 mt-2">
-            จัดการข้อมูลตำแหน่งสำหรับระบบ
-          </p>
+          <p className="text-default-600 mt-2">จัดการข้อมูลตำแหน่งสำหรับระบบ</p>
         </div>
         <Button
           color="primary"
@@ -393,9 +387,9 @@ export default function PositionManagementPage() {
 
       {/* Modal */}
       <PositionModal
-        position={editingPosition}
         isLoading={isSaving}
         isOpen={isPositionModalOpen}
+        position={editingPosition}
         onClose={() => {
           onPositionModalClose();
           setEditingPosition(null);
@@ -405,4 +399,3 @@ export default function PositionManagementPage() {
     </div>
   );
 }
-

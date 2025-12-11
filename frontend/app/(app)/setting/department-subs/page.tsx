@@ -21,8 +21,8 @@ import {
 } from "@heroui/react";
 
 import DepartmentSubModal from "./components/DepartmentSubModal";
-import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 
+import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 import {
   BriefcaseIcon,
   PlusIcon,
@@ -50,7 +50,7 @@ export default function DepartmentSubManagementPage() {
   const filteredDepartmentSubs = departmentSubs.filter((sub) =>
     selectedDepartmentId
       ? sub.departmentId === Number(selectedDepartmentId)
-      : true
+      : true,
   );
 
   const {
@@ -114,9 +114,7 @@ export default function DepartmentSubManagementPage() {
     const departmentSub = departmentSubs.find((d) => d.id === departmentSubId);
 
     if (
-      !confirm(
-        `คุณแน่ใจหรือไม่ว่าต้องการลบกลุ่มงาน "${departmentSub?.name}"?`,
-      )
+      !confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบกลุ่มงาน "${departmentSub?.name}"?`)
     ) {
       return;
     }
@@ -159,10 +157,9 @@ export default function DepartmentSubManagementPage() {
   };
 
   const handleSaveDepartmentSub = async (
-    departmentSubData: Omit<
-      DepartmentSub,
-      "id" | "createdAt" | "updatedAt"
-    > & { id?: number },
+    departmentSubData: Omit<DepartmentSub, "id" | "createdAt" | "updatedAt"> & {
+      id?: number;
+    },
   ) => {
     try {
       setIsSaving(true);
@@ -294,9 +291,7 @@ export default function DepartmentSubManagementPage() {
             onSelectionChange={(key) => setSelectedDepartmentId(key as string)}
           >
             {(dept) => (
-              <AutocompleteItem key={dept.id}>
-                {dept.name}
-              </AutocompleteItem>
+              <AutocompleteItem key={dept.id}>{dept.name}</AutocompleteItem>
             )}
           </Autocomplete>
           <Button
@@ -369,9 +364,7 @@ export default function DepartmentSubManagementPage() {
                           <Button
                             isIconOnly
                             color="primary"
-                            isDisabled={
-                              isDeleting === item.id || isSaving
-                            }
+                            isDisabled={isDeleting === item.id || isSaving}
                             size="sm"
                             variant="light"
                             onPress={() => handleEditDepartmentSub(item)}
@@ -385,9 +378,7 @@ export default function DepartmentSubManagementPage() {
                             isLoading={isDeleting === item.id}
                             size="sm"
                             variant="light"
-                            onPress={() =>
-                              handleDeleteDepartmentSub(item.id)
-                            }
+                            onPress={() => handleDeleteDepartmentSub(item.id)}
                           >
                             <TrashIcon className="w-4 h-4" />
                           </Button>
@@ -461,4 +452,3 @@ export default function DepartmentSubManagementPage() {
     </div>
   );
 }
-

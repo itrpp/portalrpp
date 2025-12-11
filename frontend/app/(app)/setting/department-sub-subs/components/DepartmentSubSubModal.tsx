@@ -123,9 +123,7 @@ export default function DepartmentSubSubModal({
               }}
             >
               {departmentSubs.map((sub) => (
-                <SelectItem key={sub.id.toString()} value={sub.id.toString()}>
-                  {sub.name}
-                </SelectItem>
+                <SelectItem key={sub.id.toString()}>{sub.name}</SelectItem>
               ))}
             </Select>
             <Input
@@ -171,4 +169,3 @@ export default function DepartmentSubSubModal({
     </Modal>
   );
 }
-

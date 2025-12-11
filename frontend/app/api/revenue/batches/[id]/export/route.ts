@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/authOptions";
 
 // กำหนด base URL ของ API Gateway จาก env และตัดเครื่องหมาย / ท้ายออกเพื่อป้องกันซ้ำซ้อน
 const baseUrl = (process.env.NEXT_PUBLIC_API_GATEWAY_URL || "").replace(

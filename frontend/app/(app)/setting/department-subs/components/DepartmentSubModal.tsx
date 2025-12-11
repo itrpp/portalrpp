@@ -114,13 +114,13 @@ export default function DepartmentSubModal({
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0] as string;
 
-                setDepartmentId(selected ? Number.parseInt(selected, 10) : null);
+                setDepartmentId(
+                  selected ? Number.parseInt(selected, 10) : null,
+                );
               }}
             >
               {departments.map((dept) => (
-                <SelectItem key={dept.id.toString()} value={dept.id.toString()}>
-                  {dept.name}
-                </SelectItem>
+                <SelectItem key={dept.id.toString()}>{dept.name}</SelectItem>
               ))}
             </Select>
             <Input
@@ -166,4 +166,3 @@ export default function DepartmentSubModal({
     </Modal>
   );
 }
-

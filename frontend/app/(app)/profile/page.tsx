@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 
 import ProfileClient from "./ProfileClient";
 
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/authOptions";
 import { getUserProfile } from "@/lib/profile";
 
 export default async function ProfilePage() {

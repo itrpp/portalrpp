@@ -21,8 +21,8 @@ import {
 } from "@heroui/react";
 
 import DepartmentSubSubModal from "./components/DepartmentSubSubModal";
-import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 
+import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 import {
   BuildingOfficeIcon,
   PlusIcon,
@@ -36,9 +36,8 @@ export default function DepartmentSubSubManagementPage() {
     DepartmentSubSub[]
   >([]);
   const [departmentSubs, setDepartmentSubs] = useState<DepartmentSub[]>([]);
-  const [selectedDepartmentSubId, setSelectedDepartmentSubId] = useState<
-    string
-  >("");
+  const [selectedDepartmentSubId, setSelectedDepartmentSubId] =
+    useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
@@ -54,7 +53,7 @@ export default function DepartmentSubSubManagementPage() {
   const filteredDepartmentSubSubs = departmentSubSubs.filter((subSub) =>
     selectedDepartmentSubId
       ? subSub.departmentSubId === Number(selectedDepartmentSubId)
-      : true
+      : true,
   );
 
   const {
@@ -114,9 +113,7 @@ export default function DepartmentSubSubManagementPage() {
     onDepartmentSubSubModalOpen();
   };
 
-  const handleDeleteDepartmentSubSub = async (
-    departmentSubSubId: number,
-  ) => {
+  const handleDeleteDepartmentSubSub = async (departmentSubSubId: number) => {
     const departmentSubSub = departmentSubSubs.find(
       (d) => d.id === departmentSubSubId,
     );
@@ -179,8 +176,7 @@ export default function DepartmentSubSubManagementPage() {
       if (!editingDepartmentSubSub) {
         const existing = departmentSubSubs.find(
           (d) =>
-            d.name.toLowerCase() ===
-            departmentSubSubData.name.toLowerCase() &&
+            d.name.toLowerCase() === departmentSubSubData.name.toLowerCase() &&
             d.departmentSubId === departmentSubSubData.departmentSubId,
         );
 
@@ -300,12 +296,12 @@ export default function DepartmentSubSubManagementPage() {
             selectedKey={selectedDepartmentSubId}
             size="sm"
             variant="bordered"
-            onSelectionChange={(key) => setSelectedDepartmentSubId(key as string)}
+            onSelectionChange={(key) =>
+              setSelectedDepartmentSubId(key as string)
+            }
           >
             {(sub) => (
-              <AutocompleteItem key={sub.id}>
-                {sub.name}
-              </AutocompleteItem>
+              <AutocompleteItem key={sub.id}>{sub.name}</AutocompleteItem>
             )}
           </Autocomplete>
           <Button
@@ -378,9 +374,7 @@ export default function DepartmentSubSubManagementPage() {
                           <Button
                             isIconOnly
                             color="primary"
-                            isDisabled={
-                              isDeleting === item.id || isSaving
-                            }
+                            isDisabled={isDeleting === item.id || isSaving}
                             size="sm"
                             variant="light"
                             onPress={() => handleEditDepartmentSubSub(item)}
@@ -412,7 +406,10 @@ export default function DepartmentSubSubManagementPage() {
                 <div className="flex items-center justify-between mt-4 px-2">
                   <div className="text-sm text-default-600">
                     แสดง {startIndex + 1} - {""}
-                    {Math.min(endIndex, filteredDepartmentSubSubs.length)} จาก {""}
+                    {Math.min(
+                      endIndex,
+                      filteredDepartmentSubSubs.length,
+                    )} จาก {""}
                     {filteredDepartmentSubSubs.length} รายการ
                   </div>
                   <Pagination
@@ -470,4 +467,3 @@ export default function DepartmentSubSubManagementPage() {
     </div>
   );
 }
-

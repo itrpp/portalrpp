@@ -330,10 +330,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Modal บังคับให้ผู้ใช้ไปปรับปรุงข้อมูลโครงสร้างองค์กรในโปรไฟล์ */}
         <Modal
+          isKeyboardDismissDisabled
+          isDismissable={false}
           isOpen={isProfileOrgModalOpen}
           onOpenChange={setIsProfileOrgModalOpen}
-          isDismissable={false}
-          isKeyboardDismissDisabled
         >
           <ModalContent>
             {() => (
@@ -344,8 +344,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <ModalBody>
                   <p>
                     ระบบตรวจพบว่าข้อมูลโครงสร้างองค์กรของคุณยังไม่ครบถ้วน
-                    กรุณาไปที่หน้าจอโปรไฟล์เพื่อกรอกข้อมูล
-                    เช่น กลุ่มบุคลากร, ตำแหน่ง, กลุ่มภารกิจ, กลุ่มงาน และหน่วยงาน
+                    กรุณาไปที่หน้าจอโปรไฟล์เพื่อกรอกข้อมูล เช่น กลุ่มบุคลากร,
+                    ตำแหน่ง, กลุ่มภารกิจ, กลุ่มงาน และหน่วยงาน
                   </p>
                 </ModalBody>
                 <ModalFooter>

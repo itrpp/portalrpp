@@ -1,6 +1,7 @@
+import type { LDAPErrorCode } from "@/types/ldap";
+
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import type { LDAPErrorCode } from "@/types/ldap";
 
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
@@ -53,8 +54,7 @@ export async function POST(request: Request) {
       if (!result.success || !result.user) {
         // Map error code to HTTP status and message
         const errorCode = result.errorCode || "INVALID_CREDENTIALS";
-        const statusCode =
-          errorCode === "MISSING_CREDENTIALS" ? 400 : 401;
+        const statusCode = errorCode === "MISSING_CREDENTIALS" ? 400 : 401;
 
         return NextResponse.json(
           {
@@ -72,8 +72,7 @@ export async function POST(request: Request) {
 
       if (error instanceof Error) {
         const errorCode = error.message as LDAPErrorCode;
-        const statusCode =
-          errorCode === "MISSING_CREDENTIALS" ? 400 : 401;
+        const statusCode = errorCode === "MISSING_CREDENTIALS" ? 400 : 401;
 
         return NextResponse.json(
           {
@@ -218,4 +217,3 @@ function getErrorMessage(errorCode: LDAPErrorCode): string {
       return "Authentication failed";
   }
 }
-

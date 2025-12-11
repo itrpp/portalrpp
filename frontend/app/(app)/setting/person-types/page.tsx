@@ -18,8 +18,8 @@ import {
 } from "@heroui/react";
 
 import PersonTypeModal from "./components/PersonTypeModal";
-import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 
+import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 import {
   UserGroupIcon,
   PlusIcon,
@@ -40,8 +40,9 @@ export default function PersonTypeManagementPage() {
     onOpen: onPersonTypeModalOpen,
     onClose: onPersonTypeModalClose,
   } = useDisclosure();
-  const [editingPersonType, setEditingPersonType] =
-    useState<PersonType | null>(null);
+  const [editingPersonType, setEditingPersonType] = useState<PersonType | null>(
+    null,
+  );
   const {
     currentPage,
     rowsPerPage,
@@ -99,9 +100,7 @@ export default function PersonTypeManagementPage() {
     const personType = personTypes.find((p) => p.id === personTypeId);
 
     if (
-      !confirm(
-        `คุณแน่ใจหรือไม่ว่าต้องการลบกลุ่มบุคลากร "${personType?.name}"?`,
-      )
+      !confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบกลุ่มบุคลากร "${personType?.name}"?`)
     ) {
       return;
     }
@@ -178,9 +177,7 @@ export default function PersonTypeManagementPage() {
 
         if (result.success && result.data) {
           setPersonTypes((prev) =>
-            prev.map((p) =>
-              p.id === editingPersonType.id ? result.data : p,
-            ),
+            prev.map((p) => (p.id === editingPersonType.id ? result.data : p)),
           );
           addToast({
             title: "แก้ไขกลุ่มบุคลากรสำเร็จ",
@@ -383,9 +380,9 @@ export default function PersonTypeManagementPage() {
 
       {/* Modal */}
       <PersonTypeModal
-        personType={editingPersonType}
         isLoading={isSaving}
         isOpen={isPersonTypeModalOpen}
+        personType={editingPersonType}
         onClose={() => {
           onPersonTypeModalClose();
           setEditingPersonType(null);
@@ -395,4 +392,3 @@ export default function PersonTypeManagementPage() {
     </div>
   );
 }
-

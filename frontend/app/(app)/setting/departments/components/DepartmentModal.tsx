@@ -127,4 +127,3 @@ export default function DepartmentModal({
     </Modal>
   );
 }
-

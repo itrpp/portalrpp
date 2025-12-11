@@ -62,4 +62,3 @@ export interface Position {
   createdAt?: string;
   updatedAt?: string;
 }
-

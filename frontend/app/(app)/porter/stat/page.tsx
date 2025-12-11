@@ -1,101 +1,133 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { Breadcrumbs, BreadcrumbItem, Button, Spinner, DateRangePicker } from "@heroui/react";
-import { Icon } from "@iconify/react";
+import React from "react";
+import { Card, CardBody, Spinner } from "@heroui/react";
+
+import { StatCard } from "./components/StatCard";
+import { DailyJobChart } from "./components/DailyJobChart";
+import { PopularLocationChart } from "./components/PopularLocationChart";
+import { EmployeePerformanceTable } from "./components/EmployeePerformanceTable";
+import { usePorterStats } from "./hooks/usePorterStats";
+
 import {
-    fetchPorterStatsData,
-    aggregateVolumeStats,
-    aggregateStaffStats,
-    aggregateLocationStats,
-    aggregateReasonStats,
-    VolumeStat,
-    StaffStat,
-    LocationStat,
-    ReasonStat
-} from './utils';
+  ChartBarIcon,
+  ClipboardListIcon,
+  CheckCircleIcon,
+  XMarkIcon,
+  ClockIcon,
+} from "@/components/ui/icons";
 
-import { VolumeStats } from './components/VolumeStats';
-import { StaffStats } from './components/StaffStats';
-import { LocationStats } from './components/LocationStats';
-import { ReasonStats } from './components/ReasonStats';
-import { PorterJobItem } from "@/types/porter";
+export default function PorterStatPage() {
+  const { stats, isLoading, error } = usePorterStats();
 
-export default function PorterStatsPage() {
-    const [isLoading, setIsLoading] = useState(true);
-    const [rawData, setRawData] = useState<PorterJobItem[]>([]);
-    const [volumeData, setVolumeData] = useState<VolumeStat[]>([]);
-    const [staffData, setStaffData] = useState<StaffStat[]>([]);
-    const [locationData, setLocationData] = useState<LocationStat[]>([]);
-    const [reasonData, setReasonData] = useState<ReasonStat[]>([]);
-
-    const loadData = async () => {
-        setIsLoading(true);
-        const data = await fetchPorterStatsData();
-        setRawData(data);
-
-        // Aggregations
-        setVolumeData(aggregateVolumeStats(data));
-        setStaffData(aggregateStaffStats(data));
-        setLocationData(aggregateLocationStats(data));
-        setReasonData(aggregateReasonStats(data));
-
-        setIsLoading(false);
-    };
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
+  if (isLoading) {
     return (
-        <div className="h-full w-full p-4 md:p-6 space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center flex-wrap gap-4">
-                    <h1 className="text-2xl font-bold">สถิติประสิทธิภาพการให้บริการ (Dashboard)</h1>
-                    <div className="flex gap-2">
-                        <Button
-                            size="sm"
-                            variant="flat"
-                            color="default"
-                            onPress={loadData}
-                            isLoading={isLoading}
-                            startContent={!isLoading && <Icon icon="solar:refresh-bold" />}
-                        >
-                            รีเฟรช
-                        </Button>
-                        <Button startContent={<Icon icon="solar:printer-bold" />} variant="flat" color="primary">
-                            พิมพ์รายงาน
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {isLoading ? (
-                <div className="flex justify-center items-center h-[400px]">
-                    <Spinner size="lg" label="กำลังโหลดข้อมูล..." color="primary" />
-                </div>
-            ) : (
-                /* Main Grid Layout */
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-4">
-
-                    {/* Row 1: Volume (Line/Bar) takes 8 cols, Reason (Pie) takes 4 cols */}
-                    <div className="md:col-span-8">
-                        <VolumeStats data={volumeData} />
-                    </div>
-                    <div className="md:col-span-4">
-                        <ReasonStats data={reasonData} />
-                    </div>
-
-                    {/* Row 2: Location takes 6 cols, Staff takes 6 cols */}
-                    <div className="md:col-span-6">
-                        <LocationStats data={locationData} />
-                    </div>
-                    <div className="md:col-span-6">
-                        <StaffStats data={staffData} />
-                    </div>
-                </div>
-            )}
+      <div className="container mx-auto p-6">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <Spinner color="primary" size="lg" />
+            <p className="text-default-600 mt-4">กำลังโหลดข้อมูลสถิติ...</p>
+          </div>
         </div>
+      </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card className="border border-danger-200 bg-danger-50">
+          <CardBody className="p-6">
+            <div className="text-center">
+              <p className="text-danger-700 font-semibold text-lg">
+                เกิดข้อผิดพลาด
+              </p>
+              <p className="text-danger-600 mt-2">{error}</p>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <ChartBarIcon className="w-8 h-8 text-primary" />
+            สถิติการดำเนินงาน
+          </h1>
+          <p className="text-default-600 mt-2">
+            สถิติการดำเนินงานของระบบพนักงานเปลทั้งหมด
+          </p>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard
+          color="primary"
+          icon={<ClipboardListIcon className="w-8 h-8" />}
+          title="งานทั้งหมด"
+          value={stats.totalJobs}
+        />
+        <StatCard
+          color="default"
+          icon={<ClipboardListIcon className="w-8 h-8" />}
+          title="ยังไม่ได้รับงาน"
+          value={stats.waitingJobs}
+        />
+        <StatCard
+          color="warning"
+          icon={<ClockIcon className="w-8 h-8" />}
+          title="อยู่ระหว่างดำเนินการ"
+          value={stats.inProgressJobs}
+        />
+        <StatCard
+          color="success"
+          icon={<CheckCircleIcon className="w-8 h-8" />}
+          title="ดำเนินการเสร็จสิ้น"
+          value={stats.completedJobs}
+        />
+        <StatCard
+          color="danger"
+          icon={<XMarkIcon className="w-8 h-8" />}
+          title="งานที่ยกเลิก"
+          value={stats.cancelledJobs}
+        />
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ปริมาณงานรายวัน */}
+        <div className="lg:col-span-2">
+          <DailyJobChart data={stats.dailyJobs} />
+        </div>
+
+        {/* เหตุผลการเคลื่อนย้าย */}
+        {/* <TransportReasonChart data={stats.transportReasons} /> */}
+
+        {/* จุดรับยอดนิยม */}
+        <PopularLocationChart
+          color="#0088FE"
+          data={stats.popularPickupLocations}
+          title="จุดรับยอดนิยม (Top 10)"
+        />
+
+        {/* จุดส่งยอดนิยม */}
+        <PopularLocationChart
+          color="#00C49F"
+          data={stats.popularDeliveryLocations}
+          title="จุดส่งยอดนิยม (Top 10)"
+        />
+      </div>
+
+      {/* ประสิทธิผลรายบุคคล */}
+      <div className="grid grid-cols-1">
+        <EmployeePerformanceTable data={stats.employeePerformance} />
+      </div>
+    </div>
+  );
 }

@@ -111,6 +111,10 @@ export default function PositionModal({
             {!position && (
               <Input
                 isRequired
+                classNames={{
+                  input:
+                    "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                }}
                 isDisabled={isLoading}
                 label="ID ตำแหน่ง"
                 placeholder="เช่น 1"
@@ -118,10 +122,6 @@ export default function PositionModal({
                 value={id}
                 variant="bordered"
                 onChange={(e) => setId(e.target.value)}
-                classNames={{
-                  input:
-                    "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                }}
               />
             )}
             <Input
@@ -160,4 +160,3 @@ export default function PositionModal({
     </Modal>
   );
 }
-

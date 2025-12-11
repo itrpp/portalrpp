@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/authOptions";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -83,7 +83,10 @@ export async function GET(
       data: {
         id: departmentSub.HR_DEPARTMENT_SUB_ID,
         name: departmentSub.HR_DEPARTMENT_SUB_NAME ?? "",
-        departmentId: Number.parseInt(departmentSub.HR_DEPARTMENT_ID || "0", 10),
+        departmentId: Number.parseInt(
+          departmentSub.HR_DEPARTMENT_ID || "0",
+          10,
+        ),
         departmentName: department?.HR_DEPARTMENT_NAME ?? "",
         active: departmentSub.ACTIVE === "True",
         createdAt: departmentSub.created_at?.toISOString(),
@@ -397,4 +400,3 @@ export async function DELETE(
     );
   }
 }
-
