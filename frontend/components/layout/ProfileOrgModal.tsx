@@ -24,8 +24,8 @@ export default function ProfileOrgModal({
   return (
     <Modal
       isKeyboardDismissDisabled
-      isDismissable={false}
       closeButton={true}
+      isDismissable={false}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
     >

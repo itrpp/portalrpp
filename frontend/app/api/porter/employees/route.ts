@@ -72,7 +72,10 @@ export async function GET(request: NextRequest) {
 
       // สร้าง map สำหรับ lookup
       const personTypeMap = new Map(
-        personTypes.map((pt) => [pt.HR_PERSON_TYPE_ID, pt.HR_PERSON_TYPE_NAME ?? ""]),
+        personTypes.map((pt) => [
+          pt.HR_PERSON_TYPE_ID,
+          pt.HR_PERSON_TYPE_NAME ?? "",
+        ]),
       );
       const positionMap = new Map(
         positions.map((p) => [p.HR_POSITION_ID, p.HR_POSITION_NAME ?? ""]),
@@ -160,9 +163,10 @@ export async function POST(request: Request) {
       last_name: requestData.lastName,
       nickname: requestData.nickname || undefined,
       // ส่ง empty string ถ้า profileImage เป็น null เพื่อลบรูปภาพ (gRPC ไม่รองรับ null)
-      profile_image: requestData.profileImage && requestData.profileImage.trim() !== "" 
-        ? requestData.profileImage 
-        : "",
+      profile_image:
+        requestData.profileImage && requestData.profileImage.trim() !== ""
+          ? requestData.profileImage
+          : "",
       employment_type_id: String(requestData.employmentTypeId),
       position_id: String(requestData.positionId),
       status: requestData.status ?? true,

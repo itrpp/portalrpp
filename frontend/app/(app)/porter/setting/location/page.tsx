@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   Card,
@@ -47,7 +47,14 @@ interface BuildingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (
-    building: Omit<Building, "floors"> & { floors?: FloorDepartment[] },
+    building: Omit<Building, "floors" | "floorPlans"> & {
+      floors?: FloorDepartment[];
+      floorPlans?: Array<{
+        id?: string;
+        floor_number: number;
+        image_data: string;
+      }>;
+    },
   ) => void;
   building?: Building | null;
   isLoading?: boolean;
@@ -63,18 +70,189 @@ function BuildingModal({
   const [name, setName] = useState("");
   const [floorCount, setFloorCount] = useState<string>("");
   const [status, setStatus] = useState<boolean>(true);
+  // เก็บ floor plans เป็น Record เพื่อความสะดวกในการจัดการ (key: floorNumber, value: { id?, imageData })
+  const [floorPlans, setFloorPlans] = useState<
+    Record<number, { id?: string; imageData: string }>
+  >({});
+  const [floorPlanPreviews, setFloorPlanPreviews] = useState<
+    Record<number, string>
+  >({});
+  const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
   useEffect(() => {
     if (building) {
       setName(building.name);
       setFloorCount(building.floorCount?.toString() || "");
       setStatus(building.status !== undefined ? building.status : true);
+
+      // แปลง floorPlans array เป็น Record
+      const floorPlansRecord: Record<
+        number,
+        { id?: string; imageData: string }
+      > = {};
+      const previewsRecord: Record<number, string> = {};
+
+      if (building.floorPlans && Array.isArray(building.floorPlans)) {
+        building.floorPlans.forEach((fp) => {
+          floorPlansRecord[fp.floorNumber] = {
+            id: fp.id,
+            imageData: fp.imageData,
+          };
+          previewsRecord[fp.floorNumber] = fp.imageData;
+        });
+      }
+      setFloorPlans(floorPlansRecord);
+      setFloorPlanPreviews(previewsRecord);
     } else {
       setName("");
       setFloorCount("");
       setStatus(true);
+      setFloorPlans({});
+      setFloorPlanPreviews({});
     }
   }, [building, isOpen]);
+
+  const handleFloorPlanUpload = (
+    floorNumber: number,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    // ตรวจสอบประเภทไฟล์
+    if (!file.type.startsWith("image/")) {
+      addToast({
+        title: "ประเภทไฟล์ไม่ถูกต้อง",
+        description: "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
+        color: "danger",
+      });
+
+      return;
+    }
+
+    // ตรวจสอบขนาดไฟล์ (สูงสุด 5MB สำหรับ floor plan)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (file.size > maxSize) {
+      addToast({
+        title: "ไฟล์ใหญ่เกินไป",
+        description: "กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 5MB",
+        color: "danger",
+      });
+
+      return;
+    }
+
+    // อ่านไฟล์และ resize ก่อนแปลงเป็น base64
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const img = new Image();
+      const base64String = e.target?.result as string;
+
+      img.onload = () => {
+        // สร้าง canvas เพื่อ resize รูปภาพ
+        const canvas = document.createElement("canvas");
+        const maxWidth = 2000; // ขนาดสูงสุดสำหรับ floor plan
+        const maxHeight = 2000;
+        let width = img.width;
+        let height = img.height;
+
+        // คำนวณขนาดใหม่โดยคงอัตราส่วน
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // วาดรูปภาพใหม่ที่ resize แล้ว
+        const ctx = canvas.getContext("2d");
+
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // แปลงเป็น base64 (ใช้ quality 0.85 เพื่อลดขนาด)
+          const resizedBase64 = canvas.toDataURL("image/jpeg", 0.85);
+
+          setFloorPlans((prev) => ({
+            ...prev,
+            [floorNumber]: {
+              id: prev[floorNumber]?.id, // เก็บ id เดิมถ้ามี (สำหรับ update)
+              imageData: resizedBase64,
+            },
+          }));
+          setFloorPlanPreviews((prev) => ({
+            ...prev,
+            [floorNumber]: resizedBase64,
+          }));
+        } else {
+          // Fallback: ใช้รูปภาพเดิมถ้าไม่สามารถ resize ได้
+          setFloorPlans((prev) => ({
+            ...prev,
+            [floorNumber]: {
+              id: prev[floorNumber]?.id, // เก็บ id เดิมถ้ามี (สำหรับ update)
+              imageData: base64String,
+            },
+          }));
+          setFloorPlanPreviews((prev) => ({
+            ...prev,
+            [floorNumber]: base64String,
+          }));
+        }
+      };
+
+      img.onerror = () => {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถโหลดรูปภาพได้",
+          color: "danger",
+        });
+      };
+
+      img.src = base64String;
+    };
+
+    reader.onerror = () => {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถอ่านไฟล์รูปภาพได้",
+        color: "danger",
+      });
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFloorPlan = (floorNumber: number) => {
+    setFloorPlans((prev) => {
+      const newPlans = { ...prev };
+
+      delete newPlans[floorNumber];
+
+      return newPlans;
+    });
+    setFloorPlanPreviews((prev) => {
+      const newPreviews = { ...prev };
+
+      delete newPreviews[floorNumber];
+
+      return newPreviews;
+    });
+
+    if (fileInputRefs.current[floorNumber]) {
+      fileInputRefs.current[floorNumber]!.value = "";
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -87,11 +265,27 @@ function BuildingModal({
       return;
     }
 
+    const floorCountNum = floorCount ? parseInt(floorCount, 10) : 0;
+
+    // ไม่บังคับให้อัปโหลด floor plan สำหรับทุกชั้น
+    // ผู้ใช้สามารถอัปโหลดได้ตามต้องการ
+
     try {
+      // แปลง floorPlans Record เป็น array สำหรับส่งไป backend
+      const floorPlansArray =
+        Object.keys(floorPlans).length > 0
+          ? Object.entries(floorPlans).map(([floorNumber, data]) => ({
+              id: data.id, // ถ้ามี id = update, ถ้าไม่มี = create
+              floor_number: parseInt(floorNumber, 10),
+              image_data: data.imageData,
+            }))
+          : undefined;
+
       await onSave({
         id: building?.id || "", // จะถูกสร้างอัตโนมัติใน handleSaveBuilding
         name: name.trim(),
-        floorCount: floorCount ? parseInt(floorCount, 10) : undefined,
+        floorCount: floorCountNum > 0 ? floorCountNum : undefined,
+        floorPlans: floorPlansArray,
         status: status,
         floors: building?.floors || [],
       });
@@ -104,7 +298,7 @@ function BuildingModal({
   };
 
   return (
-    <Modal isOpen={isOpen} size="lg" onClose={onClose}>
+    <Modal isOpen={isOpen} scrollBehavior="inside" size="2xl" onClose={onClose}>
       <ModalContent>
         <ModalHeader>{building ? "แก้ไขอาคาร" : "เพิ่มอาคารใหม่"}</ModalHeader>
         <ModalBody>
@@ -132,6 +326,88 @@ function BuildingModal({
               variant="bordered"
               onChange={(e) => setFloorCount(e.target.value)}
             />
+            {floorCount && parseInt(floorCount, 10) > 0 && (
+              <div className="space-y-3">
+                <div className="text-sm font-medium text-foreground">
+                  รูป Floor Plan ของแต่ละชั้น
+                </div>
+                <div className="text-xs text-default-500 mb-2">
+                  สามารถอัปโหลดรูป floor plan ได้ตามต้องการ (ไม่บังคับ)
+                </div>
+                <ScrollShadow className="max-h-[400px]">
+                  <div className="space-y-3">
+                    {Array.from(
+                      { length: parseInt(floorCount, 10) },
+                      (_, i) => {
+                        const floorNum = i + 1;
+                        const preview = floorPlanPreviews[floorNum];
+
+                        return (
+                          <div
+                            key={floorNum}
+                            className="p-3 border border-default-200 rounded-lg space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-foreground">
+                                ชั้น {floorNum}
+                              </span>
+                              {preview && (
+                                <Button
+                                  isIconOnly
+                                  color="danger"
+                                  size="sm"
+                                  variant="light"
+                                  onPress={() =>
+                                    handleRemoveFloorPlan(floorNum)
+                                  }
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                            {preview ? (
+                              <div className="relative">
+                                <img
+                                  alt={`Floor plan ชั้น ${floorNum}`}
+                                  className="w-full h-auto rounded-lg border border-default-200"
+                                  src={preview}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  ref={(el) => {
+                                    fileInputRefs.current[floorNum] = el;
+                                  }}
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={isLoading}
+                                  type="file"
+                                  onChange={(e) =>
+                                    handleFloorPlanUpload(floorNum, e)
+                                  }
+                                />
+                                <Button
+                                  color="default"
+                                  isDisabled={isLoading}
+                                  size="sm"
+                                  variant="bordered"
+                                  onPress={() =>
+                                    fileInputRefs.current[floorNum]?.click()
+                                  }
+                                >
+                                  อัปโหลดรูป Floor Plan
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+                </ScrollShadow>
+              </div>
+            )}
             <div className="space-y-2">
               <div className="text-sm font-medium text-foreground">
                 สถานะการใช้งาน
@@ -548,14 +824,11 @@ export default function LocationSettingsPage() {
     onOpen: onFloorModalOpen,
     onClose: onFloorModalClose,
   } = useDisclosure();
-  // const { isOpen: isRoomBedModalOpen, onClose: onRoomBedModalClose } =
-  //   useDisclosure(); // เลิกใช้งาน room-beds แล้ว
 
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [editingFloor, setEditingFloor] = useState<FloorDepartment | null>(
     null,
   );
-  // const [editingRoomBed, setEditingRoomBed] = useState<RoomBed | null>(null); // เลิกใช้งาน room-beds แล้ว
 
   // จัดการอาคาร
   const handleAddBuilding = () => {
@@ -563,9 +836,39 @@ export default function LocationSettingsPage() {
     onBuildingModalOpen();
   };
 
-  const handleEditBuilding = (building: Building) => {
-    setEditingBuilding(building);
-    onBuildingModalOpen();
+  const handleEditBuilding = async (building: Building) => {
+    try {
+      // ดึง building ใหม่จาก API เพื่อให้ได้ floorPlans ครบถ้วน
+      // เพราะ listBuildings exclude floorPlans ออกเพื่อลด memory usage
+      const response = await fetch(`/api/porter/buildings/${building.id}`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const fullBuilding = convertBuildingFromProto(result.data);
+
+        setEditingBuilding(fullBuilding);
+        onBuildingModalOpen();
+      } else {
+        // ถ้าดึงข้อมูลไม่ได้ ให้ใช้ building จาก list แทน
+        setEditingBuilding(building);
+        onBuildingModalOpen();
+        addToast({
+          title: "คำเตือน",
+          description:
+            "ไม่สามารถดึงข้อมูล floor plans ได้ ใช้ข้อมูลจากรายการแทน",
+          color: "warning",
+        });
+      }
+    } catch (error) {
+      // ถ้าเกิด error ให้ใช้ building จาก list แทน
+      setEditingBuilding(building);
+      onBuildingModalOpen();
+      addToast({
+        title: "คำเตือน",
+        description: "ไม่สามารถดึงข้อมูล floor plans ได้ ใช้ข้อมูลจากรายการแทน",
+        color: "warning",
+      });
+    }
   };
 
   const handleDeleteBuilding = async (buildingId: string) => {
@@ -614,7 +917,14 @@ export default function LocationSettingsPage() {
   };
 
   const handleSaveBuilding = async (
-    buildingData: Omit<Building, "floors"> & { floors?: FloorDepartment[] },
+    buildingData: Omit<Building, "floors" | "floorPlans"> & {
+      floors?: FloorDepartment[];
+      floorPlans?: Array<{
+        id?: string;
+        floor_number: number;
+        image_data: string;
+      }>;
+    },
   ) => {
     try {
       setIsSavingBuilding(true);
@@ -628,6 +938,7 @@ export default function LocationSettingsPage() {
             body: JSON.stringify({
               name: buildingData.name,
               floorCount: buildingData.floorCount,
+              floorPlans: buildingData.floorPlans,
               status: buildingData.status,
             }),
           },
@@ -664,6 +975,9 @@ export default function LocationSettingsPage() {
 
         if (buildingData.floorCount !== undefined) {
           requestBody.floorCount = buildingData.floorCount;
+        }
+        if (buildingData.floorPlans !== undefined) {
+          requestBody.floorPlans = buildingData.floorPlans;
         }
         if (buildingData.status !== undefined) {
           requestBody.status = buildingData.status;
@@ -719,7 +1033,6 @@ export default function LocationSettingsPage() {
       const building = buildings.find((b) => b.id === selectedBuildingId);
 
       if (building) {
-        // อัปเดต selectedBuilding ด้วย building ใหม่จาก buildings array
         // เพื่อให้ข้อมูล sync กับข้อมูลล่าสุด
         setSelectedBuilding(building);
       } else {

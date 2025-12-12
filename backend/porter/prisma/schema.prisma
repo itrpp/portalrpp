@@ -85,9 +85,11 @@ model Building {
   updatedAt DateTime @updatedAt
 
   floors FloorDepartment[]
+  floorPlans FloorPlan[]
 
   @@index([name])
   @@index([status])
+  @@index([createdAt])
 }
 
 model FloorDepartment {
@@ -109,6 +111,40 @@ model FloorDepartment {
   @@index([buildingId])
   @@index([departmentType])
   @@index([status])
+}
+
+model FloorPlan {
+  id        String   @id @default(cuid())
+  buildingId String
+  floorNumber Int
+  imageData String @db.LongText // base64 string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  stations BleStation[]
+
+  @@index([buildingId, floorNumber])
+  @@unique([buildingId, floorNumber])
+}
+
+model BleStation {
+  id        String   @id @default(cuid())
+  floorPlanId String
+  name      String   @db.VarChar(200)
+  macAddress String  @unique @db.VarChar(17) // MAC address format: XX:XX:XX:XX:XX:XX
+  uuid      String?  @db.VarChar(36) // UUID format
+  positionX Float
+  positionY Float
+  signalStrength Int? // dBm
+  batteryLevel Int? // percentage (0-100)
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  floorPlan FloorPlan @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+
+  @@index([floorPlanId])
 }
 
 /// ========================================

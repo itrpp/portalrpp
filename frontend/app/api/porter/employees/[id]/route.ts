@@ -150,9 +150,10 @@ export async function PUT(
     // gRPC protobuf ไม่รองรับ null สำหรับ optional string ดังนั้นใช้ empty string แทน
     if (requestData.profileImage !== undefined) {
       // ถ้าเป็น empty string หรือ null ให้ส่ง empty string เพื่อให้ backend รู้ว่าต้องลบรูปภาพ
-      protoRequest.profile_image = requestData.profileImage && requestData.profileImage.trim() !== "" 
-        ? requestData.profileImage 
-        : "";
+      protoRequest.profile_image =
+        requestData.profileImage && requestData.profileImage.trim() !== ""
+          ? requestData.profileImage
+          : "";
     }
     if (requestData.employmentTypeId !== undefined) {
       // แปลงจาก number (hrd) เป็น string (gRPC)

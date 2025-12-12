@@ -16,6 +16,8 @@ import {
   addToast,
 } from "@heroui/react";
 
+import ImagePreviewModal from "./ImagePreviewModal";
+
 import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
 
 /**
@@ -52,6 +54,7 @@ export default function EmployeeModal({
   const [employmentTypeId, setEmploymentTypeId] = useState<string>("");
   const [positionId, setPositionId] = useState<string>("");
   const [status, setStatus] = useState(true);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -63,9 +66,7 @@ export default function EmployeeModal({
       setProfileImage(employee.profileImage || "");
       setProfileImagePreview(employee.profileImage || "");
       // แปลง ID เป็น string สำหรับ Select component
-      setEmploymentTypeId(
-        String(employee.employmentTypeId ?? ""),
-      );
+      setEmploymentTypeId(String(employee.employmentTypeId ?? ""));
       setPositionId(String(employee.positionId ?? ""));
       setStatus(employee.status);
     } else {
@@ -80,9 +81,7 @@ export default function EmployeeModal({
       const defaultPosition = positions[0];
 
       setEmploymentTypeId(
-        defaultEmploymentType
-          ? String(defaultEmploymentType.id)
-          : "",
+        defaultEmploymentType ? String(defaultEmploymentType.id) : "",
       );
       setPositionId(defaultPosition ? String(defaultPosition.id) : "");
       setStatus(true);
@@ -101,18 +100,20 @@ export default function EmployeeModal({
         description: "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
         color: "danger",
       });
+
       return;
     }
 
-    // ตรวจสอบขนาดไฟล์ (สูงสุด 2MB)
-    const maxSize = 2 * 1024 * 1024; // 2MB
+    // ตรวจสอบขนาดไฟล์ (สูงสุด 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
 
     if (file.size > maxSize) {
       addToast({
         title: "ไฟล์ใหญ่เกินไป",
-        description: "กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 2MB",
+        description: "กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 10MB",
         color: "danger",
       });
+
       return;
     }
 
@@ -196,6 +197,12 @@ export default function EmployeeModal({
     }
   };
 
+  const handleImageClick = () => {
+    if (profileImagePreview) {
+      setIsImagePreviewOpen(true);
+    }
+  };
+
   const handleSave = async () => {
     // Validate citizenId (ต้องเป็น 13 หลัก)
     if (!citizenId.trim()) {
@@ -266,7 +273,10 @@ export default function EmployeeModal({
         lastName: lastName.trim(),
         nickname: nickname.trim() || undefined,
         // ส่ง null ถ้าไม่มีรูปภาพ (empty string) เพื่อให้ backend ลบออกจาก database
-        profileImage: profileImage && profileImage.trim() !== "" ? profileImage : (null as string | null),
+        profileImage:
+          profileImage && profileImage.trim() !== ""
+            ? profileImage
+            : (null as string | null),
         employmentType: "", // จะถูก populate จาก backend
         employmentTypeId,
         position: "", // จะถูก populate จาก backend
@@ -280,188 +290,211 @@ export default function EmployeeModal({
   };
 
   return (
-    <Modal isOpen={isOpen} size="lg" onClose={onClose}>
-      <ModalContent>
-        <ModalHeader>
-          {employee ? "แก้ไขเจ้าหน้าที่เปล" : "เพิ่มเจ้าหน้าที่เปลใหม่"}
-        </ModalHeader>
-        <ModalBody>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                รูปภาพโปรไฟล์
-              </div>
-              <div className="flex items-center gap-4">
-                {profileImagePreview ? (
-                  <div className="relative">
-                    <Avatar
-                      alt={`${firstName} ${lastName}`}
-                      className="w-20 h-20"
-                      src={profileImagePreview}
+    <>
+      <Modal isOpen={isOpen} size="lg" onClose={onClose}>
+        <ModalContent>
+          <ModalHeader>
+            {employee ? "แก้ไขเจ้าหน้าที่เปล" : "เพิ่มเจ้าหน้าที่เปลใหม่"}
+          </ModalHeader>
+          <ModalBody>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-foreground">
+                  รูปภาพโปรไฟล์
+                </div>
+                <div className="flex items-center gap-4">
+                  {profileImagePreview ? (
+                    <div className="relative">
+                      <div
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleImageClick}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleImageClick();
+                          }
+                        }}
+                      >
+                        <Avatar
+                          alt={`${firstName} ${lastName}`}
+                          className="w-20 h-20"
+                          src={profileImagePreview}
+                        />
+                      </div>
+                      <Button
+                        isIconOnly
+                        className="absolute -top-2 -right-2 min-w-0 w-6 h-6"
+                        color="danger"
+                        size="sm"
+                        variant="solid"
+                        onPress={handleRemoveImage}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-default-200 flex items-center justify-center">
+                      <span className="text-default-400 text-xs">ไม่มีรูป</span>
+                    </div>
+                  )}
+                  <div className="flex-1 space-y-2">
+                    <input
+                      ref={fileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isLoading}
+                      type="file"
+                      onChange={handleImageUpload}
                     />
                     <Button
-                      className="absolute -top-2 -right-2 min-w-0 w-6 h-6"
-                      color="danger"
-                      isIconOnly
+                      color="default"
+                      isDisabled={isLoading}
                       size="sm"
-                      variant="solid"
-                      onPress={handleRemoveImage}
+                      variant="bordered"
+                      onPress={() => fileInputRef.current?.click()}
                     >
-                      ×
+                      {profileImagePreview ? "เปลี่ยนรูปภาพ" : "อัปโหลดรูปภาพ"}
                     </Button>
+                    <p className="text-xs text-default-500">
+                      รองรับไฟล์รูปภาพขนาดไม่เกิน 10MB
+                    </p>
                   </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-default-200 flex items-center justify-center">
-                    <span className="text-default-400 text-xs">ไม่มีรูป</span>
-                  </div>
-                )}
-                <div className="flex-1 space-y-2">
-                  <input
-                    ref={fileInputRef}
-                    accept="image/*"
-                    className="hidden"
-                    disabled={isLoading}
-                    type="file"
-                    onChange={handleImageUpload}
-                  />
-                  <Button
-                    color="default"
-                    isDisabled={isLoading}
-                    size="sm"
-                    variant="bordered"
-                    onPress={() => fileInputRef.current?.click()}
-                  >
-                    {profileImagePreview ? "เปลี่ยนรูปภาพ" : "อัปโหลดรูปภาพ"}
-                  </Button>
-                  <p className="text-xs text-default-500">
-                    รองรับไฟล์รูปภาพขนาดไม่เกิน 2MB
-                  </p>
                 </div>
               </div>
-            </div>
-            <Input
-              isRequired
-              description={
-                employee
-                  ? "ไม่สามารถแก้ไขเลขบัตรประชาชนได้"
-                  : "กรุณากรอกเลขบัตรประชาชน 13 หลัก"
-              }
-              isDisabled={isLoading || !!employee}
-              label="เลขบัตรประชาชน"
-              maxLength={13}
-              placeholder="เช่น 1234567890123"
-              value={citizenId}
-              variant="bordered"
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, "");
-
-                setCitizenId(value);
-              }}
-            />
-            <Input
-              isRequired
-              isDisabled={isLoading}
-              label="ชื่อ"
-              placeholder="เช่น สมชาย"
-              value={firstName}
-              variant="bordered"
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-            <Input
-              isRequired
-              isDisabled={isLoading}
-              label="นามสกุล"
-              placeholder="เช่น ใจดี"
-              value={lastName}
-              variant="bordered"
-              onChange={(e) => setLastName(e.target.value)}
-            />
-            <Input
-              isDisabled={isLoading}
-              label="ชื่อเล่น"
-              placeholder="เช่น หมู (ไม่บังคับ)"
-              value={nickname}
-              variant="bordered"
-              onChange={(e) => setNickname(e.target.value)}
-            />
-
-            <Autocomplete
-              isRequired
-              defaultItems={employmentTypes.map((et) => ({
-                key: String(et.id),
-                label: et.name,
-              }))}
-              isDisabled={isLoading}
-              label="ประเภทการจ้าง"
-              placeholder="เลือกประเภทการจ้าง"
-              selectedKey={employmentTypeId || undefined}
-              variant="bordered"
-              onSelectionChange={(key) => {
-                if (key != null) {
-                  setEmploymentTypeId(String(key));
+              <Input
+                isRequired
+                description={
+                  employee
+                    ? "ไม่สามารถแก้ไขเลขบัตรประชาชนได้"
+                    : "กรุณากรอกเลขบัตรประชาชน 13 หลัก"
                 }
-              }}
-            >
-              {(item) => (
-                <AutocompleteItem key={item.key}>
-                  {item.label}
-                </AutocompleteItem>
-              )}
-            </Autocomplete>
-            <Autocomplete
-              isRequired
-              defaultItems={positions.map((p) => ({
-                key: String(p.id),
-                label: p.name,
-              }))}
-              isDisabled={isLoading}
-              label="ตำแหน่ง"
-              placeholder="เลือกตำแหน่ง"
-              selectedKey={positionId || undefined}
-              variant="bordered"
-              onSelectionChange={(key) => {
-                if (key != null) {
-                  setPositionId(String(key));
-                }
-              }}
-            >
-              {(item) => (
-                <AutocompleteItem key={item.key}>
-                  {item.label}
-                </AutocompleteItem>
-              )}
-            </Autocomplete>
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                สถานะการใช้งาน
-              </div>
-              <div className="text-xs text-default-500">
-                เปิดใช้งานเมื่อต้องการให้เจ้าหน้าที่คนนี้สามารถรับงานได้
-              </div>
-              <Checkbox
+                isDisabled={isLoading || !!employee}
+                label="เลขบัตรประชาชน"
+                maxLength={13}
+                placeholder="เช่น 1234567890123"
+                value={citizenId}
+                variant="bordered"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+
+                  setCitizenId(value);
+                }}
+              />
+              <Input
+                isRequired
                 isDisabled={isLoading}
-                isSelected={status}
-                onValueChange={setStatus}
+                label="ชื่อ"
+                placeholder="เช่น สมชาย"
+                value={firstName}
+                variant="bordered"
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+              <Input
+                isRequired
+                isDisabled={isLoading}
+                label="นามสกุล"
+                placeholder="เช่น ใจดี"
+                value={lastName}
+                variant="bordered"
+                onChange={(e) => setLastName(e.target.value)}
+              />
+              <Input
+                isDisabled={isLoading}
+                label="ชื่อเล่น"
+                placeholder="เช่น หมู (ไม่บังคับ)"
+                value={nickname}
+                variant="bordered"
+                onChange={(e) => setNickname(e.target.value)}
+              />
+
+              <Autocomplete
+                isRequired
+                defaultItems={employmentTypes.map((et) => ({
+                  key: String(et.id),
+                  label: et.name,
+                }))}
+                isDisabled={isLoading}
+                label="ประเภทการจ้าง"
+                placeholder="เลือกประเภทการจ้าง"
+                selectedKey={employmentTypeId || undefined}
+                variant="bordered"
+                onSelectionChange={(key) => {
+                  if (key != null) {
+                    setEmploymentTypeId(String(key));
+                  }
+                }}
               >
-                ใช้งาน
-              </Checkbox>
+                {(item) => (
+                  <AutocompleteItem key={item.key}>
+                    {item.label}
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+              <Autocomplete
+                isRequired
+                defaultItems={positions.map((p) => ({
+                  key: String(p.id),
+                  label: p.name,
+                }))}
+                isDisabled={isLoading}
+                label="ตำแหน่ง"
+                placeholder="เลือกตำแหน่ง"
+                selectedKey={positionId || undefined}
+                variant="bordered"
+                onSelectionChange={(key) => {
+                  if (key != null) {
+                    setPositionId(String(key));
+                  }
+                }}
+              >
+                {(item) => (
+                  <AutocompleteItem key={item.key}>
+                    {item.label}
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-foreground">
+                  สถานะการใช้งาน
+                </div>
+                <div className="text-xs text-default-500">
+                  เปิดใช้งานเมื่อต้องการให้เจ้าหน้าที่คนนี้สามารถรับงานได้
+                </div>
+                <Checkbox
+                  isDisabled={isLoading}
+                  isSelected={status}
+                  onValueChange={setStatus}
+                >
+                  ใช้งาน
+                </Checkbox>
+              </div>
             </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button isDisabled={isLoading} variant="flat" onPress={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            color="primary"
-            isDisabled={isLoading}
-            isLoading={isLoading}
-            onPress={handleSave}
-          >
-            บันทึก
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+          </ModalBody>
+          <ModalFooter>
+            <Button isDisabled={isLoading} variant="flat" onPress={onClose}>
+              ยกเลิก
+            </Button>
+            <Button
+              color="primary"
+              isDisabled={isLoading}
+              isLoading={isLoading}
+              onPress={handleSave}
+            >
+              บันทึก
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal สำหรับแสดงรูปภาพ */}
+      <ImagePreviewModal
+        alt={`${firstName} ${lastName}`}
+        imageUrl={profileImagePreview}
+        isOpen={isImagePreviewOpen}
+        onClose={() => setIsImagePreviewOpen(false)}
+      />
+    </>
   );
 }

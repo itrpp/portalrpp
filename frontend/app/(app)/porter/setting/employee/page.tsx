@@ -19,7 +19,7 @@ import {
   Pagination,
 } from "@heroui/react";
 
-import { EmployeeModal } from "../../components";
+import { EmployeeModal, ImagePreviewModal } from "../../components";
 import { usePagination } from "../../hooks/usePagination";
 
 import {
@@ -37,6 +37,7 @@ export default function EmployeeManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const {
     currentPage,
     rowsPerPage,
@@ -53,6 +54,11 @@ export default function EmployeeManagementPage() {
     onOpen: onEmployeeModalOpen,
     onClose: onEmployeeModalClose,
   } = useDisclosure();
+  const {
+    isOpen: isImagePreviewOpen,
+    onOpen: onImagePreviewOpen,
+    onClose: onImagePreviewClose,
+  } = useDisclosure();
   const [editingEmployee, setEditingEmployee] = useState<PorterEmployee | null>(
     null,
   );
@@ -66,13 +72,16 @@ export default function EmployeeManagementPage() {
 
         if (result.success && result.data) {
           // แปลงข้อมูลจาก hrd format เป็น EmploymentType format
-          const formattedData = result.data.map((item: { id: number; name: string }) => ({
-            id: String(item.id), // แปลง number เป็น string สำหรับ compatibility
-            name: item.name,
-            status: true, // hrd tables ไม่มี status field
-            createdAt: undefined,
-            updatedAt: undefined,
-          }));
+          const formattedData = result.data.map(
+            (item: { id: number; name: string }) => ({
+              id: String(item.id), // แปลง number เป็น string สำหรับ compatibility
+              name: item.name,
+              status: true, // hrd tables ไม่มี status field
+              createdAt: undefined,
+              updatedAt: undefined,
+            }),
+          );
+
           setEmploymentTypes(formattedData);
         }
       } catch {
@@ -87,13 +96,16 @@ export default function EmployeeManagementPage() {
 
         if (result.success && result.data) {
           // แปลงข้อมูลจาก hrd format เป็น Position format
-          const formattedData = result.data.map((item: { id: number; name: string }) => ({
-            id: String(item.id), // แปลง number เป็น string สำหรับ compatibility
-            name: item.name,
-            status: true, // hrd tables ไม่มี status field
-            createdAt: undefined,
-            updatedAt: undefined,
-          }));
+          const formattedData = result.data.map(
+            (item: { id: number; name: string }) => ({
+              id: String(item.id), // แปลง number เป็น string สำหรับ compatibility
+              name: item.name,
+              status: true, // hrd tables ไม่มี status field
+              createdAt: undefined,
+              updatedAt: undefined,
+            }),
+          );
+
           setPositions(formattedData);
         }
       } catch {
@@ -145,6 +157,13 @@ export default function EmployeeManagementPage() {
   const handleEditEmployee = (employee: PorterEmployee) => {
     setEditingEmployee(employee);
     onEmployeeModalOpen();
+  };
+
+  const handleImageClick = (imageUrl: string) => {
+    if (imageUrl) {
+      setSelectedImage(imageUrl);
+      onImagePreviewOpen();
+    }
   };
 
   const handleDeleteEmployee = async (employeeId: string) => {
@@ -255,16 +274,16 @@ export default function EmployeeManagementPage() {
         const response = await fetch("/api/porter/employees", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              citizenId: employeeData.citizenId,
-              firstName: employeeData.firstName,
-              lastName: employeeData.lastName,
-              nickname: employeeData.nickname,
-              profileImage: employeeData.profileImage,
-              employmentTypeId: employeeData.employmentTypeId,
-              positionId: employeeData.positionId,
-              status: employeeData.status,
-            }),
+          body: JSON.stringify({
+            citizenId: employeeData.citizenId,
+            firstName: employeeData.firstName,
+            lastName: employeeData.lastName,
+            nickname: employeeData.nickname,
+            profileImage: employeeData.profileImage,
+            employmentTypeId: employeeData.employmentTypeId,
+            positionId: employeeData.positionId,
+            status: employeeData.status,
+          }),
         });
         const result = await response.json();
 
@@ -371,11 +390,24 @@ export default function EmployeeManagementPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         {item.profileImage ? (
-                          <Avatar
-                            alt={`${item.firstName} ${item.lastName}`}
-                            className="w-10 h-10"
-                            src={item.profileImage}
-                          />
+                          <div
+                            className="cursor-pointer hover:opacity-80 transition-opacity inline-block"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleImageClick(item.profileImage!)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleImageClick(item.profileImage!);
+                              }
+                            }}
+                          >
+                            <Avatar
+                              alt={`${item.firstName} ${item.lastName}`}
+                              className="w-10 h-10"
+                              src={item.profileImage}
+                            />
+                          </div>
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center">
                             <span className="text-default-400 text-sm font-medium">
@@ -512,6 +544,17 @@ export default function EmployeeManagementPage() {
           setEditingEmployee(null);
         }}
         onSave={handleSaveEmployee}
+      />
+
+      {/* Modal สำหรับแสดงรูปภาพ */}
+      <ImagePreviewModal
+        alt="รูปภาพโปรไฟล์"
+        imageUrl={selectedImage}
+        isOpen={isImagePreviewOpen}
+        onClose={() => {
+          onImagePreviewClose();
+          setSelectedImage(null);
+        }}
       />
     </div>
   );

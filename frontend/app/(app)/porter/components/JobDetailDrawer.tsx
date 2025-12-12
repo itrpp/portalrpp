@@ -1207,7 +1207,10 @@ export default function JobDetailDrawer({
                       : fullName;
 
                     return (
-                      <AutocompleteItem key={employee.id} textValue={displayName}>
+                      <AutocompleteItem
+                        key={employee.id}
+                        textValue={displayName}
+                      >
                         <div className="flex items-center gap-3">
                           {employee.profileImage ? (
                             <Avatar

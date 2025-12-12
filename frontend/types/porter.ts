@@ -223,12 +223,44 @@ export interface FloorDepartment {
 }
 
 /**
+ * ข้อมูล BLE Station
+ */
+export interface BleStation {
+  id: string;
+  floorPlanId: string;
+  name: string;
+  macAddress: string;
+  uuid?: string;
+  positionX: number;
+  positionY: number;
+  signalStrength?: number; // dBm
+  batteryLevel?: number; // percentage (0-100)
+  status: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * ข้อมูล Floor Plan
+ */
+export interface FloorPlan {
+  id: string;
+  buildingId: string;
+  floorNumber: number;
+  imageData: string; // base64 string
+  stations: BleStation[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * ข้อมูลอาคาร
  */
 export interface Building {
   id: string;
   name: string;
   floorCount?: number; // จำนวนชั้น
+  floorPlans?: FloorPlan[]; // floor plan ของแต่ละชั้น
   status: boolean; // true = ใช้งาน, false = ไม่ใช้งาน
   floors: FloorDepartment[];
 }

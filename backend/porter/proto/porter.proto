@@ -47,6 +47,20 @@ service PorterService {
   rpc UpdateFloorDepartment(UpdateFloorDepartmentRequest) returns (FloorDepartmentResponse);
   rpc DeleteFloorDepartment(DeleteFloorDepartmentRequest) returns (DeleteFloorDepartmentResponse);
 
+  // FloorPlan CRUD
+  rpc CreateFloorPlan(CreateFloorPlanRequest) returns (FloorPlanResponse);
+  rpc GetFloorPlan(GetFloorPlanRequest) returns (FloorPlanResponse);
+  rpc ListFloorPlans(ListFloorPlansRequest) returns (ListFloorPlansResponse);
+  rpc UpdateFloorPlan(UpdateFloorPlanRequest) returns (FloorPlanResponse);
+  rpc DeleteFloorPlan(DeleteFloorPlanRequest) returns (DeleteFloorPlanResponse);
+
+  // BleStation CRUD
+  rpc CreateBleStation(CreateBleStationRequest) returns (BleStationResponse);
+  rpc GetBleStation(GetBleStationRequest) returns (BleStationResponse);
+  rpc ListBleStations(ListBleStationsRequest) returns (ListBleStationsResponse);
+  rpc UpdateBleStation(UpdateBleStationRequest) returns (BleStationResponse);
+  rpc DeleteBleStation(DeleteBleStationRequest) returns (DeleteBleStationResponse);
+
   // ===== Employee Management Service =====
 
   // Employee CRUD
@@ -279,6 +293,7 @@ message CreateBuildingRequest {
   optional string id = 1; // ถ้าไม่ระบุจะใช้ cuid() auto-generated
   string name = 2;
   optional int32 floor_count = 3; // จำนวนชั้น
+  repeated FloorPlanInput floor_plans = 5; // floor plan ของแต่ละชั้น
   optional bool status = 4; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
@@ -295,6 +310,7 @@ message UpdateBuildingRequest {
   string id = 1;
   string name = 2;
   optional int32 floor_count = 3; // จำนวนชั้น
+  repeated FloorPlanInput floor_plans = 5; // floor plan ของแต่ละชั้น
   optional bool status = 4; // true = ใช้งาน, false = ไม่ใช้งาน
 }
 
@@ -383,6 +399,119 @@ message DeleteFloorDepartmentResponse {
   optional string error_message = 3;
 }
 
+// FloorPlan Messages
+message CreateFloorPlanRequest {
+  optional string id = 1; // ถ้าไม่ระบุจะใช้ cuid() auto-generated
+  string building_id = 2;
+  int32 floor_number = 3;
+  string image_data = 4; // base64 string
+}
+
+message GetFloorPlanRequest {
+  string id = 1;
+}
+
+message ListFloorPlansRequest {
+  optional string building_id = 1;
+  optional int32 floor_number = 2;
+  optional int32 page = 3;
+  optional int32 page_size = 4;
+}
+
+message UpdateFloorPlanRequest {
+  string id = 1;
+  optional string building_id = 2;
+  optional int32 floor_number = 3;
+  optional string image_data = 4; // base64 string
+}
+
+message DeleteFloorPlanRequest {
+  string id = 1;
+}
+
+message FloorPlanResponse {
+  bool success = 1;
+  optional FloorPlan data = 2;
+  optional string error_message = 3;
+}
+
+message ListFloorPlansResponse {
+  bool success = 1;
+  repeated FloorPlan data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeleteFloorPlanResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+// BleStation Messages
+message CreateBleStationRequest {
+  optional string id = 1; // ถ้าไม่ระบุจะใช้ cuid() auto-generated
+  string floor_plan_id = 2;
+  string name = 3;
+  string mac_address = 4;
+  optional string uuid = 5;
+  float position_x = 6;
+  float position_y = 7;
+  optional int32 signal_strength = 8; // dBm
+  optional int32 battery_level = 9; // percentage (0-100)
+  optional bool status = 10; // true = ใช้งาน, false = ไม่ใช้งาน
+}
+
+message GetBleStationRequest {
+  string id = 1;
+}
+
+message ListBleStationsRequest {
+  optional string floor_plan_id = 1;
+  optional bool status = 2;
+  optional int32 page = 3;
+  optional int32 page_size = 4;
+}
+
+message UpdateBleStationRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string mac_address = 3;
+  optional string uuid = 4;
+  optional float position_x = 5;
+  optional float position_y = 6;
+  optional int32 signal_strength = 7; // dBm
+  optional int32 battery_level = 8; // percentage (0-100)
+  optional bool status = 9; // true = ใช้งาน, false = ไม่ใช้งาน
+}
+
+message DeleteBleStationRequest {
+  string id = 1;
+}
+
+message BleStationResponse {
+  bool success = 1;
+  optional BleStation data = 2;
+  optional string error_message = 3;
+}
+
+message ListBleStationsResponse {
+  bool success = 1;
+  repeated BleStation data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeleteBleStationResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
 // Location Settings Data Models
 message Building {
   string id = 1;
@@ -391,7 +520,39 @@ message Building {
   string updated_at = 4; // ISO 8601 format
   repeated FloorDepartment floors = 5;
   optional int32 floor_count = 7; // จำนวนชั้น (ใช้ field number 7 เพื่อไม่ conflict กับ field เดิม)
+  repeated FloorPlan floor_plans = 9; // floor plan ของแต่ละชั้น
   bool status = 8; // true = ใช้งาน, false = ไม่ใช้งาน
+}
+
+message FloorPlan {
+  string id = 1;
+  string building_id = 2;
+  int32 floor_number = 3;
+  string image_data = 4; // base64 string
+  repeated BleStation stations = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message FloorPlanInput {
+  optional string id = 1; // ถ้ามี id = update, ถ้าไม่มี = create
+  int32 floor_number = 2;
+  string image_data = 3; // base64 string
+}
+
+message BleStation {
+  string id = 1;
+  string floor_plan_id = 2;
+  string name = 3;
+  string mac_address = 4;
+  optional string uuid = 5;
+  float position_x = 6;
+  float position_y = 7;
+  optional int32 signal_strength = 8; // dBm
+  optional int32 battery_level = 9; // percentage (0-100)
+  bool status = 10;
+  string created_at = 11;
+  string updated_at = 12;
 }
 
 message FloorDepartment {

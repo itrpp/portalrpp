@@ -111,6 +111,10 @@ export async function POST(request: Request) {
     if (requestData.floorCount !== undefined) {
       protoRequest.floor_count = requestData.floorCount;
     }
+    // ถ้ามี floorPlans ที่ระบุมา (เป็น array)
+    if (requestData.floorPlans && Array.isArray(requestData.floorPlans)) {
+      protoRequest.floor_plans = requestData.floorPlans;
+    }
     // ถ้ามี status ที่ระบุมา
     if (requestData.status !== undefined) {
       protoRequest.status = requestData.status;

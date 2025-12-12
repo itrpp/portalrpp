@@ -27,7 +27,15 @@ import {
   UpdateFloorDepartmentInput,
   UpdatePorterRequestInput,
   UpdatePorterRequestStatusInput,
-  UpdatePorterRequestTimestampsInput
+  UpdatePorterRequestTimestampsInput,
+  CreateFloorPlanInput,
+  UpdateFloorPlanInput,
+  ListFloorPlansFilters,
+  FloorPlanMessage,
+  CreateBleStationInput,
+  UpdateBleStationInput,
+  ListBleStationsFilters,
+  BleStationMessage
 } from '../types/porter';
 import { handleGrpcError } from '../utils/grpcError';
 
@@ -442,6 +450,178 @@ export const deleteFloorDepartment = async (
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete floor department', {
       notFoundMessage: 'Floor department not found'
+    });
+  }
+};
+
+// ===== FloorPlan Handlers =====
+
+export const createFloorPlan = async (
+  call: UnaryCall<CreateFloorPlanInput, GrpcResponse<FloorPlanMessage>>,
+  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>
+) => {
+  try {
+    const data = await porterService.createFloorPlan(call.request);
+    callback(null, { success: true, data });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to create floor plan');
+  }
+};
+
+export const getFloorPlan = async (
+  call: UnaryCall<{ id: string }, GrpcResponse<FloorPlanMessage>>,
+  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>
+) => {
+  try {
+    const data = await porterService.getFloorPlanById(call.request.id);
+
+    if (!data) {
+      callback({
+        code: status.NOT_FOUND,
+        message: 'Floor plan not found'
+      });
+      return;
+    }
+
+    callback(null, { success: true, data });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to get floor plan');
+  }
+};
+
+export const listFloorPlans = async (
+  call: UnaryCall<ListFloorPlansFilters, GrpcListResponse<FloorPlanMessage>>,
+  callback: UnaryCallback<GrpcListResponse<FloorPlanMessage>>
+) => {
+  try {
+    const result = await porterService.listFloorPlans(call.request);
+
+    callback(null, {
+      success: true,
+      data: result.data,
+      total: result.total,
+      page: result.page,
+      page_size: result.page_size
+    });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to list floor plans');
+  }
+};
+
+export const updateFloorPlan = async (
+  call: UnaryCall<UpdateFloorPlanInput & { id: string }, GrpcResponse<FloorPlanMessage>>,
+  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>
+) => {
+  try {
+    const { id, ...updateData } = call.request;
+    const data = await porterService.updateFloorPlan(id, updateData);
+    callback(null, { success: true, data });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to update floor plan', {
+      notFoundMessage: 'Floor plan not found'
+    });
+  }
+};
+
+export const deleteFloorPlan = async (
+  call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
+  callback: UnaryCallback<GrpcDeleteResponse>
+) => {
+  try {
+    await porterService.deleteFloorPlan(call.request.id);
+    callback(null, {
+      success: true,
+      message: 'Floor plan deleted successfully'
+    });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to delete floor plan', {
+      notFoundMessage: 'Floor plan not found'
+    });
+  }
+};
+
+// ===== BleStation Handlers =====
+
+export const createBleStation = async (
+  call: UnaryCall<CreateBleStationInput, GrpcResponse<BleStationMessage>>,
+  callback: UnaryCallback<GrpcResponse<BleStationMessage>>
+) => {
+  try {
+    const data = await porterService.createBleStation(call.request);
+    callback(null, { success: true, data });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to create BLE station');
+  }
+};
+
+export const getBleStation = async (
+  call: UnaryCall<{ id: string }, GrpcResponse<BleStationMessage>>,
+  callback: UnaryCallback<GrpcResponse<BleStationMessage>>
+) => {
+  try {
+    const data = await porterService.getBleStationById(call.request.id);
+
+    if (!data) {
+      callback({
+        code: status.NOT_FOUND,
+        message: 'BLE station not found'
+      });
+      return;
+    }
+
+    callback(null, { success: true, data });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to get BLE station');
+  }
+};
+
+export const listBleStations = async (
+  call: UnaryCall<ListBleStationsFilters, GrpcListResponse<BleStationMessage>>,
+  callback: UnaryCallback<GrpcListResponse<BleStationMessage>>
+) => {
+  try {
+    const result = await porterService.listBleStations(call.request);
+
+    callback(null, {
+      success: true,
+      data: result.data,
+      total: result.total,
+      page: result.page,
+      page_size: result.page_size
+    });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to list BLE stations');
+  }
+};
+
+export const updateBleStation = async (
+  call: UnaryCall<UpdateBleStationInput & { id: string }, GrpcResponse<BleStationMessage>>,
+  callback: UnaryCallback<GrpcResponse<BleStationMessage>>
+) => {
+  try {
+    const { id, ...updateData } = call.request;
+    const data = await porterService.updateBleStation(id, updateData);
+    callback(null, { success: true, data });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to update BLE station', {
+      notFoundMessage: 'BLE station not found'
+    });
+  }
+};
+
+export const deleteBleStation = async (
+  call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
+  callback: UnaryCallback<GrpcDeleteResponse>
+) => {
+  try {
+    await porterService.deleteBleStation(call.request.id);
+    callback(null, {
+      success: true,
+      message: 'BLE station deleted successfully'
+    });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to delete BLE station', {
+      notFoundMessage: 'BLE station not found'
     });
   }
 };

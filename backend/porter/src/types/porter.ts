@@ -158,10 +158,42 @@ export interface PaginationResult<T> {
   page_size: number;
 }
 
+export interface FloorPlanMessage {
+  id: string;
+  building_id: string;
+  floor_number: number;
+  image_data: string; // base64 string
+  stations: BleStationMessage[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FloorPlanInput {
+  id?: string; // ถ้ามี id = update, ถ้าไม่มี = create
+  floor_number: number;
+  image_data: string; // base64 string
+}
+
+export interface BleStationMessage {
+  id: string;
+  floor_plan_id: string;
+  name: string;
+  mac_address: string;
+  uuid?: string;
+  position_x: number;
+  position_y: number;
+  signal_strength?: number; // dBm
+  battery_level?: number; // percentage (0-100)
+  status: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface BuildingMessage {
   id: string;
   name: string;
   floor_count?: number;
+  floor_plans?: FloorPlanMessage[]; // repeated FloorPlan
   status: boolean;
   created_at: string;
   updated_at: string;
@@ -172,12 +204,14 @@ export interface CreateBuildingInput {
   id?: string;
   name: string;
   floor_count?: number | null;
+  floor_plans?: FloorPlanInput[]; // repeated FloorPlanInput
   status?: boolean;
 }
 
 export interface UpdateBuildingInput {
   name?: string;
   floor_count?: number | null;
+  floor_plans?: FloorPlanInput[]; // repeated FloorPlanInput
   status?: boolean;
 }
 
@@ -226,6 +260,57 @@ export interface UpdateFloorDepartmentInput {
 export interface ListFloorDepartmentsFilters {
   building_id?: string;
   department_type?: number;
+  page?: number;
+  page_size?: number;
+}
+
+export interface CreateFloorPlanInput {
+  id?: string;
+  building_id: string;
+  floor_number: number;
+  image_data: string; // base64 string
+}
+
+export interface UpdateFloorPlanInput {
+  building_id?: string;
+  floor_number?: number;
+  image_data?: string; // base64 string
+}
+
+export interface ListFloorPlansFilters {
+  building_id?: string;
+  floor_number?: number;
+  page?: number;
+  page_size?: number;
+}
+
+export interface CreateBleStationInput {
+  id?: string;
+  floor_plan_id: string;
+  name: string;
+  mac_address: string;
+  uuid?: string;
+  position_x: number;
+  position_y: number;
+  signal_strength?: number; // dBm
+  battery_level?: number; // percentage (0-100)
+  status?: boolean;
+}
+
+export interface UpdateBleStationInput {
+  name?: string;
+  mac_address?: string;
+  uuid?: string;
+  position_x?: number;
+  position_y?: number;
+  signal_strength?: number; // dBm
+  battery_level?: number; // percentage (0-100)
+  status?: boolean;
+}
+
+export interface ListBleStationsFilters {
+  floor_plan_id?: string;
+  status?: boolean;
   page?: number;
   page_size?: number;
 }

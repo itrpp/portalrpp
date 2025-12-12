@@ -11,7 +11,6 @@ import {
   DropdownMenu,
   DropdownItem,
   Avatar,
-  Button,
 } from "@heroui/react";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -78,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       // ส่ง callbackUrl ไปด้วยเพื่อกลับมาหน้าเดิมหลัง login
       const callbackUrl = encodeURIComponent(
         pathname +
-        (searchParams.toString() ? `?${searchParams.toString()}` : ""),
+          (searchParams.toString() ? `?${searchParams.toString()}` : ""),
       );
 
       router.push(`/login?callbackUrl=${callbackUrl}`);
@@ -327,8 +326,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Modal บังคับให้ผู้ใช้ไปปรับปรุงข้อมูลโครงสร้างองค์กรในโปรไฟล์ */}
         <ProfileOrgModal
           isOpen={isProfileOrgModalOpen}
-          onOpenChange={setIsProfileOrgModalOpen}
           onConfirm={handleConfirmUpdateProfile}
+          onOpenChange={setIsProfileOrgModalOpen}
         />
 
         {/* App Footer */}

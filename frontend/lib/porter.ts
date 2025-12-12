@@ -8,6 +8,8 @@ import {
   Building,
   FloorDepartment,
   RoomBed,
+  FloorPlan,
+  BleStation,
 } from "@/types/porter";
 
 /**
@@ -650,11 +652,44 @@ export function convertFloorDepartmentFromProto(
 /**
  * แปลง Building จาก Proto format เป็น Frontend format
  */
+export function convertBleStationFromProto(protoData: any): BleStation {
+  return {
+    id: protoData.id,
+    floorPlanId: protoData.floor_plan_id,
+    name: protoData.name,
+    macAddress: protoData.mac_address,
+    uuid: protoData.uuid,
+    positionX: protoData.position_x,
+    positionY: protoData.position_y,
+    signalStrength: protoData.signal_strength,
+    batteryLevel: protoData.battery_level,
+    status: protoData.status !== undefined ? Boolean(protoData.status) : true,
+    createdAt: protoData.created_at,
+    updatedAt: protoData.updated_at,
+  };
+}
+
+export function convertFloorPlanFromProto(protoData: any): FloorPlan {
+  return {
+    id: protoData.id,
+    buildingId: protoData.building_id,
+    floorNumber: protoData.floor_number,
+    imageData: protoData.image_data,
+    stations:
+      protoData.stations?.map((s: any) => convertBleStationFromProto(s)) || [],
+    createdAt: protoData.created_at,
+    updatedAt: protoData.updated_at,
+  };
+}
+
 export function convertBuildingFromProto(protoData: any): Building {
   return {
     id: protoData.id,
     name: protoData.name,
     floorCount: protoData.floor_count ?? undefined,
+    floorPlans:
+      protoData.floor_plans?.map((fp: any) => convertFloorPlanFromProto(fp)) ||
+      [],
     status: protoData.status !== undefined ? Boolean(protoData.status) : true,
     floors:
       protoData.floors?.map((f: any) => convertFloorDepartmentFromProto(f)) ||
