@@ -235,6 +235,8 @@ export interface PorterEmployeeMessage {
   citizen_id: string;
   first_name: string;
   last_name: string;
+  nickname?: string; // ชื่อเล่น
+  profile_image?: string; // รูปภาพโปรไฟล์ (base64 string)
   employment_type?: string;
   employment_type_id: string;
   position?: string;
@@ -248,16 +250,20 @@ export interface CreateEmployeeInput {
   citizen_id: string;
   first_name: string;
   last_name: string;
-  employment_type_id: string;
-  position_id: string;
+  nickname?: string; // ชื่อเล่น
+  profile_image?: string; // รูปภาพโปรไฟล์ (base64 string)
+  employment_type_id: string; // จะถูกแปลงเป็น Int ที่ service layer
+  position_id: string; // จะถูกแปลงเป็น Int ที่ service layer
   status?: boolean;
 }
 
 export interface UpdateEmployeeInput {
   first_name?: string;
   last_name?: string;
-  employment_type_id?: string | null;
-  position_id?: string | null;
+  nickname?: string | null; // ชื่อเล่น
+  profile_image?: string | null; // รูปภาพโปรไฟล์ (base64 string)
+  employment_type_id?: string | null; // จะถูกแปลงเป็น Int ที่ service layer
+  position_id?: string | null; // จะถูกแปลงเป็น Int ที่ service layer
   status?: boolean | null;
 }
 
@@ -267,42 +273,6 @@ export interface ListEmployeesFilters {
   status?: boolean | null;
   page?: number;
   page_size?: number;
-}
-
-export interface EmploymentTypeMessage {
-  id: string;
-  name: string;
-  status: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateEmploymentTypeInput {
-  name: string;
-  status?: boolean;
-}
-
-export interface UpdateEmploymentTypeInput {
-  name?: string;
-  status?: boolean;
-}
-
-export interface PositionMessage {
-  id: string;
-  name: string;
-  status: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreatePositionInput {
-  name: string;
-  status?: boolean;
-}
-
-export interface UpdatePositionInput {
-  name?: string;
-  status?: boolean;
 }
 
 export interface StreamPorterRequestsRequest {

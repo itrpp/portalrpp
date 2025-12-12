@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 
 import { authOptions } from "@/app/api/auth/authOptions";
 import { callPorterService } from "@/lib/grpcClient";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/porter/employees
@@ -53,20 +54,51 @@ export async function GET(request: NextRequest) {
     );
 
     if (response.success) {
-      // แปลงข้อมูลจาก Proto format เป็น Frontend format
-      const frontendData = (response.data || []).map((item: any) => ({
-        id: item.id,
-        citizenId: item.citizen_id,
-        firstName: item.first_name,
-        lastName: item.last_name,
-        employmentType: item.employment_type || "",
-        employmentTypeId: item.employment_type_id,
-        position: item.position || "",
-        positionId: item.position_id,
-        status: item.status,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-      }));
+      // ดึงข้อมูล employment types และ positions จาก hrd tables
+      const [personTypes, positions] = await Promise.all([
+        prisma.hrd_person_type.findMany({
+          select: {
+            HR_PERSON_TYPE_ID: true,
+            HR_PERSON_TYPE_NAME: true,
+          },
+        }),
+        prisma.hrd_position.findMany({
+          select: {
+            HR_POSITION_ID: true,
+            HR_POSITION_NAME: true,
+          },
+        }),
+      ]);
+
+      // สร้าง map สำหรับ lookup
+      const personTypeMap = new Map(
+        personTypes.map((pt) => [pt.HR_PERSON_TYPE_ID, pt.HR_PERSON_TYPE_NAME ?? ""]),
+      );
+      const positionMap = new Map(
+        positions.map((p) => [p.HR_POSITION_ID, p.HR_POSITION_NAME ?? ""]),
+      );
+
+      // แปลงข้อมูลจาก Proto format เป็น Frontend format และ populate names
+      const frontendData = (response.data || []).map((item: any) => {
+        const employmentTypeId = parseInt(item.employment_type_id, 10);
+        const positionId = parseInt(item.position_id, 10);
+
+        return {
+          id: item.id,
+          citizenId: item.citizen_id,
+          firstName: item.first_name,
+          lastName: item.last_name,
+          nickname: item.nickname || undefined,
+          profileImage: item.profile_image || undefined,
+          employmentType: personTypeMap.get(employmentTypeId) || "",
+          employmentTypeId: item.employment_type_id,
+          position: positionMap.get(positionId) || "",
+          positionId: item.position_id,
+          status: item.status,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+        };
+      });
 
       return NextResponse.json(
         {
@@ -121,12 +153,18 @@ export async function POST(request: Request) {
     const requestData = await request.json();
 
     // สร้าง proto request
+    // แปลง employmentTypeId และ positionId จาก number (hrd) เป็น string (gRPC)
     const protoRequest: any = {
       citizen_id: requestData.citizenId,
       first_name: requestData.firstName,
       last_name: requestData.lastName,
-      employment_type_id: requestData.employmentTypeId,
-      position_id: requestData.positionId,
+      nickname: requestData.nickname || undefined,
+      // ส่ง empty string ถ้า profileImage เป็น null เพื่อลบรูปภาพ (gRPC ไม่รองรับ null)
+      profile_image: requestData.profileImage && requestData.profileImage.trim() !== "" 
+        ? requestData.profileImage 
+        : "",
+      employment_type_id: String(requestData.employmentTypeId),
+      position_id: String(requestData.positionId),
       status: requestData.status ?? true,
     };
 
@@ -137,15 +175,32 @@ export async function POST(request: Request) {
     );
 
     if (response.success) {
+      // ดึงข้อมูล employment type และ position จาก hrd tables
+      const employmentTypeId = parseInt(response.data.employment_type_id, 10);
+      const positionId = parseInt(response.data.position_id, 10);
+
+      const [personType, position] = await Promise.all([
+        prisma.hrd_person_type.findUnique({
+          where: { HR_PERSON_TYPE_ID: employmentTypeId },
+          select: { HR_PERSON_TYPE_NAME: true },
+        }),
+        prisma.hrd_position.findUnique({
+          where: { HR_POSITION_ID: positionId },
+          select: { HR_POSITION_NAME: true },
+        }),
+      ]);
+
       // แปลงข้อมูลจาก Proto format เป็น Frontend format
       const frontendData = {
         id: response.data.id,
         citizenId: response.data.citizen_id,
         firstName: response.data.first_name,
         lastName: response.data.last_name,
-        employmentType: response.data.employment_type || "",
+        nickname: response.data.nickname || undefined,
+        profileImage: response.data.profile_image || undefined,
+        employmentType: personType?.HR_PERSON_TYPE_NAME || "",
         employmentTypeId: response.data.employment_type_id,
-        position: response.data.position || "",
+        position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
         createdAt: response.data.created_at,

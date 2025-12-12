@@ -13,6 +13,7 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import {
+  Avatar,
   Button,
   Chip,
   Divider,
@@ -73,20 +74,8 @@ interface JobDetailDrawerProps {
   onUpdateJob?: (jobId: string, updatedForm: PorterRequestFormData) => void;
 }
 
-/**
- * Interface สำหรับข้อมูลเจ้าหน้าที่เปล
- */
-interface PorterEmployee {
-  id: string;
-  citizenId: string;
-  firstName: string;
-  lastName: string;
-  employmentType: string;
-  employmentTypeId: string;
-  position: string;
-  positionId: string;
-  status: boolean;
-}
+// ใช้ type จาก types/porter.ts แทนการประกาศใหม่
+import type { PorterEmployee } from "@/types/porter";
 
 export default function JobDetailDrawer({
   isOpen,
@@ -1213,19 +1202,43 @@ export default function JobDetailDrawer({
                 >
                   {employees.map((employee) => {
                     const fullName = `${employee.firstName} ${employee.lastName}`;
+                    const displayName = employee.nickname
+                      ? `[${employee.nickname}] ${employee.firstName} ${employee.lastName}`
+                      : fullName;
 
                     return (
-                      <AutocompleteItem key={employee.id} textValue={fullName}>
-                        <div className="flex flex-col">
-                          <span className="text-foreground font-medium">
-                            {fullName}
-                          </span>
-                          <span className="text-default-500 text-sm">
-                            {employee.position}
-                            {employee.employmentType
-                              ? ` • ${employee.employmentType}`
-                              : ""}
-                          </span>
+                      <AutocompleteItem key={employee.id} textValue={displayName}>
+                        <div className="flex items-center gap-3">
+                          {employee.profileImage ? (
+                            <Avatar
+                              alt={fullName}
+                              className="w-10 h-10 flex-shrink-0"
+                              src={employee.profileImage}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center flex-shrink-0">
+                              <span className="text-default-400 text-sm font-medium">
+                                {employee.firstName.charAt(0)}
+                                {employee.lastName.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-foreground font-medium truncate">
+                              {employee.nickname && (
+                                <span className="text-default-500 font-normal">
+                                  [{employee.nickname}]{" "}
+                                </span>
+                              )}
+                              {employee.firstName} {employee.lastName}
+                            </span>
+                            <span className="text-default-500 text-sm">
+                              {employee.position}
+                              {employee.employmentType
+                                ? ` • ${employee.employmentType}`
+                                : ""}
+                            </span>
+                          </div>
                         </div>
                       </AutocompleteItem>
                     );

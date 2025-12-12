@@ -1,4 +1,4 @@
-import { Prisma, type PorterRequest, type FloorDepartment, type PorterEmployee, type EmploymentType, type Position } from '@prisma/client';
+import { Prisma, type PorterRequest, type FloorDepartment, type PorterEmployee } from '@prisma/client';
 import prisma from '../config/database';
 import porterEventEmitter from '../utils/eventEmitter';
 import {
@@ -18,10 +18,8 @@ import {
 import {
   CreateBuildingInput,
   CreateEmployeeInput,
-  CreateEmploymentTypeInput,
   CreateFloorDepartmentInput,
   CreatePorterRequestInput,
-  CreatePositionInput,
   ListBuildingsFilters,
   ListEmployeesFilters,
   ListFloorDepartmentsFilters,
@@ -29,16 +27,12 @@ import {
   PaginationResult,
   PorterEmployeeMessage,
   PorterRequestMessage,
-  PositionMessage,
   UpdateBuildingInput,
   UpdateEmployeeInput,
-  UpdateEmploymentTypeInput,
   UpdateFloorDepartmentInput,
   UpdatePorterRequestInput,
   UpdatePorterRequestStatusInput,
   UpdatePorterRequestTimestampsInput,
-  UpdatePositionInput,
-  EmploymentTypeMessage,
   BuildingMessage,
   FloorDepartmentMessage,
   Equipment,
@@ -47,10 +41,7 @@ import {
 
 type BuildingWithFloors = Prisma.BuildingGetPayload<{ include: { floors: true } }>;
 type FloorDepartmentEntity = FloorDepartment;
-type PorterEmployeeWithRelations = PorterEmployee & {
-  employmentType?: EmploymentType | null;
-  position?: Position | null;
-};
+type PorterEmployeeWithRelations = PorterEmployee;
 
 type PorterRequestWithLocationNames = PorterRequest & {
   pickupBuildingName?: string;
@@ -687,23 +678,30 @@ export const deleteFloorDepartment = async (id: string): Promise<void> => {
 // ----- Employee Management Service -----
 
 export const createEmployee = async (requestData: CreateEmployeeInput): Promise<PorterEmployeeMessage> => {
-  const { citizen_id, first_name, last_name, employment_type_id, position_id, status } = requestData;
+  const { citizen_id, first_name, last_name, nickname, profile_image, employment_type_id, position_id, status } = requestData;
+
+  // แปลง employment_type_id และ position_id จาก string เป็น Int
+  const employmentTypeIdInt = Number.parseInt(employment_type_id, 10);
+  const positionIdInt = Number.parseInt(position_id, 10);
+
+  if (Number.isNaN(employmentTypeIdInt) || Number.isNaN(positionIdInt)) {
+    throw new Error("employment_type_id และ position_id ต้องเป็นตัวเลข");
+  }
 
   const createData: Prisma.PorterEmployeeUncheckedCreateInput = {
     citizenId: citizen_id.trim(),
     firstName: first_name.trim(),
     lastName: last_name.trim(),
-    employmentTypeId: employment_type_id,
-    positionId: position_id,
+    nickname: nickname?.trim() || null,
+    // ถ้าเป็น empty string (จาก gRPC) ให้ตั้งค่าเป็น null
+    profileImage: profile_image && profile_image.trim() !== "" ? profile_image.trim() : null,
+    employmentTypeId: employmentTypeIdInt,
+    positionId: positionIdInt,
     status: status ?? true
   };
 
   const employee = await prisma.porterEmployee.create({
-    data: createData,
-    include: {
-      employmentType: true,
-      position: true
-    }
+    data: createData
   });
 
   return convertEmployeeToProto(employee);
@@ -711,11 +709,7 @@ export const createEmployee = async (requestData: CreateEmployeeInput): Promise<
 
 export const getEmployeeById = async (id: string): Promise<PorterEmployeeMessage | null> => {
   const employee = await prisma.porterEmployee.findUnique({
-    where: { id },
-    include: {
-      employmentType: true,
-      position: true
-    }
+    where: { id }
   });
 
   return employee ? convertEmployeeToProto(employee) : null;
@@ -729,10 +723,18 @@ export const listEmployees = async (
   const where: Prisma.PorterEmployeeWhereInput = {};
 
   if (employment_type_id !== undefined && employment_type_id !== null) {
-    where.employmentTypeId = employment_type_id;
+    // แปลงจาก string เป็น Int
+    const employmentTypeIdInt = parseInt(employment_type_id, 10);
+    if (!isNaN(employmentTypeIdInt)) {
+      where.employmentTypeId = employmentTypeIdInt;
+    }
   }
   if (position_id !== undefined && position_id !== null) {
-    where.positionId = position_id;
+    // แปลงจาก string เป็น Int
+    const positionIdInt = parseInt(position_id, 10);
+    if (!isNaN(positionIdInt)) {
+      where.positionId = positionIdInt;
+    }
   }
   if (status !== undefined && status !== null) {
     where.status = status;
@@ -745,10 +747,6 @@ export const listEmployees = async (
 
   const queryOptions: any = {
     where,
-    include: {
-      employmentType: true,
-      position: true
-    },
     orderBy: { createdAt: 'desc' }
   };
 
@@ -782,11 +780,30 @@ export const updateEmployee = async (
   if (updateData.last_name) {
     data.lastName = updateData.last_name.trim();
   }
+  if (updateData.nickname !== undefined) {
+    data.nickname = updateData.nickname?.trim() || null;
+  }
+  if (updateData.profile_image !== undefined) {
+    // ถ้าเป็น empty string (จาก gRPC) หรือ null ให้ตั้งค่าเป็น null เพื่อลบรูปภาพ
+    // gRPC protobuf ส่ง empty string แทน null สำหรับ optional string
+    const trimmedValue = updateData.profile_image?.trim() || "";
+    data.profileImage = trimmedValue !== "" ? trimmedValue : null;
+  }
   if (updateData.employment_type_id !== undefined && updateData.employment_type_id !== null) {
-    data.employmentTypeId = updateData.employment_type_id;
+    // แปลงจาก string เป็น Int
+    const employmentTypeIdInt = Number.parseInt(updateData.employment_type_id, 10);
+    if (Number.isNaN(employmentTypeIdInt)) {
+      throw new Error("employment_type_id ต้องเป็นตัวเลข");
+    }
+    data.employmentTypeId = employmentTypeIdInt;
   }
   if (updateData.position_id !== undefined && updateData.position_id !== null) {
-    data.positionId = updateData.position_id;
+    // แปลงจาก string เป็น Int
+    const positionIdInt = Number.parseInt(updateData.position_id, 10);
+    if (Number.isNaN(positionIdInt)) {
+      throw new Error("position_id ต้องเป็นตัวเลข");
+    }
+    data.positionId = positionIdInt;
   }
   if (updateData.status !== undefined && updateData.status !== null) {
     data.status = updateData.status;
@@ -794,11 +811,7 @@ export const updateEmployee = async (
 
   const employee = await prisma.porterEmployee.update({
     where: { id },
-    data,
-    include: {
-      employmentType: true,
-      position: true
-    }
+    data
   });
 
   return convertEmployeeToProto(employee);
@@ -806,118 +819,6 @@ export const updateEmployee = async (
 
 export const deleteEmployee = async (id: string): Promise<void> => {
   await prisma.porterEmployee.delete({ where: { id } });
-};
-
-// ----- Employment Type Management Service -----
-
-export const createEmploymentType = async (
-  requestData: CreateEmploymentTypeInput
-): Promise<EmploymentTypeMessage> => {
-  const { name, status = true } = requestData;
-
-  const employmentType = await prisma.employmentType.create({
-    data: {
-      name: name.trim(),
-      status: status !== undefined ? status : true
-    }
-  });
-
-  return convertEmploymentTypeToProto(employmentType);
-};
-
-export const getEmploymentTypeById = async (id: string): Promise<EmploymentTypeMessage | null> => {
-  const employmentType = await prisma.employmentType.findUnique({ where: { id } });
-  return employmentType ? convertEmploymentTypeToProto(employmentType) : null;
-};
-
-export const listEmploymentTypes = async (): Promise<{ data: EmploymentTypeMessage[] }> => {
-  const employmentTypes = await prisma.employmentType.findMany({
-    orderBy: { name: 'asc' }
-  });
-
-  return {
-    data: employmentTypes.map(convertEmploymentTypeToProto)
-  };
-};
-
-export const updateEmploymentType = async (
-  id: string,
-  updateData: UpdateEmploymentTypeInput
-): Promise<EmploymentTypeMessage> => {
-  const data: Prisma.EmploymentTypeUpdateInput = {};
-
-  if (updateData.name !== undefined) {
-    data.name = updateData.name.trim();
-  }
-  if (updateData.status !== undefined) {
-    data.status = updateData.status;
-  }
-
-  const employmentType = await prisma.employmentType.update({
-    where: { id },
-    data
-  });
-
-  return convertEmploymentTypeToProto(employmentType);
-};
-
-export const deleteEmploymentType = async (id: string): Promise<void> => {
-  await prisma.employmentType.delete({ where: { id } });
-};
-
-// ----- Position Management Service -----
-
-export const createPosition = async (requestData: CreatePositionInput): Promise<PositionMessage> => {
-  const { name, status = true } = requestData;
-
-  const position = await prisma.position.create({
-    data: {
-      name: name.trim(),
-      status: status !== undefined ? status : true
-    }
-  });
-
-  return convertPositionToProto(position);
-};
-
-export const getPositionById = async (id: string): Promise<PositionMessage | null> => {
-  const position = await prisma.position.findUnique({ where: { id } });
-  return position ? convertPositionToProto(position) : null;
-};
-
-export const listPositions = async (): Promise<{ data: PositionMessage[] }> => {
-  const positions = await prisma.position.findMany({
-    orderBy: { name: 'asc' }
-  });
-
-  return {
-    data: positions.map(convertPositionToProto)
-  };
-};
-
-export const updatePosition = async (
-  id: string,
-  updateData: UpdatePositionInput
-): Promise<PositionMessage> => {
-  const data: Prisma.PositionUpdateInput = {};
-
-  if (updateData.name !== undefined) {
-    data.name = updateData.name.trim();
-  }
-  if (updateData.status !== undefined) {
-    data.status = updateData.status;
-  }
-
-  const position = await prisma.position.update({
-    where: { id },
-    data
-  });
-
-  return convertPositionToProto(position);
-};
-
-export const deletePosition = async (id: string): Promise<void> => {
-  await prisma.position.delete({ where: { id } });
 };
 
 // ----- Helper functions -----
@@ -1041,29 +942,16 @@ const convertEmployeeToProto = (employee: PorterEmployeeWithRelations): PorterEm
   citizen_id: employee.citizenId,
   first_name: employee.firstName,
   last_name: employee.lastName,
-  employment_type: employee.employmentType?.name || undefined,
-  employment_type_id: employee.employmentTypeId,
-  position: employee.position?.name || undefined,
-  position_id: employee.positionId,
+  nickname: employee.nickname || undefined,
+  profile_image: employee.profileImage || undefined,
+  // employment_type และ position จะถูก populate ที่ handler layer จาก hrd tables
+  employment_type: undefined,
+  employment_type_id: String(employee.employmentTypeId), // แปลง Int เป็น string สำหรับ proto
+  position: undefined,
+  position_id: String(employee.positionId), // แปลง Int เป็น string สำหรับ proto
   status: employee.status,
   created_at: employee.createdAt.toISOString(),
   updated_at: employee.updatedAt.toISOString()
-});
-
-const convertEmploymentTypeToProto = (employmentType: EmploymentType): EmploymentTypeMessage => ({
-  id: employmentType.id,
-  name: employmentType.name,
-  status: employmentType.status,
-  created_at: employmentType.createdAt.toISOString(),
-  updated_at: employmentType.updatedAt.toISOString()
-});
-
-const convertPositionToProto = (position: Position): PositionMessage => ({
-  id: position.id,
-  name: position.name,
-  status: position.status,
-  created_at: position.createdAt.toISOString(),
-  updated_at: position.updatedAt.toISOString()
 });
 
 

@@ -8,6 +8,7 @@ import {
   CardHeader,
   useDisclosure,
   Chip,
+  Avatar,
   addToast,
   Table,
   TableHeader,
@@ -56,15 +57,23 @@ export default function EmployeeManagementPage() {
     null,
   );
 
-  // โหลดข้อมูล EmploymentType และ Position
+  // โหลดข้อมูล EmploymentType และ Position จาก hrd tables
   useEffect(() => {
     const loadEmploymentTypes = async () => {
       try {
-        const response = await fetch("/api/porter/employment-types");
+        const response = await fetch("/api/hrd/person-types");
         const result = await response.json();
 
         if (result.success && result.data) {
-          setEmploymentTypes(result.data);
+          // แปลงข้อมูลจาก hrd format เป็น EmploymentType format
+          const formattedData = result.data.map((item: { id: number; name: string }) => ({
+            id: String(item.id), // แปลง number เป็น string สำหรับ compatibility
+            name: item.name,
+            status: true, // hrd tables ไม่มี status field
+            createdAt: undefined,
+            updatedAt: undefined,
+          }));
+          setEmploymentTypes(formattedData);
         }
       } catch {
         // Error loading employment types
@@ -73,11 +82,19 @@ export default function EmployeeManagementPage() {
 
     const loadPositions = async () => {
       try {
-        const response = await fetch("/api/porter/positions");
+        const response = await fetch("/api/hrd/positions");
         const result = await response.json();
 
         if (result.success && result.data) {
-          setPositions(result.data);
+          // แปลงข้อมูลจาก hrd format เป็น Position format
+          const formattedData = result.data.map((item: { id: number; name: string }) => ({
+            id: String(item.id), // แปลง number เป็น string สำหรับ compatibility
+            name: item.name,
+            status: true, // hrd tables ไม่มี status field
+            createdAt: undefined,
+            updatedAt: undefined,
+          }));
+          setPositions(formattedData);
         }
       } catch {
         // Error loading positions
@@ -206,6 +223,8 @@ export default function EmployeeManagementPage() {
             body: JSON.stringify({
               firstName: employeeData.firstName,
               lastName: employeeData.lastName,
+              nickname: employeeData.nickname,
+              profileImage: employeeData.profileImage,
               employmentTypeId: employeeData.employmentTypeId,
               positionId: employeeData.positionId,
               status: employeeData.status,
@@ -236,14 +255,16 @@ export default function EmployeeManagementPage() {
         const response = await fetch("/api/porter/employees", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            citizenId: employeeData.citizenId,
-            firstName: employeeData.firstName,
-            lastName: employeeData.lastName,
-            employmentTypeId: employeeData.employmentTypeId,
-            positionId: employeeData.positionId,
-            status: employeeData.status,
-          }),
+            body: JSON.stringify({
+              citizenId: employeeData.citizenId,
+              firstName: employeeData.firstName,
+              lastName: employeeData.lastName,
+              nickname: employeeData.nickname,
+              profileImage: employeeData.profileImage,
+              employmentTypeId: employeeData.employmentTypeId,
+              positionId: employeeData.positionId,
+              status: employeeData.status,
+            }),
         });
         const result = await response.json();
 
@@ -277,9 +298,11 @@ export default function EmployeeManagementPage() {
   };
 
   const columns = [
+    { key: "profile", label: "รูปภาพ" },
     { key: "citizenId", label: "เลขบัตรประชาชน" },
     { key: "firstName", label: "ชื่อ" },
     { key: "lastName", label: "นามสกุล" },
+    { key: "nickname", label: "ชื่อเล่น" },
     { key: "employmentType", label: "ประเภทการจ้าง" },
     { key: "position", label: "ตำแหน่ง" },
     { key: "status", label: "สถานะ" },
@@ -347,6 +370,22 @@ export default function EmployeeManagementPage() {
                   {(item) => (
                     <TableRow key={item.id}>
                       <TableCell>
+                        {item.profileImage ? (
+                          <Avatar
+                            alt={`${item.firstName} ${item.lastName}`}
+                            className="w-10 h-10"
+                            src={item.profileImage}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center">
+                            <span className="text-default-400 text-sm font-medium">
+                              {item.firstName.charAt(0)}
+                              {item.lastName.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <span className="font-mono text-sm">
                           {item.citizenId}
                         </span>
@@ -358,6 +397,11 @@ export default function EmployeeManagementPage() {
                       </TableCell>
                       <TableCell>
                         <span className="text-foreground">{item.lastName}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-foreground text-sm text-default-500">
+                          {item.nickname || "-"}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Chip color="default" size="sm" variant="flat">

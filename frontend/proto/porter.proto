@@ -55,20 +55,6 @@ service PorterService {
   rpc ListEmployees(ListEmployeesRequest) returns (ListEmployeesResponse);
   rpc UpdateEmployee(UpdateEmployeeRequest) returns (EmployeeResponse);
   rpc DeleteEmployee(DeleteEmployeeRequest) returns (DeleteEmployeeResponse);
-
-  // EmploymentType CRUD
-  rpc CreateEmploymentType(CreateEmploymentTypeRequest) returns (EmploymentTypeResponse);
-  rpc GetEmploymentType(GetEmploymentTypeRequest) returns (EmploymentTypeResponse);
-  rpc ListEmploymentTypes(ListEmploymentTypesRequest) returns (ListEmploymentTypesResponse);
-  rpc UpdateEmploymentType(UpdateEmploymentTypeRequest) returns (EmploymentTypeResponse);
-  rpc DeleteEmploymentType(DeleteEmploymentTypeRequest) returns (DeleteEmploymentTypeResponse);
-
-  // Position CRUD
-  rpc CreatePosition(CreatePositionRequest) returns (PositionResponse);
-  rpc GetPosition(GetPositionRequest) returns (PositionResponse);
-  rpc ListPositions(ListPositionsRequest) returns (ListPositionsResponse);
-  rpc UpdatePosition(UpdatePositionRequest) returns (PositionResponse);
-  rpc DeletePosition(DeletePositionRequest) returns (DeletePositionResponse);
 }
 
 // ===== Request Messages =====
@@ -429,6 +415,8 @@ message CreateEmployeeRequest {
   string citizen_id = 1; // เลขบัตรประชาชน 13 หลัก
   string first_name = 2;
   string last_name = 3;
+  optional string nickname = 7; // ชื่อเล่น
+  optional string profile_image = 8; // รูปภาพโปรไฟล์ (base64 string)
   string employment_type_id = 4; // ID ของ EmploymentType
   string position_id = 5; // ID ของ Position
   bool status = 6; // true = ใช้งาน, false = ไม่ใช้งาน
@@ -450,6 +438,8 @@ message UpdateEmployeeRequest {
   string id = 1;
   optional string first_name = 2;
   optional string last_name = 3;
+  optional string nickname = 7; // ชื่อเล่น
+  optional string profile_image = 8; // รูปภาพโปรไฟล์ (base64 string)
   optional string employment_type_id = 4;
   optional string position_id = 5;
   optional bool status = 6;
@@ -487,6 +477,8 @@ message Employee {
   string citizen_id = 2;
   string first_name = 3;
   string last_name = 4;
+  optional string nickname = 12; // ชื่อเล่น
+  optional string profile_image = 13; // รูปภาพโปรไฟล์ (base64 string)
   optional string employment_type = 5; // ชื่อประเภทการจ้าง (สำหรับ backward compatibility)
   string employment_type_id = 6; // ID ของ EmploymentType
   optional string position = 7; // ชื่อตำแหน่ง (สำหรับ backward compatibility)
@@ -494,108 +486,4 @@ message Employee {
   bool status = 9; // true = ใช้งาน, false = ไม่ใช้งาน
   string created_at = 10; // ISO 8601 format
   string updated_at = 11; // ISO 8601 format
-}
-
-// ===== EmploymentType Management Messages =====
-
-// EmploymentType Request Messages
-message CreateEmploymentTypeRequest {
-  string name = 1; // "ลูกจ้างรายวัน", "พนักงานประกันสังคม", "ลูกจ้างประจำ", "ลูกจ้างชั่วคราว"
-  optional bool status = 2; // true = ใช้งาน, false = ไม่ใช้งาน (default: true)
-}
-
-message GetEmploymentTypeRequest {
-  string id = 1;
-}
-
-message ListEmploymentTypesRequest {}
-
-message UpdateEmploymentTypeRequest {
-  string id = 1;
-  optional string name = 2;
-  optional bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
-}
-
-message DeleteEmploymentTypeRequest {
-  string id = 1;
-}
-
-// EmploymentType Response Messages
-message EmploymentTypeResponse {
-  bool success = 1;
-  optional EmploymentType data = 2;
-  optional string error_message = 3;
-}
-
-message ListEmploymentTypesResponse {
-  bool success = 1;
-  repeated EmploymentType data = 2;
-  optional string error_message = 3;
-}
-
-message DeleteEmploymentTypeResponse {
-  bool success = 1;
-  optional string message = 2;
-  optional string error_message = 3;
-}
-
-// EmploymentType Data Model
-message EmploymentType {
-  string id = 1;
-  string name = 2;
-  bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
-  string created_at = 4; // ISO 8601 format
-  string updated_at = 5; // ISO 8601 format
-}
-
-// ===== Position Management Messages =====
-
-// Position Request Messages
-message CreatePositionRequest {
-  string name = 1; // "พนักงานทั่วไป", "พนักงานเปล", "เจ้าพนักงานธุรการ"
-  optional bool status = 2; // true = ใช้งาน, false = ไม่ใช้งาน (default: true)
-}
-
-message GetPositionRequest {
-  string id = 1;
-}
-
-message ListPositionsRequest {}
-
-message UpdatePositionRequest {
-  string id = 1;
-  optional string name = 2;
-  optional bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
-}
-
-message DeletePositionRequest {
-  string id = 1;
-}
-
-// Position Response Messages
-message PositionResponse {
-  bool success = 1;
-  optional Position data = 2;
-  optional string error_message = 3;
-}
-
-message ListPositionsResponse {
-  bool success = 1;
-  repeated Position data = 2;
-  optional string error_message = 3;
-}
-
-message DeletePositionResponse {
-  bool success = 1;
-  optional string message = 2;
-  optional string error_message = 3;
-}
-
-// Position Data Model
-message Position {
-  string id = 1;
-  string name = 2;
-  bool status = 3; // true = ใช้งาน, false = ไม่ใช้งาน
-  string created_at = 4; // ISO 8601 format
-  string updated_at = 5; // ISO 8601 format
 }

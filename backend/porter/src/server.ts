@@ -54,17 +54,7 @@ const startServer = async () => {
       getEmployee: porterHandlers.getEmployee,
       listEmployees: porterHandlers.listEmployees,
       updateEmployee: porterHandlers.updateEmployee,
-      deleteEmployee: porterHandlers.deleteEmployee,
-      createEmploymentType: porterHandlers.createEmploymentType,
-      getEmploymentType: porterHandlers.getEmploymentType,
-      listEmploymentTypes: porterHandlers.listEmploymentTypes,
-      updateEmploymentType: porterHandlers.updateEmploymentType,
-      deleteEmploymentType: porterHandlers.deleteEmploymentType,
-      createPosition: porterHandlers.createPosition,
-      getPosition: porterHandlers.getPosition,
-      listPositions: porterHandlers.listPositions,
-      updatePosition: porterHandlers.updatePosition,
-      deletePosition: porterHandlers.deletePosition
+      deleteEmployee: porterHandlers.deleteEmployee
     });
 
     const port = config.port || 50051;

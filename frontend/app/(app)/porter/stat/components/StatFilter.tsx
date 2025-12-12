@@ -268,7 +268,7 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
             <Button
               className="bg-orange-100 text-orange-700 hover:bg-orange-200"
               color="default"
-              size="sm"
+              size="lg"
               variant="flat"
               onPress={handleClearFilter}
             >

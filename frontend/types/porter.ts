@@ -142,10 +142,12 @@ export interface PorterEmployee {
   citizenId: string;
   firstName: string;
   lastName: string;
+  nickname?: string; // ชื่อเล่น
+  profileImage?: string | null; // รูปภาพโปรไฟล์ (base64 string) - null สำหรับลบรูปภาพ
   employmentType: string; // ชื่อ (สำหรับ backward compatibility)
-  employmentTypeId: string;
+  employmentTypeId: string | number; // รองรับทั้ง string และ number (hrd_person_type ใช้ number)
   position: string; // ชื่อ (สำหรับ backward compatibility)
-  positionId: string;
+  positionId: string | number; // รองรับทั้ง string และ number (hrd_position ใช้ number)
   status: boolean;
 }
 

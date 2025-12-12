@@ -10,11 +10,8 @@ import {
   BuildingMessage,
   CreateBuildingInput,
   CreateEmployeeInput,
-  CreateEmploymentTypeInput,
   CreateFloorDepartmentInput,
   CreatePorterRequestInput,
-  CreatePositionInput,
-  EmploymentTypeMessage,
   FloorDepartmentMessage,
   HealthCheckResult,
   ListBuildingsFilters,
@@ -24,16 +21,13 @@ import {
   PorterEmployeeMessage,
   PorterRequestMessage,
   PorterRequestUpdateMessage,
-  PositionMessage,
   StreamPorterRequestsRequest,
   UpdateBuildingInput,
   UpdateEmployeeInput,
-  UpdateEmploymentTypeInput,
   UpdateFloorDepartmentInput,
   UpdatePorterRequestInput,
   UpdatePorterRequestStatusInput,
-  UpdatePorterRequestTimestampsInput,
-  UpdatePositionInput
+  UpdatePorterRequestTimestampsInput
 } from '../types/porter';
 import { handleGrpcError } from '../utils/grpcError';
 
@@ -537,172 +531,6 @@ export const deleteEmployee = async (
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete employee', {
       notFoundMessage: 'Employee not found'
-    });
-  }
-};
-
-// ----- Employment Type Handlers -----
-
-export const createEmploymentType = async (
-  call: UnaryCall<CreateEmploymentTypeInput, GrpcResponse<EmploymentTypeMessage>>,
-  callback: UnaryCallback<GrpcResponse<EmploymentTypeMessage>>
-) => {
-  try {
-    const data = await porterService.createEmploymentType(call.request);
-    callback(null, { success: true, data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to create employment type', {
-      uniqueConstraints: [{ field: 'name', message: 'ชื่อประเภทการจ้างนี้มีอยู่ในระบบแล้ว' }]
-    });
-  }
-};
-
-export const getEmploymentType = async (
-  call: UnaryCall<{ id: string }, GrpcResponse<EmploymentTypeMessage>>,
-  callback: UnaryCallback<GrpcResponse<EmploymentTypeMessage>>
-) => {
-  try {
-    const data = await porterService.getEmploymentTypeById(call.request.id);
-
-    if (!data) {
-      callback({
-        code: status.NOT_FOUND,
-        message: 'Employment type not found'
-      });
-      return;
-    }
-
-    callback(null, { success: true, data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to get employment type');
-  }
-};
-
-export const listEmploymentTypes = async (
-  _call: UnaryCall<Record<string, never>, GrpcResponse<EmploymentTypeMessage[]>>,
-  callback: UnaryCallback<GrpcResponse<EmploymentTypeMessage[]>>
-) => {
-  try {
-    const result = await porterService.listEmploymentTypes();
-    callback(null, { success: true, data: result.data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to list employment types');
-  }
-};
-
-export const updateEmploymentType = async (
-  call: UnaryCall<UpdateEmploymentTypeInput & { id: string }, GrpcResponse<EmploymentTypeMessage>>,
-  callback: UnaryCallback<GrpcResponse<EmploymentTypeMessage>>
-) => {
-  try {
-    const { id, ...updateData } = call.request;
-    const data = await porterService.updateEmploymentType(id, updateData);
-    callback(null, { success: true, data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to update employment type', {
-      notFoundMessage: 'Employment type not found',
-      uniqueConstraints: [{ field: 'name', message: 'ชื่อประเภทการจ้างนี้มีอยู่ในระบบแล้ว' }]
-    });
-  }
-};
-
-export const deleteEmploymentType = async (
-  call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
-) => {
-  try {
-    await porterService.deleteEmploymentType(call.request.id);
-    callback(null, {
-      success: true,
-      message: 'Employment type deleted successfully'
-    });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to delete employment type', {
-      notFoundMessage: 'Employment type not found',
-      foreignKeyMessage: 'ไม่สามารถลบได้ เนื่องจากมีเจ้าหน้าที่ใช้ประเภทการจ้างนี้อยู่'
-    });
-  }
-};
-
-// ----- Position Handlers -----
-
-export const createPosition = async (
-  call: UnaryCall<CreatePositionInput, GrpcResponse<PositionMessage>>,
-  callback: UnaryCallback<GrpcResponse<PositionMessage>>
-) => {
-  try {
-    const data = await porterService.createPosition(call.request);
-    callback(null, { success: true, data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to create position', {
-      uniqueConstraints: [{ field: 'name', message: 'ชื่อตำแหน่งนี้มีอยู่ในระบบแล้ว' }]
-    });
-  }
-};
-
-export const getPosition = async (
-  call: UnaryCall<{ id: string }, GrpcResponse<PositionMessage>>,
-  callback: UnaryCallback<GrpcResponse<PositionMessage>>
-) => {
-  try {
-    const data = await porterService.getPositionById(call.request.id);
-
-    if (!data) {
-      callback({
-        code: status.NOT_FOUND,
-        message: 'Position not found'
-      });
-      return;
-    }
-
-    callback(null, { success: true, data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to get position');
-  }
-};
-
-export const listPositions = async (
-  _call: UnaryCall<Record<string, never>, GrpcResponse<PositionMessage[]>>,
-  callback: UnaryCallback<GrpcResponse<PositionMessage[]>>
-) => {
-  try {
-    const result = await porterService.listPositions();
-    callback(null, { success: true, data: result.data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to list positions');
-  }
-};
-
-export const updatePosition = async (
-  call: UnaryCall<UpdatePositionInput & { id: string }, GrpcResponse<PositionMessage>>,
-  callback: UnaryCallback<GrpcResponse<PositionMessage>>
-) => {
-  try {
-    const { id, ...updateData } = call.request;
-    const data = await porterService.updatePosition(id, updateData);
-    callback(null, { success: true, data });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to update position', {
-      notFoundMessage: 'Position not found',
-      uniqueConstraints: [{ field: 'name', message: 'ชื่อตำแหน่งนี้มีอยู่ในระบบแล้ว' }]
-    });
-  }
-};
-
-export const deletePosition = async (
-  call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
-) => {
-  try {
-    await porterService.deletePosition(call.request.id);
-    callback(null, {
-      success: true,
-      message: 'Position deleted successfully'
-    });
-  } catch (error: unknown) {
-    handleGrpcError(callback, error, 'Failed to delete position', {
-      notFoundMessage: 'Position not found',
-      foreignKeyMessage: 'ไม่สามารถลบได้ เนื่องจากมีเจ้าหน้าที่ใช้ตำแหน่งนี้อยู่'
     });
   }
 };

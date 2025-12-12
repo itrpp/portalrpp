@@ -114,34 +114,6 @@ model FloorDepartment {
 /// ========================================
 /// Employee Management Schema
 /// ========================================
-model EmploymentType {
-  id        String   @id @default(cuid())
-  name      String   @unique @db.VarChar(100)
-  status    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  employees PorterEmployee[]
-
-  @@index([name])
-  @@index([status])
-}
-
-model Position {
-  id        String   @id @default(cuid())
-  name      String   @unique @db.VarChar(100)
-  status    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  employees PorterEmployee[]
-
-  @@index([name])
-  @@index([status])
-}
-
 model PorterEmployee {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -150,14 +122,16 @@ model PorterEmployee {
   citizenId  String @unique @db.VarChar(13)
   firstName  String @db.VarChar(100)
   lastName   String @db.VarChar(100)
+  nickname   String? @db.VarChar(100) // ชื่อเล่น
+  profileImage String? @db.LongText // รูปภาพโปรไฟล์ (base64 string) - ใช้ LONGTEXT สำหรับรองรับ base64 ที่ยาว
 
-  employmentTypeId String
-  positionId       String
+  employmentTypeId Int // ชี้ไปที่ hrd_person_type.HR_PERSON_TYPE_ID
+  positionId       Int // ชี้ไปที่ hrd_position.HR_POSITION_ID
 
   status Boolean @default(true)
 
-  employmentType EmploymentType @relation(fields: [employmentTypeId], references: [id], onDelete: Restrict)
-  position       Position       @relation(fields: [positionId], references: [id], onDelete: Restrict)
+  // หมายเหตุ: ไม่สามารถสร้าง foreign key relation กับ hrd tables ได้เพราะอยู่ใน database อื่น
+  // ต้องดึงข้อมูลจาก hrd tables แบบ manual ที่ service layer
 
   @@index([citizenId])
   @@index([status])

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 
 import { authOptions } from "@/app/api/auth/authOptions";
 import { callPorterService } from "@/lib/grpcClient";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/porter/employees/[id]
@@ -30,15 +31,32 @@ export async function GET(
     const response = await callPorterService<any>("GetEmployee", { id });
 
     if (response.success && response.data) {
+      // ดึงข้อมูล employment type และ position จาก hrd tables
+      const employmentTypeId = parseInt(response.data.employment_type_id, 10);
+      const positionId = parseInt(response.data.position_id, 10);
+
+      const [personType, position] = await Promise.all([
+        prisma.hrd_person_type.findUnique({
+          where: { HR_PERSON_TYPE_ID: employmentTypeId },
+          select: { HR_PERSON_TYPE_NAME: true },
+        }),
+        prisma.hrd_position.findUnique({
+          where: { HR_POSITION_ID: positionId },
+          select: { HR_POSITION_NAME: true },
+        }),
+      ]);
+
       // แปลงข้อมูลจาก Proto format เป็น Frontend format
       const frontendData = {
         id: response.data.id,
         citizenId: response.data.citizen_id,
         firstName: response.data.first_name,
         lastName: response.data.last_name,
-        employmentType: response.data.employment_type || "",
+        nickname: response.data.nickname || undefined,
+        profileImage: response.data.profile_image || undefined,
+        employmentType: personType?.HR_PERSON_TYPE_NAME || "",
         employmentTypeId: response.data.employment_type_id,
-        position: response.data.position || "",
+        position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
         createdAt: response.data.created_at,
@@ -125,11 +143,24 @@ export async function PUT(
     if (requestData.lastName !== undefined) {
       protoRequest.last_name = requestData.lastName;
     }
+    if (requestData.nickname !== undefined) {
+      protoRequest.nickname = requestData.nickname || undefined;
+    }
+    // ส่ง empty string ถ้า profileImage เป็น null หรือ empty string เพื่อลบรูปภาพออกจาก database
+    // gRPC protobuf ไม่รองรับ null สำหรับ optional string ดังนั้นใช้ empty string แทน
+    if (requestData.profileImage !== undefined) {
+      // ถ้าเป็น empty string หรือ null ให้ส่ง empty string เพื่อให้ backend รู้ว่าต้องลบรูปภาพ
+      protoRequest.profile_image = requestData.profileImage && requestData.profileImage.trim() !== "" 
+        ? requestData.profileImage 
+        : "";
+    }
     if (requestData.employmentTypeId !== undefined) {
-      protoRequest.employment_type_id = requestData.employmentTypeId;
+      // แปลงจาก number (hrd) เป็น string (gRPC)
+      protoRequest.employment_type_id = String(requestData.employmentTypeId);
     }
     if (requestData.positionId !== undefined) {
-      protoRequest.position_id = requestData.positionId;
+      // แปลงจาก number (hrd) เป็น string (gRPC)
+      protoRequest.position_id = String(requestData.positionId);
     }
     if (requestData.status !== undefined) {
       protoRequest.status = requestData.status;
@@ -142,15 +173,32 @@ export async function PUT(
     );
 
     if (response.success) {
+      // ดึงข้อมูล employment type และ position จาก hrd tables
+      const employmentTypeId = parseInt(response.data.employment_type_id, 10);
+      const positionId = parseInt(response.data.position_id, 10);
+
+      const [personType, position] = await Promise.all([
+        prisma.hrd_person_type.findUnique({
+          where: { HR_PERSON_TYPE_ID: employmentTypeId },
+          select: { HR_PERSON_TYPE_NAME: true },
+        }),
+        prisma.hrd_position.findUnique({
+          where: { HR_POSITION_ID: positionId },
+          select: { HR_POSITION_NAME: true },
+        }),
+      ]);
+
       // แปลงข้อมูลจาก Proto format เป็น Frontend format
       const frontendData = {
         id: response.data.id,
         citizenId: response.data.citizen_id,
         firstName: response.data.first_name,
         lastName: response.data.last_name,
-        employmentType: response.data.employment_type || "",
+        nickname: response.data.nickname || undefined,
+        profileImage: response.data.profile_image || undefined,
+        employmentType: personType?.HR_PERSON_TYPE_NAME || "",
         employmentTypeId: response.data.employment_type_id,
-        position: response.data.position || "",
+        position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
         createdAt: response.data.created_at,

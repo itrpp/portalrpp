@@ -11,11 +11,6 @@ import {
   DropdownMenu,
   DropdownItem,
   Avatar,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
 } from "@heroui/react";
 import { usePathname } from "next/navigation";
@@ -31,6 +26,7 @@ import {
   ArrowRightOnRectangleIcon,
 } from "@/components/ui/icons";
 import HomeFooter from "@/components/layout/HomeFooter";
+import ProfileOrgModal from "@/components/layout/ProfileOrgModal";
 
 interface BreadcrumbItemType {
   name: string;
@@ -82,7 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       // ส่ง callbackUrl ไปด้วยเพื่อกลับมาหน้าเดิมหลัง login
       const callbackUrl = encodeURIComponent(
         pathname +
-          (searchParams.toString() ? `?${searchParams.toString()}` : ""),
+        (searchParams.toString() ? `?${searchParams.toString()}` : ""),
       );
 
       router.push(`/login?callbackUrl=${callbackUrl}`);
@@ -329,34 +325,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-auto bg-default-50">{children}</div>
 
         {/* Modal บังคับให้ผู้ใช้ไปปรับปรุงข้อมูลโครงสร้างองค์กรในโปรไฟล์ */}
-        <Modal
-          isKeyboardDismissDisabled
-          isDismissable={false}
+        <ProfileOrgModal
           isOpen={isProfileOrgModalOpen}
           onOpenChange={setIsProfileOrgModalOpen}
-        >
-          <ModalContent>
-            {() => (
-              <>
-                <ModalHeader className="flex flex-col gap-1">
-                  กรุณาปรับปรุงข้อมูลโปรไฟล์
-                </ModalHeader>
-                <ModalBody>
-                  <p>
-                    ระบบตรวจพบว่าข้อมูลโครงสร้างองค์กรของคุณยังไม่ครบถ้วน
-                    กรุณาไปที่หน้าจอโปรไฟล์เพื่อกรอกข้อมูล เช่น กลุ่มบุคลากร,
-                    ตำแหน่ง, กลุ่มภารกิจ, กลุ่มงาน และหน่วยงาน
-                  </p>
-                </ModalBody>
-                <ModalFooter>
-                  <Button color="primary" onPress={handleConfirmUpdateProfile}>
-                    ไปที่หน้าปรับปรุงข้อมูลโปรไฟล์
-                  </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
+          onConfirm={handleConfirmUpdateProfile}
+        />
 
         {/* App Footer */}
         <HomeFooter />

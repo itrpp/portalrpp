@@ -176,16 +176,6 @@ export default function Sidebar() {
                               href: "/porter/setting/employee",
                               icon: UserIcon,
                             },
-                            {
-                              name: "ประเภทการจ้าง",
-                              href: "/porter/setting/employment-type",
-                              icon: BriefcaseIcon,
-                            },
-                            {
-                              name: "ตำแหน่ง",
-                              href: "/porter/setting/position",
-                              icon: UserGroupIcon,
-                            },
                           ],
                         } as SidebarItem,
                       ]
