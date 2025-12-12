@@ -10,13 +10,22 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
+
+import { useFilteredJobs } from "../hooks/useFilteredJobs";
+
+import { FilterState } from "./StatFilter";
+
+import { PorterJobItem } from "@/types/porter";
+import { formatLocationString } from "@/types/porter";
 
 interface PopularLocationChartProps {
   title: string;
   data: Array<{ location: string; count: number }>;
   color?: string;
+  jobs?: PorterJobItem[];
+  filterState?: FilterState | null;
+  locationType: "pickup" | "delivery";
 }
 
 interface CustomTooltipProps {
@@ -52,10 +61,17 @@ const CustomTooltip = ({ active, payload, totalCount }: CustomTooltipProps) => {
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
       }}
     >
-      <p style={{ margin: "0 0 8px 0", fontWeight: "600", color: "#333" }}>
+      <p
+        style={{
+          margin: "0 0 8px 0",
+          fontWeight: "600",
+          color: "#333",
+          fontSize: "12px",
+        }}
+      >
         {locationFull}
       </p>
-      <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
+      <p style={{ margin: 0, color: "#666", fontSize: "12px" }}>
         {count} ครั้ง ({percent}%)
       </p>
     </div>
@@ -66,25 +82,81 @@ export function PopularLocationChart({
   title,
   data,
   color = "#0070f3",
+  jobs,
+  filterState,
+  locationType,
 }: PopularLocationChartProps) {
+  // ใช้ shared filtered jobs hook เพื่อลดการ filter ซ้ำซ้อน
+  const filteredJobs = useFilteredJobs(jobs, filterState);
+
+  // ถ้ามี jobs และ filterState ให้คำนวณข้อมูลใหม่ (Optimized)
+  const filteredData = useMemo(() => {
+    if (!filteredJobs || filteredJobs.length === 0 || !filterState) {
+      return data;
+    }
+
+    // Cache สำหรับ location strings
+    const locationStringCache = new Map<string, string>();
+    const locationMap = new Map<string, number>();
+
+    // Single pass: คำนวณ popular locations จาก filtered jobs
+    for (const job of filteredJobs) {
+      const locationDetail =
+        locationType === "pickup"
+          ? job.form.pickupLocationDetail
+          : job.form.deliveryLocationDetail;
+
+      // ใช้ cache สำหรับ location string
+      const locationKey = JSON.stringify(locationDetail);
+      let locationStr = locationStringCache.get(locationKey);
+
+      if (!locationStr) {
+        locationStr = formatLocationString(locationDetail);
+        locationStringCache.set(locationKey, locationStr);
+      }
+
+      if (locationStr) {
+        locationMap.set(locationStr, (locationMap.get(locationStr) || 0) + 1);
+      }
+    }
+
+    return Array.from(locationMap.entries())
+      .map(([location, count]) => ({
+        location,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [filteredJobs, filterState, locationType, data]);
+
   const totalCount = useMemo(
-    () => data.reduce((sum, item) => sum + item.count, 0),
-    [data],
+    () => filteredData.reduce((sum, item) => sum + item.count, 0),
+    [filteredData],
   );
 
-  const chartData = data.map((item) => ({
-    location:
-      item.location.length > 40
-        ? `${item.location.substring(0, 40)}...`
-        : item.location,
-    locationFull: item.location,
-    count: item.count,
-  }));
+  const chartData = useMemo(
+    () =>
+      filteredData.map((item) => ({
+        location:
+          item.location.length > 40
+            ? `${item.location.substring(0, 40)}...`
+            : item.location,
+        locationFull: item.location,
+        count: item.count,
+      })),
+    [filteredData],
+  );
 
   return (
-    <Card className="shadow-lg border border-default-200">
+    <Card className="shadow-md border border-default-200 hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="pb-0">
-        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <div
+            className="w-1 h-6 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          {title}
+        </h3>
       </CardHeader>
       <CardBody className="pt-4">
         <ResponsiveContainer height={400} width="100%">
@@ -103,8 +175,13 @@ export function PopularLocationChart({
               width={100}
             />
             <Tooltip content={<CustomTooltip totalCount={totalCount} />} />
-            <Legend />
-            <Bar dataKey="count" fill={color} name="จำนวนงาน" />
+            {/* <Legend /> */}
+            <Bar
+              dataKey="count"
+              fill={color}
+              label={{ position: "right", style: { fontSize: "10px" } }}
+              name="จำนวนงาน"
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardBody>

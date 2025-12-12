@@ -71,48 +71,63 @@ export function usePorterStats() {
     void fetchAllJobs();
   }, []);
 
-  // คำนวณสถิติทั้งหมด
+  // คำนวณสถิติทั้งหมด - Single Pass Optimization
   const stats = useMemo<PorterStats>(() => {
     // ใช้ข้อมูลทั้งหมด ไม่กรองตามวันที่
     const filteredJobs = jobs.filter((job) => job.createdAt !== undefined);
-
-    // 1. จำนวนงานทั้งหมด
     const totalJobs = filteredJobs.length;
-    const waitingJobs = filteredJobs.filter(
-      (job) => job.status === "waiting",
-    ).length;
-    const inProgressJobs = filteredJobs.filter(
-      (job) => job.status === "in-progress",
-    ).length;
-    const completedJobs = filteredJobs.filter(
-      (job) => job.status === "completed",
-    ).length;
-    const cancelledJobs = filteredJobs.filter(
-      (job) => job.status === "cancelled",
-    ).length;
 
-    // 2. ปริมาณงานรายวัน (ย้อนหลัง 30 วัน) แยกตามระดับความเร่งด่วน
-    const thirtyDaysAgo = new Date();
+    // ถ้าไม่มีข้อมูลให้ return ค่าว่าง
+    if (totalJobs === 0) {
+      const today = new Date();
+      const dailyJobsMap = new Map<
+        string,
+        { ปกติ: number; ด่วน: number; ฉุกเฉิน: number }
+      >();
+
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split("T")[0];
+
+        dailyJobsMap.set(dateStr, { ปกติ: 0, ด่วน: 0, ฉุกเฉิน: 0 });
+      }
+
+      const dailyJobs = Array.from(dailyJobsMap.entries())
+        .map(([date, counts]) => ({
+          date,
+          ...counts,
+          ยอดรวม: 0,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      return {
+        totalJobs: 0,
+        waitingJobs: 0,
+        inProgressJobs: 0,
+        completedJobs: 0,
+        cancelledJobs: 0,
+        dailyJobs,
+        transportReasons: [],
+        popularPickupLocations: [],
+        popularDeliveryLocations: [],
+        employeePerformance: [],
+      };
+    }
+
+    // Pre-compute date range สำหรับ 30 วันย้อนหลัง (ใช้ string comparison)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
 
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
 
-    // กรองข้อมูลย้อนหลัง 30 วัน
-    const jobsLast30Days = filteredJobs.filter((job) => {
-      if (!job.createdAt) return false;
-
-      const jobDate = new Date(job.createdAt);
-
-      return jobDate >= thirtyDaysAgo;
-    });
-
-    // สร้าง Map สำหรับเก็บข้อมูลรายวัน
+    // สร้าง Map สำหรับเก็บข้อมูลรายวัน (30 วันย้อนหลัง)
     const dailyJobsMap = new Map<
       string,
       { ปกติ: number; ด่วน: number; ฉุกเฉิน: number }
     >();
-
-    // สร้าง array ของ 30 วันย้อนหลัง
-    const today = new Date();
 
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
@@ -123,106 +138,18 @@ export function usePorterStats() {
       dailyJobsMap.set(dateStr, { ปกติ: 0, ด่วน: 0, ฉุกเฉิน: 0 });
     }
 
-    // นับจำนวนงานในแต่ละวันแยกตาม urgency level
-    jobsLast30Days.forEach((job) => {
-      if (job.createdAt) {
-        const jobDate = new Date(job.createdAt);
-        const dateStr = jobDate.toISOString().split("T")[0];
-        const urgencyLevel = job.form.urgencyLevel || "ปกติ";
+    // Cache สำหรับ location strings
+    const locationStringCache = new Map<string, string>();
 
-        if (dailyJobsMap.has(dateStr)) {
-          const dayData = dailyJobsMap.get(dateStr)!;
+    // Single Pass: คำนวณทุกอย่างใน loop เดียว
+    let waitingJobs = 0;
+    let inProgressJobs = 0;
+    let completedJobs = 0;
+    let cancelledJobs = 0;
 
-          if (urgencyLevel === "ปกติ") {
-            dayData.ปกติ += 1;
-          } else if (urgencyLevel === "ด่วน") {
-            dayData.ด่วน += 1;
-          } else if (urgencyLevel === "ฉุกเฉิน") {
-            dayData.ฉุกเฉิน += 1;
-          }
-        }
-      }
-    });
-
-    const dailyJobs = Array.from(dailyJobsMap.entries())
-      .map(([date, counts]) => {
-        const ยอดรวม = counts.ปกติ + counts.ด่วน + counts.ฉุกเฉิน;
-
-        return {
-          date,
-          ...counts,
-          ยอดรวม,
-        };
-      })
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    // 3. เหตุผลการเคลื่อนย้าย (Top 5)
     const transportReasonMap = new Map<string, number>();
-
-    filteredJobs.forEach((job) => {
-      const reason = job.form.transportReason;
-
-      if (reason) {
-        transportReasonMap.set(
-          reason,
-          (transportReasonMap.get(reason) || 0) + 1,
-        );
-      }
-    });
-
-    const transportReasons = Array.from(transportReasonMap.entries())
-      .map(([reason, count]) => ({
-        reason,
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    // 4. จุดรับยอดนิยม (Top 10)
     const pickupLocationMap = new Map<string, number>();
-
-    filteredJobs.forEach((job) => {
-      const locationStr = formatLocationString(job.form.pickupLocationDetail);
-
-      if (locationStr) {
-        pickupLocationMap.set(
-          locationStr,
-          (pickupLocationMap.get(locationStr) || 0) + 1,
-        );
-      }
-    });
-
-    const popularPickupLocations = Array.from(pickupLocationMap.entries())
-      .map(([location, count]) => ({
-        location,
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // 5. จุดส่งยอดนิยม (Top 10)
     const deliveryLocationMap = new Map<string, number>();
-
-    filteredJobs.forEach((job) => {
-      const locationStr = formatLocationString(job.form.deliveryLocationDetail);
-
-      if (locationStr) {
-        deliveryLocationMap.set(
-          locationStr,
-          (deliveryLocationMap.get(locationStr) || 0) + 1,
-        );
-      }
-    });
-
-    const popularDeliveryLocations = Array.from(deliveryLocationMap.entries())
-      .map(([location, count]) => ({
-        location,
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // 6. ประสิทธิผลรายบุคคล
     const employeeMap = new Map<
       string,
       {
@@ -235,14 +162,90 @@ export function usePorterStats() {
       }
     >();
 
-    filteredJobs.forEach((job) => {
-      if (job.assignedToName) {
+    // Single loop ผ่าน jobs ทั้งหมด
+    for (const job of filteredJobs) {
+      // 1. นับจำนวนงานตาม status
+      if (job.status === "waiting") waitingJobs++;
+      else if (job.status === "in-progress") inProgressJobs++;
+      else if (job.status === "completed") completedJobs++;
+      else if (job.status === "cancelled") cancelledJobs++;
+
+      // 2. คำนวณ dailyJobs (ใช้ string comparison แทน Date object)
+      if (job.createdAt) {
+        const createdAtStr = job.createdAt.split("T")[0];
+
+        if (createdAtStr >= thirtyDaysAgoStr) {
+          const dayData = dailyJobsMap.get(createdAtStr);
+
+          if (dayData) {
+            const urgencyLevel = job.form.urgencyLevel || "ปกติ";
+
+            if (urgencyLevel === "ปกติ") {
+              dayData.ปกติ += 1;
+            } else if (urgencyLevel === "ด่วน") {
+              dayData.ด่วน += 1;
+            } else if (urgencyLevel === "ฉุกเฉิน") {
+              dayData.ฉุกเฉิน += 1;
+            }
+          }
+        }
+      }
+
+      // 3. เหตุผลการเคลื่อนย้าย
+      const reason = job.form.transportReason;
+
+      if (reason) {
+        transportReasonMap.set(
+          reason,
+          (transportReasonMap.get(reason) || 0) + 1,
+        );
+      }
+
+      // 4. จุดรับยอดนิยม (ใช้ cache)
+      const pickupLocationKey = JSON.stringify(job.form.pickupLocationDetail);
+      let pickupLocationStr = locationStringCache.get(pickupLocationKey);
+
+      if (!pickupLocationStr) {
+        pickupLocationStr = formatLocationString(job.form.pickupLocationDetail);
+        locationStringCache.set(pickupLocationKey, pickupLocationStr);
+      }
+
+      if (pickupLocationStr) {
+        pickupLocationMap.set(
+          pickupLocationStr,
+          (pickupLocationMap.get(pickupLocationStr) || 0) + 1,
+        );
+      }
+
+      // 5. จุดส่งยอดนิยม (ใช้ cache)
+      const deliveryLocationKey = JSON.stringify(
+        job.form.deliveryLocationDetail,
+      );
+      let deliveryLocationStr = locationStringCache.get(deliveryLocationKey);
+
+      if (!deliveryLocationStr) {
+        deliveryLocationStr = formatLocationString(
+          job.form.deliveryLocationDetail,
+        );
+        locationStringCache.set(deliveryLocationKey, deliveryLocationStr);
+      }
+
+      if (deliveryLocationStr) {
+        deliveryLocationMap.set(
+          deliveryLocationStr,
+          (deliveryLocationMap.get(deliveryLocationStr) || 0) + 1,
+        );
+      }
+
+      // 6. ประสิทธิผลรายบุคคล
+      if (job.assignedToName && job.acceptedAt) {
         const employeeName = job.assignedToName;
-        const nameParts = employeeName.trim().split(/\s+/);
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
 
         if (!employeeMap.has(employeeName)) {
+          const nameParts = employeeName.trim().split(/\s+/);
+          const firstName = nameParts[0] || "";
+          const lastName = nameParts.slice(1).join(" ") || "";
+
           employeeMap.set(employeeName, {
             firstName,
             lastName,
@@ -252,16 +255,54 @@ export function usePorterStats() {
 
         const employee = employeeMap.get(employeeName)!;
 
-        // นับงานที่ได้รับมอบหมาย (ทุก status ที่มี assignedToName)
-        if (job.acceptedAt) {
-          employee.jobs.push({
-            acceptedAt: job.acceptedAt,
-            completedAt: job.completedAt,
-          });
-        }
+        employee.jobs.push({
+          acceptedAt: job.acceptedAt,
+          completedAt: job.completedAt,
+        });
       }
-    });
+    }
 
+    // แปลง dailyJobsMap เป็น array
+    const dailyJobs = Array.from(dailyJobsMap.entries())
+      .map(([date, counts]) => {
+        const ยอดรวม = counts.ปกติ + counts.ด่วน + counts.ฉุกเฉิน;
+
+        return {
+          date,
+          ...counts,
+          ยอดรวม,
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // แปลง transportReasons
+    const transportReasons = Array.from(transportReasonMap.entries())
+      .map(([reason, count]) => ({
+        reason,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // แปลง popularPickupLocations
+    const popularPickupLocations = Array.from(pickupLocationMap.entries())
+      .map(([location, count]) => ({
+        location,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // แปลง popularDeliveryLocations
+    const popularDeliveryLocations = Array.from(deliveryLocationMap.entries())
+      .map(([location, count]) => ({
+        location,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // คำนวณ employeePerformance (แยกออกมาเพื่อ optimize การคำนวณ duration)
     const employeePerformance = Array.from(employeeMap.entries())
       .map(([employeeName, data]) => {
         const assignedJobCount = data.jobs.length;
@@ -273,14 +314,17 @@ export function usePorterStats() {
         let averageDuration = 0;
 
         if (completedJobs.length > 0) {
-          const totalDuration = completedJobs.reduce((sum, job) => {
+          let totalDuration = 0;
+
+          for (const job of completedJobs) {
+            // Parse dates ครั้งเดียว
             const acceptedTime = new Date(job.acceptedAt!).getTime();
             const completedTime = new Date(job.completedAt!).getTime();
             const durationMinutes =
               (completedTime - acceptedTime) / (1000 * 60);
 
-            return sum + durationMinutes;
-          }, 0);
+            totalDuration += durationMinutes;
+          }
 
           averageDuration = totalDuration / completedJobs.length;
         }
@@ -311,6 +355,7 @@ export function usePorterStats() {
 
   return {
     stats,
+    jobs, // ส่ง jobs ออกมาเพื่อให้ component สามารถ filter ตาม date range ได้
     isLoading,
     error,
   };

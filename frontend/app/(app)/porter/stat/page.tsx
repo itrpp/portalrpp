@@ -1,13 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardBody, Spinner } from "@heroui/react";
+import { getLocalTimeZone, today } from "@internationalized/date";
 
 import { StatCard } from "./components/StatCard";
 import { DailyJobChart } from "./components/DailyJobChart";
 import { PopularLocationChart } from "./components/PopularLocationChart";
-import { EmployeePerformanceTable } from "./components/EmployeePerformanceTable";
+import { EmployeePerformanceChart } from "./components/EmployeePerformanceChart";
+import { TimeHeatmap } from "./components/TimeHeatmap";
+import { StatFilter, FilterState } from "./components/StatFilter";
 import { usePorterStats } from "./hooks/usePorterStats";
+import { TransportReasonChart } from "./components";
 
 import {
   ChartBarIcon,
@@ -18,7 +22,25 @@ import {
 } from "@/components/ui/icons";
 
 export default function PorterStatPage() {
-  const { stats, isLoading, error } = usePorterStats();
+  const { stats, jobs, isLoading, error } = usePorterStats();
+
+  // Default filter: ย้อนหลัง 30 วันจากปัจจุบัน
+  const defaultFilterState = useMemo<FilterState>(() => {
+    const todayDate = today(getLocalTimeZone());
+    const startDate = todayDate.subtract({ days: 30 });
+
+    return {
+      mode: "date-range",
+      dateRange: {
+        start: startDate,
+        end: todayDate,
+      },
+    };
+  }, []);
+
+  const [filterState, setFilterState] = useState<FilterState | null>(
+    defaultFilterState,
+  );
 
   if (isLoading) {
     return (
@@ -51,22 +73,24 @@ export default function PorterStatPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 max-w-7xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-default-200">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <ChartBarIcon className="w-8 h-8 text-primary" />
+            <div className="p-2 rounded-lg bg-primary-100 text-primary">
+              <ChartBarIcon className="w-6 h-6" />
+            </div>
             สถิติการดำเนินงาน
           </h1>
-          <p className="text-default-600 mt-2">
+          <p className="text-default-600 mt-2 text-sm">
             สถิติการดำเนินงานของระบบพนักงานเปลทั้งหมด
           </p>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           color="primary"
           icon={<ClipboardListIcon className="w-8 h-8" />}
@@ -106,27 +130,45 @@ export default function PorterStatPage() {
           <DailyJobChart data={stats.dailyJobs} />
         </div>
 
-        {/* เหตุผลการเคลื่อนย้าย */}
-        {/* <TransportReasonChart data={stats.transportReasons} /> */}
+        {/* Filter Component */}
+        <div className="lg:col-span-2">
+          <StatFilter onFilterChange={setFilterState} />
+        </div>
+
+        {/* Time Heatmap */}
+        <div className="lg:col-span-2">
+          <TimeHeatmap filterState={filterState} jobs={jobs} />
+        </div>
 
         {/* จุดรับยอดนิยม */}
         <PopularLocationChart
           color="#0088FE"
           data={stats.popularPickupLocations}
-          title="จุดรับยอดนิยม (Top 10)"
+          filterState={filterState}
+          jobs={jobs}
+          locationType="pickup"
+          title="จุดรับ (Top 10)"
         />
 
         {/* จุดส่งยอดนิยม */}
         <PopularLocationChart
           color="#00C49F"
           data={stats.popularDeliveryLocations}
-          title="จุดส่งยอดนิยม (Top 10)"
+          filterState={filterState}
+          jobs={jobs}
+          locationType="delivery"
+          title="จุดส่ง (Top 10)"
         />
       </div>
 
-      {/* ประสิทธิผลรายบุคคล */}
+      {/* เหตุผลการเคลื่อนย้าย */}
+      {/* <div className="grid grid-cols-2 gap-4">
+        <TransportReasonChart data={stats.transportReasons} />
+      </div> */}
+
+      {/* จำนวนงานรายบุคคล */}
       <div className="grid grid-cols-1">
-        <EmployeePerformanceTable data={stats.employeePerformance} />
+        <EmployeePerformanceChart filterState={filterState} jobs={jobs} />
       </div>
     </div>
   );

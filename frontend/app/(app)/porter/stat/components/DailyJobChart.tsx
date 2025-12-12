@@ -1,7 +1,14 @@
 "use client";
 
-import React from "react";
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import React, { useState, useMemo } from "react";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  DateRangePicker,
+  Button,
+  ButtonGroup,
+} from "@heroui/react";
 import {
   BarChart,
   Bar,
@@ -12,6 +19,10 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
+import { RangeValue } from "@react-types/shared";
+
+import { formatDateShort } from "@/lib/utils";
 
 interface DailyJobChartProps {
   data: Array<{
@@ -23,33 +34,83 @@ interface DailyJobChartProps {
   }>;
 }
 
+type DateRange = RangeValue<CalendarDate> | null;
+
 export function DailyJobChart({ data }: DailyJobChartProps) {
-  // แปลงวันที่เป็นรูปแบบที่อ่านง่าย (เช่น "1 ม.ค.")
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
+  // คำนวณวันที่เริ่มต้นและสิ้นสุดสำหรับ default (30 วันย้อนหลัง)
+  const getDefaultDateRange = (): RangeValue<CalendarDate> => {
+    const todayDate = today(getLocalTimeZone());
+    const startDate = todayDate.subtract({ days: 30 });
 
-    const monthNames = [
-      "ม.ค.",
-      "ก.พ.",
-      "มี.ค.",
-      "เม.ย.",
-      "พ.ค.",
-      "มิ.ย.",
-      "ก.ค.",
-      "ส.ค.",
-      "ก.ย.",
-      "ต.ค.",
-      "พ.ย.",
-      "ธ.ค.",
-    ];
-
-    return `${day} ${monthNames[month - 1]}`;
+    return {
+      start: startDate,
+      end: todayDate,
+    };
   };
 
-  const chartData = data.map((item) => ({
-    date: formatDate(item.date),
+  const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
+
+  // Handler สำหรับ onChange ที่รับค่า null ได้
+  const handleDateRangeChange = (value: DateRange) => {
+    setDateRange(value || getDefaultDateRange());
+  };
+
+  // ฟังก์ชันสำหรับตรวจสอบว่า date range ตรงกับ preset หรือไม่
+  const isPresetActive = (
+    currentRange: DateRange,
+    presetRange: RangeValue<CalendarDate>,
+  ): boolean => {
+    if (!currentRange?.start || !currentRange?.end) return false;
+
+    return (
+      currentRange.start.toString() === presetRange.start.toString() &&
+      currentRange.end.toString() === presetRange.end.toString()
+    );
+  };
+
+  // ฟังก์ชันสำหรับสร้าง date range จากจำนวนวันย้อนหลัง
+  const createDateRangeFromDays = (days: number): RangeValue<CalendarDate> => {
+    const todayDate = today(getLocalTimeZone());
+    const startDate = todayDate.subtract({ days });
+
+    return {
+      start: startDate,
+      end: todayDate,
+    };
+  };
+
+  // Presets สำหรับเลือกช่วงวันที่
+  const datePresets = [
+    {
+      label: "7 วัน",
+      value: createDateRangeFromDays(7),
+    },
+    {
+      label: "15 วัน",
+      value: createDateRangeFromDays(15),
+    },
+    {
+      label: "30 วัน",
+      value: createDateRangeFromDays(30),
+    },
+  ];
+
+  // Filter ข้อมูลตาม date range ที่เลือก
+  const filteredData = useMemo(() => {
+    if (!dateRange?.start || !dateRange?.end) return data;
+
+    const startDateStr = dateRange.start.toString();
+    const endDateStr = dateRange.end.toString();
+
+    return data.filter((item) => {
+      const itemDateStr = item.date;
+
+      return itemDateStr >= startDateStr && itemDateStr <= endDateStr;
+    });
+  }, [data, dateRange]);
+
+  const chartData = filteredData.map((item) => ({
+    date: formatDateShort(item.date),
     dateFull: item.date,
     ปกติ: item.ปกติ,
     ด่วน: item.ด่วน,
@@ -58,17 +119,49 @@ export function DailyJobChart({ data }: DailyJobChartProps) {
   }));
 
   return (
-    <Card className="shadow-lg border border-default-200">
+    <Card className="shadow-md border border-default-200 hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="pb-0">
-        <h3 className="text-lg font-semibold text-foreground">
-          ปริมาณงานรายวัน (ย้อนหลัง 30 วัน)
-        </h3>
+        <div className="flex flex-col gap-4 w-full">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <div className="w-1 h-6 bg-primary rounded-full" />
+            ปริมาณงานรายวัน
+          </h3>
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+            <div className="flex-1 min-w-[280px]">
+              <DateRangePicker
+                label="ช่วงวันที่"
+                size="sm"
+                value={dateRange}
+                variant="bordered"
+                visibleMonths={2}
+                onChange={handleDateRangeChange}
+              />
+            </div>
+            <div className="flex items-center">
+              <ButtonGroup radius="md" size="lg" variant="flat">
+                {datePresets.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    className={
+                      isPresetActive(dateRange, preset.value)
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : ""
+                    }
+                    onPress={() => setDateRange(preset.value)}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </ButtonGroup>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardBody className="pt-4">
         <ResponsiveContainer height={400} width="100%">
           <BarChart
             data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 40 }}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
             <XAxis
