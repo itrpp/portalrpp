@@ -268,8 +268,8 @@ export default function DepartmentSubSubManagementPage() {
   };
 
   const columns = [
+    { key: "id", label: "ID" },
     { key: "name", label: "ชื่อหน่วยงาน" },
-    { key: "departmentSubName", label: "กลุ่มงาน" },
     { key: "active", label: "สถานะ" },
     { key: "actions", label: "การจัดการ" },
   ];
@@ -353,12 +353,10 @@ export default function DepartmentSubSubManagementPage() {
                   {(item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <span className="text-foreground">{item.name}</span>
+                        <span className="font-mono text-sm">{item.id}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-foreground">
-                          {item.departmentSubName || "-"}
-                        </span>
+                        <span className="text-foreground">{item.name}</span>
                       </TableCell>
                       <TableCell>
                         <Chip

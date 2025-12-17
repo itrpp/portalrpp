@@ -48,6 +48,7 @@ export interface DepartmentSubSub {
 export interface PersonType {
   id: number;
   name: string;
+  active?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -59,6 +60,7 @@ export interface Position {
   id: number;
   name: string;
   positionSpId?: string;
+  active?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

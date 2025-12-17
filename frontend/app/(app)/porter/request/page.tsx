@@ -327,12 +327,33 @@ export default function PorterRequestPage() {
     clearFieldError(field);
   };
 
+  // Handler สำหรับล้างข้อมูล HN/AN
+  const handleClearPatientHN = () => {
+    handleInputChange("patientHN", "");
+    handleInputChange("patientName", "");
+  };
+
   // Handler สำหรับค้นหาข้อมูลผู้ป่วยจาก HN/AN
   const handleSearchPatient = async () => {
     if (!formData.patientHN || !formData.patientHN.trim()) {
       addToast({
         title: "ข้อมูลไม่ครบถ้วน",
         description: "กรุณากรอกหมายเลข HN / AN",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    // ตรวจสอบรูปแบบ HN/AN ต้องมี / หรือ - เท่านั้น
+    const trimmedHN = formData.patientHN.trim();
+    const hasSlash = trimmedHN.includes("/");
+    const hasDash = trimmedHN.includes("-");
+
+    if (!hasSlash && !hasDash) {
+      addToast({
+        title: "ข้อมูลไม่ถูกต้อง",
+        description: "กรุณากรอกรูปแบบ HN (123456/68) หรือ AN (123456-68)",
         color: "warning",
       });
 
@@ -588,27 +609,46 @@ export default function PorterRequestPage() {
                     isRequired
                     description="กรอกหมายเลข HN / AN แล้วกดปุ่มค้นหาเพื่อดึงข้อมูลผู้ป่วย"
                     endContent={
-                      <Button
-                        isIconOnly
-                        color="primary"
-                        isDisabled={
-                          isLoadingPatient || !formData.patientHN?.trim()
-                        }
-                        isLoading={isLoadingPatient}
-                        size="sm"
-                        variant="solid"
-                        onPress={handleSearchPatient}
-                      >
-                        <MagnifyingGlassIcon className="w-4 h-4 text-white" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {formData.patientHN && (
+                          <button
+                            className="focus:outline-none p-1 rounded-md hover:bg-default-100 transition-colors"
+                            disabled={isLoadingPatient}
+                            tabIndex={-1}
+                            type="button"
+                            onClick={handleClearPatientHN}
+                          >
+                            <XMarkIcon className="w-4 h-4 text-default-400" />
+                          </button>
+                        )}
+                        <button
+                          className="focus:outline-none p-1.5 rounded-md bg-primary text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={
+                            isLoadingPatient || !formData.patientHN?.trim()
+                          }
+                          tabIndex={-1}
+                          type="button"
+                          onClick={handleSearchPatient}
+                        >
+                          {isLoadingPatient ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <MagnifyingGlassIcon className="w-4 h-4 text-white" />
+                          )}
+                        </button>
+                      </div>
                     }
                     label="หมายเลข HN / AN"
                     name="patientHN"
-                    placeholder="เช่น 123456/68"
+                    placeholder="เช่น 123456/68 หรือ 123456-68"
                     value={formData.patientHN}
                     variant="bordered"
                     onChange={(e) => {
-                      handleInputChange("patientHN", e.target.value);
+                      // อนุญาตเฉพาะตัวเลข, /, และ - เท่านั้น
+                      const value = e.target.value;
+                      const filteredValue = value.replace(/[^0-9/\-]/g, "");
+
+                      handleInputChange("patientHN", filteredValue);
                     }}
                   />
                 </div>

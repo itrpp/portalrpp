@@ -48,6 +48,7 @@ export async function GET(request: Request) {
       id: item.HR_POSITION_ID,
       name: item.HR_POSITION_NAME ?? "",
       positionSpId: item.POSITION_SP_ID ?? undefined,
+      active: true, // Default value until ACTIVE field is added to schema
       createdAt: item.created_at?.toISOString(),
       updatedAt: item.updated_at?.toISOString(),
     })),
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
     }
 
     const requestData = await request.json();
-    const { name, positionSpId, id } = requestData;
+    const { name, positionSpId, id, active } = requestData;
 
     // Validation
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -159,6 +160,7 @@ export async function POST(request: Request) {
           id: newPosition.HR_POSITION_ID,
           name: newPosition.HR_POSITION_NAME ?? "",
           positionSpId: newPosition.POSITION_SP_ID ?? undefined,
+          active: active !== undefined ? active : true, // Default to true if not provided
           createdAt: newPosition.created_at?.toISOString(),
           updatedAt: newPosition.updated_at?.toISOString(),
         },

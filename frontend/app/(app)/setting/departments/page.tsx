@@ -237,6 +237,7 @@ export default function DepartmentManagementPage() {
   };
 
   const columns = [
+    { key: "id", label: "ID" },
     { key: "name", label: "ชื่อกลุ่มภารกิจ" },
     { key: "active", label: "สถานะ" },
     { key: "actions", label: "การจัดการ" },
@@ -302,6 +303,9 @@ export default function DepartmentManagementPage() {
                 >
                   {(item) => (
                     <TableRow key={item.id}>
+                      <TableCell>
+                        <span className="font-mono text-sm">{item.id}</span>
+                      </TableCell>
                       <TableCell>
                         <span className="text-foreground">{item.name}</span>
                       </TableCell>

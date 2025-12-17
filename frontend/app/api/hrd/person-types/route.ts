@@ -46,6 +46,7 @@ export async function GET(request: Request) {
     data: items.map((item) => ({
       id: item.HR_PERSON_TYPE_ID,
       name: item.HR_PERSON_TYPE_NAME ?? "",
+      active: true, // Default value until ACTIVE field is added to schema
       createdAt: item.created_at?.toISOString(),
       updatedAt: item.updated_at?.toISOString(),
     })),
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
     }
 
     const requestData = await request.json();
-    const { name } = requestData;
+    const { name, active } = requestData;
 
     // Validation
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
         data: {
           id: newPersonType.HR_PERSON_TYPE_ID,
           name: newPersonType.HR_PERSON_TYPE_NAME ?? "",
+          active: active !== undefined ? active : true, // Default to true if not provided
           createdAt: newPersonType.created_at?.toISOString(),
           updatedAt: newPersonType.updated_at?.toISOString(),
         },

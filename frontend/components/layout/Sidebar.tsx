@@ -68,18 +68,13 @@ export default function Sidebar() {
       newExpandedItems.add("ศูนย์เปล");
     }
 
-    // Auto-expand "สถิติการดำเนินการ" when on stat pages
-    if (pathname.startsWith("/porter/stat")) {
-      newExpandedItems.add("ศูนย์เปล");
-    }
-
     // Auto-expand "ตั้งค่า" when on setting pages
     if (pathname.startsWith("/porter/setting/")) {
       newExpandedItems.add("ศูนย์เปล");
       newExpandedItems.add("ตั้งค่า");
     }
 
-    // Auto-expand "ตั้งค่าข้อมูลบุคคล" when on HRD setting pages
+    // Auto-expand "ตั้งค่าข้อมูลบุคลากร" when on HRD setting pages
     if (
       pathname.startsWith("/setting/departments") ||
       pathname.startsWith("/setting/department-subs") ||
@@ -87,7 +82,7 @@ export default function Sidebar() {
       pathname.startsWith("/setting/person-types") ||
       pathname.startsWith("/setting/positions")
     ) {
-      newExpandedItems.add("ตั้งค่าข้อมูลบุคคล");
+      newExpandedItems.add("ตั้งค่าข้อมูลบุคลากร");
     }
 
     setExpandedItems(newExpandedItems);
@@ -138,6 +133,11 @@ export default function Sidebar() {
       isDisabled: false,
       items: [
         {
+          name: "สถิติการดำเนินการ",
+          href: "/porter/stat",
+          icon: ChartBarIcon,
+        },
+        {
           name: "ขอเปล",
           href: "/porter/request",
           icon: EmergencyBedIcon,
@@ -149,11 +149,6 @@ export default function Sidebar() {
                 href: "#",
                 icon: BedIcon,
                 subItems: [
-                  {
-                    name: "สถิติการดำเนินการ",
-                    href: "/porter/stat",
-                    icon: ChartBarIcon,
-                  },
                   {
                     name: "รายการคำขอ",
                     href: "/porter/joblist",
@@ -247,7 +242,7 @@ export default function Sidebar() {
           icon: UserIcon,
         },
         {
-          name: "ตั้งค่าข้อมูลบุคคล",
+          name: "ตั้งค่าข้อมูลบุคลากร",
           href: "#",
           icon: UserGroupIcon,
           subItems: [

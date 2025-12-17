@@ -15,6 +15,7 @@ import {
   TableRow,
   TableCell,
   Pagination,
+  Chip,
 } from "@heroui/react";
 
 import PositionModal from "./components/PositionModal";
@@ -167,6 +168,7 @@ export default function PositionManagementPage() {
             body: JSON.stringify({
               name: positionData.name,
               positionSpId: positionData.positionSpId,
+              active: positionData.active,
             }),
           },
         );
@@ -198,6 +200,7 @@ export default function PositionManagementPage() {
             id: positionData.id,
             name: positionData.name,
             positionSpId: positionData.positionSpId,
+            active: positionData.active,
           }),
         });
         const result = await response.json();
@@ -234,7 +237,7 @@ export default function PositionManagementPage() {
   const columns = [
     { key: "id", label: "ID" },
     { key: "name", label: "ชื่อตำแหน่ง" },
-    { key: "positionSpId", label: "Position SP ID" },
+    { key: "active", label: "สถานะ" },
     { key: "actions", label: "การจัดการ" },
   ];
 
@@ -303,9 +306,13 @@ export default function PositionManagementPage() {
                         <span className="text-foreground">{item.name}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-foreground">
-                          {item.positionSpId || "-"}
-                        </span>
+                        <Chip
+                          color={item.active ? "success" : "default"}
+                          size="sm"
+                          variant="flat"
+                        >
+                          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                        </Chip>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

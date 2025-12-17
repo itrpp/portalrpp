@@ -9,6 +9,7 @@ import {
   ModalFooter,
   Button,
   Input,
+  Switch,
   addToast,
 } from "@heroui/react";
 
@@ -40,12 +41,15 @@ export default function PersonTypeModal({
   isLoading = false,
 }: PersonTypeModalProps) {
   const [name, setName] = useState("");
+  const [active, setActive] = useState(true);
 
   useEffect(() => {
     if (personType) {
       setName(personType.name);
+      setActive(personType.active !== undefined ? personType.active : true);
     } else {
       setName("");
+      setActive(true);
     }
   }, [personType, isOpen]);
 
@@ -64,6 +68,7 @@ export default function PersonTypeModal({
       await onSave({
         id: personType?.id,
         name: name.trim(),
+        active: active,
       });
       onClose();
     } catch {
@@ -88,6 +93,13 @@ export default function PersonTypeModal({
               variant="bordered"
               onChange={(e) => setName(e.target.value)}
             />
+            <Switch
+              isDisabled={isLoading}
+              isSelected={active}
+              onValueChange={setActive}
+            >
+              สถานะใช้งาน
+            </Switch>
           </div>
         </ModalBody>
         <ModalFooter>

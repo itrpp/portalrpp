@@ -137,7 +137,7 @@ ephisRouter.post(
 /**
  * ค้นหาข้อมูลผู้ป่วยจาก EPHIS API
  * POST /api-gateway/ephis/patient
- * Body: { hn: string, an: string }
+ * Body: { hn?: string, an?: string } (ต้องมีอย่างน้อย 1 อย่าง)
  */
 ephisRouter.post(
     '/patient',
@@ -147,11 +147,12 @@ ephisRouter.post(
         try {
             const { hn, an } = req.body;
 
-            if (!hn || !an) {
+            // ตรวจสอบว่ามี hn หรือ an อย่างน้อย 1 อย่าง
+            if (!hn && !an) {
                 return res.status(400).json({
                     success: false,
                     error: 'MISSING_PARAMETERS',
-                    message: 'Both hn and an are required'
+                    message: 'Either hn or an is required'
                 });
             }
 
@@ -159,10 +160,18 @@ ephisRouter.post(
             const token = await getCachedToken();
 
             const ephisConfig = config.services.ephis!;
-            const dataToSend = JSON.stringify({
-                hn,
-                an
-            });
+            
+            // สร้าง request body โดยส่งเฉพาะ field ที่มีค่า
+            const requestBody: { hn?: string; an?: string } = {};
+            if (hn) {
+                requestBody.hn = hn;
+            }
+            if (an) {
+                requestBody.an = an;
+            }
+            
+            const dataToSend = JSON.stringify(requestBody);
+            
             // เรียก His/Patient API
             const response = await fetch(`${ephisConfig.baseUrl}/api/His/Patient`, {
                 method: 'POST',
@@ -188,10 +197,7 @@ ephisRouter.post(
                             'Content-Type': 'application/json',
                             'X-Access-Token': newToken
                         },
-                        body: JSON.stringify({
-                            hn,
-                            an
-                        })
+                        body: JSON.stringify(requestBody)
                     });
 
                     if (!retryResponse.ok) {

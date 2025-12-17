@@ -9,6 +9,7 @@ import {
   ModalFooter,
   Button,
   Input,
+  Switch,
   addToast,
 } from "@heroui/react";
 
@@ -42,16 +43,19 @@ export default function PositionModal({
   const [id, setId] = useState<string>("");
   const [name, setName] = useState("");
   const [positionSpId, setPositionSpId] = useState("");
+  const [active, setActive] = useState(true);
 
   useEffect(() => {
     if (position) {
       setId(position.id.toString());
       setName(position.name);
       setPositionSpId(position.positionSpId || "");
+      setActive(position.active !== undefined ? position.active : true);
     } else {
       setId("");
       setName("");
       setPositionSpId("");
+      setActive(true);
     }
   }, [position, isOpen]);
 
@@ -93,6 +97,7 @@ export default function PositionModal({
         id: position ? position.id : positionId,
         name: name.trim(),
         positionSpId: positionSpId.trim() || undefined,
+        active: active,
       });
       onClose();
     } catch {
@@ -141,6 +146,13 @@ export default function PositionModal({
               variant="bordered"
               onChange={(e) => setPositionSpId(e.target.value)}
             />
+            <Switch
+              isDisabled={isLoading}
+              isSelected={active}
+              onValueChange={setActive}
+            >
+              สถานะใช้งาน
+            </Switch>
           </div>
         </ModalBody>
         <ModalFooter>

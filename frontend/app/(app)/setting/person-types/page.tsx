@@ -15,6 +15,7 @@ import {
   TableRow,
   TableCell,
   Pagination,
+  Chip,
 } from "@heroui/react";
 
 import PersonTypeModal from "./components/PersonTypeModal";
@@ -170,6 +171,7 @@ export default function PersonTypeManagementPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name: personTypeData.name,
+              active: personTypeData.active,
             }),
           },
         );
@@ -199,6 +201,7 @@ export default function PersonTypeManagementPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: personTypeData.name,
+            active: personTypeData.active,
           }),
         });
         const result = await response.json();
@@ -233,7 +236,9 @@ export default function PersonTypeManagementPage() {
   };
 
   const columns = [
+    { key: "id", label: "ID" },
     { key: "name", label: "ชื่อกลุ่มบุคลากร" },
+    { key: "active", label: "สถานะ" },
     { key: "actions", label: "การจัดการ" },
   ];
 
@@ -298,7 +303,19 @@ export default function PersonTypeManagementPage() {
                   {(item) => (
                     <TableRow key={item.id}>
                       <TableCell>
+                        <span className="font-mono text-sm">{item.id}</span>
+                      </TableCell>
+                      <TableCell>
                         <span className="text-foreground">{item.name}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          color={item.active ? "success" : "default"}
+                          size="sm"
+                          variant="flat"
+                        >
+                          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                        </Chip>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

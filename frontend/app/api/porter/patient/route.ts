@@ -11,39 +11,66 @@ const baseUrl = (process.env.NEXT_PUBLIC_API_GATEWAY_URL || "").replace(
 );
 
 /**
- * แปลงรูปแบบ HN/AN จาก "123456/68" เป็น "680123456"
- * หมายเลขคนไข้ / ปี -> เอาปีขึ้นก่อน และทั้งหมดรวมแล้วต้องได้ 9 หลัก
+ * แปลงรูปแบบ HN/AN จาก "123456/68" หรือ "123456-68" เป็น "680123456"
+ * หมายเลขคนไข้ / หรือ - ปี -> เอาปีขึ้นก่อน และทั้งหมดรวมแล้วต้องได้ 9 หลัก
  * ตัวอย่าง: "123456/68" -> "680123456" (ปี 68 + HN 0123456 = 9 หลัก)
+ * ตัวอย่าง: "123456-68" -> "680123456" (ปี 68 + AN 0123456 = 9 หลัก)
+ * @returns Object with convertedValue and type ('hn' | 'an')
  */
-function convertHNANFormat(patientHN: string): string {
+function convertHNANFormat(patientHN: string): {
+  convertedValue: string;
+  type: "hn" | "an";
+} {
   if (!patientHN) {
-    return "";
+    return { convertedValue: "", type: "hn" };
   }
 
-  // แยกด้วย "/"
-  const parts = patientHN.split("/");
+  const trimmed = patientHN.trim();
+  let type: "hn" | "an" = "hn";
+  let separator = "/";
+  let parts: string[];
+
+  // ตรวจสอบว่าเป็น HN (/) หรือ AN (-)
+  if (trimmed.includes("/")) {
+    type = "hn";
+    separator = "/";
+    parts = trimmed.split("/");
+  } else if (trimmed.includes("-")) {
+    type = "an";
+    separator = "-";
+    parts = trimmed.split("-");
+  } else {
+    // ถ้าไม่มี separator ให้ส่งคืนค่าเดิม
+    return { convertedValue: trimmed, type: "hn" };
+  }
 
   if (parts.length === 2) {
-    // มีทั้ง HN และ ปี
-    const hn = parts[0].trim();
+    // มีทั้ง HN/AN และ ปี
+    const code = parts[0].trim();
     const year = parts[1].trim();
 
     // เอาปีขึ้นก่อน (2 หลัก)
-    // HN (6 หลัก) เติม 0 หน้าให้เป็น 7 หลัก
-    const paddedHN = hn.padStart(7, "0");
+    // HN/AN (6 หลัก) เติม 0 หน้าให้เป็น 7 หลัก
+    const paddedCode = code.padStart(7, "0");
 
-    // รวมกันให้ได้ 9 หลัก: ปี (2 หลัก) + HN ที่เติม 0 แล้ว (7 หลัก)
-    return `${year}${paddedHN}`;
+    // รวมกันให้ได้ 9 หลัก: ปี (2 หลัก) + HN/AN ที่เติม 0 แล้ว (7 หลัก)
+    return {
+      convertedValue: `${year}${paddedCode}`,
+      type,
+    };
   } else if (parts.length === 1) {
-    // มีแค่ HN หรือ ปี อย่างเดียว
-    // ถ้ามีแค่ HN ให้เติม 0 หน้าให้เป็น 9 หลัก
+    // มีแค่ HN/AN หรือ ปี อย่างเดียว
+    // ถ้ามีแค่ HN/AN ให้เติม 0 หน้าให้เป็น 9 หลัก
     const value = parts[0].trim();
 
-    return value.padStart(9, "0");
+    return {
+      convertedValue: value.padStart(9, "0"),
+      type,
+    };
   }
 
   // ถ้ารูปแบบไม่ถูกต้อง ให้ส่งคืนค่าเดิม
-  return patientHN;
+  return { convertedValue: trimmed, type };
 }
 
 /**
@@ -78,8 +105,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // แปลงรูปแบบ HN/AN
-    const convertedHNAN = convertHNANFormat(patientHN);
+    // แปลงรูปแบบ HN/AN และตรวจสอบประเภท
+    const { convertedValue, type } = convertHNANFormat(patientHN);
 
     // สร้าง JWT สำหรับ API Gateway จากข้อมูลใน session
     const jwtSecret =
@@ -99,16 +126,22 @@ export async function POST(request: Request) {
     // เรียก API Gateway endpoint
     const endpoint = `${baseUrl}/api-gateway/ephis/patient`;
 
+    // ส่งเฉพาะประเภทที่ตรวจพบ (hn หรือ an) ไม่ส่งทั้งสองอย่าง
+    const requestBody: { hn?: string; an?: string } = {};
+
+    if (type === "hn") {
+      requestBody.hn = convertedValue;
+    } else {
+      requestBody.an = convertedValue;
+    }
+
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${signedToken}`,
       },
-      body: JSON.stringify({
-        hn: convertedHNAN,
-        an: convertedHNAN,
-      }),
+      body: JSON.stringify(requestBody),
       credentials: "include",
     });
 

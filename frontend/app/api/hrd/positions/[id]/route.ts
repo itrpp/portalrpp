@@ -68,6 +68,7 @@ export async function GET(
         id: position.HR_POSITION_ID,
         name: position.HR_POSITION_NAME ?? "",
         positionSpId: position.POSITION_SP_ID ?? undefined,
+        active: true, // Default value until ACTIVE field is added to schema
         createdAt: position.created_at?.toISOString(),
         updatedAt: position.updated_at?.toISOString(),
       },
@@ -121,7 +122,7 @@ export async function PUT(
     }
 
     const requestData = await request.json();
-    const { name, positionSpId } = requestData;
+    const { name, positionSpId, active } = requestData;
 
     // ตรวจสอบว่ามีข้อมูลอยู่หรือไม่
     const existing = await prisma.hrd_position.findUnique({
@@ -187,6 +188,7 @@ export async function PUT(
     if (positionSpId !== undefined) {
       updateData.POSITION_SP_ID = positionSpId || null;
     }
+    // Note: active field will be handled when ACTIVE column is added to database schema
 
     const updated = await prisma.hrd_position.update({
       where: {
@@ -208,6 +210,7 @@ export async function PUT(
         id: updated.HR_POSITION_ID,
         name: updated.HR_POSITION_NAME ?? "",
         positionSpId: updated.POSITION_SP_ID ?? undefined,
+        active: active !== undefined ? active : true, // Use provided value or default to true
         createdAt: updated.created_at?.toISOString(),
         updatedAt: updated.updated_at?.toISOString(),
       },

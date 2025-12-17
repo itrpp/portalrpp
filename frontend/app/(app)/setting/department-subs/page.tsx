@@ -260,8 +260,8 @@ export default function DepartmentSubManagementPage() {
   };
 
   const columns = [
+    { key: "id", label: "ID" },
     { key: "name", label: "ชื่อกลุ่มงาน" },
-    { key: "departmentName", label: "กลุ่มภารกิจ" },
     { key: "active", label: "สถานะ" },
     { key: "actions", label: "การจัดการ" },
   ];
@@ -343,12 +343,10 @@ export default function DepartmentSubManagementPage() {
                   {(item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <span className="text-foreground">{item.name}</span>
+                        <span className="font-mono text-sm">{item.id}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-foreground">
-                          {item.departmentName || "-"}
-                        </span>
+                        <span className="text-foreground">{item.name}</span>
                       </TableCell>
                       <TableCell>
                         <Chip

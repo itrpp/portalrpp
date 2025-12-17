@@ -78,8 +78,8 @@ export default function PorterJobListPage() {
         queryParams.append("status", status);
       }
 
-      // เพิ่ม pagination params ถ้าต้องการ (ตอนนี้ดึงทั้งหมดก่อน)
-      queryParams.append("page_size", "1000"); // ดึงข้อมูลจำนวนมากเพื่อรองรับการ filter ใน frontend
+      // ดึงข้อมูลจำนวนมากเพื่อรองรับการ filter ใน frontend
+      queryParams.append("page_size", "10000");
 
       const response = await fetch(
         `/api/porter/requests?${queryParams.toString()}`,

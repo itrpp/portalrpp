@@ -66,6 +66,7 @@ export async function GET(
       data: {
         id: personType.HR_PERSON_TYPE_ID,
         name: personType.HR_PERSON_TYPE_NAME ?? "",
+        active: true, // Default value until ACTIVE field is added to schema
         createdAt: personType.created_at?.toISOString(),
         updatedAt: personType.updated_at?.toISOString(),
       },
@@ -119,7 +120,7 @@ export async function PUT(
     }
 
     const requestData = await request.json();
-    const { name } = requestData;
+    const { name, active } = requestData;
 
     // ตรวจสอบว่ามีข้อมูลอยู่หรือไม่
     const existing = await prisma.hrd_person_type.findUnique({
@@ -182,6 +183,7 @@ export async function PUT(
     if (name !== undefined) {
       updateData.HR_PERSON_TYPE_NAME = name.trim();
     }
+    // Note: active field will be handled when ACTIVE column is added to database schema
 
     const updated = await prisma.hrd_person_type.update({
       where: {
@@ -201,6 +203,7 @@ export async function PUT(
       data: {
         id: updated.HR_PERSON_TYPE_ID,
         name: updated.HR_PERSON_TYPE_NAME ?? "",
+        active: active !== undefined ? active : true, // Use provided value or default to true
         createdAt: updated.created_at?.toISOString(),
         updatedAt: updated.updated_at?.toISOString(),
       },
