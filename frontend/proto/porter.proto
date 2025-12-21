@@ -156,6 +156,7 @@ message UpdatePorterRequestStatusRequest {
   optional string assigned_to_id = 3;
   optional string cancelled_reason = 4;
   optional string cancelled_by_id = 5;
+  optional string accepted_by_id = 6;
 }
 
 message UpdatePorterRequestTimestampsRequest {
@@ -259,6 +260,7 @@ message PorterRequest {
 
   // ข้อมูลเวลา
   optional string accepted_at = 29;
+  optional string accepted_by_id = 43;
   optional string completed_at = 30;
   optional string cancelled_at = 31;
   optional string cancelled_reason = 32;

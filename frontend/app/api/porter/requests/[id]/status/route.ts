@@ -47,6 +47,10 @@ export async function PUT(
         protoRequest.cancelled_by_id = session.user.id;
       }
     }
+    // เพิ่มข้อมูลผู้ที่กดรับงาน เมื่อ status เป็น in-progress
+    if (requestData.status === "in-progress" && session?.user?.id) {
+      protoRequest.accepted_by_id = session.user.id;
+    }
 
     // เรียก gRPC service
     const response = await callPorterService<any>(

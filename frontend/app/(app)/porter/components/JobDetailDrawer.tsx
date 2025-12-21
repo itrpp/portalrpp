@@ -33,6 +33,7 @@ import {
 
 import { LocationSelector } from "./LocationSelector";
 import CancelJobModal from "./CancelJobModal";
+import { getUserById } from "@/lib/users";
 
 import { PorterJobItem } from "@/types/porter";
 import {
@@ -100,6 +101,7 @@ export default function JobDetailDrawer({
   const [requesterDepartmentName, setRequesterDepartmentName] = useState<
     string | null
   >(null);
+  const [acceptedByName, setAcceptedByName] = useState<string | null>(null);
   const {
     isOpen: isCancelModalOpen,
     onOpen: onCancelModalOpen,
@@ -147,6 +149,30 @@ export default function JobDetailDrawer({
     }
   }, [job, isEditMode]);
 
+  // ดึงชื่อผู้รับงานจาก user table โดยใช้ acceptedById
+  useEffect(() => {
+    const fetchAcceptedByName = async () => {
+      if (!job?.acceptedById) {
+        setAcceptedByName(null);
+        return;
+      }
+
+      try {
+        const user = await getUserById(job.acceptedById);
+        setAcceptedByName(user.displayName || "-");
+      } catch (error) {
+        console.error("Error fetching accepted by user:", error);
+        setAcceptedByName("-");
+      }
+    };
+
+    if (isOpen && job?.acceptedById) {
+      void fetchAcceptedByName();
+    } else {
+      setAcceptedByName(null);
+    }
+  }, [isOpen, job?.acceptedById]);
+
   // ดึงชื่อหน่วยงานจาก departmentSubSubId
   useEffect(() => {
     const fetchDepartmentName = async () => {
@@ -183,8 +209,15 @@ export default function JobDetailDrawer({
 
   if (!job || !formData) return null;
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("th-TH", {
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString || dateString.trim() === "") {
+      return "-";
+    }
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "-";
+    }
+    return date.toLocaleString("th-TH", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -204,8 +237,8 @@ export default function JobDetailDrawer({
   const handleAcceptJob = async () => {
     if (!selectedStaffId) {
       addToast({
-        title: "กรุณาเลือกผู้ดำเนินการ",
-        description: "กรุณาเลือกเจ้าหน้าที่ผู้ดำเนินการก่อน",
+        title: "กรุณาเลือกผู้ปฎิบัติงาน",
+        description: "กรุณาเลือกเจ้าหน้าที่ผู้ปฎิบัติงานก่อน",
         color: "warning",
       });
 
@@ -235,7 +268,7 @@ export default function JobDetailDrawer({
         onAcceptJob(job.id, selectedEmployee.id, staffName);
         addToast({
           title: "รับงานสำเร็จ",
-          description: `รับงานสำเร็จ ผู้ดำเนินการ: ${staffName}`,
+          description: `รับงานสำเร็จ ผู้ปฎิบัติงาน: ${staffName}`,
           color: "success",
         });
         setSelectedStaffId("");
@@ -1001,12 +1034,22 @@ export default function JobDetailDrawer({
                                 ศูนย์เปลรับงาน
                               </h4>
                               <p className="text-sm text-default-500 mb-2">
-                                {formatDate(job.acceptedAt ?? "")}
+                                {formatDate(job.acceptedAt)}
                               </p>
                             </div>
                             {job.acceptedAt ? (
-                              <>
+                              <>                              
                                 <div className="text-sm text-default-600 space-y-1">
+                                  {job.acceptedById && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <span className="font-medium">
+                                        ผู้รับงาน :
+                                      </span>
+                                      <span>
+                                        {acceptedByName || "-"}
+                                      </span>
+                                    </div>
+                                  )}                                 
                                   {job.assignedTo && (
                                     <div className="flex items-center gap-2 mt-2">
                                       {(() => {
@@ -1196,23 +1239,23 @@ export default function JobDetailDrawer({
               </>
             )}
 
-            {/* เลือกผู้ดำเนินการ (ให้เลือกได้แม้ไม่อยู่ในโหมดแก้ไข สำหรับสถานะรอรับงาน) */}
+            {/* เลือกผู้ปฎิบัติงาน (ให้เลือกได้แม้ไม่อยู่ในโหมดแก้ไข สำหรับสถานะรอรับงาน) */}
             {canAcceptJob && !readOnly && (
               <section>
                 <Divider className="my-6" />
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <UserIcon className="w-5 h-5 text-primary" />
-                  ผู้ดำเนินการ
+                  ผู้ปฎิบัติงาน
                 </h3>
                 <Autocomplete
                   isRequired
                   defaultSelectedKey={job.assignedTo || undefined}
                   isDisabled={isLoadingEmployees}
-                  label="ผู้ดำเนินการ"
+                  label="ผู้ปฎิบัติงาน"
                   placeholder={
                     isLoadingEmployees
                       ? "กำลังโหลดข้อมูลเจ้าหน้าที่..."
-                      : "เลือกเจ้าหน้าที่ผู้ดำเนินการ"
+                      : "เลือกเจ้าหน้าที่ผู้ปฎิบัติงาน"
                   }
                   selectedKey={selectedStaffId || job.assignedTo || ""}
                   variant="bordered"

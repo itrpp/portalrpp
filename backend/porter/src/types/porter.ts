@@ -61,6 +61,7 @@ export interface PorterRequestMessage {
   assigned_to_id?: string;
   assigned_to_name?: string;
   accepted_at?: string;
+  accepted_by_id?: string;
   completed_at?: string;
   cancelled_at?: string;
   cancelled_reason?: string;
@@ -138,6 +139,7 @@ export interface UpdatePorterRequestStatusInput {
   assigned_to_id?: string;
   cancelled_reason?: string;
   cancelled_by_id?: string;
+  accepted_by_id?: string;
 }
 
 export interface UpdatePorterRequestTimestampsInput {

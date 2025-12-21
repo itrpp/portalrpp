@@ -731,7 +731,7 @@ export default function PorterJobListPage() {
 
         addToast({
           title: "รับงานสำเร็จ",
-          description: `รับงานสำเร็จ ผู้ดำเนินการ: ${staffName}`,
+          description: `รับงานสำเร็จ ผู้ปฎิบัติงาน: ${staffName}`,
           color: "success",
         });
       } else {

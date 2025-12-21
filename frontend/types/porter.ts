@@ -69,11 +69,12 @@ export interface PorterJobItem {
   id: string;
   status: JobListTab;
   form: PorterRequestFormData;
-  assignedTo?: string; // ID ของผู้ดำเนินการ
-  assignedToName?: string; // ชื่อของผู้ดำเนินการ
+  assignedTo?: string; // ID ของผู้ปฎิบัติงาน
+  assignedToName?: string; // ชื่อของผู้ปฎิบัติงาน
   createdAt?: string; // ISO 8601 format
   updatedAt?: string; // ISO 8601 format
   acceptedAt?: string; // ISO 8601 format - เวลาที่รับงาน
+  acceptedById?: string; // ID ของผู้ที่กดรับงาน
   completedAt?: string; // ISO 8601 format - เวลาที่เสร็จสิ้น
   cancelledAt?: string; // ISO 8601 format - เวลาที่ยกเลิก
   cancelledReason?: string; // เหตุผลการยกเลิก

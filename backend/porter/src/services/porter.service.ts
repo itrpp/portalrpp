@@ -354,7 +354,7 @@ export const updatePorterRequestStatus = async (
   id: string,
   statusData: Omit<UpdatePorterRequestStatusInput, 'id'>
 ): Promise<PorterRequestMessage> => {
-  const { status, assigned_to_id, cancelled_reason, cancelled_by_id } = statusData;
+  const { status, assigned_to_id, cancelled_reason, cancelled_by_id, accepted_by_id } = statusData;
   const newStatus = mapStatusToPrisma(status);
 
   const oldRequest = await prisma.porterRequest.findUnique({ where: { id } });
@@ -366,6 +366,9 @@ export const updatePorterRequestStatus = async (
 
   if (newStatus === 'IN_PROGRESS') {
     data.acceptedAt = new Date();
+    if (accepted_by_id) {
+      data.acceptedById = accepted_by_id;
+    }
   } else if (newStatus === 'COMPLETED') {
     data.completedAt = new Date();
   } else if (newStatus === 'CANCELLED') {
@@ -978,6 +981,7 @@ const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): 
     assigned_to_id: porterRequest.assignedToId || undefined,
     assigned_to_name: porterRequest.assignedToName || undefined,
     accepted_at: porterRequest.acceptedAt?.toISOString() || undefined,
+    accepted_by_id: porterRequest.acceptedById || undefined,
     completed_at: porterRequest.completedAt?.toISOString() || undefined,
     cancelled_at: porterRequest.cancelledAt?.toISOString() || undefined,
     cancelled_reason: porterRequest.cancelledReason || undefined,
