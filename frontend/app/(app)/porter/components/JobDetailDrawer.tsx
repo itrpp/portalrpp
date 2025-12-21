@@ -11,6 +11,7 @@ import {
   DrawerFooter,
   DrawerHeader,
   useDisclosure,
+  User,
 } from "@heroui/react";
 import {
   Avatar,
@@ -72,6 +73,7 @@ interface JobDetailDrawerProps {
   onCancelJob?: (jobId: string, cancelledReason?: string) => void;
   onCompleteJob?: (jobId: string) => void;
   onUpdateJob?: (jobId: string, updatedForm: PorterRequestFormData) => void;
+  readOnly?: boolean; // โหมดอ่านอย่างเดียว
 }
 
 // ใช้ type จาก types/porter.ts แทนการประกาศใหม่
@@ -85,6 +87,7 @@ export default function JobDetailDrawer({
   onCancelJob,
   onCompleteJob,
   onUpdateJob,
+  readOnly = false,
 }: JobDetailDrawerProps) {
   const [formData, setFormData] = useState<PorterRequestFormData | null>(null);
   const [employees, setEmployees] = useState<PorterEmployee[]>([]);
@@ -183,7 +186,7 @@ export default function JobDetailDrawer({
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("th-TH", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
@@ -386,10 +389,12 @@ export default function JobDetailDrawer({
     }
   };
 
-  const canAcceptJob = job.status === "waiting";
-  const canCancelJob = job.status === "waiting" || job.status === "in-progress";
-  const canCompleteJob = job.status === "in-progress";
-  const canEdit = job.status === "waiting" || job.status === "in-progress";
+  const canAcceptJob = !readOnly && job.status === "waiting";
+  const canCancelJob =
+    !readOnly && (job.status === "waiting" || job.status === "in-progress");
+  const canCompleteJob = !readOnly && job.status === "in-progress";
+  const canEdit =
+    !readOnly && (job.status === "waiting" || job.status === "in-progress");
 
   return (
     <Drawer isOpen={isOpen} placement="right" size="3xl" onClose={onClose}>
@@ -457,18 +462,12 @@ export default function JobDetailDrawer({
                       ข้อมูลผู้ป่วย
                     </h3>
                   </div>
-                  {/* <span className="text-sm text-default-500 font-medium truncate text-right">
-                    HN : {formData.patientHN || "-"}
-                  </span> */}
+                  <span className="text-sm text-default-500 font-medium truncate text-right">
+                    HN/AN : {formData.patientHN || "-"}
+                  </span>
                 </CardHeader>
                 <CardBody className="pt-4">
-                  <div className="grid grid-cols-2 gap-3 text-sm text-default-600">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium text-foreground">HN</span>
-                      <span className="text-foreground break-words">
-                        {formData.patientHN || "-"}
-                      </span>
-                    </div>
+                  <div className="grid grid-cols-1 gap-3 text-sm text-default-600">
                     <div className="flex flex-col gap-1">
                       <span className="font-medium text-foreground">
                         ชื่อผู้ป่วย
@@ -545,6 +544,7 @@ export default function JobDetailDrawer({
                           isDisabled={!canEdit || !isEditMode}
                           isRequired={canEdit && isEditMode}
                           label="สถานที่รับ"
+                          showOnlyBeds={true}
                           value={formData.pickupLocationDetail}
                           onChange={(location) => {
                             setFormData((prev) =>
@@ -957,7 +957,6 @@ export default function JobDetailDrawer({
                     </h3>
                     <div className="relative">
                       <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-default-200" />
-
                       <div className="space-y-6">
                         <div className="relative flex gap-4">
                           <div className="relative z-10 flex-shrink-0">
@@ -966,24 +965,25 @@ export default function JobDetailDrawer({
                             </div>
                           </div>
                           <div className="flex-1 pb-6">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-start justify-between gap-2 mb-1">
                               <h4 className="text-sm font-semibold text-foreground">
                                 คำขอถูกสร้าง
                               </h4>
-                            </div>
-                            <p className="text-xs text-default-500 mb-2">
-                              {job.createdAt
-                                ? formatDate(job.createdAt)
-                                : formatDate(job.form.requestedDateTime)}
-                            </p>
-                            <div className="text-sm text-default-600 space-y-1">
-                              <p>
-                                <span className="font-medium">ผู้แจ้ง:</span>{" "}
-                                {formData.requesterName}
+                              <p className="text-sm text-default-500 mb-2">
+                                {job.createdAt
+                                  ? formatDate(job.createdAt)
+                                  : formatDate(job.form.requestedDateTime)}
                               </p>
+                            </div>
+
+                            <div className="text-sm text-default-600 space-y-1">
                               <p>
                                 <span className="font-medium">หน่วยงาน:</span>{" "}
                                 {requesterDepartmentName || "-"}
+                              </p>
+                              <p>
+                                <span className="font-medium">ผู้แจ้ง:</span>{" "}
+                                {formData.requesterName}
                               </p>
                             </div>
                           </div>
@@ -996,24 +996,44 @@ export default function JobDetailDrawer({
                             </div>
                           </div>
                           <div className="flex-1 pb-6">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-start justify-between gap-2 mb-1">
                               <h4 className="text-sm font-semibold text-foreground">
                                 ศูนย์เปลรับงาน
                               </h4>
+                              <p className="text-sm text-default-500 mb-2">
+                                {formatDate(job.acceptedAt ?? "")}
+                              </p>
                             </div>
                             {job.acceptedAt ? (
                               <>
-                                <p className="text-xs text-default-500 mb-2">
-                                  {formatDate(job.acceptedAt)}
-                                </p>
                                 <div className="text-sm text-default-600 space-y-1">
                                   {job.assignedTo && (
-                                    <p>
-                                      <span className="font-medium">
-                                        ผู้ปฎิบัติงาน :
-                                      </span>{" "}
-                                      {job.assignedToName}
-                                    </p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      {(() => {
+                                        const assignedEmp = employees.find(
+                                          (e) => e.id === job.assignedTo,
+                                        );
+
+                                        return (
+                                          <>
+                                            <User
+                                              avatarProps={{
+                                                src:
+                                                  assignedEmp?.profileImage ||
+                                                  "",
+                                              }}
+                                              description={
+                                                job.assignedToName ||
+                                                (assignedEmp
+                                                  ? `${assignedEmp.firstName} ${assignedEmp.lastName}`
+                                                  : "-")
+                                              }
+                                              name="ผู้ปฎิบัติงาน"
+                                            />
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
                                   )}
                                 </div>
                               </>
@@ -1177,7 +1197,7 @@ export default function JobDetailDrawer({
             )}
 
             {/* เลือกผู้ดำเนินการ (ให้เลือกได้แม้ไม่อยู่ในโหมดแก้ไข สำหรับสถานะรอรับงาน) */}
-            {canAcceptJob && (
+            {canAcceptJob && !readOnly && (
               <section>
                 <Divider className="my-6" />
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">

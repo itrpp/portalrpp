@@ -21,6 +21,7 @@ interface LocationSelectorProps {
   errorMessage?: string;
   isRequired?: boolean;
   isDisabled?: boolean;
+  showOnlyBeds?: boolean; // แสดงเฉพาะเตียง (สำหรับสถานที่รับ)
 }
 
 /**
@@ -34,6 +35,7 @@ export function LocationSelector({
   errorMessage,
   isRequired = false,
   isDisabled = false,
+  showOnlyBeds = false,
 }: LocationSelectorProps) {
   // Data State
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -54,6 +56,13 @@ export function LocationSelector({
 
     return building?.name === "โรงพยาบาลอื่น";
   }, [buildings, selectedBuildingId]);
+
+  // Check if selected floor is "หอผู้ป่วย" (departmentType === 2)
+  const isWard = useMemo(() => {
+    const floor = floors.find((f) => f.id === selectedFloorId);
+
+    return floor?.departmentType === 2;
+  }, [floors, selectedFloorId]);
 
   // Sync state with value prop
   useEffect(() => {
@@ -126,7 +135,7 @@ export function LocationSelector({
     }
   }, [selectedBuildingId, buildings]);
 
-  // Generate room/beds based on selected floor
+  // Generate room/beds based on selected floor (เฉพาะหอผู้ป่วย)
   useEffect(() => {
     if (!selectedFloorId || !floors.length) {
       setRoomBeds([]);
@@ -142,30 +151,50 @@ export function LocationSelector({
       return;
     }
 
-    const generated: RoomBed[] = [];
+    // แสดงห้อง/เตียงเฉพาะเมื่อเป็นหอผู้ป่วย (departmentType === 2)
+    if (selectedFloor.departmentType !== 2) {
+      setRoomBeds([]);
 
-    // Generate rooms
-    if (selectedFloor.roomCount && selectedFloor.roomCount > 0) {
-      for (let i = 1; i <= selectedFloor.roomCount; i++) {
-        generated.push({
-          id: `${selectedFloorId}-room-${i}`,
-          name: `ห้องพิเศษ ${i}`,
-        });
-      }
+      return;
     }
 
-    // Generate beds
-    if (selectedFloor.bedCount && selectedFloor.bedCount > 0) {
-      for (let i = 1; i <= selectedFloor.bedCount; i++) {
-        generated.push({
-          id: `${selectedFloorId}-bed-${i}`,
-          name: `เตียง ${i}`,
-        });
+    const generated: RoomBed[] = [];
+
+    // ถ้า showOnlyBeds === true ให้แสดงเฉพาะเตียง
+    if (showOnlyBeds) {
+      // Generate beds only
+      if (selectedFloor.bedCount && selectedFloor.bedCount > 0) {
+        for (let i = 1; i <= selectedFloor.bedCount; i++) {
+          generated.push({
+            id: `${selectedFloorId}-bed-${i}`,
+            name: `เตียง ${i}`,
+          });
+        }
+      }
+    } else {
+      // Generate rooms
+      if (selectedFloor.roomCount && selectedFloor.roomCount > 0) {
+        for (let i = 1; i <= selectedFloor.roomCount; i++) {
+          generated.push({
+            id: `${selectedFloorId}-room-${i}`,
+            name: `ห้องพิเศษ ${i}`,
+          });
+        }
+      }
+
+      // Generate beds
+      if (selectedFloor.bedCount && selectedFloor.bedCount > 0) {
+        for (let i = 1; i <= selectedFloor.bedCount; i++) {
+          generated.push({
+            id: `${selectedFloorId}-bed-${i}`,
+            name: `เตียง ${i}`,
+          });
+        }
       }
     }
 
     setRoomBeds(generated);
-  }, [selectedFloorId, floors]);
+  }, [selectedFloorId, floors, showOnlyBeds]);
 
   // Helper to update parent
   const updateLocation = useCallback(
@@ -175,7 +204,8 @@ export function LocationSelector({
 
       let roomBedName: string | undefined;
 
-      if (roomBedId) {
+      // ส่ง roomBedName เฉพาะเมื่อเป็นหอผู้ป่วย (departmentType === 2)
+      if (roomBedId && floor && floor.departmentType === 2) {
         if (roomBedId.includes("-room-")) {
           const num = roomBedId.split("-room-")[1];
 
@@ -195,7 +225,7 @@ export function LocationSelector({
             buildingName: building.name,
             floorDepartmentId: floor.id,
             floorDepartmentName: floor.name,
-            roomBedName: roomBedName,
+            roomBedName: roomBedName, // จะเป็น undefined ถ้าไม่ใช่หอผู้ป่วย
           };
 
           onChange(location);
@@ -275,7 +305,11 @@ export function LocationSelector({
         <div className="text-sm text-danger">{errorMessage}</div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div
+        className={`grid gap-3 ${
+          isWard ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
+        }`}
+      >
         {/* เลือกอาคาร */}
         <Select
           isDisabled={isDisabled}
@@ -317,27 +351,29 @@ export function LocationSelector({
           })}
         </Select>
 
-        {/* เลือกห้อง/เตียง */}
-        <Select
-          isDisabled={
-            isDisabled ||
-            !selectedFloorId ||
-            roomBeds.length === 0 ||
-            (isOtherHospital as boolean)
-          }
-          isRequired={isRequired && roomBeds.length > 0}
-          label="ห้อง/เตียง"
-          placeholder={
-            roomBeds.length > 0 ? "เลือกห้อง/เตียง" : "ไม่มีห้อง/เตียง"
-          }
-          selectedKeys={selectedRoomBed ? [selectedRoomBed] : []}
-          variant="bordered"
-          onSelectionChange={handleRoomBedChange}
-        >
-          {roomBeds.map((roomBed) => (
-            <SelectItem key={roomBed.id}>{roomBed.name}</SelectItem>
-          ))}
-        </Select>
+        {/* เลือกห้อง/เตียง (แสดงเฉพาะหอผู้ป่วย) */}
+        {isWard && (
+          <Select
+            isDisabled={
+              isDisabled ||
+              !selectedFloorId ||
+              roomBeds.length === 0 ||
+              (isOtherHospital as boolean)
+            }
+            isRequired={isRequired && roomBeds.length > 0}
+            label="ห้อง/เตียง"
+            placeholder={
+              roomBeds.length > 0 ? "เลือกห้อง/เตียง" : "ไม่มีห้อง/เตียง"
+            }
+            selectedKeys={selectedRoomBed ? [selectedRoomBed] : []}
+            variant="bordered"
+            onSelectionChange={handleRoomBedChange}
+          >
+            {roomBeds.map((roomBed) => (
+              <SelectItem key={roomBed.id}>{roomBed.name}</SelectItem>
+            ))}
+          </Select>
+        )}
       </div>
     </div>
   );

@@ -288,7 +288,7 @@ export function formatLocationString(
   const parts = [
     location.buildingName,
     location.floorDepartmentName,
-    // location.roomBedName,
+    location.roomBedName,
   ].filter(Boolean);
 
   return parts.join(" - ");

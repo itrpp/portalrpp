@@ -169,14 +169,23 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                       <th className="w-24 p-2 text-xs font-semibold text-default-700 bg-default-100 border-r border-default-300 sticky left-0 z-10">
                         วัน
                       </th>
-                      {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
-                        <th
-                          key={hour}
-                          className="p-2 text-xs font-semibold text-default-700 bg-default-100 border-r border-default-300 last:border-r-0 min-w-[32px]"
-                        >
-                          {hour.toString().padStart(2, "0")}
-                        </th>
-                      ))}
+                      {Array.from({ length: 24 }, (_, i) => i).map((hour) => {
+                        // เพิ่มเส้นหนาแบ่งระหว่างเวร: 08 (เวรดึก->เวรเช้า) และ 17 (เวรเช้า->เวรบ่าย)
+                        const isShiftBoundary = hour === 8 || hour === 17;
+
+                        return (
+                          <th
+                            key={hour}
+                            className={`p-2 text-xs text-center font-semibold text-default-700 bg-default-100 border-r border-default-300 last:border-r-0 min-w-[32px] ${
+                              isShiftBoundary
+                                ? "border-l-4 border-l-default-600"
+                                : ""
+                            }`}
+                          >
+                            {hour.toString().padStart(2, "0")}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -194,11 +203,17 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                             count,
                             heatmapData.maxValue,
                           );
+                          // เพิ่มเส้นหนาแบ่งระหว่างเวร: 08 (เวรดึก->เวรเช้า) และ 17 (เวรเช้า->เวรบ่าย)
+                          const isShiftBoundary = hour === 8 || hour === 17;
 
                           return (
                             <td
                               key={hour}
-                              className="p-1 border-r border-t border-default-300 last:border-r-0 relative group cursor-pointer transition-all hover:ring-2 hover:ring-primary-300 hover:ring-offset-1"
+                              className={`p-1 border-r border-t border-default-300 last:border-r-0 relative group cursor-pointer transition-all hover:ring-2 hover:ring-primary-300 hover:ring-offset-1 ${
+                                isShiftBoundary
+                                  ? "border-l-4 border-l-default-600"
+                                  : ""
+                              }`}
                               style={{ backgroundColor: color }}
                               title={`${dayName} ${hour.toString().padStart(2, "0")}:00 - ${count.toLocaleString("th-TH")} งาน`}
                             >

@@ -37,33 +37,14 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
       const result = await response.json();
 
       if (result.success && Array.isArray(result.data)) {
-        const filteredRequests = (result.data as PorterJobItem[]).filter(
-          (request) => {
-            const statusAllowed =
-              request.status === "waiting" || request.status === "in-progress";
+        // ไม่ต้อง filter สถานะ ให้แสดงทั้งหมด (Waiting, In-progress, Completed, Cancelled)
+        const allRequests = result.data as PorterJobItem[];
 
-            return statusAllowed;
-          },
-        );
-
-        const urgencyOrder: Record<string, number> = {
-          ฉุกเฉิน: 3,
-          ด่วน: 2,
-          ปกติ: 1,
-        };
-
-        const sortedRequests = filteredRequests.sort((a, b) => {
-          const urgencyDiff =
-            (urgencyOrder[b.form.urgencyLevel] || 0) -
-            (urgencyOrder[a.form.urgencyLevel] || 0);
-
-          if (urgencyDiff !== 0) {
-            return urgencyDiff;
-          }
-
+        // เรียงลำดับตามวันที่นัดหมาย (ใหม่ล่าสุดขึ้นก่อน)
+        const sortedRequests = allRequests.sort((a, b) => {
           return (
-            new Date(a.form.requestedDateTime).getTime() -
-            new Date(b.form.requestedDateTime).getTime()
+            new Date(b.form.requestedDateTime).getTime() -
+            new Date(a.form.requestedDateTime).getTime()
           );
         });
 
