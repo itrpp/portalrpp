@@ -30,8 +30,6 @@ const DAYS_OF_WEEK = [
   "เสาร์",
 ];
 
-const DAYS_OF_WEEK_SHORT = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-
 // ฟังก์ชันสำหรับคำนวณ day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 function getDayOfWeek(date: Date): number {
   return date.getDay();

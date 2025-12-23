@@ -5,7 +5,10 @@ import { config } from './config/env';
 import prisma from './config/database';
 import * as porterHandlers from './handlers/porter.handler';
 
-const PROTO_PATH = path.resolve(__dirname, '../proto/porter.proto');
+// Path ไปยัง proto file ใน shared/proto/porter.proto
+// รองรับทั้ง development (__dirname = backend/porter/src/) และ production (__dirname = backend/porter/dist/)
+// จาก backend/porter/src/ หรือ backend/porter/dist/ ไปที่ shared/proto/porter.proto = ../../../shared/proto/porter.proto
+const PROTO_PATH = path.resolve(__dirname, '../../../shared/proto/porter.proto');
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
@@ -28,7 +31,12 @@ const startServer = async () => {
     await prisma.$connect();
     console.info('✅ Database connected successfully');
 
-    const server = new grpc.Server();
+    const server = new grpc.Server({
+      // เพิ่ม max message size เป็น 10MB เพื่อรองรับข้อมูลขนาดใหญ่
+      // Default คือ 4MB (4194304 bytes) ซึ่งไม่พอสำหรับบาง request/response
+      'grpc.max_receive_message_length': 10 * 1024 * 1024, // 10MB
+      'grpc.max_send_message_length': 10 * 1024 * 1024, // 10MB
+    });
 
     server.addService(porterProto.porter.PorterService.service, {
       createPorterRequest: porterHandlers.createPorterRequest,

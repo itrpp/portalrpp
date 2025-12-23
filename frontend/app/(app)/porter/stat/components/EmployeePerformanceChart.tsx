@@ -171,36 +171,7 @@ export function EmployeePerformanceChart({
     };
   };
 
-  const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
-
-  // Handler สำหรับ onChange ที่รับค่า null ได้
-  const handleDateRangeChange = (value: DateRange) => {
-    setDateRange(value || getDefaultDateRange());
-  };
-
-  // ฟังก์ชันสำหรับตรวจสอบว่า date range ตรงกับ preset หรือไม่
-  const isPresetActive = (
-    currentRange: DateRange,
-    presetRange: RangeValue<CalendarDate>,
-  ): boolean => {
-    if (!currentRange?.start || !currentRange?.end) return false;
-
-    return (
-      currentRange.start.toString() === presetRange.start.toString() &&
-      currentRange.end.toString() === presetRange.end.toString()
-    );
-  };
-
-  // ฟังก์ชันสำหรับสร้าง date range จากจำนวนวันย้อนหลัง
-  const createDateRangeFromDays = (days: number): RangeValue<CalendarDate> => {
-    const todayDate = today(getLocalTimeZone());
-    const startDate = todayDate.subtract({ days });
-
-    return {
-      start: startDate,
-      end: todayDate,
-    };
-  };
+  const [dateRange] = useState<DateRange>(getDefaultDateRange());
 
   // Presets สำหรับเลือกช่วงวันที่
   // const datePresets = [

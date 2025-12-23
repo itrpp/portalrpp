@@ -27,17 +27,14 @@ function convertHNANFormat(patientHN: string): {
 
   const trimmed = patientHN.trim();
   let type: "hn" | "an" = "hn";
-  let separator = "/";
   let parts: string[];
 
   // ตรวจสอบว่าเป็น HN (/) หรือ AN (-)
   if (trimmed.includes("/")) {
     type = "hn";
-    separator = "/";
     parts = trimmed.split("/");
   } else if (trimmed.includes("-")) {
     type = "an";
-    separator = "-";
     parts = trimmed.split("-");
   } else {
     // ถ้าไม่มี separator ให้ส่งคืนค่าเดิม

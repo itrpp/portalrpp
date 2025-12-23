@@ -37,6 +37,7 @@ import {
   LocationSelector,
   CancelJobModal,
   JobDetailDrawer,
+  EmergencyConfirmationModal,
 } from "../components";
 
 import { usePorterRequestForm } from "./hooks/usePorterRequestForm";
@@ -172,6 +173,16 @@ export default function PorterRequestPage() {
     onOpen: onJobDetailDrawerOpen,
     onClose: onJobDetailDrawerClose,
   } = useDisclosure();
+
+  // State สำหรับ Modal ยืนยันการเลือก "ฉุกเฉิน"
+  const {
+    isOpen: isEmergencyModalOpen,
+    onOpen: onEmergencyModalOpen,
+    onClose: onEmergencyModalClose,
+  } = useDisclosure();
+  const [pendingUrgencyLevel, setPendingUrgencyLevel] = useState<string | null>(
+    null,
+  );
 
   // Scroll behavior handled inside usePorterRequestForm hook
 
@@ -381,6 +392,33 @@ export default function PorterRequestPage() {
   ) => {
     setFormField(field, value);
     clearFieldError(field);
+  };
+
+  // Handler สำหรับการเลือกความเร่งด่วน
+  const handleUrgencyLevelChange = (urgencyLevel: string) => {
+    if (urgencyLevel === "ฉุกเฉิน") {
+      // เก็บค่าที่ผู้ใช้เลือกไว้ก่อน แล้วเปิด Modal ยืนยัน
+      setPendingUrgencyLevel(urgencyLevel);
+      onEmergencyModalOpen();
+    } else {
+      // ถ้าเลือก "ปกติ" หรือ "ด่วน" ให้อัพเดทค่าโดยตรง
+      handleInputChange("urgencyLevel", urgencyLevel);
+    }
+  };
+
+  // Handler สำหรับยืนยันการเลือก "ฉุกเฉิน"
+  const handleConfirmEmergency = () => {
+    if (pendingUrgencyLevel) {
+      handleInputChange("urgencyLevel", pendingUrgencyLevel);
+      setPendingUrgencyLevel(null);
+    }
+    onEmergencyModalClose();
+  };
+
+  // Handler สำหรับยกเลิกการเลือก "ฉุกเฉิน"
+  const handleCancelEmergency = () => {
+    setPendingUrgencyLevel(null);
+    onEmergencyModalClose();
   };
 
   // Handler สำหรับล้างข้อมูล HN/AN
@@ -883,31 +921,41 @@ export default function PorterRequestPage() {
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      {URGENCY_OPTIONS.map((option) => (
-                        <Chip
-                          key={option.value}
-                          className="cursor-pointer"
-                          color={option.color}
-                          startContent={
-                            option.value === "ฉุกเฉิน" ||
-                            option.value === "ด่วน" ? (
-                              <AmbulanceIcon className="w-4 h-4" />
-                            ) : (
-                              <ClipboardListIcon className="w-4 h-4" />
-                            )
-                          }
-                          variant={
-                            formData.urgencyLevel === option.value
-                              ? "solid"
-                              : "bordered"
-                          }
-                          onClick={() =>
-                            handleInputChange("urgencyLevel", option.value)
-                          }
-                        >
-                          {option.label}
-                        </Chip>
-                      ))}
+                      {URGENCY_OPTIONS.map((option) => {
+                        const tooltipContent =
+                          option.value === "ปกติ"
+                            ? "เจ้าหน้าที่เปล จะถึงจุดรับภายใน 30 นาที"
+                            : option.value === "ด่วน"
+                              ? "เจ้าหน้าที่เปล จะถึงจุดรับภายใน 15 นาที"
+                              : "เจ้าหน้าที่เปล จะถึงจุดรับภายใน 5 นาที และ จะต้องเป็นเคสฉุกเฉินเท่านั้น";
+
+                        return (
+                          <Tooltip key={option.value} content={tooltipContent}>
+                            <Chip
+                              className="cursor-pointer"
+                              color={option.color}
+                              startContent={
+                                option.value === "ฉุกเฉิน" ||
+                                option.value === "ด่วน" ? (
+                                  <AmbulanceIcon className="w-4 h-4" />
+                                ) : (
+                                  <ClipboardListIcon className="w-4 h-4" />
+                                )
+                              }
+                              variant={
+                                formData.urgencyLevel === option.value
+                                  ? "solid"
+                                  : "bordered"
+                              }
+                              onClick={() =>
+                                handleUrgencyLevelChange(option.value)
+                              }
+                            >
+                              {option.label}
+                            </Chip>
+                          </Tooltip>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1356,6 +1404,13 @@ export default function PorterRequestPage() {
           onJobDetailDrawerClose();
           setSelectedJob(null);
         }}
+      />
+
+      {/* Emergency Confirmation Modal */}
+      <EmergencyConfirmationModal
+        isOpen={isEmergencyModalOpen}
+        onClose={handleCancelEmergency}
+        onConfirm={handleConfirmEmergency}
       />
     </div>
   );

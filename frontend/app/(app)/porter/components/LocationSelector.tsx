@@ -135,6 +135,21 @@ export function LocationSelector({
     }
   }, [selectedBuildingId, buildings]);
 
+  // เรียงลำดับ floors จากชั้นบนสุดไปชั้นล่างสุด
+  const sortedFloors = useMemo(() => {
+    return [...floors].sort((a, b) => {
+      // ถ้าไม่มี floorNumber ให้อยู่ท้ายสุด
+      if (!a.floorNumber && !b.floorNumber) {
+        return a.name.localeCompare(b.name, "th");
+      }
+      if (!a.floorNumber) return 1;
+      if (!b.floorNumber) return -1;
+
+      // เรียงตาม floorNumber จากมากไปน้อย (ชั้นบนสุดไปชั้นล่างสุด)
+      return b.floorNumber - a.floorNumber;
+    });
+  }, [floors]);
+
   // Generate room/beds based on selected floor (เฉพาะหอผู้ป่วย)
   useEffect(() => {
     if (!selectedFloorId || !floors.length) {
@@ -342,7 +357,7 @@ export function LocationSelector({
           variant="bordered"
           onSelectionChange={handleFloorChange}
         >
-          {floors.map((floor) => {
+          {sortedFloors.map((floor) => {
             const displayName = floor.floorNumber
               ? `ชั้น ${floor.floorNumber} - ${floor.name}`
               : floor.name;

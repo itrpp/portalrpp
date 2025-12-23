@@ -1,16 +1,24 @@
 import path from "path";
+import { fileURLToPath } from "url";
 
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
 
 /**
  * โหลด Proto Definition สำหรับ Porter Service
- * ใช้ไฟล์ proto ที่อยู่ใน frontend/proto/porter.proto
+ * ใช้ไฟล์ proto ที่อยู่ใน shared/proto/porter.proto
  */
 function getProtoPath(): string {
-  // Path ไปยัง proto file ใน frontend/proto/porter.proto
-  // ใช้ process.cwd() ซึ่งจะชี้ไปที่ frontend directory
-  const protoPath = path.resolve(process.cwd(), "proto/porter.proto");
+  // ใช้ import.meta.url เพื่อหา directory ของไฟล์ปัจจุบัน (ES modules)
+  // จาก frontend/lib/grpcClient.ts ไปที่ shared/proto/porter.proto = ../../shared/proto/porter.proto
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  
+  // Resolve path จาก frontend/lib/ ไปที่ shared/proto/porter.proto
+  const protoPath = path.resolve(
+    __dirname,
+    "../../shared/proto/porter.proto",
+  );
 
   try {
     const fs = require("fs");
@@ -22,7 +30,7 @@ function getProtoPath(): string {
 
   // ถ้าหาไม่เจอ ให้ throw error แทนการใช้ default path
   throw new Error(
-    `Proto file not found at: ${protoPath}. Please ensure proto/porter.proto exists in the frontend directory.`,
+    `Proto file not found at: ${protoPath}. Please ensure shared/proto/porter.proto exists in the project root.`,
   );
 }
 
@@ -54,6 +62,12 @@ export function getPorterClient(): any {
   const client = new porterProto.PorterService(
     grpcUrl,
     grpc.credentials.createInsecure(),
+    {
+      // เพิ่ม max message size เป็น 10MB เพื่อรองรับข้อมูลขนาดใหญ่
+      // Default คือ 4MB (4194304 bytes) ซึ่งไม่พอสำหรับบาง response
+      "grpc.max_receive_message_length": 10 * 1024 * 1024, // 10MB
+      "grpc.max_send_message_length": 10 * 1024 * 1024, // 10MB
+    },
   );
 
   return client;

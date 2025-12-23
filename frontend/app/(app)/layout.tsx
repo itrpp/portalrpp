@@ -1,37 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Breadcrumbs,
-  BreadcrumbItem,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Avatar,
-} from "@heroui/react";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
 import Loading from "../loading";
 
 import Sidebar from "@/components/layout/Sidebar";
-import {
-  HomeIcon,
-  ChevronRightIcon,
-  UserIcon,
-  ArrowRightOnRectangleIcon,
-} from "@/components/ui/icons";
+import TopBar from "@/components/layout/TopBar";
 import HomeFooter from "@/components/layout/HomeFooter";
-import ProfileOrgModal from "@/components/layout/ProfileOrgModal";
-
-interface BreadcrumbItemType {
-  name: string;
-  href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-}
+import ProfileOrgModal from "@/components/ui/ProfileOrgModal";
 
 type OrgStructureUser = {
   personTypeId?: number | null;
@@ -156,55 +135,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // สร้าง breadcrumbs จาก pathname
-  const generateBreadcrumbs = (): BreadcrumbItemType[] => {
-    const segments = pathname.split("/").filter(Boolean);
-    const breadcrumbs: BreadcrumbItemType[] = [];
-
-    let currentPath = "";
-
-    segments.forEach((segment) => {
-      currentPath += `/${segment}`;
-
-      // แปลงชื่อ segment เป็นภาษาไทย
-      const segmentNames: { [key: string]: string } = {
-        home: "หน้าแรก",
-        dashboard: "แดชบอร์ด",
-        revenue: "ระบบงานจัดเก็บรายได้",
-        import: "นำเข้าไฟล์",
-        export: "ส่งออกข้อมูล",
-        dbf: "DBF",
-        projects: "โครงการ",
-        tasks: "งาน",
-        team: "ทีม",
-        teams: "ทีม",
-        tracker: "ติดตาม",
-        "cap-table": "ตารางทุน",
-        analytics: "การวิเคราะห์",
-        perks: "สิทธิประโยชน์",
-        expenses: "ค่าใช้จ่าย",
-        settings: "ตั้งค่า",
-        departments: "กลุ่มภารกิจ",
-        "department-subs": "กลุ่มงาน",
-        "department-sub-subs": "หน่วยงาน",
-        "person-types": "กลุ่มบุคลากร",
-        positions: "ตำแหน่ง",
-        help: "ช่วยเหลือและข้อมูล",
-      };
-
-      const name = segmentNames[segment] || segment;
-
-      breadcrumbs.push({
-        name,
-        href: currentPath,
-      });
-    });
-
-    return breadcrumbs;
-  };
-
-  const breadcrumbs = generateBreadcrumbs();
-
   // แสดง layout เฉพาะเมื่อ authenticated แล้ว
   return (
     <div className="flex h-screen bg-background">
@@ -214,111 +144,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         {/* Top Bar */}
-        <div className="h-16 bg-background border-b border-divider flex items-center justify-end md:justify-between px-6 lg:px-6 lg:pt-0 lg:pl-6 pl-20">
-          <div className="hidden md:flex items-center space-x-4">
-            <Breadcrumbs
-              itemClasses={{
-                item: "text-foreground-500 hover:text-foreground",
-                separator: "text-foreground-400",
-              }}
-              separator={<ChevronRightIcon className="w-4 h-4" />}
-            >
-              {breadcrumbs.map((item, index) => (
-                <BreadcrumbItem key={index}>
-                  {index === 0 ? (
-                    <Link
-                      className="flex items-center space-x-1 hover:text-primary"
-                      href="#"
-                    >
-                      <HomeIcon className="w-4 h-4" />
-                      <span>{item.name}</span>
-                    </Link>
-                  ) : index === breadcrumbs.length - 1 ? (
-                    <span className="text-foreground font-medium">
-                      {item.name}
-                    </span>
-                  ) : (
-                    <Link className="hover:text-primary" href="#">
-                      {item.name}
-                    </Link>
-                  )}
-                </BreadcrumbItem>
-              ))}
-            </Breadcrumbs>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            {/* Theme Toggle */}
-
-            {/* User Menu - แสดงเฉพาะเมื่อมี session */}
-            {session?.user && (
-              <Dropdown isDisabled={isNavigating} placement="bottom-end">
-                <DropdownTrigger>
-                  <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2">
-                    <Avatar
-                      isBordered
-                      color={
-                        (session.user as any).role === "admin"
-                          ? "success"
-                          : "primary"
-                      }
-                      fallback={
-                        <UserIcon className="w-4 h-4 text-default-400" />
-                      }
-                      name={
-                        session.user.image
-                          ? undefined
-                          : (session.user as any).role === "admin"
-                            ? "A"
-                            : "U"
-                      }
-                      size="sm"
-                      src={session.user.image ?? undefined}
-                    />
-                    <div className="hidden md:block text-left">
-                      <p className="text-sm font-medium text-foreground">
-                        {session.user.name || session.user.email || "ผู้ใช้"}
-                      </p>
-                      <p className="text-xs text-foreground-400">
-                        {(session.user as any).role === "admin"
-                          ? "ผู้ดูแลระบบ"
-                          : "ผู้ใช้งาน"}
-                      </p>
-                    </div>
-                  </div>
-                </DropdownTrigger>
-                <DropdownMenu aria-label="เมนูผู้ใช้">
-                  <DropdownItem
-                    key="profile"
-                    isDisabled={isNavigating}
-                    startContent={<UserIcon className="w-4 h-4" />}
-                    onPress={() => handleNavigate("/profile")}
-                  >
-                    {isNavigating && pathname === "/profile" ? (
-                      <span className="flex items-center gap-2">
-                        <span className="animate-spin">⏳</span>
-                        กำลังโหลด...
-                      </span>
-                    ) : (
-                      "โปรไฟล์"
-                    )}
-                  </DropdownItem>
-                  <DropdownItem
-                    key="logout"
-                    color="danger"
-                    isDisabled={isNavigating}
-                    startContent={
-                      <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    }
-                    onPress={handleLogout}
-                  >
-                    ออกจากระบบ
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            )}
-          </div>
-        </div>
+        <TopBar
+          handleLogout={handleLogout}
+          handleNavigate={handleNavigate}
+          isNavigating={isNavigating}
+          pathname={pathname}
+          session={session}
+        />
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto bg-default-50">{children}</div>

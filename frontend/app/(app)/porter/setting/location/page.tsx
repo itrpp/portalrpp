@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import NextImage from "next/image";
 import {
   Button,
   Card,
@@ -148,7 +149,7 @@ function BuildingModal({
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      const img = new Image();
+      const img = document.createElement("img");
       const base64String = e.target?.result as string;
 
       img.onload = () => {
@@ -366,10 +367,12 @@ function BuildingModal({
                               )}
                             </div>
                             {preview ? (
-                              <div className="relative">
-                                <img
+                              <div className="relative w-full aspect-video">
+                                <NextImage
+                                  fill
                                   alt={`Floor plan ชั้น ${floorNum}`}
-                                  className="w-full h-auto rounded-lg border border-default-200"
+                                  className="rounded-lg border border-default-200 object-contain"
+                                  sizes="(max-width: 768px) 100vw, 50vw"
                                   src={preview}
                                 />
                               </div>
@@ -859,7 +862,7 @@ export default function LocationSettingsPage() {
           color: "warning",
         });
       }
-    } catch (error) {
+    } catch {
       // ถ้าเกิด error ให้ใช้ building จาก list แทน
       setEditingBuilding(building);
       onBuildingModalOpen();

@@ -1,5 +1,7 @@
 "use client";
 
+import type { PorterEmployee } from "@/types/porter";
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -33,8 +35,8 @@ import {
 
 import { LocationSelector } from "./LocationSelector";
 import CancelJobModal from "./CancelJobModal";
-import { getUserById } from "@/lib/users";
 
+import { getUserById } from "@/lib/users";
 import { PorterJobItem } from "@/types/porter";
 import {
   PorterRequestFormData,
@@ -76,9 +78,6 @@ interface JobDetailDrawerProps {
   onUpdateJob?: (jobId: string, updatedForm: PorterRequestFormData) => void;
   readOnly?: boolean; // โหมดอ่านอย่างเดียว
 }
-
-// ใช้ type จาก types/porter.ts แทนการประกาศใหม่
-import type { PorterEmployee } from "@/types/porter";
 
 export default function JobDetailDrawer({
   isOpen,
@@ -154,11 +153,13 @@ export default function JobDetailDrawer({
     const fetchAcceptedByName = async () => {
       if (!job?.acceptedById) {
         setAcceptedByName(null);
+
         return;
       }
 
       try {
         const user = await getUserById(job.acceptedById);
+
         setAcceptedByName(user.displayName || "-");
       } catch (error) {
         console.error("Error fetching accepted by user:", error);
@@ -214,9 +215,11 @@ export default function JobDetailDrawer({
       return "-";
     }
     const date = new Date(dateString);
+
     if (isNaN(date.getTime())) {
       return "-";
     }
+
     return date.toLocaleString("th-TH", {
       year: "numeric",
       month: "short",
@@ -1038,18 +1041,16 @@ export default function JobDetailDrawer({
                               </p>
                             </div>
                             {job.acceptedAt ? (
-                              <>                              
+                              <>
                                 <div className="text-sm text-default-600 space-y-1">
                                   {job.acceptedById && (
                                     <div className="flex items-center gap-2 mt-2">
                                       <span className="font-medium">
                                         ผู้รับงาน :
                                       </span>
-                                      <span>
-                                        {acceptedByName || "-"}
-                                      </span>
+                                      <span>{acceptedByName || "-"}</span>
                                     </div>
-                                  )}                                 
+                                  )}
                                   {job.assignedTo && (
                                     <div className="flex items-center gap-2 mt-2">
                                       {(() => {

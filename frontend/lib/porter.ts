@@ -602,7 +602,8 @@ export function convertProtoToFrontend(protoData: any): PorterJobItem {
     createdAt: protoData.created_at || protoData.createdAt || undefined,
     updatedAt: protoData.updated_at || protoData.updatedAt || undefined,
     acceptedAt: protoData.accepted_at || protoData.acceptedAt || undefined,
-    acceptedById: protoData.accepted_by_id || protoData.acceptedById || undefined,
+    acceptedById:
+      protoData.accepted_by_id || protoData.acceptedById || undefined,
     completedAt: protoData.completed_at || protoData.completedAt || undefined,
     cancelledAt: protoData.cancelled_at || protoData.cancelledAt || undefined,
     cancelledReason:

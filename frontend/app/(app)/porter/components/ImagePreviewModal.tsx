@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Modal, ModalContent, ModalBody } from "@heroui/react";
 
 /**
@@ -36,10 +37,14 @@ export default function ImagePreviewModal({
         <ModalBody className="p-6">
           <div className="relative w-full flex items-center justify-center">
             {imageUrl && (
-              <img
+              <Image
+                unoptimized
                 alt={alt}
-                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
+                height={800}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                 src={imageUrl}
+                width={1200}
               />
             )}
           </div>
