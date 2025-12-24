@@ -124,7 +124,10 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
   };
 
   const porterRequest = await prisma.porterRequest.create({ data: createData });
-  const protoResponse = convertToProtoResponse(porterRequest);
+  
+  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
+  const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
+  const protoResponse = convertToProtoResponse(enrichedRequest);
 
   porterEventEmitter.emit('porterRequestCreated', protoResponse);
 
@@ -335,18 +338,10 @@ export const updatePorterRequest = async (
     data
   });
 
-  let assignedToName: string | undefined;
-  if (porterRequest.assignedToId) {
-    const employee = await prisma.porterEmployee.findUnique({
-      where: { id: porterRequest.assignedToId },
-      select: { firstName: true, lastName: true }
-    });
-    if (employee) {
-      assignedToName = `${employee.firstName} ${employee.lastName}`;
-    }
-  }
-
-  const protoResponse = convertToProtoResponse({ ...porterRequest, assignedToName });
+  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
+  const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
+  const protoResponse = convertToProtoResponse(enrichedRequest);
+  
   porterEventEmitter.emit('porterRequestUpdated', protoResponse);
 
   return protoResponse;
@@ -392,18 +387,9 @@ export const updatePorterRequestStatus = async (
     data
   });
 
-  let assignedToName: string | undefined;
-  if (porterRequest.assignedToId) {
-    const employee = await prisma.porterEmployee.findUnique({
-      where: { id: porterRequest.assignedToId },
-      select: { firstName: true, lastName: true }
-    });
-    if (employee) {
-      assignedToName = `${employee.firstName} ${employee.lastName}`;
-    }
-  }
-
-  const protoResponse = convertToProtoResponse({ ...porterRequest, assignedToName });
+  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
+  const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
+  const protoResponse = convertToProtoResponse(enrichedRequest);
 
   if (oldStatus !== newStatus) {
     porterEventEmitter.emit('porterRequestStatusChanged', protoResponse);
@@ -436,7 +422,10 @@ export const updatePorterRequestTimestamps = async (
     data
   });
 
-  const protoResponse = convertToProtoResponse(porterRequest);
+  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
+  const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
+  const protoResponse = convertToProtoResponse(enrichedRequest);
+  
   porterEventEmitter.emit('porterRequestUpdated', protoResponse);
 
   return protoResponse;
@@ -449,7 +438,10 @@ export const deletePorterRequest = async (id: string): Promise<void> => {
     return;
   }
 
-  const protoResponse = convertToProtoResponse(porterRequest);
+  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนลบและส่งผ่าน stream
+  const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
+  const protoResponse = convertToProtoResponse(enrichedRequest);
+  
   await prisma.porterRequest.delete({ where: { id } });
   porterEventEmitter.emit('porterRequestDeleted', protoResponse);
 };
@@ -946,6 +938,37 @@ const normalizePatientCondition = (
   }
 
   return Prisma.DbNull;
+};
+
+/**
+ * Helper function สำหรับดึงข้อมูล building names, floor department names, และ assigned employee name
+ * เพื่อให้ข้อมูลครบถ้วนก่อนส่งผ่าน stream
+ */
+const enrichPorterRequestWithNames = async (
+  porterRequest: PorterRequest
+): Promise<PorterRequestWithLocationNames> => {
+  // ดึงข้อมูล building names, floor department names, และ assigned employee name พร้อมกัน
+  const [pickupBuilding, pickupFloorDepartment, deliveryBuilding, deliveryFloorDepartment, assignedEmployee] = await Promise.all([
+    prisma.building.findUnique({ where: { id: porterRequest.pickupBuildingId }, select: { name: true } }),
+    prisma.floorDepartment.findUnique({ where: { id: porterRequest.pickupFloorDepartmentId }, select: { name: true } }),
+    prisma.building.findUnique({ where: { id: porterRequest.deliveryBuildingId }, select: { name: true } }),
+    prisma.floorDepartment.findUnique({ where: { id: porterRequest.deliveryFloorDepartmentId }, select: { name: true } }),
+    porterRequest.assignedToId
+      ? prisma.porterEmployee.findUnique({
+          where: { id: porterRequest.assignedToId },
+          select: { firstName: true, lastName: true }
+        })
+      : Promise.resolve(null)
+  ]);
+
+  return {
+    ...porterRequest,
+    pickupBuildingName: pickupBuilding?.name,
+    pickupFloorDepartmentName: pickupFloorDepartment?.name,
+    deliveryBuildingName: deliveryBuilding?.name,
+    deliveryFloorDepartmentName: deliveryFloorDepartment?.name,
+    assignedToName: assignedEmployee ? `${assignedEmployee.firstName} ${assignedEmployee.lastName}` : undefined
+  };
 };
 
 const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): PorterRequestMessage => {

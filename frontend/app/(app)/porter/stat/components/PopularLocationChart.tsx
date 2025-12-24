@@ -91,8 +91,14 @@ export function PopularLocationChart({
 
   // ถ้ามี jobs และ filterState ให้คำนวณข้อมูลใหม่ (Optimized)
   const filteredData = useMemo(() => {
-    if (!filteredJobs || filteredJobs.length === 0 || !filterState) {
+    // ถ้าไม่มี filterState ให้แสดงข้อมูลทั้งหมด
+    if (!filterState) {
       return data;
+    }
+
+    // ถ้ามี filterState แต่ไม่มี filteredJobs ให้ return array ว่าง
+    if (!filteredJobs || filteredJobs.length === 0) {
+      return [];
     }
 
     // Cache สำหรับ location strings
