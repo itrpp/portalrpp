@@ -20,11 +20,8 @@ import {
 import { useDepartmentName } from "./helpers/useDepartmentName";
 
 import { formatThaiDateTimeShort } from "@/lib/utils";
-import {
-  JobTableProps,
-  formatLocationString,
-  PorterJobItem,
-} from "@/types/porter";
+import { JobTableProps, PorterJobItem } from "@/types/porter";
+import { formatLocationString } from "@/lib/porter";
 
 // Component สำหรับแสดงชื่อหน่วยงาน
 function DepartmentNameChip({

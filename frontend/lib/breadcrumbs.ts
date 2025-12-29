@@ -1,5 +1,3 @@
-import React from "react";
-
 import {
   HomeIcon,
   ChartBarIcon,
@@ -13,19 +11,7 @@ import {
   UserGroupIcon,
   BriefcaseIcon,
 } from "@/components/ui/icons";
-
-export interface BreadcrumbItemType {
-  name: string;
-  href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-}
-
-interface RouteConfig {
-  name: string;
-  href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  parent?: string;
-}
+import { BreadcrumbItemType, RouteConfig } from "@/types";
 
 // Mapping ของ routes ทั้งหมดพร้อมชื่อภาษาไทยและ icon
 const routeMap: Record<string, RouteConfig> = {
@@ -128,7 +114,7 @@ const routeMap: Record<string, RouteConfig> = {
 // ใช้ href="#" สำหรับ routes ที่ไม่มี path จริงใน Sidebar
 const parentRouteMap: Record<string, RouteConfig> = {
   "/porter": {
-    name: "ระบบการจัดการเวรเปล",
+    name: "ศูนย์เคลื่อนย้ายผู้ป่วย",
     href: "#",
     icon: EmergencyBedIcon,
   },

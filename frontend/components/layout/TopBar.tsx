@@ -10,58 +10,83 @@ import {
   Breadcrumbs,
   BreadcrumbItem,
 } from "@heroui/react";
-import { Session } from "next-auth";
 
-import { UserIcon, ArrowRightOnRectangleIcon } from "@/components/ui/icons";
+import { Button } from "@heroui/react";
+
+import {
+  UserIcon,
+  ArrowRightOnRectangleIcon,
+  Bars3Icon,
+  XMarkIcon,
+} from "@/components/ui/icons";
 import { generateBreadcrumbs } from "@/lib/breadcrumbs";
+import { TopbarProps } from "@/types";
 
-interface TopBarProps {
-  session: Session | null;
-  pathname: string;
-  isNavigating: boolean;
-  handleNavigate: (href: string) => void;
-  handleLogout: () => void;
-}
-
-export default function TopBar({
+export default function Topbar({
   session,
   pathname,
   isNavigating,
   handleNavigate,
   handleLogout,
-}: TopBarProps) {
+  onToggleSidebar,
+  isSidebarOpen = true,
+}: TopbarProps) {
   const breadcrumbs = useMemo(() => generateBreadcrumbs(pathname), [pathname]);
 
   return (
-    <div className="h-16 bg-background border-b border-divider flex items-center justify-end md:justify-between px-6 lg:px-6 lg:pt-0 lg:pl-6 pl-20">
-      <div className="hidden md:flex items-center space-x-4">
-        <Breadcrumbs
-          isDisabled={isNavigating}
-          itemClasses={{
-            item: "text-black",
-            separator: "text-black",
-          }}
-        >
-          {breadcrumbs.map((item, index) => {
-            const Icon = item.icon;
-            const isLast = index === breadcrumbs.length - 1;
-            const hasNoPath = item.href === "#";
+    <div className="h-16 bg-background border-b border-divider flex items-center justify-end md:justify-between px-6 lg:px-6 lg:pt-0">
+      <div className="flex items-center space-x-4">
+        {/* Toggle Sidebar Button */}
+        {onToggleSidebar && (
+          <Button
+            aria-label={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
+            aria-expanded={isSidebarOpen}
+            isIconOnly
+            className="bg-background border border-divider hover:bg-content2 transition-colors"
+            isDisabled={isNavigating}
+            size="sm"
+            variant="light"
+            onPress={onToggleSidebar}
+          >
+            <Bars3Icon className="w-4 h-4 text-foreground" aria-hidden="true" />
+            {/* {isSidebarOpen ? (
+              <XMarkIcon className="w-4 h-4 text-foreground" aria-hidden="true" />
+            ) : (
+              
+            )} */}
+          </Button>
+        )}
 
-            return (
-              <BreadcrumbItem
-                key={`${index}-${item.href}-${item.name}`}
-                startContent={Icon ? <Icon className="w-4 h-4" /> : undefined}
-                onPress={() => {
-                  if (!hasNoPath && !isLast && !isNavigating) {
-                    handleNavigate(item.href);
-                  }
-                }}
-              >
-                {item.name}
-              </BreadcrumbItem>
-            );
-          })}
-        </Breadcrumbs>
+        {/* Breadcrumbs - แสดงเฉพาะบน desktop */}
+        <div className="hidden md:flex items-center space-x-4">
+          <Breadcrumbs
+            isDisabled={isNavigating}
+            itemClasses={{
+              item: "text-black",
+              separator: "text-black",
+            }}
+          >
+            {breadcrumbs.map((item, index) => {
+              const Icon = item.icon;
+              const isLast = index === breadcrumbs.length - 1;
+              const hasNoPath = item.href === "#";
+
+              return (
+                <BreadcrumbItem
+                  key={`${index}-${item.href}-${item.name}`}
+                  startContent={Icon ? <Icon className="w-4 h-4" /> : undefined}
+                  onPress={() => {
+                    if (!hasNoPath && !isLast && !isNavigating) {
+                      handleNavigate(item.href);
+                    }
+                  }}
+                >
+                  {item.name}
+                </BreadcrumbItem>
+              );
+            })}
+          </Breadcrumbs>
+        </div>
       </div>
 
       <div className="flex items-center space-x-4">

@@ -162,51 +162,17 @@ export interface RoomBed {
 
 /**
  * ประเภทหน่วยงาน (ID mapping)
+ * หมายเหตุ: Constants และ functions ถูกย้ายไปที่ lib/porter.ts แล้ว
  */
-export const DEPARTMENT_TYPES = {
-  1: "คลินิก",
-  2: "หอผู้ป่วย",
-} as const;
-
-export type DepartmentTypeId = keyof typeof DEPARTMENT_TYPES;
-export type DepartmentType = (typeof DEPARTMENT_TYPES)[DepartmentTypeId];
+export type DepartmentTypeId = 1 | 2;
+export type DepartmentType = "คลินิก" | "หอผู้ป่วย";
 
 /**
  * ประเภทห้องพัก (ID mapping)
+ * หมายเหตุ: Constants และ functions ถูกย้ายไปที่ lib/porter.ts แล้ว
  */
-export const ROOM_TYPES = {
-  1: "ห้องรวม",
-  2: "ห้องพิเศษ",
-  3: "ห้องรวมและห้องพิเศษ",
-} as const;
-
-export type RoomTypeId = keyof typeof ROOM_TYPES;
-export type RoomType = (typeof ROOM_TYPES)[RoomTypeId];
-
-/**
- * Helper functions สำหรับ mapping
- */
-export function getDepartmentTypeName(id: number): DepartmentType | undefined {
-  return DEPARTMENT_TYPES[id as DepartmentTypeId];
-}
-
-export function getDepartmentTypeId(
-  name: DepartmentType,
-): DepartmentTypeId | undefined {
-  return Object.entries(DEPARTMENT_TYPES).find(
-    ([, value]) => value === name,
-  )?.[0] as DepartmentTypeId | undefined;
-}
-
-export function getRoomTypeName(id: number): RoomType | undefined {
-  return ROOM_TYPES[id as RoomTypeId];
-}
-
-export function getRoomTypeId(name: RoomType): RoomTypeId | undefined {
-  return Object.entries(ROOM_TYPES).find(([, value]) => value === name)?.[0] as
-    | RoomTypeId
-    | undefined;
-}
+export type RoomTypeId = 1 | 2 | 3;
+export type RoomType = "ห้องรวม" | "ห้องพิเศษ" | "ห้องรวมและห้องพิเศษ";
 
 /**
  * ข้อมูลชั้น/หน่วยงาน
@@ -279,18 +245,5 @@ export interface DetailedLocation {
 }
 
 /**
- * ฟังก์ชันสำหรับแปลง DetailedLocation เป็น string สำหรับแสดงผล
+ * หมายเหตุ: formatLocationString function ถูกย้ายไปที่ lib/porter.ts แล้ว
  */
-export function formatLocationString(
-  location: DetailedLocation | null,
-): string {
-  if (!location) return "";
-
-  const parts = [
-    location.buildingName,
-    location.floorDepartmentName,
-    location.roomBedName,
-  ].filter(Boolean);
-
-  return parts.join(" - ");
-}

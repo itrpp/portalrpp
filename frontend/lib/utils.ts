@@ -299,3 +299,168 @@ export function getDateRangeFromFilter(filterState: {
 
   return {};
 }
+
+/**
+ * ========================================
+ * AUTHENTICATION ERROR MAPPING
+ * ========================================
+ */
+
+/**
+ * แปลง error code จาก authentication เป็นข้อความภาษาไทย
+ * @param code - Error code จาก authentication system
+ * @returns ข้อความภาษาไทยที่อธิบาย error
+ */
+export function mapAuthErrorToMessage(code: string): string {
+  switch (code) {
+    case "LINE_LDAP_REQUIRED":
+      return "กรุณาเข้าสู่ระบบด้วยบัญชีโรงพยาบาล (LDAP) อย่างน้อยหนึ่งครั้งก่อน แล้วค่อยเชื่อมบัญชี LINE";
+    case "LINE_ACCOUNT_IN_USE":
+      return "บัญชี LINE นี้ถูกผูกไว้กับผู้ใช้อื่นแล้ว กรุณาให้เจ้าของบัญชีนั้นยกเลิกก่อน";
+    case "LINE_ACCOUNT_ALREADY_LINKED":
+      return "บัญชีของคุณมีการเชื่อม LINE อยู่แล้ว กรุณายกเลิกการเชื่อมเดิมก่อน";
+    case "LINE_ACCOUNT_ID_MISSING":
+      return "ไม่พบข้อมูลผู้ใช้จาก LINE กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
+    case "OAuthAccountNotLinked":
+      return "บัญชี LINE นี้เชื่อมกับผู้ใช้อื่น หรือยังไม่ได้ยืนยันกับ LDAP";
+    case "AccessDenied":
+      return "การเข้าถึงถูกปฏิเสธ กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
+    case "ACCOUNT_DISABLED":
+      return "บัญชีของคุณถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
+    case "MISSING_CREDENTIALS":
+      return "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน";
+    case "USER_NOT_FOUND":
+      return "ไม่พบผู้ใช้ในระบบ กรุณาตรวจสอบชื่อผู้ใช้อีกครั้ง";
+    case "INVALID_CREDENTIALS":
+      return "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
+    case "CONNECTION_ERROR":
+      return "ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง";
+    case "INTERNAL_ERROR":
+      return "เกิดข้อผิดพลาดภายในระบบ กรุณาติดต่อผู้ดูแลระบบ";
+    default:
+      return "";
+  }
+}
+
+/**
+ * ========================================
+ * PROFILE ERROR MESSAGES
+ * ========================================
+ */
+
+/**
+ * แปลง error code จาก profile API เป็นข้อความภาษาไทย
+ * @param errorCode - Error code จาก profile API
+ * @returns ข้อความภาษาไทยที่อธิบาย error
+ */
+export function getProfileErrorMessage(errorCode: string): string {
+  const errorMessages: Record<string, string> = {
+    // Display Name
+    DISPLAY_NAME_REQUIRED: "กรุณากรอกชื่อที่แสดง",
+    DISPLAY_NAME_TOO_SHORT: "ชื่อที่แสดงต้องมีความยาวอย่างน้อย 2 ตัวอักษร",
+    DISPLAY_NAME_TOO_LONG: "ชื่อที่แสดงต้องมีความยาวไม่เกิน 100 ตัวอักษร",
+
+    // Phone
+    PHONE_REQUIRED: "กรุณากรอกโทรศัพท์ภายใน",
+    PHONE_INVALID_FORMAT: "โทรศัพท์ภายในต้องมีตัวเลขอย่างน้อย 3 ตัว",
+    MOBILE_INVALID_FORMAT: "รูปแบบหมายเลขมือถือไม่ถูกต้อง",
+
+    // Organization by ID (HRD)
+    PERSON_TYPE_REQUIRED: "กรุณาเลือกกลุ่มบุคลากร",
+    PERSON_TYPE_NOT_FOUND: "ไม่พบกลุ่มบุคลากรที่เลือก",
+    POSITION_REQUIRED: "กรุณาเลือกตำแหน่ง",
+    POSITION_NOT_FOUND: "ไม่พบตำแหน่งที่เลือก",
+    DEPARTMENT_ID_REQUIRED: "กรุณาเลือกกลุ่มภารกิจ",
+    DEPARTMENT_ID_NOT_FOUND: "ไม่พบกลุ่มภารกิจที่เลือก",
+    DEPARTMENT_SUB_ID_REQUIRED: "กรุณาเลือกกลุ่มงาน",
+    DEPARTMENT_SUB_ID_NOT_FOUND: "ไม่พบกลุ่มงานที่เลือก",
+    DEPARTMENT_SUB_SUB_ID_REQUIRED: "กรุณาเลือกหน่วยงาน",
+    DEPARTMENT_SUB_SUB_ID_NOT_FOUND: "ไม่พบหน่วยงานที่เลือก",
+
+    // Role
+    ROLE_REQUIRED: "กรุณาเลือกบทบาท",
+    ROLE_INVALID: "บทบาทไม่ถูกต้อง",
+
+    // General
+    INVALID_TYPE: "ประเภทข้อมูลไม่ถูกต้อง",
+    INVALID_ID_TYPE: "รูปแบบรหัสอ้างอิงไม่ถูกต้อง",
+    INVALID_REQUEST: "ข้อมูลไม่ถูกต้อง",
+    NO_MUTATIONS: "ไม่มีการเปลี่ยนแปลงข้อมูล",
+    UNAUTHORIZED: "คุณไม่มีสิทธิ์เข้าถึง",
+    NOT_FOUND: "ไม่พบข้อมูล",
+  };
+
+  return errorMessages[errorCode] || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
+}
+
+/**
+ * ========================================
+ * LDAP MEMBER OF PARSING
+ * ========================================
+ */
+
+/**
+ * Interface สำหรับ parsed memberOf group
+ */
+export interface MemberOfGroup {
+  cn: string;
+  fullDn: string;
+}
+
+/**
+ * แปลง memberOf string จาก LDAP เป็น array ของ groups
+ * @param memberOf - memberOf string จาก LDAP (format: "CN=Group1,OU=...;CN=Group2,OU=...")
+ * @returns array ของ MemberOfGroup objects
+ */
+export function parseMemberOf(memberOf: string): MemberOfGroup[] {
+  if (!memberOf || memberOf.trim().length === 0) {
+    return [];
+  }
+
+  // Split by semicolon and process each DN
+  const groups = memberOf
+    .split(";")
+    .map((dn) => dn.trim())
+    .filter((dn) => dn.length > 0)
+    .map((dn) => {
+      // Match CN=value, handling various formats including spaces
+      // Pattern: CN= followed by value (can contain spaces) until comma or end
+      const cnMatch = dn.match(/^CN=([^,]+?)(?=,|$)/i);
+
+      if (cnMatch && cnMatch[1]) {
+        const cn = cnMatch[1].trim();
+
+        return {
+          cn,
+          fullDn: dn,
+        };
+      }
+
+      // Fallback: if no CN found, try to extract from the beginning
+      const firstPart = dn.split(",")[0];
+
+      if (firstPart) {
+        const cn = firstPart.replace(/^CN=/i, "").trim();
+
+        return {
+          cn: cn || dn,
+          fullDn: dn,
+        };
+      }
+
+      // Last fallback: use the DN itself
+      return {
+        cn: dn,
+        fullDn: dn,
+      };
+    })
+    .filter((group) => group.cn.length > 0);
+
+  // Remove duplicates based on full DN
+  const uniqueGroups = Array.from(
+    new Map(groups.map((group) => [group.fullDn, group])).values(),
+  );
+
+  // Sort by CN for consistent display
+  return uniqueGroups.sort((a, b) => a.cn.localeCompare(b.cn));
+}

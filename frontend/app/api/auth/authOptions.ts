@@ -368,9 +368,6 @@ export const authOptions: any = {
       user: any;
       account: any;
     }): Promise<ExtendedToken> {
-      if (account?.provider) {
-        // token.provider_type removed
-      }
 
       const possibleUser = user as ExtendedUser | undefined;
       const userId = possibleUser?.id ?? token.sub;

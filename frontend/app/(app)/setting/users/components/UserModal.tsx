@@ -757,12 +757,13 @@ export function UserModal({
                         if (onSave) {
                           await onSave(user.id, {});
                         }
-                      } catch (error: any) {
+                      } catch (error) {
                         addToast({
                           title: "เกิดข้อผิดพลาด",
                           description:
-                            error.message ||
-                            "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
+                            error instanceof Error
+                              ? error.message
+                              : "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
                           color: "danger",
                         });
                       } finally {

@@ -8,7 +8,7 @@ import { useSession, signOut } from "next-auth/react";
 import Loading from "../loading";
 
 import Sidebar from "@/components/layout/Sidebar";
-import TopBar from "@/components/layout/TopBar";
+import Topbar from "@/components/layout/Topbar";
 import HomeFooter from "@/components/layout/HomeFooter";
 import ProfileOrgModal from "@/components/ui/ProfileOrgModal";
 
@@ -49,6 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [isNavigating, setIsNavigating] = useState(false);
   const [isProfileOrgModalOpen, setIsProfileOrgModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // ตรวจสอบ authentication status
   useEffect(() => {
@@ -62,6 +63,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.push(`/login?callbackUrl=${callbackUrl}`);
     }
   }, [status, router, pathname, searchParams]);
+
+  // ตั้งค่า initial state ของ Sidebar ตามขนาดหน้าจอ
+  useEffect(() => {
+    const MOBILE_BREAKPOINT = 1024; // lg breakpoint in Tailwind
+    
+    const checkScreenSize = () => {
+      // บน mobile ให้เริ่มต้นเป็น false, บน desktop เป็น true
+      setIsSidebarOpen(window.innerWidth >= MOBILE_BREAKPOINT);
+    };
+
+    // ตรวจสอบครั้งแรก
+    checkScreenSize();
+
+    // ฟัง resize event ด้วย debounce เพื่อ performance
+    let timeoutId: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(checkScreenSize, 150);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   // บังคับให้ผู้ใช้ที่ยังไม่ได้กรอกโครงสร้างองค์กรครบ ไปหน้าโปรไฟล์
   useEffect(() => {
@@ -113,6 +140,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen((prev) => !prev);
+  };
+
   // แสดง loading spinner ขณะตรวจสอบ authentication
   if (status === "loading") {
     return (
@@ -139,15 +170,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onToggle={handleToggleSidebar} />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+      <div
+        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+          isSidebarOpen ? "lg:ml-64" : "lg:ml-0"
+        }`}
+      >
         {/* Top Bar */}
-        <TopBar
+        <Topbar
           handleLogout={handleLogout}
           handleNavigate={handleNavigate}
           isNavigating={isNavigating}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={handleToggleSidebar}
           pathname={pathname}
           session={session}
         />

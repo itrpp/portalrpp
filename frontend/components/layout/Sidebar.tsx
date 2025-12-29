@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -23,31 +23,49 @@ import {
   BriefcaseIcon,
   UserGroupIcon,
 } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
+import {
+  SidebarProps,
+  SidebarItem,
+  SidebarSection,
+} from "@/types";
 
-interface SidebarItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
-  count?: number;
-  isNew?: boolean;
-  subItems?: SidebarItem[];
-}
-
-interface SidebarSection {
-  title: string;
-  isDisabled: boolean;
-  items: SidebarItem[];
-}
-
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
   const [isCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isNavigating, setIsNavigating] = useState(false);
+
+  // ใช้ prop isOpen ถ้ามี ถ้าไม่มีใช้ false (controlled component)
+  const sidebarIsOpen = isOpen ?? false;
+  
+  // ตรวจสอบว่าเป็น mobile หรือ desktop
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Lock body scroll เมื่อ Sidebar เปิดบน mobile
+  useEffect(() => {
+    if (sidebarIsOpen && isMobile) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [sidebarIsOpen, isMobile]);
 
   // Auto-expand parent items when on sub-items
   useEffect(() => {
@@ -88,30 +106,31 @@ export default function Sidebar() {
     setExpandedItems(newExpandedItems);
   }, [pathname]);
 
-  // ตรวจสอบว่าเป็น superadmin (ฝ่ายวิชาการ admin)
-  const isSuperAdmin = () => {
+  // ตรวจสอบว่าเป็น superadmin (ฝ่ายวิชาการ admin) - memoized
+  const isSuperAdmin = useMemo(() => {
     const departmentSubSubId = session?.user?.departmentSubSubId;
     const role = session?.user?.role;
 
     return departmentSubSubId === 170000 && role === "admin";
-  };
+  }, [session?.user?.departmentSubSubId, session?.user?.role]);
 
-  // ตรวจสอบสิทธิ์การเข้าถึงเมนูศูนย์เปล
-  const canAccessPorterCenter = () => {
+  // ตรวจสอบสิทธิ์การเข้าถึงเมนูศูนย์เปล - memoized
+  const canAccessPorterCenter = useMemo(() => {
     const departmentSubSubId = session?.user?.departmentSubSubId;
 
-    return isSuperAdmin() || departmentSubSubId === 4007;
-  };
+    return isSuperAdmin || departmentSubSubId === 4007;
+  }, [isSuperAdmin, session?.user?.departmentSubSubId]);
 
-  // ตรวจสอบสิทธิ์การเข้าถึงเมนูตั้งค่าศูนย์เปล (เฉพาะ admin ของศูนย์เปล หรือ superadmin)
-  const canAccessPorterCenterSettings = () => {
+  // ตรวจสอบสิทธิ์การเข้าถึงเมนูตั้งค่าศูนย์เปล - memoized
+  const canAccessPorterCenterSettings = useMemo(() => {
     const departmentSubSubId = session?.user?.departmentSubSubId;
     const role = session?.user?.role;
 
-    return isSuperAdmin() || (departmentSubSubId === 4007 && role === "admin");
-  };
+    return isSuperAdmin || (departmentSubSubId === 4007 && role === "admin");
+  }, [isSuperAdmin, session?.user?.departmentSubSubId, session?.user?.role]);
 
-  const navigationSections: SidebarSection[] = [
+  // Memoize navigation sections เพื่อป้องกันการสร้างใหม่ทุกครั้งที่ render
+  const navigationSections: SidebarSection[] = useMemo(() => [
     {
       title: "ภาพรวม",
       isDisabled: false,
@@ -121,15 +140,10 @@ export default function Sidebar() {
           href: "/home",
           icon: HomeIcon,
         },
-        // {
-        //   name: "Dashboard",
-        //   href: "#",
-        //   icon: Squares2X2Icon,
-        // },
       ],
     },
     {
-      title: "ระบบการจัดการเวรเปล",
+      title: "ศูนย์เคลื่อนย้ายผู้ป่วย",
       isDisabled: false,
       items: [
         {
@@ -138,14 +152,14 @@ export default function Sidebar() {
           icon: ChartBarIcon,
         },
         {
-          name: "ขอเปล",
+          name: "ขอเปลรับ - ส่งผู้ป่วย",
           href: "/porter/request",
           icon: EmergencyBedIcon,
         },
-        ...(canAccessPorterCenter()
+        ...(canAccessPorterCenter
           ? [
               {
-                name: "ศูนย์เปล",
+                name: "ศูนย์สั่งการ",
                 href: "#",
                 icon: BedIcon,
                 subItems: [
@@ -154,7 +168,7 @@ export default function Sidebar() {
                     href: "/porter/joblist",
                     icon: ClipboardListIcon,
                   },
-                  ...(canAccessPorterCenterSettings()
+                  ...(canAccessPorterCenterSettings
                     ? [
                         {
                           name: "ตั้งค่า",
@@ -234,7 +248,7 @@ export default function Sidebar() {
 
     {
       title: "ผู้ดูแลระบบ",
-      isDisabled: !isSuperAdmin(),
+      isDisabled: !isSuperAdmin,
       items: [
         {
           name: "จัดการผู้ใช้",
@@ -275,9 +289,10 @@ export default function Sidebar() {
         },
       ],
     },
-  ];
+  ], [isSuperAdmin, canAccessPorterCenter, canAccessPorterCenterSettings]);
 
-  const isActive = (href: string) => {
+  // Memoize isActive function
+  const isActive = useCallback((href: string) => {
     if (href === "/") {
       return pathname === "/";
     }
@@ -295,13 +310,17 @@ export default function Sidebar() {
     }
 
     return pathname.startsWith(href);
-  };
+  }, [pathname]);
 
-  const handleMobileClose = () => {
-    setIsMobileOpen(false);
-  };
+  const handleClose = useCallback(() => {
+    onToggle?.();
+  }, [onToggle]);
 
-  const toggleExpanded = (itemName: string) => {
+  const handleOpen = useCallback(() => {
+    onToggle?.();
+  }, [onToggle]);
+
+  const toggleExpanded = useCallback((itemName: string) => {
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
 
@@ -313,26 +332,33 @@ export default function Sidebar() {
 
       return newSet;
     });
-  };
+  }, []);
 
-  const handleNavigate = async (href: string) => {
+  const handleNavigate = useCallback(async (href: string) => {
     if (isNavigating || pathname === href) {
       return;
     }
 
     setIsNavigating(true);
-    handleMobileClose();
+    // ปิด Sidebar บน mobile หลังจาก navigate
+    if (isMobile) {
+      handleClose();
+    }
     try {
       await router.push(href);
     } catch (error) {
-      console.error("Navigation error:", error);
+      // Log error แต่ไม่แสดงให้ผู้ใช้เห็น (error handling ที่ดีกว่า)
+      // eslint-disable-next-line no-console
+      if (process.env.NODE_ENV === "development") {
+        console.error("Navigation error:", error);
+      }
     } finally {
       // Reset loading state after a short delay to allow navigation to start
       setTimeout(() => {
         setIsNavigating(false);
       }, 300);
     }
-  };
+  }, [isNavigating, pathname, router, isMobile, handleClose]);
 
   const renderSidebarItem = (item: SidebarItem, isSubItem = false) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
@@ -340,12 +366,13 @@ export default function Sidebar() {
     const isItemActive = isActive(item.href);
 
     return (
-      <div key={item.name} className={`px-2 ${isSubItem ? "ml-4" : ""}`}>
+      <div key={item.name} className={cn("px-2", isSubItem && "ml-4")}>
         {item.href === "#" ? (
           <Button
-            className={`sidebar-item w-full justify-start h-10 group ${
-              isItemActive ? "active" : ""
-            }`}
+            className={cn(
+              "sidebar-item w-full justify-start h-10 group",
+              isItemActive && "active"
+            )}
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
@@ -369,24 +396,21 @@ export default function Sidebar() {
             }
             startContent={
               <item.icon
-                className={`w-4 h-4 transition-colors ${
+                className={cn(
+                  "w-4 h-4 transition-colors",
                   isItemActive
                     ? "text-white"
                     : "text-default-600 group-hover:text-primary-500"
-                }`}
+                )}
               />
             }
             variant="light"
             onPress={() => {
               if (hasSubItems) {
                 toggleExpanded(item.name);
-                // ไม่ปิด sidebar เมื่อกดปุ่มที่มี sub-items
-              } else if (item.name === "ออกจากระบบ") {
-                // handleLogout();
-                handleMobileClose();
-              } else {
-                // ปิด sidebar เฉพาะเมื่อกดปุ่มที่ไม่มี sub-items
-                handleMobileClose();
+              } else if (isMobile) {
+                // ปิด sidebar บน mobile หลังจากเลือกเมนู
+                handleClose();
               }
             }}
           >
@@ -418,7 +442,7 @@ export default function Sidebar() {
           </Button>
         ) : isItemActive ? (
           <Button
-            className={`sidebar-item w-full justify-start h-10 group active`}
+            className="sidebar-item w-full justify-start h-10 group active"
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
@@ -431,17 +455,11 @@ export default function Sidebar() {
                     {item.badge}
                   </Chip>
                 )}
-                {/* {hasSubItems && (
-                  <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''
-                      }`}
-                  />
-                )} */}
               </div>
             }
             startContent={
               <item.icon
-                className={`w-4 h-4 transition-colors text-primary-500`}
+                className="w-4 h-4 transition-colors text-primary-500"
               />
             }
             variant="light"
@@ -474,7 +492,7 @@ export default function Sidebar() {
           </Button>
         ) : (
           <Button
-            className={`sidebar-item w-full justify-start h-10 group`}
+            className="sidebar-item w-full justify-start h-10 group"
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
@@ -489,9 +507,10 @@ export default function Sidebar() {
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${
-                      isExpanded ? "rotate-90" : ""
-                    }`}
+                    className={cn(
+                      "w-3 h-3 transition-transform",
+                      isExpanded && "rotate-90"
+                    )}
                   />
                 )}
               </div>
@@ -499,7 +518,7 @@ export default function Sidebar() {
             isDisabled={isNavigating}
             startContent={
               <item.icon
-                className={`w-4 h-4 transition-colors text-default-600 group-hover:text-primary-500`}
+                className="w-4 h-4 transition-colors text-default-600 group-hover:text-primary-500"
               />
             }
             variant="light"
@@ -543,50 +562,51 @@ export default function Sidebar() {
     );
   };
 
+  // Handle Escape key press
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && sidebarIsOpen && isMobile) {
+        handleClose();
+      }
+    };
+
+    if (sidebarIsOpen && isMobile) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [sidebarIsOpen, isMobile, handleClose]);
+
   return (
     <>
-      {/* Mobile Menu Button */}
-      {!isMobileOpen && (
-        <div className="lg:hidden fixed top-4 left-4 z-50">
-          <Button
-            isIconOnly
-            className="bg-background border border-divider shadow-lg hover:bg-content2 transition-colors"
-            size="sm"
-            variant="light"
-            onPress={() => setIsMobileOpen(true)}
-          >
-            <Bars3Icon className="w-4 h-4 text-foreground" />
-          </Button>
-        </div>
-      )}
-
-      {/* Mobile Overlay */}
-      {isMobileOpen && (
+      {/* Mobile Overlay - แสดงเฉพาะบน mobile เมื่อ Sidebar เปิด */}
+      {sidebarIsOpen && isMobile && (
         <div
           aria-label="ปิดเมนู"
+          aria-hidden={!sidebarIsOpen}
           className="lg:hidden fixed inset-0 backdrop-blur-sm bg-background/80 z-40"
           role="button"
-          tabIndex={0}
-          onClick={handleMobileClose}
+          tabIndex={-1}
+          onClick={handleClose}
           onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              handleMobileClose();
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleClose();
             }
           }}
         />
       )}
 
       {/* Sidebar - รองรับ Light/Dark Theme */}
-      <div
-        className={`
-        sidebar fixed lg:static inset-y-0 left-0 z-50
-        h-screen
-
-        ${isCollapsed ? "w-16" : "w-64"}
-        ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-        
-        transition-all duration-300 ease-in-out
-      `}
+      <aside
+        aria-label="เมนูนำทางหลัก"
+        aria-hidden={!sidebarIsOpen}
+        role="navigation"
+        className={cn(
+          "sidebar fixed inset-y-0 left-0 z-50 h-screen",
+          "transition-transform duration-300 ease-in-out",
+          isCollapsed ? "w-16" : "w-64",
+          sidebarIsOpen ? "translate-x-0" : "-translate-x-full"
+        )}
       >
         <div className="flex flex-col h-full shadow-xl border border-divider">
           {/* Header - พื้นหลังสีฟ้าอ่อน */}
@@ -608,17 +628,20 @@ export default function Sidebar() {
             </div>
 
             {/* Mobile Close Button */}
-            <div className="lg:hidden">
-              <Button
-                isIconOnly
-                className="text-foreground hover:bg-content2 transition-colors"
-                size="sm"
-                variant="light"
-                onPress={handleMobileClose}
-              >
-                <XMarkIcon className="w-4 h-4" />
-              </Button>
-            </div>
+            {isMobile && (
+              <div className="lg:hidden">
+                <Button
+                  aria-label="ปิดเมนู"
+                  isIconOnly
+                  className="text-foreground hover:bg-content2 transition-colors"
+                  size="sm"
+                  variant="light"
+                  onPress={handleClose}
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Navigation - รองรับการ scroll และ theme */}
@@ -626,7 +649,7 @@ export default function Sidebar() {
             {navigationSections.map((section) => (
               <div
                 key={section.title}
-                className={`py-2 ${section.isDisabled ? "hidden" : ""}`}
+                className={cn("py-2", section.isDisabled && "hidden")}
               >
                 <div className="px-4 py-2">
                   <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider">
@@ -641,7 +664,7 @@ export default function Sidebar() {
             ))}
           </div>
         </div>
-      </div>
+      </aside>
     </>
   );
 }

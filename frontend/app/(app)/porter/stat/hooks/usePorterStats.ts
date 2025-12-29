@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 
 import { PorterJobItem } from "@/types/porter";
-import { formatLocationString } from "@/types/porter";
+import { formatLocationString } from "@/lib/porter";
 
 interface PorterStats {
   totalJobs: number;

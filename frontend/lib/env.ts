@@ -3,25 +3,7 @@
  * ตรวจสอบและ validate environment variables ที่จำเป็น
  */
 
-interface RequiredEnvVars {
-  NEXTAUTH_URL: string;
-  NEXTAUTH_SECRET: string;
-  LDAP_URL: string;
-  LDAP_BASE_DN: string;
-  LDAP_BIND_DN: string;
-  LDAP_BIND_PASSWORD: string;
-}
-
-interface OptionalEnvVars {
-  LDAP_SEARCH_FILTER?: string;
-  LDAP_ATTRIBUTES?: string;
-  LDAP_TIMEOUT?: string;
-  LDAP_CONNECT_TIMEOUT?: string;
-  LDAP_IDLE_TIMEOUT?: string;
-  LDAP_RECONNECT?: string;
-  LINE_CLIENT_ID?: string;
-  LINE_CLIENT_SECRET?: string;
-}
+import { RequiredEnvVars, OptionalEnvVars } from "@/types";
 
 /**
  * ตรวจสอบ required environment variables
@@ -125,6 +107,7 @@ export function validateEnvironment(): {
 
     return { required, optional };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Environment validation failed:", error);
     throw error;
   }

@@ -16,6 +16,7 @@ import {
   ServerIcon,
 } from "@/components/ui/icons";
 import { siteConfig } from "@/config/site";
+import { formatDateTimeThai } from "@/lib/utils";
 
 function HomeContent() {
   const router = useRouter();
@@ -36,7 +37,6 @@ function HomeContent() {
   }, []);
 
   const handleGoToHome = () => {
-    // ใช้ window.location.origin เพื่อให้ redirect ไปยัง domain เดียวกัน
     router.push("/home");
   };
 
@@ -116,15 +116,7 @@ function HomeContent() {
                 className="text-lg text-default-600 font-medium"
               >
                 {isClient && currentTime
-                  ? currentTime.toLocaleString("th-TH", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })
+                  ? formatDateTimeThai(currentTime)
                   : "กำลังโหลด..."}
               </span>
             </div>

@@ -35,11 +35,13 @@ import {
   Building,
   FloorDepartment,
   // RoomBed, // เลิกใช้งาน room-beds แล้ว
+} from "@/types/porter";
+import {
+  convertBuildingFromProto,
   getDepartmentTypeName,
   DEPARTMENT_TYPES,
   ROOM_TYPES,
-} from "@/types/porter";
-import { convertBuildingFromProto } from "@/lib/porter";
+} from "@/lib/porter";
 
 /**
  * Modal สำหรับเพิ่ม/แก้ไขอาคาร

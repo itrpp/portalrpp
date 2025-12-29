@@ -47,9 +47,9 @@ import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
-  formatLocationString,
   PorterJobItem,
 } from "@/types/porter";
+import { formatLocationString } from "@/lib/porter";
 import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
 import {
   URGENCY_OPTIONS,
@@ -611,9 +611,6 @@ export default function PorterRequestPage() {
             <AmbulanceIcon className="w-8 h-8 text-primary" />
             ขอเปลรับ - ส่งผู้ป่วย
           </h1>
-          <p className="text-default-600 mt-2">
-            ระบบบริหารจัดการงานเปลสำหรับเจ้าหน้าที่
-          </p>
         </div>
       </div>
 

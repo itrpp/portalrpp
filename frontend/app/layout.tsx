@@ -1,71 +1,56 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 
-import { Providers } from "./providers";
+import { Providers } from "@/components/providers";
 import { ClientLayout } from "./client-layout";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-// import { Navbar } from "@/components/navbar";
+import { RootLayoutProps } from "@/types/layout";
 
 export const metadata: Metadata = {
   title: {
     default: siteConfig.projectName,
     template: `%s - ${siteConfig.projectName}`,
   },
-  description: siteConfig.description,
+  description: `ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`,
+  keywords: [
+    "โรงพยาบาล",
+    "ราชพิพัฒน์",
+    "ระบบจัดการข้อมูล",
+    "Digital Transformation",
+    "Healthcare Management",
+  ],
+  authors: [{ name: siteConfig.hospitalName }],
   icons: {
-    icon: "/favicon.ico",
+    icon: "/images/logo.png",
+    apple: "/images/logo.png",
+  },
+  openGraph: {
+    title: siteConfig.projectName,
+    description: `ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`,
+    type: "website",
+    images: ["/images/logo.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.projectName,
+    description: `ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`,
+    images: ["/images/logo.png"],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#3b82f6",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html suppressHydrationWarning className={`${fontSans.variable}`} lang="th">
-      <head>
-        <title>{siteConfig.projectName}</title>
-        <meta
-          content={`ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`}
-          name="description"
-        />
-        <meta
-          content="โรงพยาบาล,ราชพิพัฒน์,ระบบจัดการข้อมูล,Digital Transformation,Healthcare Management"
-          name="keywords"
-        />
-        <meta content={siteConfig.hospitalName} name="author" />
-        <meta
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-          name="viewport"
-        />
-        <link href="/images/logo.png" rel="icon" />
-        <link href="/images/logo.png" rel="apple-touch-icon" />
-        <meta content="#3b82f6" name="theme-color" />
-        <meta content={siteConfig.projectName} property="og:title" />
-        <meta
-          content={`ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`}
-          property="og:description"
-        />
-        <meta content="website" property="og:type" />
-        <meta content="/images/logo.png" property="og:image" />
-        <meta content="summary_large_image" name="twitter:card" />
-        <meta content={siteConfig.projectName} name="twitter:title" />
-        <meta
-          content={`ระบบจัดการข้อมูลดิจิทัล ${siteConfig.hospitalName}`}
-          name="twitter:description"
-        />
-        <meta content="/images/logo.png" name="twitter:image" />
-      </head>
       <body
         suppressHydrationWarning
         className={`${fontSans.className} bg-background text-foreground`}

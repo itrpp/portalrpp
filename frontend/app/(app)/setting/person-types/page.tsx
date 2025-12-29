@@ -1,50 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  useDisclosure,
-  addToast,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Pagination,
-  Chip,
-} from "@heroui/react";
+import React from "react";
+import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
 
-import PersonTypeModal from "./components/PersonTypeModal";
+import { SimpleCrudModal } from "../components/SimpleCrudModal";
+import { CrudTable } from "../components/CrudTable";
+import { useCrudManagement } from "../hooks/useCrudManagement";
 
-import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
 import {
   UserGroupIcon,
   PlusIcon,
-  TrashIcon,
-  PencilIcon,
 } from "@/components/ui/icons";
 import { PersonType } from "@/types/hrd";
 
 export default function PersonTypeManagementPage() {
-  const [personTypes, setPersonTypes] = useState<PersonType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
-
-  // Modal state
   const {
-    isOpen: isPersonTypeModalOpen,
-    onOpen: onPersonTypeModalOpen,
-    onClose: onPersonTypeModalClose,
-  } = useDisclosure();
-  const [editingPersonType, setEditingPersonType] = useState<PersonType | null>(
-    null,
-  );
-  const {
+    items: personTypes,
+    isLoading,
+    isSaving,
+    isDeleting,
+    editingItem: editingPersonType,
+    isModalOpen,
+    onModalOpen,
+    onModalClose,
     currentPage,
     rowsPerPage,
     totalPages,
@@ -53,193 +31,44 @@ export default function PersonTypeManagementPage() {
     paginatedItems: currentPersonTypes,
     setCurrentPage,
     setRowsPerPage,
-  } = usePagination(personTypes, { initialRowsPerPage: 10 });
-
-  // โหลดข้อมูลจาก API
-  useEffect(() => {
-    const loadPersonTypes = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/hrd/person-types");
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          setPersonTypes(result.data);
-        } else {
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถโหลดข้อมูลได้",
-            color: "danger",
-          });
-        }
-      } catch {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดข้อมูลได้",
-          color: "danger",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPersonTypes();
-  }, []);
-
-  // Handlers
-  const handleAddPersonType = () => {
-    setEditingPersonType(null);
-    onPersonTypeModalOpen();
-  };
-
-  const handleEditPersonType = (personType: PersonType) => {
-    setEditingPersonType(personType);
-    onPersonTypeModalOpen();
-  };
-
-  const handleDeletePersonType = async (personTypeId: number) => {
-    const personType = personTypes.find((p) => p.id === personTypeId);
-
-    if (
-      !confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบกลุ่มบุคลากร "${personType?.name}"?`)
-    ) {
-      return;
-    }
-
-    try {
-      setIsDeleting(personTypeId);
-      const response = await fetch(`/api/hrd/person-types/${personTypeId}`, {
-        method: "DELETE",
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        setPersonTypes((prev) => prev.filter((p) => p.id !== personTypeId));
-        addToast({
-          title: "ลบกลุ่มบุคลากรสำเร็จ",
-          description: "กลุ่มบุคลากรถูกลบออกจากระบบแล้ว",
-          color: "success",
-        });
-      } else {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถลบกลุ่มบุคลากรได้",
-          color: "danger",
-        });
-      }
-    } catch {
-      addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถลบกลุ่มบุคลากรได้",
-        color: "danger",
-      });
-    } finally {
-      setIsDeleting(null);
-    }
-  };
-
-  const handleSavePersonType = async (
-    personTypeData: Omit<PersonType, "id" | "createdAt" | "updatedAt"> & {
-      id?: number;
-    },
-  ) => {
-    try {
-      setIsSaving(true);
-
-      // ตรวจสอบชื่อซ้ำ (ยกเว้นกรณีแก้ไข)
-      if (!editingPersonType) {
-        const existing = personTypes.find(
-          (p) => p.name.toLowerCase() === personTypeData.name.toLowerCase(),
-        );
-
-        if (existing) {
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: "ชื่อกลุ่มบุคลากรนี้มีอยู่ในระบบแล้ว",
-            color: "danger",
-          });
-          throw new Error("ชื่อกลุ่มบุคลากรซ้ำ");
-        }
-      }
-
-      if (editingPersonType) {
-        // แก้ไขกลุ่มบุคลากร
-        const response = await fetch(
-          `/api/hrd/person-types/${editingPersonType.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: personTypeData.name,
-              active: personTypeData.active,
-            }),
-          },
-        );
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          setPersonTypes((prev) =>
-            prev.map((p) => (p.id === editingPersonType.id ? result.data : p)),
-          );
-          addToast({
-            title: "แก้ไขกลุ่มบุคลากรสำเร็จ",
-            description: "ข้อมูลกลุ่มบุคลากรถูกอัปเดตแล้ว",
-            color: "success",
-          });
-        } else {
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถแก้ไขกลุ่มบุคลากรได้",
-            color: "danger",
-          });
-          throw new Error(result.message || "ไม่สามารถแก้ไขกลุ่มบุคลากรได้");
-        }
-      } else {
-        // เพิ่มกลุ่มบุคลากรใหม่
-        const response = await fetch("/api/hrd/person-types", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: personTypeData.name,
-            active: personTypeData.active,
-          }),
-        });
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          setPersonTypes((prev) => [...prev, result.data]);
-          addToast({
-            title: "เพิ่มกลุ่มบุคลากรสำเร็จ",
-            description: "กลุ่มบุคลากรใหม่ถูกเพิ่มเข้าไปในระบบแล้ว",
-            color: "success",
-          });
-        } else {
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถเพิ่มกลุ่มบุคลากรได้",
-            color: "danger",
-          });
-          throw new Error(result.message || "ไม่สามารถเพิ่มกลุ่มบุคลากรได้");
-        }
-      }
-      setEditingPersonType(null);
-    } catch (error) {
-      addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกกลุ่มบุคลากรได้",
-        color: "danger",
-      });
-      throw error;
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    handleAdd,
+    handleEdit,
+    handleDelete,
+    handleSave,
+  } = useCrudManagement<PersonType>({
+    apiEndpoint: "/api/hrd/person-types",
+    itemName: "กลุ่มบุคลากร",
+    itemNamePlural: "กลุ่มบุคลากร",
+  });
 
   const columns = [
-    { key: "id", label: "ID" },
-    { key: "name", label: "ชื่อกลุ่มบุคลากร" },
-    { key: "active", label: "สถานะ" },
-    { key: "actions", label: "การจัดการ" },
+    {
+      key: "id",
+      label: "ID",
+      render: (item: PersonType) => (
+        <span className="font-mono text-sm">{item.id}</span>
+      ),
+    },
+    {
+      key: "name",
+      label: "ชื่อกลุ่มบุคลากร",
+      render: (item: PersonType) => (
+        <span className="text-foreground">{item.name}</span>
+      ),
+    },
+    {
+      key: "active",
+      label: "สถานะ",
+      render: (item: PersonType) => (
+        <Chip
+          color={item.active ? "success" : "default"}
+          size="sm"
+          variant="flat"
+        >
+          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+        </Chip>
+      ),
+    },
   ];
 
   return (
@@ -259,7 +88,7 @@ export default function PersonTypeManagementPage() {
           color="primary"
           isDisabled={isLoading || isSaving}
           startContent={<PlusIcon className="w-5 h-5" />}
-          onPress={handleAddPersonType}
+          onPress={handleAdd}
         >
           เพิ่มกลุ่มบุคลากร
         </Button>
@@ -278,133 +107,36 @@ export default function PersonTypeManagementPage() {
           </div>
         </CardHeader>
         <CardBody className="pt-4">
-          {isLoading ? (
-            <div className="text-center py-8 text-default-500">
-              <p>กำลังโหลดข้อมูล...</p>
-            </div>
-          ) : (
-            <>
-              <Table
-                removeWrapper
-                aria-label="รายการกลุ่มบุคลากร"
-                classNames={{
-                  wrapper: "min-h-[400px]",
-                }}
-              >
-                <TableHeader columns={columns}>
-                  {(column) => (
-                    <TableColumn key={column.key}>{column.label}</TableColumn>
-                  )}
-                </TableHeader>
-                <TableBody
-                  emptyContent="ยังไม่มีข้อมูลกลุ่มบุคลากร"
-                  items={currentPersonTypes}
-                >
-                  {(item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <span className="font-mono text-sm">{item.id}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-foreground">{item.name}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          color={item.active ? "success" : "default"}
-                          size="sm"
-                          variant="flat"
-                        >
-                          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
-                        </Chip>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            isIconOnly
-                            color="primary"
-                            isDisabled={isDeleting === item.id || isSaving}
-                            size="sm"
-                            variant="light"
-                            onPress={() => handleEditPersonType(item)}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            isIconOnly
-                            color="danger"
-                            isDisabled={isDeleting === item.id}
-                            isLoading={isDeleting === item.id}
-                            size="sm"
-                            variant="light"
-                            onPress={() => handleDeletePersonType(item.id)}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-
-              {/* Pagination */}
-              {personTypes.length > 0 && (
-                <div className="flex items-center justify-between mt-4 px-2">
-                  <div className="text-sm text-default-600">
-                    แสดง {startIndex + 1} - {""}
-                    {Math.min(endIndex, personTypes.length)} จาก {""}
-                    {personTypes.length} รายการ
-                  </div>
-                  <Pagination
-                    showControls
-                    color="primary"
-                    initialPage={1}
-                    page={currentPage}
-                    size="sm"
-                    total={totalPages}
-                    onChange={setCurrentPage}
-                  />
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <label
-                        className="text-sm text-default-600"
-                        htmlFor="rows-per-page"
-                      >
-                        แสดงต่อหน้า:
-                      </label>
-                      <select
-                        className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                        id="rows-per-page"
-                        value={rowsPerPage}
-                        onChange={(e) => {
-                          setRowsPerPage(Number(e.target.value));
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+          <CrudTable
+            items={currentPersonTypes}
+            columns={columns}
+            isLoading={isLoading}
+            isSaving={isSaving}
+            isDeleting={isDeleting}
+            currentPage={currentPage}
+            rowsPerPage={rowsPerPage}
+            totalPages={totalPages}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onPageChange={setCurrentPage}
+            onRowsPerPageChange={setRowsPerPage}
+            emptyContent="ยังไม่มีข้อมูลกลุ่มบุคลากร"
+          />
         </CardBody>
       </Card>
 
       {/* Modal */}
-      <PersonTypeModal
+      <SimpleCrudModal
+        isOpen={isModalOpen}
+        onClose={onModalClose}
+        onSave={handleSave}
+        item={editingPersonType}
         isLoading={isSaving}
-        isOpen={isPersonTypeModalOpen}
-        personType={editingPersonType}
-        onClose={() => {
-          onPersonTypeModalClose();
-          setEditingPersonType(null);
-        }}
-        onSave={handleSavePersonType}
+        itemName="กลุ่มบุคลากร"
+        itemNameFieldLabel="ชื่อกลุ่มบุคลากร"
+        itemNamePlaceholder="เช่น กลุ่มบุคลากรทางการแพทย์"
       />
     </div>
   );

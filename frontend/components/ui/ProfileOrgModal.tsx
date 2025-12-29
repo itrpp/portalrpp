@@ -9,12 +9,7 @@ import {
   ModalFooter,
   Button,
 } from "@heroui/react";
-
-interface ProfileOrgModalProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-}
+import { ProfileOrgModalProps } from "@/types";
 
 export default function ProfileOrgModal({
   isOpen,

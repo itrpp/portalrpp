@@ -14,6 +14,7 @@ export interface Department {
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -51,6 +52,7 @@ export interface PersonType {
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -63,4 +65,5 @@ export interface Position {
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  [key: string]: unknown;
 }

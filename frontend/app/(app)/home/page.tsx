@@ -10,6 +10,7 @@ import {
   ShieldCheckIcon,
 } from "@/components/ui/icons";
 import { siteConfig } from "@/config/site";
+import type { ExtendedUser } from "@/types/ldap";
 
 // ========================================
 // HOME PAGE
@@ -56,7 +57,11 @@ export default function HomePage() {
               <div className="flex justify-between">
                 <span className="text-default-600">บทบาท</span>
                 <span className="font-medium">
-                  {(session?.user as any)?.role || "ไม่ระบุ"}
+                  {(session?.user as ExtendedUser)?.role === "admin"
+                    ? "ผู้ดูแลระบบ"
+                    : (session?.user as ExtendedUser)?.role === "user"
+                      ? "ผู้ใช้งาน"
+                      : "ไม่ระบุ"}
                 </span>
               </div>
             </div>
@@ -136,7 +141,14 @@ export default function HomePage() {
                   <p>ชื่อ: {session?.user?.name || "ไม่ระบุ"}</p>
                   <p>อีเมล: {session?.user?.email || "ไม่ระบุ"}</p>
                   <p>แผนก: {session?.user?.department || "ไม่ระบุ"}</p>
-                  <p>บทบาท: {(session?.user as any)?.role || "ไม่ระบุ"}</p>
+                  <p>
+                    บทบาท:{" "}
+                    {(session?.user as ExtendedUser)?.role === "admin"
+                      ? "ผู้ดูแลระบบ"
+                      : (session?.user as ExtendedUser)?.role === "user"
+                        ? "ผู้ใช้งาน"
+                        : "ไม่ระบุ"}
+                  </p>
                 </div>
               </div>
               <div>

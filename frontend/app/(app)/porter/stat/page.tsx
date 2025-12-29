@@ -83,7 +83,7 @@ export default function PorterStatPage() {
             สถิติการดำเนินงาน
           </h1>
           <p className="text-default-600 mt-2 text-sm">
-            สถิติการดำเนินงานของระบบพนักงานเปลทั้งหมด
+            สถิติการดำเนินงานของศูนย์เคลื่อนย้ายผู้ป่วย
           </p>
         </div>
       </div>

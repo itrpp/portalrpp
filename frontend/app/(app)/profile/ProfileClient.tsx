@@ -1,6 +1,11 @@
 "use client";
 
 import type { ProfileDTO } from "@/lib/profile";
+import {
+  parseMemberOf,
+  getProfileErrorMessage,
+  type MemberOfGroup,
+} from "@/lib/utils";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -52,103 +57,6 @@ const ROLE_OPTIONS = [
   { value: "admin", label: "ผู้ดูแลระบบ" },
 ] as const;
 
-type MemberOfGroup = {
-  cn: string;
-  fullDn: string;
-};
-
-function parseMemberOf(memberOf: string): MemberOfGroup[] {
-  if (!memberOf || memberOf.trim().length === 0) {
-    return [];
-  }
-
-  // Split by semicolon and process each DN
-  const groups = memberOf
-    .split(";")
-    .map((dn) => dn.trim())
-    .filter((dn) => dn.length > 0)
-    .map((dn) => {
-      // Match CN=value, handling various formats including spaces
-      // Pattern: CN= followed by value (can contain spaces) until comma or end
-      const cnMatch = dn.match(/^CN=([^,]+?)(?=,|$)/i);
-
-      if (cnMatch && cnMatch[1]) {
-        const cn = cnMatch[1].trim();
-
-        return {
-          cn,
-          fullDn: dn,
-        };
-      }
-
-      // Fallback: if no CN found, try to extract from the beginning
-      const firstPart = dn.split(",")[0];
-
-      if (firstPart) {
-        const cn = firstPart.replace(/^CN=/i, "").trim();
-
-        return {
-          cn: cn || dn,
-          fullDn: dn,
-        };
-      }
-
-      // Last fallback: use the DN itself
-      return {
-        cn: dn,
-        fullDn: dn,
-      };
-    })
-    .filter((group) => group.cn.length > 0);
-
-  // Remove duplicates based on full DN
-  const uniqueGroups = Array.from(
-    new Map(groups.map((group) => [group.fullDn, group])).values(),
-  );
-
-  // Sort by CN for consistent display
-  return uniqueGroups.sort((a, b) => a.cn.localeCompare(b.cn));
-}
-
-function getErrorMessage(errorCode: string): string {
-  const errorMessages: Record<string, string> = {
-    // Display Name
-    DISPLAY_NAME_REQUIRED: "กรุณากรอกชื่อที่แสดง",
-    DISPLAY_NAME_TOO_SHORT: "ชื่อที่แสดงต้องมีความยาวอย่างน้อย 2 ตัวอักษร",
-    DISPLAY_NAME_TOO_LONG: "ชื่อที่แสดงต้องมีความยาวไม่เกิน 100 ตัวอักษร",
-
-    // Phone
-    PHONE_REQUIRED: "กรุณากรอกโทรศัพท์ภายใน",
-    PHONE_INVALID_FORMAT: "โทรศัพท์ภายในต้องมีตัวเลขอย่างน้อย 3 ตัว",
-    MOBILE_INVALID_FORMAT: "รูปแบบหมายเลขมือถือไม่ถูกต้อง",
-
-    // Organization by ID (HRD)
-    PERSON_TYPE_REQUIRED: "กรุณาเลือกกลุ่มบุคลากร",
-    PERSON_TYPE_NOT_FOUND: "ไม่พบกลุ่มบุคลากรที่เลือก",
-    POSITION_REQUIRED: "กรุณาเลือกตำแหน่ง",
-    POSITION_NOT_FOUND: "ไม่พบตำแหน่งที่เลือก",
-    DEPARTMENT_ID_REQUIRED: "กรุณาเลือกกลุ่มภารกิจ",
-    DEPARTMENT_ID_NOT_FOUND: "ไม่พบกลุ่มภารกิจที่เลือก",
-    DEPARTMENT_SUB_ID_REQUIRED: "กรุณาเลือกกลุ่มงาน",
-    DEPARTMENT_SUB_ID_NOT_FOUND: "ไม่พบกลุ่มงานที่เลือก",
-    DEPARTMENT_SUB_SUB_ID_REQUIRED: "กรุณาเลือกหน่วยงาน",
-    DEPARTMENT_SUB_SUB_ID_NOT_FOUND: "ไม่พบหน่วยงานที่เลือก",
-
-    // Role
-    ROLE_REQUIRED: "กรุณาเลือกบทบาท",
-    ROLE_INVALID: "บทบาทไม่ถูกต้อง",
-
-    // General
-    INVALID_TYPE: "ประเภทข้อมูลไม่ถูกต้อง",
-    INVALID_ID_TYPE: "รูปแบบรหัสอ้างอิงไม่ถูกต้อง",
-    INVALID_REQUEST: "ข้อมูลไม่ถูกต้อง",
-    NO_MUTATIONS: "ไม่มีการเปลี่ยนแปลงข้อมูล",
-    UNAUTHORIZED: "คุณไม่มีสิทธิ์เข้าถึง",
-    NOT_FOUND: "ไม่พบข้อมูล",
-  };
-
-  return errorMessages[errorCode] || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
-}
 
 export default function ProfileClient({ initialProfile }: Props) {
   const router = useRouter();
@@ -448,7 +356,7 @@ export default function ProfileClient({ initialProfile }: Props) {
 
       if (!response.ok || !payload?.success) {
         const errorMessage = payload?.error
-          ? getErrorMessage(payload.error)
+          ? getProfileErrorMessage(payload.error)
           : "ไม่สามารถบันทึกข้อมูลได้";
 
         throw new Error(errorMessage);
@@ -497,10 +405,13 @@ export default function ProfileClient({ initialProfile }: Props) {
         type: "success",
         message: "บันทึกข้อมูลสำเร็จแล้ว",
       });
-    } catch (error: any) {
+    } catch (error) {
       setFeedback({
         type: "error",
-        message: error.message || "ไม่สามารถบันทึกข้อมูลได้",
+        message:
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถบันทึกข้อมูลได้",
       });
     } finally {
       setIsSaving(false);
@@ -557,10 +468,13 @@ export default function ProfileClient({ initialProfile }: Props) {
         type: "success",
         message: "ยกเลิกการเชื่อมต่อ LINE สำเร็จแล้ว",
       });
-    } catch (error: any) {
+    } catch (error) {
       setFeedback({
         type: "error",
-        message: error.message || "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
+        message:
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
       });
     } finally {
       setIsUnlinking(false);

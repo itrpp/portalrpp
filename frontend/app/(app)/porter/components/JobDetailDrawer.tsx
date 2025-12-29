@@ -42,8 +42,8 @@ import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
-  formatLocationString,
 } from "@/types/porter";
+import { formatLocationString } from "@/lib/porter";
 import {
   URGENCY_OPTIONS,
   VEHICLE_TYPE_OPTIONS,

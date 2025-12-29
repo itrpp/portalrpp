@@ -17,7 +17,7 @@ import { useFilteredJobs } from "../hooks/useFilteredJobs";
 import { FilterState } from "./StatFilter";
 
 import { PorterJobItem } from "@/types/porter";
-import { formatLocationString } from "@/types/porter";
+import { formatLocationString } from "@/lib/porter";
 
 interface PopularLocationChartProps {
   title: string;

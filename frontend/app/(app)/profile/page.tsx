@@ -9,9 +9,7 @@ import { authOptions } from "@/app/api/auth/authOptions";
 import { getUserProfile } from "@/lib/profile";
 
 export default async function ProfilePage() {
-  const session = (await getServerSession(
-    authOptions as any,
-  )) as ExtendedSession;
+  const session = (await getServerSession(authOptions)) as ExtendedSession;
 
   if (!session?.user?.id) {
     redirect(`/login?callbackUrl=${encodeURIComponent("/profile")}`);

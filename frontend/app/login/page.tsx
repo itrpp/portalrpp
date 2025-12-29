@@ -8,6 +8,7 @@ import { Input, Button, Divider, Card, CardBody } from "@heroui/react";
 import { addToast } from "@heroui/toast";
 
 import { siteConfig } from "@/config/site";
+import { mapAuthErrorToMessage } from "@/lib/utils";
 import {
   LockClosedIcon,
   UserIcon,
@@ -33,27 +34,6 @@ export default function LoginPage() {
   const lastAuthErrorRef = useRef<string | null>(null);
 
   const authErrorParam = searchParams.get("error");
-
-  const mapAuthErrorToMessage = (code: string) => {
-    switch (code) {
-      case "LINE_LDAP_REQUIRED":
-        return "กรุณาเข้าสู่ระบบด้วยบัญชีโรงพยาบาล (LDAP) อย่างน้อยหนึ่งครั้งก่อน แล้วค่อยเชื่อมบัญชี LINE";
-      case "LINE_ACCOUNT_IN_USE":
-        return "บัญชี LINE นี้ถูกผูกไว้กับผู้ใช้อื่นแล้ว กรุณาให้เจ้าของบัญชีนั้นยกเลิกก่อน";
-      case "LINE_ACCOUNT_ALREADY_LINKED":
-        return "บัญชีของคุณมีการเชื่อม LINE อยู่แล้ว กรุณายกเลิกการเชื่อมเดิมก่อน";
-      case "LINE_ACCOUNT_ID_MISSING":
-        return "ไม่พบข้อมูลผู้ใช้จาก LINE กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
-      case "OAuthAccountNotLinked":
-        return "บัญชี LINE นี้เชื่อมกับผู้ใช้อื่น หรือยังไม่ได้ยืนยันกับ LDAP";
-      case "AccessDenied":
-        return "การเข้าถึงถูกปฏิเสธ กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
-      case "ACCOUNT_DISABLED":
-        return "บัญชีของคุณถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
-      default:
-        return "";
-    }
-  };
 
   // อ่าน callbackUrl จาก query string และ decode
   const callbackUrl = searchParams.get("callbackUrl")
@@ -109,7 +89,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
         <div className="text-center">
           <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto animate-spin" />
-          <p className="mt-4 text-default-600 dark:text-default-400">
+          <p className="mt-4 text-default-600">
             กำลังตรวจสอบการเข้าสู่ระบบ...
           </p>
         </div>
@@ -122,7 +102,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
         <div className="text-center">
           <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto animate-spin" />
-          <p className="mt-4 text-default-600 dark:text-default-400">
+          <p className="mt-4 text-default-600">
             กำลังเปลี่ยนหน้า...
           </p>
         </div>
@@ -155,7 +135,6 @@ export default function LoginPage() {
         setError("การเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
       }
     } catch {
-      // console.error("Login error:", error);
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setIsLoading(false);
@@ -186,8 +165,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
-      {/* Theme Toggle Button - Top Right */}
-      <div className="absolute top-4 right-4">{/* <ThemeToggle /> */}</div>
 
       <div className="w-full max-w-md p-6 sm:p-8">
         <Card className="rounded-3xl shadow-2xl border-0 bg-background/90 backdrop-blur-lg">
@@ -204,7 +181,7 @@ export default function LoginPage() {
               <h1 className="mt-6 text-2xl font-extrabold text-foreground tracking-tight">
                 เข้าสู่ระบบ
               </h1>
-              <p className="text-default-600 dark:text-default-400 text-sm mt-1">
+              <p className="text-default-600 text-sm mt-1">
                 {siteConfig.projectName}
               </p>
             </div>
@@ -224,7 +201,7 @@ export default function LoginPage() {
               <div>
                 <Input
                   required
-                  className="focus-within:ring-2 focus-within:ring-primary"
+                  className="focus-within:ring-2 focus-within:ring-primary "
                   isInvalid={!!error}
                   label="Username"
                   placeholder="กรอกชื่อผู้ใช้ Active Directory"
@@ -276,7 +253,7 @@ export default function LoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 text-danger text-sm bg-danger-50 dark:bg-danger-900/20 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-danger text-sm bg-danger-50 p-3 rounded-lg">
                   <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -284,7 +261,7 @@ export default function LoginPage() {
 
               {/* Success Message */}
               {successMessage && (
-                <div className="flex items-center gap-2 text-success text-sm bg-success-50 dark:bg-success-900/20 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-success text-sm bg-success-50 p-3 rounded-lg">
                   <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
                   <span>{successMessage}</span>
                 </div>
@@ -294,7 +271,6 @@ export default function LoginPage() {
                 <Button
                   className="w-full font-semibold shadow-md"
                   color="primary"
-                  // disabled={!username || !password}
                   isLoading={isLoading}
                   size="lg"
                   startContent={<LockClosedIcon className="w-5 h-5" />}
@@ -318,7 +294,7 @@ export default function LoginPage() {
               </div>
             </form>
 
-            <div className="flex justify-between items-center mt-4 text-xs text-default-600 dark:text-default-400">
+            <div className="flex justify-between items-center mt-4 text-xs text-default-600">
               <button
                 className="flex items-center gap-1 hover:text-primary hover:bg-content2 px-2 py-1 rounded"
                 type="button"
@@ -331,7 +307,7 @@ export default function LoginPage() {
 
             <Divider className="my-6" />
 
-            <div className="text-center text-xs text-default-500 dark:text-default-400">
+            <div className="text-center text-xs text-default-500">
               <span>
                 © {new Date().getFullYear()} {siteConfig.hospitalName}
                 <br />

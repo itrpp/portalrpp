@@ -9,26 +9,29 @@ import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 
-export interface ProvidersProps {
-  children: React.ReactNode;
-  themeProps?: ThemeProviderProps;
-}
+import { ProvidersProps } from "@/types/providers";
 
-declare module "@react-types/shared" {
-  interface RouterConfig {
-    routerOptions: NonNullable<
-      Parameters<ReturnType<typeof useRouter>["push"]>[1]
-    >;
-  }
-}
-
+/**
+ * ========================================
+ * PROVIDERS COMPONENT
+ * ========================================
+ * Component สำหรับ wrap application ด้วย providers ต่างๆ
+ * - SessionProvider (NextAuth)
+ * - HeroUIProvider (UI Library)
+ * - ThemeProvider (Theme Management)
+ * - ToastProvider (Toast Notifications)
+ */
 export function Providers({ children, themeProps }: ProvidersProps) {
   const router = useRouter();
 
   return (
     <SessionProvider>
       <HeroUIProvider locale="th" navigate={router.push}>
-        <NextThemesProvider {...themeProps}>
+        <NextThemesProvider
+          {...themeProps}
+          forcedTheme="light"
+          enableSystem={false}
+        >
           {children}
           <ToastProvider
             maxVisibleToasts={3}
@@ -39,9 +42,9 @@ export function Providers({ children, themeProps }: ProvidersProps) {
               variant: "flat",
               radius: "md",
               classNames: {
-                base: "bg-background border border-default-300 dark:border-default-600 shadow-lg",
+                base: "bg-background border border-default-300 shadow-lg",
                 title: "text-foreground font-medium",
-                description: "text-default-600 dark:text-default-400",
+                description: "text-default-600",
                 closeButton: "text-default-400 hover:text-foreground",
               },
             }}
@@ -51,3 +54,4 @@ export function Providers({ children, themeProps }: ProvidersProps) {
     </SessionProvider>
   );
 }
+

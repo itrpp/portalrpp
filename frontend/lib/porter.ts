@@ -10,6 +10,11 @@ import {
   RoomBed,
   FloorPlan,
   BleStation,
+  DetailedLocation,
+  DepartmentType,
+  DepartmentTypeId,
+  RoomType,
+  RoomTypeId,
 } from "@/types/porter";
 
 /**
@@ -108,10 +113,7 @@ export function validateField(
       return !stringValue ? "กรุณากรอกชื่อผู้ป่วย" : undefined;
 
     case "patientHN":
-      return !stringValue ? "กรุณากรอกหมายเลข HN" : undefined;
-
-    case "patientHN":
-      return !stringValue ? "กรุณากรอกหมายเลข HN" : undefined;
+      return !stringValue ? "กรุณากรอกหมายเลข HN / AN" : undefined;
 
     case "requestedDateTime":
       return !stringValue
@@ -150,8 +152,6 @@ export function validateForm(data: PorterRequestFormData): {
   const requiredFields: Array<keyof PorterRequestFormData> = [
     "requesterName",
     "requesterPhone",
-    "patientName",
-    "patientHN",
     "patientName",
     "patientHN",
     "requestedDateTime",
@@ -770,6 +770,7 @@ export function playNotificationSound(): void {
   } catch (error) {
     // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
     // จะไม่แสดง error
+    // eslint-disable-next-line no-console
     console.warn("[Sound] Failed to play notification sound:", error);
   }
 }
@@ -835,6 +836,87 @@ export function playSirenSound(): void {
   } catch (error) {
     // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
     // จะไม่แสดง error
+    // eslint-disable-next-line no-console
     console.warn("[Sound] Failed to play siren sound:", error);
   }
+}
+
+/**
+ * ========================================
+ * DEPARTMENT & ROOM TYPE UTILITIES
+ * ========================================
+ */
+
+/**
+ * ประเภทหน่วยงาน (ID mapping)
+ */
+export const DEPARTMENT_TYPES = {
+  1: "คลินิก",
+  2: "หอผู้ป่วย",
+} as const;
+
+/**
+ * ประเภทห้องพัก (ID mapping)
+ */
+export const ROOM_TYPES = {
+  1: "ห้องรวม",
+  2: "ห้องพิเศษ",
+  3: "ห้องรวมและห้องพิเศษ",
+} as const;
+
+/**
+ * Helper function สำหรับ mapping ประเภทหน่วยงาน
+ */
+export function getDepartmentTypeName(id: number): DepartmentType | undefined {
+  return DEPARTMENT_TYPES[id as DepartmentTypeId];
+}
+
+/**
+ * Helper function สำหรับหา ID จากชื่อประเภทหน่วยงาน
+ */
+export function getDepartmentTypeId(
+  name: DepartmentType,
+): DepartmentTypeId | undefined {
+  return Object.entries(DEPARTMENT_TYPES).find(
+    ([, value]) => value === name,
+  )?.[0] as DepartmentTypeId | undefined;
+}
+
+/**
+ * Helper function สำหรับ mapping ประเภทห้องพัก
+ */
+export function getRoomTypeName(id: number): RoomType | undefined {
+  return ROOM_TYPES[id as RoomTypeId];
+}
+
+/**
+ * Helper function สำหรับหา ID จากชื่อประเภทห้องพัก
+ */
+export function getRoomTypeId(name: RoomType): RoomTypeId | undefined {
+  return Object.entries(ROOM_TYPES).find(([, value]) => value === name)?.[0] as
+    | RoomTypeId
+    | undefined;
+}
+
+/**
+ * ========================================
+ * LOCATION FORMATTING UTILITIES
+ * ========================================
+ */
+
+/**
+ * ฟังก์ชันสำหรับแปลง DetailedLocation เป็น string สำหรับแสดงผล
+ */
+export function formatLocationString(
+  location: DetailedLocation | null,
+): string {
+  if (!location) return "";
+
+  const parts = [
+    location.buildingName,
+    location.floorDepartmentName,
+    location.roomBedName,
+  ].filter(Boolean);
+
+  return parts.join(" - ");
 }
