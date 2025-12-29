@@ -2,6 +2,7 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    basePath: '/portal-dev',
     reactStrictMode: false,
     eslint: {
         // ไม่ให้ ESLint ทำให้ build ล้ม เพื่อให้ปล่อยผ่าน production build ได้
