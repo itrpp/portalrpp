@@ -15,6 +15,20 @@ import { cookies } from "next/headers";
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
 
+// แก้ไขปัญหา basePath: ตั้งค่า NEXTAUTH_URL ให้รวม basePath ถ้ายังไม่มี
+// ต้องทำก่อนที่ NextAuth จะอ่านค่า NEXTAUTH_URL
+if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('/portal-dev')) {
+  try {
+    const url = new URL(process.env.NEXTAUTH_URL);
+    if (url.pathname === '/' || !url.pathname.includes('/portal-dev')) {
+      url.pathname = `/portal-dev${url.pathname === '/' ? '' : url.pathname}`;
+      process.env.NEXTAUTH_URL = url.toString();
+    }
+  } catch {
+    // ถ้า parse URL ไม่ได้ ให้ข้าม
+  }
+}
+
 const LINE_PROVIDER_ID = "line";
 const LINE_LOGIN_GUARD_CODE = "LINE_LDAP_REQUIRED";
 
@@ -251,6 +265,34 @@ export const authOptions: any = {
     maxAge: 1 * 60 * 60, // 24 hours
   },
   callbacks: {
+    async redirect({
+      url,
+      baseUrl,
+    }: {
+      url: string;
+      baseUrl: string;
+    }): Promise<string> {
+      // แก้ไขปัญหา basePath: ตรวจสอบและเพิ่ม basePath ถ้ายังไม่มี
+      const basePath = '/portal-dev';
+      
+      // ถ้า url เป็น relative path และยังไม่มี basePath
+      if (url.startsWith('/') && !url.startsWith(basePath)) {
+        return `${baseUrl}${basePath}${url}`;
+      }
+      
+      // ถ้า url เป็น absolute URL แต่ยังไม่มี basePath
+      if (url.startsWith('http') && !url.includes(basePath)) {
+        try {
+          const urlObj = new URL(url);
+          urlObj.pathname = `${basePath}${urlObj.pathname}`;
+          return urlObj.toString();
+        } catch {
+          // ถ้า parse URL ไม่ได้ ให้ return เดิม
+        }
+      }
+      
+      return url.startsWith('/') ? `${baseUrl}${url}` : url;
+    },
     async signIn({
       user,
       account,
