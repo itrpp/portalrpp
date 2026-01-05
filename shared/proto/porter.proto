@@ -583,6 +583,7 @@ message CreateEmployeeRequest {
   string employment_type_id = 4; // ID ของ EmploymentType
   string position_id = 5; // ID ของ Position
   bool status = 6; // true = ใช้งาน, false = ไม่ใช้งาน
+  optional string user_id = 9; // ID ของ User ที่ map กับ employee
 }
 
 message GetEmployeeRequest {
@@ -606,6 +607,7 @@ message UpdateEmployeeRequest {
   optional string employment_type_id = 4;
   optional string position_id = 5;
   optional bool status = 6;
+  optional string user_id = 9; // ID ของ User ที่ map กับ employee
 }
 
 message DeleteEmployeeRequest {
@@ -649,4 +651,5 @@ message Employee {
   bool status = 9; // true = ใช้งาน, false = ไม่ใช้งาน
   string created_at = 10; // ISO 8601 format
   string updated_at = 11; // ISO 8601 format
+  optional string user_id = 14; // ID ของ User ที่ map กับ employee
 }

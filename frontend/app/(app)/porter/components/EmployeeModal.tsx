@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Modal,
   ModalContent,
@@ -19,6 +19,7 @@ import {
 import ImagePreviewModal from "./ImagePreviewModal";
 
 import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
+import type { UserDTO } from "@/types/user";
 
 /**
  * Props สำหรับ EmployeeModal
@@ -54,8 +55,31 @@ export default function EmployeeModal({
   const [employmentTypeId, setEmploymentTypeId] = useState<string>("");
   const [positionId, setPositionId] = useState<string>("");
   const [status, setStatus] = useState(true);
+  const [userId, setUserId] = useState<string>("");
+  const [userSearchQuery, setUserSearchQuery] = useState<string>("");
+  const [users, setUsers] = useState<UserDTO[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ฟังก์ชันสำหรับโหลดข้อมูล user โดย ID (ใช้ endpoint basic ที่ไม่ต้องเป็น admin)
+  const loadUserById = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/users/${id}/basic`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setUsers([result.data]);
+          // แสดงชื่อเหมือน table: displayName || ldapDisplayName || email || ""
+          setUserSearchQuery(
+            result.data.displayName || result.data.ldapDisplayName || result.data.email || "",
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user:", error);
+    }
+  }, []);
 
   useEffect(() => {
     if (employee) {
@@ -69,6 +93,11 @@ export default function EmployeeModal({
       setEmploymentTypeId(String(employee.employmentTypeId ?? ""));
       setPositionId(String(employee.positionId ?? ""));
       setStatus(employee.status);
+      setUserId(employee.userId || "");
+      // โหลดข้อมูล user ถ้ามี userId
+      if (employee.userId) {
+        loadUserById(employee.userId);
+      }
     } else {
       setCitizenId("");
       setFirstName("");
@@ -85,8 +114,60 @@ export default function EmployeeModal({
       );
       setPositionId(defaultPosition ? String(defaultPosition.id) : "");
       setStatus(true);
+      setUserId("");
+      setUserSearchQuery("");
+      setUsers([]);
     }
-  }, [employee, isOpen, employmentTypes, positions]);
+  }, [employee, isOpen, employmentTypes, positions, loadUserById]);
+
+  // ฟังก์ชันสำหรับโหลด users ทั้งหมดหรือค้นหา (ใช้ API search ที่ไม่ต้องเป็น admin)
+  const loadUsers = useCallback(async (query?: string) => {
+    setIsLoadingUsers(true);
+    try {
+      const searchParam = query && query.trim().length >= 2 
+        ? `&search=${encodeURIComponent(query.trim())}` 
+        : "";
+      const response = await fetch(
+        `/api/users/search${searchParam ? `?${searchParam.substring(1)}` : ""}`,
+      );
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setUsers(result.data || []);
+        } else {
+          setUsers([]);
+        }
+      } else {
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("Error loading users:", error);
+      setUsers([]);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  // โหลด users ทั้งหมดเมื่อเปิด modal
+  useEffect(() => {
+    if (isOpen) {
+      loadUsers();
+    }
+  }, [isOpen, loadUsers]);
+
+  // Debounce สำหรับค้นหา users เมื่อมีการพิมพ์
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (userSearchQuery && userSearchQuery.trim().length >= 2) {
+        loadUsers(userSearchQuery);
+      } else if (!userSearchQuery || userSearchQuery.trim().length === 0) {
+        // ถ้าไม่มี query ให้โหลดทั้งหมด
+        loadUsers();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [userSearchQuery, loadUsers]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -282,6 +363,7 @@ export default function EmployeeModal({
         position: "", // จะถูก populate จาก backend
         positionId,
         status,
+        userId: userId && userId.trim() !== "" ? userId.trim() : undefined,
       });
       onClose();
     } catch {
@@ -451,6 +533,43 @@ export default function EmployeeModal({
               >
                 {(item) => (
                   <AutocompleteItem key={item.key}>
+                    {item.label}
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+              <Autocomplete
+                defaultItems={users.map((u) => ({
+                  key: u.id,
+                  // แสดงชื่อเหมือน table: displayName || ldapDisplayName || email || id
+                  label: u.displayName || u.ldapDisplayName || u.email || u.id,
+                  description: u.email,
+                }))}
+                inputValue={userSearchQuery}
+                isDisabled={isLoading}
+                isLoading={isLoadingUsers}
+                label="ผู้ใช้ (User)"
+                placeholder="ค้นหาและเลือกผู้ใช้ (ไม่บังคับ)"
+                selectedKey={userId || undefined}
+                variant="bordered"
+                onInputChange={setUserSearchQuery}
+                onSelectionChange={(key) => {
+                  if (key != null) {
+                    const selectedUser = users.find((u) => u.id === key);
+                    setUserId(String(key));
+                    if (selectedUser) {
+                      // แสดงชื่อเหมือน table: displayName || ldapDisplayName || email || ""
+                      setUserSearchQuery(
+                        selectedUser.displayName || selectedUser.ldapDisplayName || selectedUser.email || "",
+                      );
+                    }
+                  } else {
+                    setUserId("");
+                    setUserSearchQuery("");
+                  }
+                }}
+              >
+                {(item) => (
+                  <AutocompleteItem key={item.key} description={item.description}>
                     {item.label}
                   </AutocompleteItem>
                 )}

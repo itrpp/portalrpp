@@ -331,6 +331,7 @@ export interface PorterEmployeeMessage {
   status: boolean;
   created_at: string;
   updated_at: string;
+  user_id?: string; // ID ของ User ที่ map กับ employee
 }
 
 export interface CreateEmployeeInput {
@@ -342,6 +343,7 @@ export interface CreateEmployeeInput {
   employment_type_id: string; // จะถูกแปลงเป็น Int ที่ service layer
   position_id: string; // จะถูกแปลงเป็น Int ที่ service layer
   status?: boolean;
+  user_id?: string | null; // ID ของ User ที่ map กับ employee
 }
 
 export interface UpdateEmployeeInput {
@@ -352,6 +354,7 @@ export interface UpdateEmployeeInput {
   employment_type_id?: string | null; // จะถูกแปลงเป็น Int ที่ service layer
   position_id?: string | null; // จะถูกแปลงเป็น Int ที่ service layer
   status?: boolean | null;
+  user_id?: string | null; // ID ของ User ที่ map กับ employee
 }
 
 export interface ListEmployeesFilters {

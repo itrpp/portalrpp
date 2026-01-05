@@ -150,6 +150,7 @@ export interface PorterEmployee {
   position: string; // ชื่อ (สำหรับ backward compatibility)
   positionId: string | number; // รองรับทั้ง string และ number (hrd_position ใช้ number)
   status: boolean;
+  userId?: string; // ID ของ User ที่ map กับ employee
 }
 
 /**

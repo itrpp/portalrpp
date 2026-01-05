@@ -59,6 +59,7 @@ export async function GET(
         position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
+        userId: response.data.user_id || undefined,
         createdAt: response.data.created_at,
         updatedAt: response.data.updated_at,
       };
@@ -166,6 +167,13 @@ export async function PUT(
     if (requestData.status !== undefined) {
       protoRequest.status = requestData.status;
     }
+    if (requestData.userId !== undefined) {
+      // ถ้าเป็น empty string หรือ null ให้ส่ง empty string เพื่อให้ backend รู้ว่าต้องลบ mapping
+      protoRequest.user_id =
+        requestData.userId && requestData.userId.trim() !== ""
+          ? requestData.userId.trim()
+          : "";
+    }
 
     // เรียก gRPC service
     const response = await callPorterService<any>(
@@ -202,6 +210,7 @@ export async function PUT(
         position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
+        userId: response.data.user_id || undefined,
         createdAt: response.data.created_at,
         updatedAt: response.data.updated_at,
       };

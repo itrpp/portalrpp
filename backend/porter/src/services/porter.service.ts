@@ -777,7 +777,7 @@ export const deleteFloorDepartment = async (id: string): Promise<void> => {
 // ----- Employee Management Service -----
 
 export const createEmployee = async (requestData: CreateEmployeeInput): Promise<PorterEmployeeMessage> => {
-  const { citizen_id, first_name, last_name, nickname, profile_image, employment_type_id, position_id, status } = requestData;
+  const { citizen_id, first_name, last_name, nickname, profile_image, employment_type_id, position_id, status, user_id } = requestData;
 
   // แปลง employment_type_id และ position_id จาก string เป็น Int
   const employmentTypeIdInt = Number.parseInt(employment_type_id, 10);
@@ -796,6 +796,7 @@ export const createEmployee = async (requestData: CreateEmployeeInput): Promise<
     profileImage: profile_image && profile_image.trim() !== "" ? profile_image.trim() : null,
     employmentTypeId: employmentTypeIdInt,
     positionId: positionIdInt,
+    userId: user_id && user_id.trim() !== "" ? user_id.trim() : null,
     status: status ?? true
   };
 
@@ -906,6 +907,10 @@ export const updateEmployee = async (
   }
   if (updateData.status !== undefined && updateData.status !== null) {
     data.status = updateData.status;
+  }
+  if (updateData.user_id !== undefined) {
+    // ถ้าเป็น empty string หรือ null ให้ตั้งค่าเป็น null เพื่อลบ mapping
+    data.userId = updateData.user_id && updateData.user_id.trim() !== "" ? updateData.user_id.trim() : null;
   }
 
   const employee = await prisma.porterEmployee.update({
@@ -1114,7 +1119,8 @@ const convertEmployeeToProto = (employee: PorterEmployeeWithRelations): PorterEm
   position_id: String(employee.positionId), // แปลง Int เป็น string สำหรับ proto
   status: employee.status,
   created_at: employee.createdAt.toISOString(),
-  updated_at: employee.updatedAt.toISOString()
+  updated_at: employee.updatedAt.toISOString(),
+  user_id: employee.userId || undefined
 });
 
 // ===== FloorPlan Service Functions =====

@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
+import { callPorterService } from "@/lib/grpcClient";
 
 /**
  * POST /api/auth/login
@@ -151,6 +152,66 @@ export async function POST(request: Request) {
       { expiresIn: "1h" },
     );
 
+    // ค้นหา PorterEmployee โดย userId
+    let porterEmployee = null;
+
+    try {
+      // เรียก gRPC service เพื่อดึงรายการ employees
+      const employeesResponse = await callPorterService<any>(
+        "ListEmployees",
+        { status: true }, // ดึงเฉพาะที่ active
+      );
+
+      if (employeesResponse.success && employeesResponse.data) {
+        // Filter หา employee ที่มี userId ตรงกับ dbUser.id
+        const employeeData = employeesResponse.data.find(
+          (emp: any) => emp.user_id === dbUser.id,
+        );
+
+        if (employeeData) {
+          // ดึงข้อมูล employment type และ position จาก hrd tables
+          const employmentTypeId = parseInt(
+            employeeData.employment_type_id,
+            10,
+          );
+          const positionId = parseInt(employeeData.position_id, 10);
+
+          const [personType, position] = await Promise.all([
+            prisma.hrd_person_type.findUnique({
+              where: { HR_PERSON_TYPE_ID: employmentTypeId },
+              select: { HR_PERSON_TYPE_NAME: true },
+            }),
+            prisma.hrd_position.findUnique({
+              where: { HR_POSITION_ID: positionId },
+              select: { HR_POSITION_NAME: true },
+            }),
+          ]);
+
+          // แปลงข้อมูลจาก Proto format เป็น Frontend format
+          porterEmployee = {
+            id: employeeData.id,
+            // citizenId: employeeData.citizen_id,
+            // firstName: employeeData.first_name,
+            // lastName: employeeData.last_name,
+            // nickname: employeeData.nickname || undefined,
+            // profileImage: employeeData.profile_image || undefined,
+            // employmentType: personType?.HR_PERSON_TYPE_NAME || "",
+            // employmentTypeId: employeeData.employment_type_id,
+            // position: position?.HR_POSITION_NAME || "",
+            // positionId: employeeData.position_id,
+            // status: employeeData.status,
+            // userId: employeeData.user_id || undefined,
+            // createdAt: employeeData.created_at,
+            // updatedAt: employeeData.updated_at,
+          };
+        }
+      }
+    } catch (error) {
+      // ถ้าเกิด error ในการดึงข้อมูล PorterEmployee ไม่ให้ส่งผลต่อการ login
+      // แค่ log error แล้วส่ง porterEmployee เป็น null
+      console.error("Error fetching PorterEmployee:", error);
+    }
+
     // Return success response
     return NextResponse.json({
       success: true,
@@ -164,6 +225,7 @@ export async function POST(request: Request) {
           position: dbUser.position,
           role: dbUser.role,
         },
+        porterEmployee: porterEmployee || null,
       },
     });
   } catch (error: unknown) {

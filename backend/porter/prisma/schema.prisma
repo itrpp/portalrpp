@@ -165,6 +165,8 @@ model PorterEmployee {
   employmentTypeId Int // ชี้ไปที่ hrd_person_type.HR_PERSON_TYPE_ID
   positionId       Int // ชี้ไปที่ hrd_position.HR_POSITION_ID
 
+  userId String? @unique @map("user_id") // Map กับ user.id จาก user table
+
   status Boolean @default(true)
 
   // หมายเหตุ: ไม่สามารถสร้าง foreign key relation กับ hrd tables ได้เพราะอยู่ใน database อื่น
@@ -174,4 +176,5 @@ model PorterEmployee {
   @@index([status])
   @@index([employmentTypeId])
   @@index([positionId])
+  @@index([userId])
 }

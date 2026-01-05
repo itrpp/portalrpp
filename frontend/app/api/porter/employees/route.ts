@@ -98,6 +98,7 @@ export async function GET(request: NextRequest) {
           position: positionMap.get(positionId) || "",
           positionId: item.position_id,
           status: item.status,
+          userId: item.user_id || undefined,
           createdAt: item.created_at,
           updatedAt: item.updated_at,
         };
@@ -172,6 +173,11 @@ export async function POST(request: Request) {
       status: requestData.status ?? true,
     };
 
+    // เพิ่ม user_id ถ้ามี
+    if (requestData.userId !== undefined && requestData.userId !== null && requestData.userId.trim() !== "") {
+      protoRequest.user_id = requestData.userId.trim();
+    }
+
     // เรียก gRPC service
     const response = await callPorterService<any>(
       "CreateEmployee",
@@ -207,6 +213,7 @@ export async function POST(request: Request) {
         position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
+        userId: response.data.user_id || undefined,
         createdAt: response.data.created_at,
         updatedAt: response.data.updated_at,
       };
