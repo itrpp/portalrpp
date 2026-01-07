@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
   // ใช้ prop isOpen ถ้ามี ถ้าไม่มีใช้ false (controlled component)
   const sidebarIsOpen = isOpen ?? false;
-  
+
   // ตรวจสอบว่าเป็น mobile หรือ desktop
   const [isMobile, setIsMobile] = useState(false);
 
@@ -73,23 +73,23 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
     // Auto-expand "นำเข้าไฟล์" when on import pages
     if (pathname.startsWith("/revenue/import/")) {
-      newExpandedItems.add("นำเข้าไฟล์");
+      newExpandedItems.add("ระบบงานจัดเก็บรายได้:นำเข้าไฟล์");
     }
 
     // Auto-expand "ส่งออกข้อมูล" when on export pages
     if (pathname.startsWith("/revenue/export/")) {
-      newExpandedItems.add("ส่งออกข้อมูล");
+      newExpandedItems.add("ระบบงานจัดเก็บรายได้:ส่งออกข้อมูล");
     }
 
-    // Auto-expand "รายการงานที่ต้องดำเนินการ" when on job list pages
+    // Auto-expand "ศูนย์สั่งการ" (ศูนย์เคลื่อนย้ายผู้ป่วย) when on job list pages
     if (pathname.startsWith("/porter/joblist")) {
-      newExpandedItems.add("ศูนย์เปล");
+      newExpandedItems.add("ศูนย์เคลื่อนย้ายผู้ป่วย:ศูนย์สั่งการ");
     }
 
-    // Auto-expand "ตั้งค่า" when on setting pages
+    // Auto-expand "ศูนย์สั่งการ" และ "ตั้งค่า" (ศูนย์เคลื่อนย้ายผู้ป่วย) when on setting pages
     if (pathname.startsWith("/porter/setting/")) {
-      newExpandedItems.add("ศูนย์เปล");
-      newExpandedItems.add("ตั้งค่า");
+      newExpandedItems.add("ศูนย์เคลื่อนย้ายผู้ป่วย:ศูนย์สั่งการ");
+      newExpandedItems.add("ศูนย์เคลื่อนย้ายผู้ป่วย:ศูนย์สั่งการ:ตั้งค่า");
     }
 
     // Auto-expand "ตั้งค่าข้อมูลบุคลากร" when on HRD setting pages
@@ -100,7 +100,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       pathname.startsWith("/setting/person-types") ||
       pathname.startsWith("/setting/positions")
     ) {
-      newExpandedItems.add("ตั้งค่าข้อมูลบุคลากร");
+      newExpandedItems.add("ผู้ดูแลระบบ:ตั้งค่าข้อมูลบุคลากร");
     }
 
     setExpandedItems(newExpandedItems);
@@ -128,6 +128,22 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
     return isSuperAdmin || (departmentSubSubId === 4007 && role === "admin");
   }, [isSuperAdmin, session?.user?.departmentSubSubId, session?.user?.role]);
+
+  // ตรวจสอบสิทธิ์การเข้าถึงเมนูศูนย์บริการแพทย์ฉุกเฉินและรับส่งต่อ - memoized
+  const canAccessEMRCCenter = useMemo(() => {
+    const departmentSubSubId = session?.user?.departmentSubSubId;
+
+    return isSuperAdmin || departmentSubSubId === 30114;
+  }, [isSuperAdmin, session?.user?.departmentSubSubId]);
+
+  // ตรวจสอบสิทธิ์การเข้าถึงเมนูตั้งค่าศูนย์เปล - memoized
+  const canAccessEMRCCenterSettings = useMemo(() => {
+    const departmentSubSubId = session?.user?.departmentSubSubId;
+    const role = session?.user?.role;
+
+    return isSuperAdmin || (departmentSubSubId === 30114 && role === "admin");
+  }, [isSuperAdmin, session?.user?.departmentSubSubId, session?.user?.role]);
+
 
   // Memoize navigation sections เพื่อป้องกันการสร้างใหม่ทุกครั้งที่ render
   const navigationSections: SidebarSection[] = useMemo(() => [
@@ -158,40 +174,93 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         },
         ...(canAccessPorterCenter
           ? [
-              {
-                name: "ศูนย์สั่งการ",
-                href: "#",
-                icon: BedIcon,
-                subItems: [
-                  {
-                    name: "รายการคำขอ",
-                    href: "/porter/joblist",
-                    icon: ClipboardListIcon,
-                  },
-                  ...(canAccessPorterCenterSettings
-                    ? [
+            {
+              name: "ศูนย์สั่งการ",
+              href: "#",
+              icon: BedIcon,
+              subItems: [
+                {
+                  name: "รายการคำขอ",
+                  href: "/porter/joblist",
+                  icon: ClipboardListIcon,
+                },
+                ...(canAccessPorterCenterSettings
+                  ? [
+                    {
+                      name: "ตั้งค่า",
+                      href: "#",
+                      icon: SettingsIcon,
+                      subItems: [
                         {
-                          name: "ตั้งค่า",
+                          name: "จุดรับ - ส่ง",
+                          href: "/porter/setting/location",
+                          icon: SettingsIcon,
+                        },
+                        {
+                          name: "รายชื่อเจ้าหน้าที่เปล",
+                          href: "/porter/setting/employee",
+                          icon: UserIcon,
+                        },
+                      ],
+                    } as SidebarItem,
+                  ]
+                  : []),
+              ],
+            } as SidebarItem,
+          ]
+          : []),
+      ],
+    },
+    {
+      title: "ศูนย์บริการแพทย์ฉุกเฉินและรับส่งต่อ",
+      isDisabled: false,
+      items: [
+        {
+          name: "สถิติการดำเนินการ",
+          href: "#",
+          icon: ChartBarIcon,
+        },
+        {
+          name: "จองรถพยาบาล",
+          href: "/emrc/request",
+          icon: EmergencyBedIcon,
+        },
+        ...(canAccessEMRCCenter
+          ? [
+            {
+              name: "ศูนย์สั่งการ",
+              href: "#",
+              icon: BedIcon,
+              subItems: [
+                {
+                  name: "รายการคำขอ",
+                  href: "#",
+                  icon: ClipboardListIcon,
+                },
+                ...(canAccessEMRCCenterSettings
+                  ? [
+                    {
+                      name: "ตั้งค่า",
+                      href: "#",
+                      icon: SettingsIcon,
+                      subItems: [
+                        {
+                          name: "จุดรับ - ส่ง",
                           href: "#",
                           icon: SettingsIcon,
-                          subItems: [
-                            {
-                              name: "จุดรับ - ส่ง",
-                              href: "/porter/setting/location",
-                              icon: SettingsIcon,
-                            },
-                            {
-                              name: "รายชื่อเจ้าหน้าที่เปล",
-                              href: "/porter/setting/employee",
-                              icon: UserIcon,
-                            },
-                          ],
-                        } as SidebarItem,
-                      ]
-                    : []),
-                ],
-              } as SidebarItem,
-            ]
+                        },
+                        {
+                          name: "รายชื่อเจ้าหน้าที่เปล",
+                          href: "#",
+                          icon: UserIcon,
+                        },
+                      ],
+                    } as SidebarItem,
+                  ]
+                  : []),
+              ],
+            } as SidebarItem,
+          ]
           : []),
       ],
     },
@@ -320,14 +389,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     onToggle?.();
   }, [onToggle]);
 
-  const toggleExpanded = useCallback((itemName: string) => {
+  const toggleExpanded = useCallback((itemKey: string) => {
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
 
-      if (newSet.has(itemName)) {
-        newSet.delete(itemName);
+      if (newSet.has(itemKey)) {
+        newSet.delete(itemKey);
       } else {
-        newSet.add(itemName);
+        newSet.add(itemKey);
       }
 
       return newSet;
@@ -360,9 +429,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     }
   }, [isNavigating, pathname, router, isMobile, handleClose]);
 
-  const renderSidebarItem = (item: SidebarItem, isSubItem = false) => {
+  const renderSidebarItem = (
+    item: SidebarItem,
+    isSubItem = false,
+    sectionTitle = "",
+    parentKey = ""
+  ) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
-    const isExpanded = expandedItems.has(item.name);
+    // สร้าง unique key โดยใช้ sectionTitle:parentKey:itemName
+    const itemKey = parentKey
+      ? `${parentKey}:${item.name}`
+      : `${sectionTitle}:${item.name}`;
+    const isExpanded = expandedItems.has(itemKey);
     const isItemActive = isActive(item.href);
 
     return (
@@ -387,9 +465,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${
-                      isExpanded ? "rotate-90" : ""
-                    }`}
+                    className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-90" : ""
+                      }`}
                   />
                 )}
               </div>
@@ -407,7 +484,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             variant="light"
             onPress={() => {
               if (hasSubItems) {
-                toggleExpanded(item.name);
+                toggleExpanded(itemKey);
               } else if (isMobile) {
                 // ปิด sidebar บน mobile หลังจากเลือกเมนู
                 handleClose();
@@ -555,7 +632,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         {/* Render sub-items */}
         {hasSubItems && isExpanded && (
           <div className="mt-1 space-y-1">
-            {item.subItems?.map((subItem) => renderSidebarItem(subItem, true))}
+            {item.subItems?.map((subItem) =>
+              renderSidebarItem(subItem, true, sectionTitle, itemKey)
+            )}
           </div>
         )}
       </div>
@@ -652,13 +731,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                 className={cn("py-2", section.isDisabled && "hidden")}
               >
                 <div className="px-4 py-2">
-                  <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider">
                     {section.title}
                   </h3>
                 </div>
 
                 <div className="space-y-1">
-                  {section.items.map((item) => renderSidebarItem(item))}
+                  {section.items.map((item) =>
+                    renderSidebarItem(item, false, section.title)
+                  )}
                 </div>
               </div>
             ))}

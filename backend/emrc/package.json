@@ -1,0 +1,50 @@
+{
+  "name": "emrc-backend",
+  "version": "1.0.0",
+  "description": "Emergency Medical & Referral Center",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "db:push:local": "dotenv -e .env.local -- npx prisma db push"
+  },
+  "keywords": [
+    "emrc",
+    "backend",
+    "grpc"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": "^24.0.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.11.4",
+    "@grpc/proto-loader": "^0.7.13",
+    "@prisma/client": "^6.19.0",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.12.0",
+    "@types/node": "^24.10.1",
+    "dotenv-cli": "^7.4.2",
+    "eslint": "^9.12.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.3.3",
+    "prisma": "^6.19.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.7.0"
+  }
+}

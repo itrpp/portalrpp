@@ -178,3 +178,63 @@ model PorterEmployee {
   @@index([positionId])
   @@index([userId])
 }
+
+/// ========================================
+/// EMRC Ambulance Request Database Schema
+/// ========================================
+
+model AmbulanceRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Requester Information
+  requesterDepartment Int? // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
+  requesterUserID     String @map("requester_user_id")
+  requesterName       String
+  requesterPhone      String @db.VarChar(20)
+
+  /// Basic Information
+  requestDate String @db.VarChar(10) // MM/DD/YYYY format
+  requestTime String @db.VarChar(5) // HH:mm format
+  bookingPurpose String @db.VarChar(50) // SEND_HOME, TRANSFER_WARD, SEND_EXAM, REFER_IN, REFER_OUT, CT, DIALYSIS, OTHER
+  bookingPurposeOther String? @db.VarChar(200)
+
+  /// Additional Details (for SEND_HOME)
+  patientName String? @db.VarChar(200)
+  patientBirthDate String? @db.VarChar(10) // dd/mm/yyyy format
+  destinationAddress String? @db.Text
+  patientRights String? @db.VarChar(100)
+  patientHN String? @db.VarChar(50)
+  patientCitizenId String? @db.VarChar(13)
+  patientPhone String? @db.VarChar(20)
+  requiredEquipment Json // Array of equipment: ROOM_AIR, IV, OXYGEN, HFNC, VENTILATOR, MONITOR, DEFIBRILLATOR
+  infectionStatus String @db.VarChar(50) // DRUG_RESISTANT, TB, COVID_19, FLU_AB, RSV, NONE, OTHER
+  infectionStatusOther String? @db.VarChar(200)
+  departmentPhone String? @db.VarChar(20)
+  requesterNameDetail String? @db.VarChar(200)
+  conditionType String @db.VarChar(50) // ELDERLY, DISABLED
+  acknowledged Boolean @default(false)
+
+  /// Status Management
+  status        String @default("WAITING") @db.VarChar(50)
+  assignedToId  String?
+
+  acceptedAt  DateTime?
+  acceptedById String? @db.VarChar(200)
+  completedAt DateTime?
+  cancelledAt DateTime?
+  cancelledReason String? @db.Text
+  cancelledById String? @db.VarChar(200)
+
+  pickupAt   DateTime?
+  deliveryAt DateTime?
+  returnAt   DateTime?
+
+  @@index([status])
+  @@index([bookingPurpose])
+  @@index([requestDate])
+  @@index([createdAt])
+  @@index([assignedToId])
+  @@index([requesterUserID])
+}

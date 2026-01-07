@@ -1,0 +1,227 @@
+syntax = "proto3";
+
+package emrc;
+
+// ===== EMRC Ambulance Request Service =====
+
+service EMRCService {
+  // Create a new ambulance request
+  rpc CreateAmbulanceRequest(CreateAmbulanceRequestRequest) returns (AmbulanceRequestResponse);
+
+  // Fetch an ambulance request by ID
+  rpc GetAmbulanceRequest(GetAmbulanceRequestRequest) returns (AmbulanceRequestResponse);
+
+  // List ambulance requests with optional filters
+  rpc ListAmbulanceRequests(ListAmbulanceRequestsRequest) returns (ListAmbulanceRequestsResponse);
+
+  // Update ambulance request fields
+  rpc UpdateAmbulanceRequest(UpdateAmbulanceRequestRequest) returns (AmbulanceRequestResponse);
+
+  // Update ambulance request status
+  rpc UpdateAmbulanceRequestStatus(UpdateAmbulanceRequestStatusRequest) returns (AmbulanceRequestResponse);
+
+  // Update ambulance request timestamps (pickup, delivery, return)
+  rpc UpdateAmbulanceRequestTimestamps(UpdateAmbulanceRequestTimestampsRequest) returns (AmbulanceRequestResponse);
+
+  // Delete ambulance request
+  rpc DeleteAmbulanceRequest(DeleteAmbulanceRequestRequest) returns (DeleteAmbulanceRequestResponse);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // Stream real-time updates
+  rpc StreamAmbulanceRequests(StreamAmbulanceRequestsRequest) returns (stream AmbulanceRequestUpdate);
+}
+
+// ===== Request Messages =====
+
+message CreateAmbulanceRequestRequest {
+  // ข้อมูลพื้นฐาน (Basic Information)
+  optional int32 requester_department = 1; // เก็บ departmentSubSubId แทนชื่อหน่วยงาน
+  string requester_name = 2;
+  string requester_phone = 3;
+  string request_date = 4; // MM/DD/YYYY format
+  string request_time = 5; // HH:mm format (เวลาออกจากรพ.)
+  string booking_purpose = 6; // ส่งกลับบ้าน, ย้ายหอผู้ป่วย, ส่งตรวจ, REFER IN, REFER OUT, CT, ล้างไต, อื่นๆ
+  optional string booking_purpose_other = 7; // ระบุเมื่อเลือก "อื่นๆ"
+
+  // ข้อมูลรายละเอียดเพิ่มเติม (แสดงเมื่อเลือก "ส่งกลับบ้าน")
+  optional string patient_name = 8; // ชื่อ - นามสกุล ผู้ป่วย
+  optional string patient_birth_date = 9; // dd/mm/yyyy format
+  optional string destination_address = 10; // ที่อยู่ปัจจุบัน // สถานที่ปลายทางที่ต้องการไป
+  optional string patient_rights = 11; // สิทธิ์รักษาผู้ป่วย
+  optional string patient_hn = 12; // HN
+  optional string patient_citizen_id = 13; // เลขบัตรประชาชน 13 หลัก
+  optional string patient_phone = 14; // เบอร์โทรญาติผู้ป่วยหรือผู้ป่วย
+  repeated string required_equipment = 15; // อุปกรณ์ที่จำเป็น: ROOM_AIR, IV, OXYGEN, HFNC, VENTILATOR, MONITOR, DEFIBRILLATOR
+  string infection_status = 16; // การติดเชื้อ: DRUG_RESISTANT, TB, COVID_19, FLU_AB, RSV, NONE, OTHER
+  optional string infection_status_other = 17; // ระบุเมื่อเลือก "อื่นๆ"
+  optional string department_phone = 18; // เบอร์โทรหน่วยงาน IP phone เท่านั้น
+  optional string requester_name_detail = 19; // ชื่อผู้ขอใช้รถ
+  string condition_type = 20; // เงื่อนไขการขอใช้รถ: ELDERLY, DISABLED
+
+  // หมายเหตุ
+  bool acknowledged = 21; // รับทราบข้อกำหนดพื้นที่ให้บริการ
+
+  string requester_user_id = 22;
+}
+
+message GetAmbulanceRequestRequest {
+  string id = 1;
+}
+
+message ListAmbulanceRequestsRequest {
+  optional string status = 1; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string booking_purpose = 2; // ส่งกลับบ้าน, ย้ายหอผู้ป่วย, ส่งตรวจ, REFER IN, REFER OUT, CT, ล้างไต
+  optional string requester_user_id = 3;
+  optional string assigned_to_id = 4;
+  optional int32 page = 5;
+  optional int32 page_size = 6;
+}
+
+message UpdateAmbulanceRequestRequest {
+  string id = 1;
+  optional int32 requester_department = 2;
+  optional string requester_name = 3;
+  optional string requester_phone = 4;
+  optional string request_date = 5;
+  optional string request_time = 6;
+  optional string booking_purpose = 7;
+  optional string booking_purpose_other = 8;
+  optional string patient_name = 9;
+  optional string patient_birth_date = 10;
+  optional string destination_address = 11;
+  optional string patient_rights = 12;
+  optional string patient_hn = 13;
+  optional string patient_citizen_id = 14;
+  optional string patient_phone = 15;
+  repeated string required_equipment = 16;
+  optional string infection_status = 17;
+  optional string infection_status_other = 18;
+  optional string department_phone = 19;
+  optional string requester_name_detail = 20;
+  optional string condition_type = 21;
+  optional bool acknowledged = 22;
+}
+
+message UpdateAmbulanceRequestStatusRequest {
+  string id = 1;
+  string status = 2; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string assigned_to_id = 3;
+  optional string cancelled_reason = 4;
+  optional string cancelled_by_id = 5;
+  optional string accepted_by_id = 6;
+}
+
+message UpdateAmbulanceRequestTimestampsRequest {
+  string id = 1;
+  optional string pickup_at = 2;   // ISO 8601 format - เวลาที่ถึงจุดรับ
+  optional string delivery_at = 3; // ISO 8601 format - เวลาที่ถึงจุดส่ง
+  optional string return_at = 4;   // ISO 8601 format - เวลาที่ถึงจุดส่งกลับ
+}
+
+message DeleteAmbulanceRequestRequest {
+  string id = 1;
+}
+
+message HealthCheckRequest {}
+
+message StreamAmbulanceRequestsRequest {
+  optional string status = 1; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string booking_purpose = 2;
+}
+
+// ===== Response Messages =====
+
+message AmbulanceRequestResponse {
+  bool success = 1;
+  optional AmbulanceRequest data = 2;
+  optional string error_message = 3;
+}
+
+message ListAmbulanceRequestsResponse {
+  bool success = 1;
+  repeated AmbulanceRequest data = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+  optional string error_message = 6;
+}
+
+message DeleteAmbulanceRequestResponse {
+  bool success = 1;
+  optional string message = 2;
+  optional string error_message = 3;
+}
+
+message HealthCheckResponse {
+  bool success = 1;
+  string message = 2;
+  string timestamp = 3;
+}
+
+// ===== Data Models =====
+
+message AmbulanceRequest {
+  string id = 1;
+  string created_at = 2; // ISO 8601 format
+  string updated_at = 3; // ISO 8601 format
+
+  // ข้อมูลพื้นฐาน
+  optional int32 requester_department = 4;
+  string requester_name = 5;
+  string requester_phone = 6;
+  string request_date = 7; // MM/DD/YYYY format
+  string request_time = 8; // HH:mm format
+  string booking_purpose = 9;
+  optional string booking_purpose_other = 10;
+
+  // ข้อมูลรายละเอียดเพิ่มเติม
+  optional string patient_name = 11;
+  optional string patient_birth_date = 12;
+  optional string destination_address = 13;
+  optional string patient_rights = 14;
+  optional string patient_hn = 15;
+  optional string patient_citizen_id = 16;
+  optional string patient_phone = 17;
+  repeated string required_equipment = 18;
+  string infection_status = 19;
+  optional string infection_status_other = 20;
+  optional string department_phone = 21;
+  optional string requester_name_detail = 22;
+  string condition_type = 23;
+  bool acknowledged = 24;
+
+  // ข้อมูลการจัดการงาน
+  string status = 25; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string assigned_to_id = 26;
+  optional string assigned_to_name = 27; // ชื่อผู้ดำเนินการ
+
+  // ข้อมูลเวลา
+  optional string accepted_at = 28;
+  optional string accepted_by_id = 29;
+  optional string completed_at = 30;
+  optional string cancelled_at = 31;
+  optional string cancelled_reason = 32;
+  optional string cancelled_by_id = 33;
+  string requester_user_id = 34;
+
+  // ข้อมูลเวลาการดำเนินงาน
+  optional string pickup_at = 35;   // เวลาที่ถึงจุดรับ
+  optional string delivery_at = 36; // เวลาที่ถึงจุดส่ง
+  optional string return_at = 37;   // เวลาที่ถึงจุดส่งกลับ (สำหรับ ROUND_TRIP)
+}
+
+// ===== Streaming Messages =====
+
+message AmbulanceRequestUpdate {
+  enum UpdateType {
+    CREATED = 0;
+    UPDATED = 1;
+    STATUS_CHANGED = 2;
+    DELETED = 3;
+  }
+  UpdateType type = 1;
+  AmbulanceRequest request = 2;
+}
+

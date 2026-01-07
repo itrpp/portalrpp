@@ -118,3 +118,114 @@ export function streamPorterRequests(request: any): any {
     throw error;
   }
 }
+
+/**
+ * ========================================
+ * EMRC Service gRPC Client
+ * ========================================
+ */
+
+/**
+ * โหลด Proto Definition สำหรับ EMRC Service
+ */
+function getEMRCProtoPath(): string {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  
+  const protoPath = path.resolve(
+    __dirname,
+    "../../shared/proto/emrc.proto",
+  );
+
+  try {
+    const fs = require("fs");
+
+    if (fs.existsSync(protoPath)) {
+      return protoPath;
+    }
+  } catch {}
+
+  throw new Error(
+    `Proto file not found at: ${protoPath}. Please ensure shared/proto/emrc.proto exists in the project root.`,
+  );
+}
+
+const EMRC_PROTO_PATH = getEMRCProtoPath();
+
+const emrcPackageDefinition = protoLoader.loadSync(EMRC_PROTO_PATH, {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+});
+
+const emrcProto = grpc.loadPackageDefinition(emrcPackageDefinition).emrc as any;
+
+/**
+ * สร้าง gRPC Client สำหรับ EMRC Service
+ * เรียกโดยตรงจาก Next.js API route
+ */
+export function getEMRCClient(): any {
+  const grpcUrl = process.env.EMRC_SERVICE_GRPC_URL || "localhost:50052";
+
+  if (!grpcUrl) {
+    throw new Error("EMRC_SERVICE_GRPC_URL is not configured");
+  }
+
+  const client = new emrcProto.EMRCService(
+    grpcUrl,
+    grpc.credentials.createInsecure(),
+    {
+      "grpc.max_receive_message_length": 10 * 1024 * 1024, // 10MB
+      "grpc.max_send_message_length": 10 * 1024 * 1024, // 10MB
+    },
+  );
+
+  return client;
+}
+
+/**
+ * Helper function สำหรับเรียก gRPC method แบบ Promise สำหรับ EMRC
+ */
+export function callEMRCService<T = any>(
+  methodName: string,
+  request: any,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    try {
+      const client = getEMRCClient();
+      const method = client[methodName];
+
+      if (!method) {
+        reject(new Error(`Method ${methodName} not found`));
+        return;
+      }
+
+      method.call(client, request, (error: any, response: T) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(response);
+        }
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * สร้าง gRPC stream สำหรับ EMRC Requests
+ * เรียกโดยตรงจาก Next.js API route
+ */
+export function streamEMRCRequests(request: any): any {
+  try {
+    const client = getEMRCClient();
+    const stream = client.StreamAmbulanceRequests(request);
+
+    return stream;
+  } catch (error) {
+    throw error;
+  }
+}
