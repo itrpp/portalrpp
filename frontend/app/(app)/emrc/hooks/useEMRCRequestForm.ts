@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  REQUEST_FIELD_LABELS,
-  REQUEST_REQUIRED_FIELDS,
-  createDefaultFormData,
-} from "../constants";
+// import {
+//   REQUEST_FIELD_LABELS,
+//   REQUEST_REQUIRED_FIELDS,
+//   createDefaultFormData,
+// } from "../constants";
 
 import { EMRCRequestItem, EMRCRequestFormData } from "@/types/emrc";
 import { validateForm } from "@/lib/emrc";
+import { createDefaultFormData, REQUEST_REQUIRED_FIELDS, REQUEST_FIELD_LABELS } from "../request/constants";
 
 type ValidationErrors = Record<string, string>;
 
@@ -97,7 +98,7 @@ export function useEMRCRequestForm({
       return;
     }
 
-    const label = REQUEST_FIELD_LABELS[firstErrorKey];
+    const label = REQUEST_FIELD_LABELS[firstErrorKey as keyof EMRCRequestFormData];
 
     if (!label) {
       previousErrorsCountRef.current = currentErrors.length;

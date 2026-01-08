@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useSession } from "next-auth/react";
 import {
   Button,
   Card,
@@ -32,15 +31,13 @@ import {
 } from "@heroui/react";
 import { CalendarDate, parseDate } from "@internationalized/date";
 
-import { useEMRCRequestForm } from "./hooks/useEMRCRequestForm";
-import { useUserRequests } from "./hooks/useUserRequests";
+import { useEMRCRequestForm } from "../hooks/useEMRCRequestForm";
 
 import {
   EMRCRequestFormData,
   EMRCRequestItem,
   BookingPurpose,
 } from "@/types/emrc";
-import { formatThaiDateTimeShort } from "@/lib/utils";
 import {
   BOOKING_PURPOSE_OPTIONS,
   REQUIRED_EQUIPMENT_OPTIONS,
@@ -61,8 +58,6 @@ import {
 } from "@/components/ui/icons";
 
 export default function EMRCRequestPage() {
-  const { data: session } = useSession();
-
   const [selectedTab, setSelectedTab] = useState<string>("form");
 
   const {
@@ -78,16 +73,15 @@ export default function EMRCRequestPage() {
     loadRequestForEdit,
     cancelEditing,
   } = useEMRCRequestForm({
-    requesterName: session?.user?.name ?? undefined,
-    requesterPhone: (session?.user as any)?.phone ?? undefined,
-    requesterDepartment:
-      (session?.user as any)?.departmentSubSubId ?? undefined,
+    // หน้านี้เป็น UI อย่างเดียว ยังไม่ผูกกับ session หรือ backend
+    requesterName: undefined,
+    requesterPhone: undefined,
+    requesterDepartment: undefined,
   });
 
-  const { userRequests, isLoadingRequests, refreshUserRequests } =
-    useUserRequests({
-      userId: session?.user?.id,
-    });
+  // ข้อมูล mock สำหรับแสดง UI ในแท็บประวัติคำขอ (ไม่โหลดจาก backend)
+  const [userRequests, setUserRequests] = useState<EMRCRequestItem[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
   // State สำหรับเก็บชื่อหน่วยงาน
   const [requesterDepartmentName, setRequesterDepartmentName] = useState<
@@ -186,87 +180,26 @@ export default function EMRCRequestPage() {
     setIsSubmitting(true);
 
     try {
-      let response: Response;
-      let result: any;
-
+      // โหมด UI เท่านั้น: แสดง toast ตามสถานะ โดยไม่เรียก API จริง
       if (editingRequestId) {
-        // แก้ไขคำขอ
-        response = await fetch(`/api/emrc/requests/${editingRequestId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-
-        result = await response.json();
-
-        if (!response.ok || !result.success) {
-          const errorMessage =
-            result.error === "UNAUTHORIZED"
-              ? "กรุณาเข้าสู่ระบบก่อนแก้ไขคำขอ"
-              : result.error === "EMRC_SERVICE_UNAVAILABLE"
-                ? "บริการจองรถพยาบาลไม่พร้อมใช้งานในขณะนี้"
-                : result.message || "ไม่สามารถแก้ไขคำขอได้ กรุณาลองอีกครั้ง";
-
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: errorMessage,
-            color: "danger",
-          });
-
-          return;
-        }
-
         addToast({
-          title: "แก้ไขคำขอสำเร็จ",
-          description: "คำขอของคุณได้รับการแก้ไขเรียบร้อยแล้ว",
+          title: "แก้ไขคำขอ (โหมด UI เท่านั้น)",
+          description: "ในโหมดนี้จะยังไม่ส่งข้อมูลไปยังระบบจริง",
           color: "success",
         });
       } else {
-        // สร้างคำขอใหม่
-        response = await fetch("/api/emrc/requests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-
-        result = await response.json();
-
-        if (!response.ok || !result.success) {
-          const errorMessage =
-            result.error === "UNAUTHORIZED"
-              ? "กรุณาเข้าสู่ระบบก่อนส่งคำขอ"
-              : result.error === "EMRC_SERVICE_UNAVAILABLE"
-                ? "บริการจองรถพยาบาลไม่พร้อมใช้งานในขณะนี้"
-                : result.message || "ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง";
-
-          addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: errorMessage,
-            color: "danger",
-          });
-
-          return;
-        }
-
         addToast({
-          title: "ส่งคำขอสำเร็จ",
-          description: "คำขอของคุณได้รับการส่งเรียบร้อยแล้ว",
+          title: "ส่งคำขอ (โหมด UI เท่านั้น)",
+          description: "ในโหมดนี้จะยังไม่ส่งข้อมูลไปยังระบบจริง",
           color: "success",
         });
       }
 
-      await refreshUserRequests();
       resetForm();
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error submitting EMRC request:", error.message);
-      } else {
-        console.error("Error submitting EMRC request:", error);
-      }
-
+    } catch {
       addToast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง",
+        description: "เกิดข้อผิดพลาดภายในโหมด UI ทดสอบ",
         color: "danger",
       });
     } finally {
@@ -350,44 +283,33 @@ export default function EMRCRequestPage() {
     setIsCancelling(true);
 
     try {
-      const response = await fetch(
-        `/api/emrc/requests/${selectedRequestId}/status`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: "CANCELLED",
-            cancelledReason: cancelReason.trim() || undefined,
-          }),
-        },
+      // โหมด UI เท่านั้น: อัปเดตสถานะใน state ภายในโดยไม่เรียก API
+      setUserRequests((prev) =>
+        prev.map((item) =>
+          item.id === selectedRequestId
+            ? {
+                ...item,
+                status: "CANCELLED",
+                cancelledReason: cancelReason.trim() || undefined,
+              }
+            : item,
+        ),
       );
 
-      const result = await response.json();
+      addToast({
+        title: "ยกเลิกงาน (โหมด UI เท่านั้น)",
+        description: "ในโหมดนี้จะยังไม่ส่งข้อมูลยกเลิกไปยังระบบจริง",
+        color: "success",
+      });
 
-      if (result.success && result.data) {
-        addToast({
-          title: "ยกเลิกงานสำเร็จ",
-          description: "งานนี้ได้ถูกยกเลิกเรียบร้อยแล้ว",
-          color: "success",
-        });
-
-        onCancelModalClose();
-        setSelectedRequestId(null);
-        setCancelReason("");
-        setCancelReasonError("");
-
-        await refreshUserRequests();
-      } else {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถยกเลิกงานได้",
-          color: "danger",
-        });
-      }
+      onCancelModalClose();
+      setSelectedRequestId(null);
+      setCancelReason("");
+      setCancelReasonError("");
     } catch {
       addToast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถยกเลิกงานได้",
+        description: "เกิดข้อผิดพลาดภายในโหมด UI ทดสอบ",
         color: "danger",
       });
     } finally {
@@ -994,7 +916,11 @@ export default function EMRCRequestPage() {
                   isLoading={isLoadingRequests}
                   size="sm"
                   variant="flat"
-                  onPress={refreshUserRequests}
+                  onPress={() => {
+                    // โหมด UI เท่านั้น: กดแล้วไม่โหลดข้อมูลจาก backend แต่อาจใช้ในอนาคต
+                    setIsLoadingRequests(true);
+                    setTimeout(() => setIsLoadingRequests(false), 500);
+                  }}
                 >
                   <RefreshIcon className="w-4 h-4" />
                 </Button>

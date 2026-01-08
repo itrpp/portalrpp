@@ -33,35 +33,36 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
       if (!response.ok) {
         throw new Error("ไม่สามารถโหลดข้อมูลรายการคำขอได้");
       }
+      else {
+        const result = await response.json();
 
-      const result = await response.json();
+        if (result.success && Array.isArray(result.data)) {
+          const allRequests = result.data as EMRCRequestItem[];
 
-      if (result.success && Array.isArray(result.data)) {
-        const allRequests = result.data as EMRCRequestItem[];
-
-        // เรียงลำดับตามวันที่ (ใหม่ล่าสุดขึ้นก่อน)
-        const sortedRequests = allRequests.sort((a, b) => {
-          const dateA = a.form.requestDate
-            ? new Date(
+          // เรียงลำดับตามวันที่ (ใหม่ล่าสุดขึ้นก่อน)
+          const sortedRequests = allRequests.sort((a, b) => {
+            const dateA = a.form.requestDate
+              ? new Date(
                 a.form.requestDate.split("/").reverse().join("-") +
-                  " " +
-                  a.form.requestTime,
+                " " +
+                a.form.requestTime,
               ).getTime()
-            : 0;
-          const dateB = b.form.requestDate
-            ? new Date(
+              : 0;
+            const dateB = b.form.requestDate
+              ? new Date(
                 b.form.requestDate.split("/").reverse().join("-") +
-                  " " +
-                  b.form.requestTime,
+                " " +
+                b.form.requestTime,
               ).getTime()
-            : 0;
+              : 0;
 
-          return dateB - dateA;
-        });
+            return dateB - dateA;
+          });
 
-        setUserRequests(sortedRequests);
-      } else {
-        setUserRequests([]);
+          setUserRequests(sortedRequests);
+        } else {
+          setUserRequests([]);
+        }
       }
     } catch (error) {
       console.error("Error fetching user requests:", error);
