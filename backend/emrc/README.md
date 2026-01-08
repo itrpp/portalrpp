@@ -1,3 +1,0 @@
-# EMRC gRPC Service
-
-emrc

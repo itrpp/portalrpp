@@ -129,21 +129,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     return isSuperAdmin || (departmentSubSubId === 4007 && role === "admin");
   }, [isSuperAdmin, session?.user?.departmentSubSubId, session?.user?.role]);
 
-  // ตรวจสอบสิทธิ์การเข้าถึงเมนูศูนย์บริการแพทย์ฉุกเฉินและรับส่งต่อ - memoized
-  const canAccessEMRCCenter = useMemo(() => {
-    const departmentSubSubId = session?.user?.departmentSubSubId;
-
-    return isSuperAdmin || departmentSubSubId === 30114;
-  }, [isSuperAdmin, session?.user?.departmentSubSubId]);
-
-  // ตรวจสอบสิทธิ์การเข้าถึงเมนูตั้งค่าศูนย์เปล - memoized
-  const canAccessEMRCCenterSettings = useMemo(() => {
-    const departmentSubSubId = session?.user?.departmentSubSubId;
-    const role = session?.user?.role;
-
-    return isSuperAdmin || (departmentSubSubId === 30114 && role === "admin");
-  }, [isSuperAdmin, session?.user?.departmentSubSubId, session?.user?.role]);
-
 
   // Memoize navigation sections เพื่อป้องกันการสร้างใหม่ทุกครั้งที่ render
   const navigationSections: SidebarSection[] = useMemo(() => [
@@ -212,59 +197,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       ],
     },
     {
-      title: "ศูนย์บริการแพทย์ฉุกเฉินและรับส่งต่อ",
-      isDisabled: false,
-      items: [
-        {
-          name: "สถิติการดำเนินการ",
-          href: "#",
-          icon: ChartBarIcon,
-        },
-        {
-          name: "จองรถพยาบาล",
-          href: "/emrc/request",
-          icon: EmergencyBedIcon,
-        },
-        ...(canAccessEMRCCenter
-          ? [
-            {
-              name: "ศูนย์สั่งการ",
-              href: "#",
-              icon: BedIcon,
-              subItems: [
-                {
-                  name: "รายการคำขอ",
-                  href: "#",
-                  icon: ClipboardListIcon,
-                },
-                ...(canAccessEMRCCenterSettings
-                  ? [
-                    {
-                      name: "ตั้งค่า",
-                      href: "#",
-                      icon: SettingsIcon,
-                      subItems: [
-                        {
-                          name: "จุดรับ - ส่ง",
-                          href: "#",
-                          icon: SettingsIcon,
-                        },
-                        {
-                          name: "รายชื่อเจ้าหน้าที่เปล",
-                          href: "#",
-                          icon: UserIcon,
-                        },
-                      ],
-                    } as SidebarItem,
-                  ]
-                  : []),
-              ],
-            } as SidebarItem,
-          ]
-          : []),
-      ],
-    },
-    {
       title: "ระบบงานจัดเก็บรายได้",
       isDisabled: true,
       items: [
@@ -314,7 +246,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         },
       ],
     },
-
     {
       title: "ผู้ดูแลระบบ",
       isDisabled: !isSuperAdmin,
