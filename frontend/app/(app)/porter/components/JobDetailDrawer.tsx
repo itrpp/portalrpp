@@ -290,46 +290,6 @@ export default function JobDetailDrawer({
     }
   };
 
-  const handleAcceptJob = async () => {
-    if (!job?.assignedTo) {
-      addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "งานนี้ยังไม่มีผู้รับมอบหมาย",
-        color: "warning",
-      });
-
-      return;
-    }
-
-    const selectedEmployee = employees.find((emp) => emp.id === job.assignedTo);
-    const staffName = selectedEmployee
-      ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}`
-      : job.assignedToName || job.assignedTo;
-
-    if (onAcceptJob) {
-      setIsSubmitting(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        onAcceptJob(job.id, job.assignedTo, staffName);
-        addToast({
-          title: "รับงานสำเร็จ",
-          description: `รับงานสำเร็จ ผู้ปฎิบัติงาน: ${staffName}`,
-          color: "success",
-        });
-        setSelectedStaffId("");
-        onClose();
-      } catch {
-        addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถรับงานได้",
-          color: "danger",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-
   const handleCancelJob = () => {
     // เปิด Modal confirm
     setCancelReason("");
@@ -472,18 +432,14 @@ export default function JobDetailDrawer({
   /** มอบหมายได้เมื่อสถานะรอศูนย์รับ (WAITING_CENTER) และยังไม่มีผู้รับมอบหมาย */
   const canAssignJob = !readOnly && job.status === "WAITING_CENTER";
 
-  /** รับงานได้เมื่อมีผู้รับมอบหมายแล้ว (WAITING_ACCEPT) */
-  // const canAcceptJob =
-  //   !readOnly &&
-  //   job.status === "WAITING_ACCEPT" &&
-  //   !!job.assignedTo;
   const canCancelJob =
     !readOnly &&
     (job.status === "WAITING_CENTER" ||
       job.status === "WAITING_ACCEPT" ||
       job.status === "IN_PROGRESS");
-  const canCompleteJob =
-    !readOnly && job.status === "IN_PROGRESS";
+
+  const canCompleteJob = !readOnly && job.status === "WAITING_ACCEPT" || job.status === "IN_PROGRESS";
+  
   const canEdit =
     !readOnly &&
     (job.status === "WAITING_CENTER" ||
@@ -1383,17 +1339,6 @@ export default function JobDetailDrawer({
                   มอบหมาย
                 </Button>
               )}
-              {/* {canAcceptJob && (
-                <Button
-                  color="success"
-                  isDisabled={isSubmitting}
-                  isLoading={isSubmitting}
-                  startContent={<CheckCircleIcon className="w-4 h-4" />}
-                  onPress={handleAcceptJob}
-                >
-                  รับงาน
-                </Button>
-              )} */}
               {canCompleteJob && (
                 <Button
                   color="success"

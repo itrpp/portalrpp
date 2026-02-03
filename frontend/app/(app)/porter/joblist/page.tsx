@@ -494,9 +494,9 @@ export default function PorterJobListPage() {
 
   // Helper สำหรับ map status จริง → กลุ่มของแท็บ
   const isWaitingStatus = (status: string | undefined | null) =>
-    status === "WAITING_CENTER" || status === "WAITING_ACCEPT";
+    status === "WAITING_CENTER";
   const isInProgressStatus = (status: string | undefined | null) =>
-    status === "IN_PROGRESS";
+    status === "IN_PROGRESS" || status === "WAITING_ACCEPT";
   const isCompletedStatus = (status: string | undefined | null) =>
     status === "COMPLETED";
   const isCancelledStatus = (status: string | undefined | null) =>
