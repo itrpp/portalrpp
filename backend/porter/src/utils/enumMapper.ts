@@ -71,18 +71,21 @@ export const mapReturnTripToProto = (prismaValue?: string | null): ReturnTrip =>
 export const mapStatusToPrisma = (protoStatus?: string | number | null): PorterStatus => {
   if (typeof protoStatus === 'number') {
     const map: Record<number, PorterStatus> = {
-      0: 'WAITING',
-      1: 'IN_PROGRESS',
-      2: 'COMPLETED',
-      3: 'CANCELLED'
+      0: 'WAITING_CENTER',
+      1: 'WAITING_ACCEPT',
+      2: 'IN_PROGRESS',
+      3: 'COMPLETED',
+      4: 'CANCELLED'
     };
-    return map[protoStatus] ?? 'WAITING';
+    return map[protoStatus] ?? 'WAITING_CENTER';
   }
-  return validateValue(protoStatus ?? undefined, PORTER_STATUSES, 'WAITING');
+  const s = (protoStatus ?? '').trim();
+  if (s === 'WAITING') return 'WAITING_CENTER';
+  return validateValue(s || undefined, PORTER_STATUSES, 'WAITING_CENTER');
 };
 
 export const mapStatusToProto = (prismaStatus?: string | null): PorterStatus => {
-  return validateValue(prismaStatus ?? undefined, PORTER_STATUSES, 'WAITING');
+  return validateValue(prismaStatus ?? undefined, PORTER_STATUSES, 'WAITING_CENTER');
 };
 
 export const mapEquipmentToPrisma = (protoEquipmentArray?: Array<string | number> | null): Equipment[] => {

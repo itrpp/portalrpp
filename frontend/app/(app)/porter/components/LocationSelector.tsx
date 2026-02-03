@@ -305,12 +305,12 @@ export function LocationSelector({
   };
 
   const handleRoomBedChange = (keys: any) => {
-    const roomBedName = Array.from(keys)[0] as string;
+    const roomBedId = Array.from(keys)[0] as string;
 
-    if (!roomBedName) return;
+    if (!roomBedId) return;
 
-    setSelectedRoomBed(roomBedName);
-    updateLocation(selectedBuildingId, selectedFloorId, roomBedName);
+    setSelectedRoomBed(roomBedId);
+    updateLocation(selectedBuildingId, selectedFloorId, roomBedId);
   };
 
   return (

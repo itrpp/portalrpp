@@ -1,8 +1,15 @@
+import dotenv from 'dotenv';
+import path from 'path';
 import { z } from 'zod';
+
+// โหลด .env ก่อน แล้วตามด้วย .env.local (ค่าใน .env.local override ได้)
+const projectRoot = path.resolve(__dirname, '..', '..');
+dotenv.config({ path: path.join(projectRoot, '.env') });
+dotenv.config({ path: path.join(projectRoot, '.env.local') });
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  API_GATEWAY_PORT: z.coerce
+  PORT: z.coerce
     .number()
     .int()
     .positive({ message: 'PORT must be positive integer' })
@@ -48,7 +55,7 @@ const allowOrigins = parsed.ALLOW_ORIGINS
 
 export const config: AppConfig = {
   nodeEnv: parsed.NODE_ENV,
-  port: parsed.API_GATEWAY_PORT,
+  port: parsed.PORT,
   trustProxy: parsed.TRUST_PROXY,
   cors: {
     allowOrigins

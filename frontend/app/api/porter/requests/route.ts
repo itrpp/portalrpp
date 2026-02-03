@@ -243,8 +243,6 @@ export async function POST(request: Request) {
       special_notes: requestData.specialNotes || null,
     };
 
-    console.info("protoRequest", protoRequest);
-
     // เรียก gRPC service โดยตรง
     const response = await callPorterService<any>(
       "CreatePorterRequest",

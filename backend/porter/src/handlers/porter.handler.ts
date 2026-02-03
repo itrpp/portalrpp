@@ -18,6 +18,7 @@ import {
   ListEmployeesFilters,
   ListFloorDepartmentsFilters,
   ListPorterRequestsFilters,
+  PORTER_STATUS_WAIT_GROUP,
   PorterEmployeeMessage,
   PorterRequestMessage,
   PorterRequestUpdateMessage,
@@ -204,8 +205,15 @@ export const streamPorterRequests = (
 ) => {
   const { status: statusFilter, urgency_level } = call.request;
 
+  const matchesStatusFilter = (requestStatus: string) => {
+    if (statusFilter === undefined || statusFilter === null) return true;
+    // รองรับ filter "WAITING" = กลุ่ม WAITING_CENTER หรือ WAITING_ACCEPT (ค่าจาก proto เป็น WAITING_CENTER, WAITING_ACCEPT, ...)
+    if (String(statusFilter) === 'WAITING') return (PORTER_STATUS_WAIT_GROUP as readonly string[]).includes(requestStatus);
+    return requestStatus === statusFilter;
+  };
+
   const handleCreated = (request: PorterRequestMessage) => {
-    if (statusFilter !== undefined && statusFilter !== null && request.status !== statusFilter) {
+    if (!matchesStatusFilter(request.status)) {
       return;
     }
 
@@ -230,7 +238,7 @@ export const streamPorterRequests = (
   };
 
   const handleUpdated = (request: PorterRequestMessage) => {
-    if (statusFilter !== undefined && statusFilter !== null && request.status !== statusFilter) {
+    if (!matchesStatusFilter(request.status)) {
       return;
     }
     if (

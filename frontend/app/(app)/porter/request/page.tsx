@@ -830,6 +830,7 @@ export default function PorterRequestPage() {
 
                 <div className="space-y-4">
                   <LocationSelector
+                    key="pickup"
                     isRequired
                     errorMessage={validationErrors.pickupLocation}
                     label="สถานที่รับ"
@@ -841,6 +842,7 @@ export default function PorterRequestPage() {
                   />
 
                   <LocationSelector
+                    key="delivery"
                     isRequired
                     errorMessage={validationErrors.deliveryLocation}
                     label="สถานที่ส่ง"

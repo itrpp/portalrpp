@@ -10,8 +10,11 @@ export type HasVehicle = (typeof HAS_VEHICLE_VALUES)[number];
 export const RETURN_TRIP_VALUES = ['ONE_WAY', 'ROUND_TRIP'] as const;
 export type ReturnTrip = (typeof RETURN_TRIP_VALUES)[number];
 
-export const PORTER_STATUSES = ['WAITING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
+export const PORTER_STATUSES = ['WAITING_CENTER', 'WAITING_ACCEPT', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
 export type PorterStatus = (typeof PORTER_STATUSES)[number];
+
+/** Statuses ที่นับเป็น "รอ" ใน stat (รวมกลุ่ม wait) */
+export const PORTER_STATUS_WAIT_GROUP: PorterStatus[] = ['WAITING_CENTER', 'WAITING_ACCEPT'];
 
 export const EQUIPMENT_VALUES = [
   'OXYGEN',
@@ -331,6 +334,7 @@ export interface PorterEmployeeMessage {
   status: boolean;
   created_at: string;
   updated_at: string;
+  user_id?: string; // map กับ user login
 }
 
 export interface CreateEmployeeInput {
@@ -342,6 +346,7 @@ export interface CreateEmployeeInput {
   employment_type_id: string; // จะถูกแปลงเป็น Int ที่ service layer
   position_id: string; // จะถูกแปลงเป็น Int ที่ service layer
   status?: boolean;
+  user_id?: string; // map กับ user login
 }
 
 export interface UpdateEmployeeInput {
@@ -352,6 +357,7 @@ export interface UpdateEmployeeInput {
   employment_type_id?: string | null; // จะถูกแปลงเป็น Int ที่ service layer
   position_id?: string | null; // จะถูกแปลงเป็น Int ที่ service layer
   status?: boolean | null;
+  user_id?: string | null; // map กับ user login
 }
 
 export interface ListEmployeesFilters {

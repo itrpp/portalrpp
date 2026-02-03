@@ -119,7 +119,7 @@ message GetPorterRequestRequest {
 }
 
 message ListPorterRequestsRequest {
-  optional string status = 1; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string status = 1; // WAITING_CENTER, WAITING_ACCEPT, IN_PROGRESS, COMPLETED, CANCELLED
   optional string urgency_level = 2; // NORMAL, RUSH, EMERGENCY
   optional string assigned_to_id = 3;
   optional string requester_user_id = 6;
@@ -152,7 +152,7 @@ message UpdatePorterRequestRequest {
 
 message UpdatePorterRequestStatusRequest {
   string id = 1;
-  string status = 2; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  string status = 2; // WAITING_CENTER, WAITING_ACCEPT, IN_PROGRESS, COMPLETED, CANCELLED
   optional string assigned_to_id = 3;
   optional string cancelled_reason = 4;
   optional string cancelled_by_id = 5;
@@ -173,7 +173,7 @@ message DeletePorterRequestRequest {
 message HealthCheckRequest {}
 
 message StreamPorterRequestsRequest {
-  optional string status = 1; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string status = 1; // WAITING_CENTER, WAITING_ACCEPT, IN_PROGRESS, COMPLETED, CANCELLED
   optional string urgency_level = 2; // NORMAL, RUSH, EMERGENCY
 }
 
@@ -255,7 +255,7 @@ message PorterRequest {
   optional string special_notes = 25;
 
   // ข้อมูลการจัดการงาน
-  string status = 26; // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  string status = 26; // WAITING_CENTER, WAITING_ACCEPT, IN_PROGRESS, COMPLETED, CANCELLED
   optional string assigned_to_id = 28;
 
   // ข้อมูลเวลา
@@ -583,6 +583,7 @@ message CreateEmployeeRequest {
   string employment_type_id = 4; // ID ของ EmploymentType
   string position_id = 5; // ID ของ Position
   bool status = 6; // true = ใช้งาน, false = ไม่ใช้งาน
+  optional string user_id = 9; // map กับ user login (id จาก User table)
 }
 
 message GetEmployeeRequest {
@@ -606,6 +607,7 @@ message UpdateEmployeeRequest {
   optional string employment_type_id = 4;
   optional string position_id = 5;
   optional bool status = 6;
+  optional string user_id = 9; // map กับ user login
 }
 
 message DeleteEmployeeRequest {
@@ -649,4 +651,5 @@ message Employee {
   bool status = 9; // true = ใช้งาน, false = ไม่ใช้งาน
   string created_at = 10; // ISO 8601 format
   string updated_at = 11; // ISO 8601 format
+  optional string user_id = 14; // map กับ user login
 }

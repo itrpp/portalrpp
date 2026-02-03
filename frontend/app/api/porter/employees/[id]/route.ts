@@ -59,6 +59,7 @@ export async function GET(
         position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
+        userId: response.data.user_id || undefined,
         createdAt: response.data.created_at,
         updatedAt: response.data.updated_at,
       };
@@ -80,17 +81,18 @@ export async function GET(
         { status: 404 },
       );
     }
-  } catch (error: any) {
-    console.error("Error fetching employee:", error);
+  } catch (error: unknown) {
+    const err = error as { code?: number; message?: string };
+    console.error("Error fetching employee:", err);
 
     // จัดการ gRPC errors
-    if (error.code === 5) {
+    if (err.code === 5) {
       // NOT_FOUND
       return NextResponse.json(
         {
           success: false,
           error: "NOT_FOUND",
-          message: error.message || "ไม่พบข้อมูลเจ้าหน้าที่",
+          message: err.message || "ไม่พบข้อมูลเจ้าหน้าที่",
         },
         { status: 404 },
       );
@@ -100,7 +102,7 @@ export async function GET(
       {
         success: false,
         error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        message: err.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
       },
       { status: 500 },
     );
@@ -166,6 +168,12 @@ export async function PUT(
     if (requestData.status !== undefined) {
       protoRequest.status = requestData.status;
     }
+    if (requestData.userId !== undefined) {
+      protoRequest.user_id =
+        requestData.userId && requestData.userId.trim() !== ""
+          ? requestData.userId.trim()
+          : "";
+    }
 
     // เรียก gRPC service
     const response = await callPorterService<any>(
@@ -202,6 +210,7 @@ export async function PUT(
         position: position?.HR_POSITION_NAME || "",
         positionId: response.data.position_id,
         status: response.data.status,
+        userId: response.data.user_id || undefined,
         createdAt: response.data.created_at,
         updatedAt: response.data.updated_at,
       };

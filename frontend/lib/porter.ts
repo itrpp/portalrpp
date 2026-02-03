@@ -249,6 +249,7 @@ export function sortJobs(
 
 /**
  * แปลง Status จาก Frontend (waiting, in-progress, completed, cancelled) เป็น Proto string
+ * tab "waiting" ส่ง WAITING ให้ backend ขยายเป็น WAITING_CENTER | WAITING_ACCEPT
  */
 export function mapStatusToProto(status: string): string {
   const map: Record<string, string> = {
@@ -346,6 +347,8 @@ function mapStatusFromProto(status: string | number): JobListTab {
 
   const map: Record<string, JobListTab> = {
     WAITING: "waiting",
+    WAITING_CENTER: "waiting",
+    WAITING_ACCEPT: "waiting",
     IN_PROGRESS: "in-progress",
     COMPLETED: "completed",
     CANCELLED: "cancelled",

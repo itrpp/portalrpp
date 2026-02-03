@@ -25,6 +25,7 @@ import {
   ListFloorDepartmentsFilters,
   ListPorterRequestsFilters,
   PaginationResult,
+  PORTER_STATUS_WAIT_GROUP,
   PorterEmployeeMessage,
   PorterRequestMessage,
   UpdateBuildingInput,
@@ -120,7 +121,8 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     transportReason: transport_reason,
     equipment: equipment && Array.isArray(equipment) && equipment.length > 0 ? JSON.stringify(mapEquipmentToPrisma(equipment)) : JSON.stringify([]),
     equipmentOther: equipment_other ?? null,
-    specialNotes: special_notes ?? null
+    specialNotes: special_notes ?? null,
+    status: 'WAITING_CENTER'
   };
 
   const porterRequest = await prisma.porterRequest.create({ data: createData });
@@ -172,7 +174,12 @@ export const listPorterRequests = async (
   const where: Prisma.PorterRequestWhereInput = {};
 
   if (status !== undefined && status !== null) {
-    where.status = mapStatusToPrisma(status);
+    const s = String(status).trim();
+    if (s === 'WAITING') {
+      where.status = { in: PORTER_STATUS_WAIT_GROUP };
+    } else {
+      where.status = mapStatusToPrisma(status);
+    }
   }
   if (urgency_level !== undefined && urgency_level !== null) {
     where.urgencyLevel = mapUrgencyLevelToPrisma(urgency_level);
@@ -777,7 +784,7 @@ export const deleteFloorDepartment = async (id: string): Promise<void> => {
 // ----- Employee Management Service -----
 
 export const createEmployee = async (requestData: CreateEmployeeInput): Promise<PorterEmployeeMessage> => {
-  const { citizen_id, first_name, last_name, nickname, profile_image, employment_type_id, position_id, status } = requestData;
+  const { citizen_id, first_name, last_name, nickname, profile_image, employment_type_id, position_id, status, user_id } = requestData;
 
   // แปลง employment_type_id และ position_id จาก string เป็น Int
   const employmentTypeIdInt = Number.parseInt(employment_type_id, 10);
@@ -796,7 +803,8 @@ export const createEmployee = async (requestData: CreateEmployeeInput): Promise<
     profileImage: profile_image && profile_image.trim() !== "" ? profile_image.trim() : null,
     employmentTypeId: employmentTypeIdInt,
     positionId: positionIdInt,
-    status: status ?? true
+    status: status ?? true,
+    userId: user_id?.trim() || null
   };
 
   const employee = await prisma.porterEmployee.create({
@@ -906,6 +914,9 @@ export const updateEmployee = async (
   }
   if (updateData.status !== undefined && updateData.status !== null) {
     data.status = updateData.status;
+  }
+  if (updateData.user_id !== undefined) {
+    data.userId = updateData.user_id?.trim() || null;
   }
 
   const employee = await prisma.porterEmployee.update({
@@ -1114,7 +1125,8 @@ const convertEmployeeToProto = (employee: PorterEmployeeWithRelations): PorterEm
   position_id: String(employee.positionId), // แปลง Int เป็น string สำหรับ proto
   status: employee.status,
   created_at: employee.createdAt.toISOString(),
-  updated_at: employee.updatedAt.toISOString()
+  updated_at: employee.updatedAt.toISOString(),
+  user_id: employee.userId || undefined
 });
 
 // ===== FloorPlan Service Functions =====

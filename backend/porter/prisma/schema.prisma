@@ -53,7 +53,7 @@ model PorterRequest {
 
   specialNotes String? @db.Text
 
-  status        String @default("WAITING") @db.VarChar(50)
+  status        String @default("WAITING_CENTER") @db.VarChar(50)
   assignedToId  String?
 
   acceptedAt  DateTime?
@@ -166,6 +166,7 @@ model PorterEmployee {
   positionId       Int // ชี้ไปที่ hrd_position.HR_POSITION_ID
 
   status Boolean @default(true)
+  userId  String? @map("user_id") // map กับ user login (id จาก User table)
 
   // หมายเหตุ: ไม่สามารถสร้าง foreign key relation กับ hrd tables ได้เพราะอยู่ใน database อื่น
   // ต้องดึงข้อมูลจาก hrd tables แบบ manual ที่ service layer
@@ -174,4 +175,5 @@ model PorterEmployee {
   @@index([status])
   @@index([employmentTypeId])
   @@index([positionId])
+  @@index([userId])
 }
