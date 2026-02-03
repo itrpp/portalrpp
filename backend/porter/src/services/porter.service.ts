@@ -359,10 +359,15 @@ export const updatePorterRequestStatus = async (
   statusData: Omit<UpdatePorterRequestStatusInput, 'id'>
 ): Promise<PorterRequestMessage> => {
   const { status, assigned_to_id, cancelled_reason, cancelled_by_id, accepted_by_id } = statusData;
-  const newStatus = mapStatusToPrisma(status);
+  let newStatus = mapStatusToPrisma(status);
 
   const oldRequest = await prisma.porterRequest.findUnique({ where: { id } });
   const oldStatus = oldRequest?.status;
+
+  // หลังเลือกผู้ปฏิบัติงาน (มอบหมาย): ถ้ามี assigned_to_id และสถานะเดิมเป็น WAITING_CENTER → เปลี่ยนเป็น WAITING_ACCEPT
+  if (assigned_to_id && oldRequest?.status === 'WAITING_CENTER' && newStatus === 'WAITING_CENTER') {
+    newStatus = 'WAITING_ACCEPT';
+  }
 
   const data: Prisma.PorterRequestUpdateInput = {
     status: newStatus
@@ -825,7 +830,7 @@ export const getEmployeeById = async (id: string): Promise<PorterEmployeeMessage
 export const listEmployees = async (
   filters: ListEmployeesFilters
 ): Promise<PaginationResult<PorterEmployeeMessage>> => {
-  const { employment_type_id, position_id, status, page = 1, page_size } = filters;
+  const { employment_type_id, position_id, status, user_id, page = 1, page_size } = filters;
 
   const where: Prisma.PorterEmployeeWhereInput = {};
 
@@ -845,6 +850,9 @@ export const listEmployees = async (
   }
   if (status !== undefined && status !== null) {
     where.status = status;
+  }
+  if (user_id !== undefined && user_id !== null && user_id.trim() !== '') {
+    where.userId = user_id.trim();
   }
 
   // ถ้า page_size เป็น undefined หรือ null ให้ดึงข้อมูลทั้งหมด
@@ -916,7 +924,19 @@ export const updateEmployee = async (
     data.status = updateData.status;
   }
   if (updateData.user_id !== undefined) {
-    data.userId = updateData.user_id?.trim() || null;
+    const newUserId = updateData.user_id?.trim() || null;
+    data.userId = newUserId;
+
+    // ตรวจสอบ unique: user หนึ่งคนผูกได้แค่หนึ่ง employee ถ้ามีการตั้ง userId ที่ไม่ว่าง และ user นั้นถูกผูกกับ employee อื่นอยู่แล้ว ให้ throw
+    if (newUserId) {
+      const existing = await prisma.porterEmployee.findFirst({
+        where: { userId: newUserId, id: { not: id } },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new Error('USER_ALREADY_LINKED');
+      }
+    }
   }
 
   const employee = await prisma.porterEmployee.update({

@@ -107,7 +107,6 @@ export function validateEnvironment(): {
 
     return { required, optional };
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error("Environment validation failed:", error);
     throw error;
   }

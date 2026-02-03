@@ -699,7 +699,55 @@ export default function PorterJobListPage() {
     setSelectedJob(null);
   };
 
-  // Handler สำหรับรับงาน
+  // Handler สำหรับมอบหมายงาน (เลือกผู้ปฏิบัติ) → สถานะ WAITING_ACCEPT
+  const handleAssignJob = async (
+    jobId: string,
+    staffId: string,
+    staffName: string,
+  ) => {
+    try {
+      const response = await fetch(`/api/porter/requests/${jobId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "waiting",
+          assignedToId: staffId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setJobList((prevList) =>
+          prevList.map((job) => (job.id === jobId ? result.data : job)),
+        );
+
+        if (selectedJob?.id === jobId) {
+          setSelectedJob(result.data);
+        }
+
+        addToast({
+          title: "มอบหมายสำเร็จ",
+          description: `มอบหมายให้ ${staffName} แล้ว รอผู้ปฏิบัติรับงาน`,
+          color: "success",
+        });
+      } else {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: result.message || "ไม่สามารถมอบหมายงานได้",
+          color: "danger",
+        });
+      }
+    } catch {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถมอบหมายงานได้",
+        color: "danger",
+      });
+    }
+  };
+
+  // Handler สำหรับรับงาน (ผู้ปฏิบัติกดรับ) → สถานะ IN_PROGRESS
   const handleAcceptJob = async (
     jobId: string,
     staffId: string,
@@ -1175,6 +1223,7 @@ export default function PorterJobListPage() {
         isOpen={isDrawerOpen}
         job={selectedJob}
         onAcceptJob={handleAcceptJob}
+        onAssignJob={handleAssignJob}
         onCancelJob={handleCancelJob}
         onClose={handleCloseDrawer}
         onCompleteJob={handleCompleteJob}

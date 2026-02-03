@@ -46,9 +46,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
               <h4 className="text-lg font-medium text-foreground mb-2">
                 ลากไฟล์มาที่นี่หรือคลิกเพื่อเลือกไฟล์
               </h4>
-              <p className="text-sm text-default-600 mb-3">
-                รองรับไฟล์ DBF
-              </p>
+              <p className="text-sm text-default-600 mb-3">รองรับไฟล์ DBF</p>
               <Button
                 aria-label="เลือกไฟล์"
                 color="primary"
@@ -70,8 +68,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
             </div>
           </div>
         </ModalBody>
-        <ModalFooter>
-        </ModalFooter>
+        <ModalFooter />
       </ModalContent>
     </Modal>
   );

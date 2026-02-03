@@ -20,4 +20,3 @@ export interface ClientLayoutProps {
 export interface RootLayoutProps {
   children: React.ReactNode;
 }
-

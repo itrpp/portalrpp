@@ -1,5 +1,7 @@
 "use client";
 
+import type { UserDTO } from "@/types/user";
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Modal,
@@ -17,7 +19,7 @@ import {
 } from "@heroui/react";
 
 import ImagePreviewModal from "./ImagePreviewModal";
-import type { UserDTO } from "@/types/user";
+
 import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
 
 /**
@@ -64,8 +66,10 @@ export default function EmployeeModal({
   const loadUserById = useCallback(async (id: string) => {
     try {
       const response = await fetch(`/api/users/${id}/basic`);
+
       if (response.ok) {
         const result = await response.json();
+
         if (result.success && result.data) {
           setUsers([result.data]);
           setUserSearchQuery(
@@ -89,8 +93,10 @@ export default function EmployeeModal({
           ? `?search=${encodeURIComponent(query.trim())}`
           : "";
       const response = await fetch(`/api/users/search${searchParam}`);
+
       if (response.ok) {
         const result = await response.json();
+
         if (result.success) {
           setUsers(result.data || []);
         } else {
@@ -161,6 +167,7 @@ export default function EmployeeModal({
         loadUsers();
       }
     }, 300);
+
     return () => clearTimeout(timeoutId);
   }, [userSearchQuery, loadUsers]);
 
@@ -535,11 +542,7 @@ export default function EmployeeModal({
               <Autocomplete
                 defaultItems={users.map((u) => ({
                   key: u.id,
-                  label:
-                    u.displayName ||
-                    u.ldapDisplayName ||
-                    u.email ||
-                    u.id,
+                  label: u.displayName || u.ldapDisplayName || u.email || u.id,
                   description: u.email,
                 }))}
                 inputValue={userSearchQuery}
@@ -553,6 +556,7 @@ export default function EmployeeModal({
                 onSelectionChange={(key) => {
                   if (key != null) {
                     const selectedUser = users.find((u) => u.id === key);
+
                     setUserId(String(key));
                     if (selectedUser) {
                       setUserSearchQuery(

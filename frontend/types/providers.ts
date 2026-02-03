@@ -1,5 +1,6 @@
 import type { ThemeProviderProps } from "next-themes";
 import type { useRouter } from "next/navigation";
+
 import React from "react";
 
 /**
@@ -28,4 +29,3 @@ declare module "@react-types/shared" {
     >;
   }
 }
-

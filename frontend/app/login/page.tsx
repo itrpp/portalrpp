@@ -89,9 +89,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
         <div className="text-center">
           <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto animate-spin" />
-          <p className="mt-4 text-default-600">
-            กำลังตรวจสอบการเข้าสู่ระบบ...
-          </p>
+          <p className="mt-4 text-default-600">กำลังตรวจสอบการเข้าสู่ระบบ...</p>
         </div>
       </div>
     );
@@ -102,9 +100,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
         <div className="text-center">
           <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto animate-spin" />
-          <p className="mt-4 text-default-600">
-            กำลังเปลี่ยนหน้า...
-          </p>
+          <p className="mt-4 text-default-600">กำลังเปลี่ยนหน้า...</p>
         </div>
       </div>
     );
@@ -165,7 +161,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
-
       <div className="w-full max-w-md p-6 sm:p-8">
         <Card className="rounded-3xl shadow-2xl border-0 bg-background/90 backdrop-blur-lg">
           <CardBody className="p-8">

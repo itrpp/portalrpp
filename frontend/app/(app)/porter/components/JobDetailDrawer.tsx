@@ -72,6 +72,9 @@ interface JobDetailDrawerProps {
   isOpen: boolean;
   job: PorterJobItem | null;
   onClose: () => void;
+  /** มอบหมายงาน (เลือกผู้ปฏิบัติ) → สถานะ WAITING_ACCEPT */
+  onAssignJob?: (jobId: string, staffId: string, staffName: string) => void;
+  /** รับงานโดยผู้ปฏิบัติ → สถานะ IN_PROGRESS */
   onAcceptJob?: (jobId: string, staffId: string, staffName: string) => void;
   onCancelJob?: (jobId: string, cancelledReason?: string) => void;
   onCompleteJob?: (jobId: string) => void;
@@ -83,6 +86,7 @@ export default function JobDetailDrawer({
   isOpen,
   job,
   onClose,
+  onAssignJob,
   onAcceptJob,
   onCancelJob,
   onCompleteJob,
@@ -237,7 +241,7 @@ export default function JobDetailDrawer({
     setFormData((prev) => (prev ? { ...prev, [field]: value } : null));
   };
 
-  const handleAcceptJob = async () => {
+  const handleAssignJob = async () => {
     if (!selectedStaffId) {
       addToast({
         title: "กรุณาเลือกผู้ปฎิบัติงาน",
@@ -264,11 +268,49 @@ export default function JobDetailDrawer({
 
     const staffName = `${selectedEmployee.firstName} ${selectedEmployee.lastName}`;
 
+    if (onAssignJob) {
+      setIsSubmitting(true);
+      try {
+        await onAssignJob(job.id, selectedEmployee.id, staffName);
+        addToast({
+          title: "มอบหมายสำเร็จ",
+          description: `มอบหมายให้ ${staffName} แล้ว รอผู้ปฏิบัติรับงาน`,
+          color: "success",
+        });
+        onClose();
+      } catch {
+        addToast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถมอบหมายงานได้",
+          color: "danger",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleAcceptJob = async () => {
+    if (!job?.assignedTo) {
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "งานนี้ยังไม่มีผู้รับมอบหมาย",
+        color: "warning",
+      });
+
+      return;
+    }
+
+    const selectedEmployee = employees.find((emp) => emp.id === job.assignedTo);
+    const staffName = selectedEmployee
+      ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}`
+      : job.assignedToName || job.assignedTo;
+
     if (onAcceptJob) {
       setIsSubmitting(true);
       try {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        onAcceptJob(job.id, selectedEmployee.id, staffName);
+        onAcceptJob(job.id, job.assignedTo, staffName);
         addToast({
           title: "รับงานสำเร็จ",
           description: `รับงานสำเร็จ ผู้ปฎิบัติงาน: ${staffName}`,
@@ -425,7 +467,15 @@ export default function JobDetailDrawer({
     }
   };
 
-  const canAcceptJob = !readOnly && job.status === "waiting";
+  /** มอบหมายได้เมื่อสถานะรอศูนย์รับ (WAITING_CENTER) และยังไม่มีผู้รับมอบหมาย */
+  const canAssignJob =
+    !readOnly &&
+    job.status === "waiting" &&
+    !job.assignedTo &&
+    !!selectedStaffId;
+  /** รับงานได้เมื่อมีผู้รับมอบหมายแล้ว (WAITING_ACCEPT) */
+  const canAcceptJob =
+    !readOnly && job.status === "waiting" && !!job.assignedTo;
   const canCancelJob =
     !readOnly && (job.status === "waiting" || job.status === "in-progress");
   const canCompleteJob = !readOnly && job.status === "in-progress";
@@ -1318,6 +1368,17 @@ export default function JobDetailDrawer({
         <DrawerFooter className="border-t border-divider">
           <div className="flex items-center justify-between w-full gap-4">
             <div className="flex items-center gap-2">
+              {canAssignJob && (
+                <Button
+                  color="primary"
+                  isDisabled={isSubmitting}
+                  isLoading={isSubmitting}
+                  startContent={<UserIcon className="w-4 h-4" />}
+                  onPress={handleAssignJob}
+                >
+                  มอบหมาย
+                </Button>
+              )}
               {canAcceptJob && (
                 <Button
                   color="success"

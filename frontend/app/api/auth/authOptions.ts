@@ -14,6 +14,7 @@ import { cookies } from "next/headers";
 
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
+import { callPorterService } from "@/lib/grpcClient";
 
 const LINE_PROVIDER_ID = "line";
 const LINE_LOGIN_GUARD_CODE = "LINE_LDAP_REQUIRED";
@@ -362,13 +363,12 @@ export const authOptions: any = {
     async jwt({
       token,
       user,
-      account,
+      account: _account,
     }: {
       token: any;
       user: any;
       account: any;
     }): Promise<ExtendedToken> {
-
       const possibleUser = user as ExtendedUser | undefined;
       const userId = possibleUser?.id ?? token.sub;
 
@@ -423,6 +423,26 @@ export const authOptions: any = {
       token.departmentSubId = dbUser.departmentSubId ?? null;
       token.departmentSubSubId = dbUser.departmentSubSubId ?? null;
 
+      // ดึง PorterEmployee ที่ผูกกับ user นี้ (ถ้ามี) จาก backend porter
+      try {
+        const porterResponse = await callPorterService<{
+          success: boolean;
+          data?: Array<{ id: string }>;
+        }>("ListEmployees", { user_id: dbUser.id });
+
+        if (
+          porterResponse?.success &&
+          Array.isArray(porterResponse.data) &&
+          porterResponse.data.length > 0
+        ) {
+          token.porterEmployee = { id: porterResponse.data[0].id };
+        } else {
+          token.porterEmployee = null;
+        }
+      } catch {
+        token.porterEmployee = null;
+      }
+
       return token;
     },
     async session({
@@ -452,6 +472,7 @@ export const authOptions: any = {
         session.user.departmentId = token.departmentId ?? null;
         session.user.departmentSubId = token.departmentSubId ?? null;
         session.user.departmentSubSubId = token.departmentSubSubId ?? null;
+        session.user.porterEmployee = token.porterEmployee ?? null;
       }
 
       return session as ExtendedSession;

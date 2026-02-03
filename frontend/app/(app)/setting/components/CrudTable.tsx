@@ -9,9 +9,9 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  Chip,
   Button,
 } from "@heroui/react";
+
 import { PencilIcon, TrashIcon } from "@/components/ui/icons";
 
 export interface CrudItem {
@@ -185,4 +185,3 @@ export function CrudTable<T extends CrudItem>({
     </>
   );
 }
-

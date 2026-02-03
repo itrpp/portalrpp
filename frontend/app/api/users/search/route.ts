@@ -1,6 +1,7 @@
+import type { Prisma } from "@prisma/client";
+
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import type { Prisma } from "@prisma/client";
 
 import { authOptions } from "@/app/api/auth/authOptions";
 import { prisma } from "@/lib/prisma";
@@ -44,12 +45,10 @@ export async function GET(request: NextRequest) {
       orderBy: { displayName: "asc" },
     });
 
-    return NextResponse.json(
-      { success: true, data: users },
-      { status: 200 },
-    );
+    return NextResponse.json({ success: true, data: users }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
+
     return NextResponse.json(
       { success: false, error: "INTERNAL_ERROR", message },
       { status: 500 },

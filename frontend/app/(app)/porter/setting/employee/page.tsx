@@ -247,6 +247,7 @@ export default function EmployeeManagementPage() {
               employmentTypeId: employeeData.employmentTypeId,
               positionId: employeeData.positionId,
               status: employeeData.status,
+              userId: employeeData.userId,
             }),
           },
         );
@@ -283,6 +284,7 @@ export default function EmployeeManagementPage() {
             employmentTypeId: employeeData.employmentTypeId,
             positionId: employeeData.positionId,
             status: employeeData.status,
+            userId: employeeData.userId,
           }),
         });
         const result = await response.json();

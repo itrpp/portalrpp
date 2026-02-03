@@ -364,6 +364,7 @@ export interface ListEmployeesFilters {
   employment_type_id?: string | null;
   position_id?: string | null;
   status?: boolean | null;
+  user_id?: string | null; // ค้นหา employee ที่ผูกกับ user login นี้
   page?: number;
   page_size?: number;
 }

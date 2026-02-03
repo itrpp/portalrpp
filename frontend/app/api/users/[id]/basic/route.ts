@@ -42,12 +42,10 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(
-      { success: true, data: user },
-      { status: 200 },
-    );
+    return NextResponse.json({ success: true, data: user }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
+
     return NextResponse.json(
       { success: false, error: "INTERNAL_ERROR", message },
       { status: 500 },

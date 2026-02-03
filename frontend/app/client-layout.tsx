@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 
 import Loading from "./loading";
+
 import { ClientLayoutProps } from "@/types/layout";
 
 /**

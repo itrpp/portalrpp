@@ -67,7 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // ตั้งค่า initial state ของ Sidebar ตามขนาดหน้าจอ
   useEffect(() => {
     const MOBILE_BREAKPOINT = 1024; // lg breakpoint in Tailwind
-    
+
     const checkScreenSize = () => {
       // บน mobile ให้เริ่มต้นเป็น false, บน desktop เป็น true
       setIsSidebarOpen(window.innerWidth >= MOBILE_BREAKPOINT);
@@ -84,6 +84,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     window.addEventListener("resize", handleResize);
+
     return () => {
       window.removeEventListener("resize", handleResize);
       clearTimeout(timeoutId);
@@ -184,9 +185,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           handleNavigate={handleNavigate}
           isNavigating={isNavigating}
           isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={handleToggleSidebar}
           pathname={pathname}
           session={session}
+          onToggleSidebar={handleToggleSidebar}
         />
 
         {/* Content Area */}

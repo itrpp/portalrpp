@@ -10,14 +10,12 @@ import {
   Breadcrumbs,
   BreadcrumbItem,
 } from "@heroui/react";
-
 import { Button } from "@heroui/react";
 
 import {
   UserIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
-  XMarkIcon,
 } from "@/components/ui/icons";
 import { generateBreadcrumbs } from "@/lib/breadcrumbs";
 import { TopbarProps } from "@/types";
@@ -39,16 +37,16 @@ export default function Topbar({
         {/* Toggle Sidebar Button */}
         {onToggleSidebar && (
           <Button
-            aria-label={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
-            aria-expanded={isSidebarOpen}
             isIconOnly
+            aria-expanded={isSidebarOpen}
+            aria-label={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
             className="bg-background border border-divider hover:bg-content2 transition-colors"
             isDisabled={isNavigating}
             size="sm"
             variant="light"
             onPress={onToggleSidebar}
           >
-            <Bars3Icon className="w-4 h-4 text-foreground" aria-hidden="true" />
+            <Bars3Icon aria-hidden="true" className="w-4 h-4 text-foreground" />
             {/* {isSidebarOpen ? (
               <XMarkIcon className="w-4 h-4 text-foreground" aria-hidden="true" />
             ) : (

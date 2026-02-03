@@ -9,7 +9,6 @@ import { Button, Chip } from "@heroui/react";
 import {
   HomeIcon,
   ChevronRightIcon,
-  Bars3Icon,
   XMarkIcon,
   UserIcon,
   ChartBarIcon,
@@ -24,11 +23,7 @@ import {
   UserGroupIcon,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
-import {
-  SidebarProps,
-  SidebarItem,
-  SidebarSection,
-} from "@/types";
+import { SidebarProps, SidebarItem, SidebarSection } from "@/types";
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const pathname = usePathname();
@@ -40,7 +35,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
   // ใช้ prop isOpen ถ้ามี ถ้าไม่มีใช้ false (controlled component)
   const sidebarIsOpen = isOpen ?? false;
-  
+
   // ตรวจสอบว่าเป็น mobile หรือ desktop
   const [isMobile, setIsMobile] = useState(false);
 
@@ -51,6 +46,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
     checkMobile();
     window.addEventListener("resize", checkMobile);
+
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
@@ -130,193 +126,195 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   }, [isSuperAdmin, session?.user?.departmentSubSubId, session?.user?.role]);
 
   // Memoize navigation sections เพื่อป้องกันการสร้างใหม่ทุกครั้งที่ render
-  const navigationSections: SidebarSection[] = useMemo(() => [
-    {
-      title: "ภาพรวม",
-      isDisabled: false,
-      items: [
-        {
-          name: "หน้าแรก",
-          href: "/home",
-          icon: HomeIcon,
-        },
-      ],
-    },
-    {
-      title: "ศูนย์เคลื่อนย้ายผู้ป่วย",
-      isDisabled: false,
-      items: [
-        {
-          name: "สถิติการดำเนินการ",
-          href: "/porter/stat",
-          icon: ChartBarIcon,
-        },
-        {
-          name: "ขอเปลรับ - ส่งผู้ป่วย",
-          href: "/porter/request",
-          icon: EmergencyBedIcon,
-        },
-        ...(canAccessPorterCenter
-          ? [
+  const navigationSections: SidebarSection[] = useMemo(
+    () => [
+      {
+        title: "ภาพรวม",
+        isDisabled: false,
+        items: [
+          {
+            name: "หน้าแรก",
+            href: "/home",
+            icon: HomeIcon,
+          },
+        ],
+      },
+      {
+        title: "ศูนย์เคลื่อนย้ายผู้ป่วย",
+        isDisabled: false,
+        items: [
+          {
+            name: "สถิติการดำเนินการ",
+            href: "/porter/stat",
+            icon: ChartBarIcon,
+          },
+          {
+            name: "ขอเปลรับ - ส่งผู้ป่วย",
+            href: "/porter/request",
+            icon: EmergencyBedIcon,
+          },
+          ...(canAccessPorterCenter
+            ? [
+                {
+                  name: "ศูนย์สั่งการ",
+                  href: "#",
+                  icon: BedIcon,
+                  subItems: [
+                    {
+                      name: "รายการคำขอ",
+                      href: "/porter/joblist",
+                      icon: ClipboardListIcon,
+                    },
+                    ...(canAccessPorterCenterSettings
+                      ? [
+                          {
+                            name: "ตั้งค่า",
+                            href: "#",
+                            icon: SettingsIcon,
+                            subItems: [
+                              {
+                                name: "จุดรับ - ส่ง",
+                                href: "/porter/setting/location",
+                                icon: SettingsIcon,
+                              },
+                              {
+                                name: "รายชื่อเจ้าหน้าที่เปล",
+                                href: "/porter/setting/employee",
+                                icon: UserIcon,
+                              },
+                            ],
+                          } as SidebarItem,
+                        ]
+                      : []),
+                  ],
+                } as SidebarItem,
+              ]
+            : []),
+        ],
+      },
+      {
+        title: "ระบบงานจัดเก็บรายได้",
+        isDisabled: true,
+        items: [
+          {
+            name: "สถิติการดำเนินการ",
+            href: "#",
+            icon: ChartBarIcon,
+          },
+          {
+            name: "นำเข้าไฟล์",
+            href: "#",
+            icon: ArrowDownTrayIcon,
+            subItems: [
               {
-                name: "ศูนย์สั่งการ",
+                name: "DBF",
+                href: "/revenue/import/dbf",
+                icon: DocumentTextIcon,
+              },
+              {
+                name: "REP",
                 href: "#",
-                icon: BedIcon,
-                subItems: [
-                  {
-                    name: "รายการคำขอ",
-                    href: "/porter/joblist",
-                    icon: ClipboardListIcon,
-                  },
-                  ...(canAccessPorterCenterSettings
-                    ? [
-                        {
-                          name: "ตั้งค่า",
-                          href: "#",
-                          icon: SettingsIcon,
-                          subItems: [
-                            {
-                              name: "จุดรับ - ส่ง",
-                              href: "/porter/setting/location",
-                              icon: SettingsIcon,
-                            },
-                            {
-                              name: "รายชื่อเจ้าหน้าที่เปล",
-                              href: "/porter/setting/employee",
-                              icon: UserIcon,
-                            },
-                          ],
-                        } as SidebarItem,
-                      ]
-                    : []),
-                ],
-              } as SidebarItem,
-            ]
-          : []),
-      ],
-    },
-    {
-      title: "ระบบงานจัดเก็บรายได้",
-      isDisabled: true,
-      items: [
-        {
-          name: "สถิติการดำเนินการ",
-          href: "#",
-          icon: ChartBarIcon,
-        },
-        {
-          name: "นำเข้าไฟล์",
-          href: "#",
-          icon: ArrowDownTrayIcon,
-          subItems: [
-            {
-              name: "DBF",
-              href: "/revenue/import/dbf",
-              icon: DocumentTextIcon,
-            },
-            {
-              name: "REP",
-              href: "#",
-              icon: DocumentTextIcon,
-            },
-            {
-              name: "Statement",
-              href: "#",
-              icon: DocumentTextIcon,
-            },
-          ],
-        },
-        {
-          name: "ส่งออกข้อมูล",
-          href: "#",
-          icon: ArrowUpTrayIcon,
-          subItems: [
-            {
-              name: "ข้อมูล 16 แฟ้ม IPD",
-              href: "/revenue/export/ipd",
-              icon: DocumentTextIcon,
-            },
-            {
-              name: "ข้อมูล 16 แฟ้ม OPD",
-              href: "/revenue/export/opd",
-              icon: DocumentTextIcon,
-            },
-          ],
-        },
-      ],
-    },
+                icon: DocumentTextIcon,
+              },
+              {
+                name: "Statement",
+                href: "#",
+                icon: DocumentTextIcon,
+              },
+            ],
+          },
+          {
+            name: "ส่งออกข้อมูล",
+            href: "#",
+            icon: ArrowUpTrayIcon,
+            subItems: [
+              {
+                name: "ข้อมูล 16 แฟ้ม IPD",
+                href: "/revenue/export/ipd",
+                icon: DocumentTextIcon,
+              },
+              {
+                name: "ข้อมูล 16 แฟ้ม OPD",
+                href: "/revenue/export/opd",
+                icon: DocumentTextIcon,
+              },
+            ],
+          },
+        ],
+      },
 
-    {
-      title: "ผู้ดูแลระบบ",
-      isDisabled: !isSuperAdmin,
-      items: [
-        {
-          name: "จัดการผู้ใช้",
-          href: "/setting/users",
-          icon: UserIcon,
-        },
-        {
-          name: "ตั้งค่าข้อมูลบุคลากร",
-          href: "#",
-          icon: UserGroupIcon,
-          subItems: [
-            {
-              name: "กลุ่มภารกิจ",
-              href: "/setting/departments",
-              icon: BriefcaseIcon,
-            },
-            {
-              name: "กลุ่มงาน",
-              href: "/setting/department-subs",
-              icon: BriefcaseIcon,
-            },
-            {
-              name: "หน่วยงาน",
-              href: "/setting/department-sub-subs",
-              icon: BriefcaseIcon,
-            },
-            {
-              name: "กลุ่มบุคลากร",
-              href: "/setting/person-types",
-              icon: UserGroupIcon,
-            },
-            {
-              name: "ตำแหน่ง",
-              href: "/setting/positions",
-              icon: UserGroupIcon,
-            },
-          ],
-        },
-      ],
-    },
-  ], [isSuperAdmin, canAccessPorterCenter, canAccessPorterCenterSettings]);
+      {
+        title: "ผู้ดูแลระบบ",
+        isDisabled: !isSuperAdmin,
+        items: [
+          {
+            name: "จัดการผู้ใช้",
+            href: "/setting/users",
+            icon: UserIcon,
+          },
+          {
+            name: "ตั้งค่าข้อมูลบุคลากร",
+            href: "#",
+            icon: UserGroupIcon,
+            subItems: [
+              {
+                name: "กลุ่มภารกิจ",
+                href: "/setting/departments",
+                icon: BriefcaseIcon,
+              },
+              {
+                name: "กลุ่มงาน",
+                href: "/setting/department-subs",
+                icon: BriefcaseIcon,
+              },
+              {
+                name: "หน่วยงาน",
+                href: "/setting/department-sub-subs",
+                icon: BriefcaseIcon,
+              },
+              {
+                name: "กลุ่มบุคลากร",
+                href: "/setting/person-types",
+                icon: UserGroupIcon,
+              },
+              {
+                name: "ตำแหน่ง",
+                href: "/setting/positions",
+                icon: UserGroupIcon,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    [isSuperAdmin, canAccessPorterCenter, canAccessPorterCenterSettings],
+  );
 
   // Memoize isActive function
-  const isActive = useCallback((href: string) => {
-    if (href === "/") {
-      return pathname === "/";
-    }
-    // ตรวจสอบว่าเป็น exact match หรือเป็น sub-path ที่ถูกต้อง
-    if (pathname === href) {
-      return true;
-    }
-    // สำหรับ sub-items ที่อยู่ใน parent path
-    if (href.includes("/revenue/") && pathname.startsWith(href)) {
-      return true;
-    }
-    // สำหรับ parent items ที่มี sub-items
-    if (href === "/revenue" && pathname.startsWith("/revenue/")) {
-      return false; // ไม่ highlight parent เมื่ออยู่ที่ sub-item
-    }
+  const isActive = useCallback(
+    (href: string) => {
+      if (href === "/") {
+        return pathname === "/";
+      }
+      // ตรวจสอบว่าเป็น exact match หรือเป็น sub-path ที่ถูกต้อง
+      if (pathname === href) {
+        return true;
+      }
+      // สำหรับ sub-items ที่อยู่ใน parent path
+      if (href.includes("/revenue/") && pathname.startsWith(href)) {
+        return true;
+      }
+      // สำหรับ parent items ที่มี sub-items
+      if (href === "/revenue" && pathname.startsWith("/revenue/")) {
+        return false; // ไม่ highlight parent เมื่ออยู่ที่ sub-item
+      }
 
-    return pathname.startsWith(href);
-  }, [pathname]);
+      return pathname.startsWith(href);
+    },
+    [pathname],
+  );
 
   const handleClose = useCallback(() => {
-    onToggle?.();
-  }, [onToggle]);
-
-  const handleOpen = useCallback(() => {
     onToggle?.();
   }, [onToggle]);
 
@@ -334,31 +332,34 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     });
   }, []);
 
-  const handleNavigate = useCallback(async (href: string) => {
-    if (isNavigating || pathname === href) {
-      return;
-    }
-
-    setIsNavigating(true);
-    // ปิด Sidebar บน mobile หลังจาก navigate
-    if (isMobile) {
-      handleClose();
-    }
-    try {
-      await router.push(href);
-    } catch (error) {
-      // Log error แต่ไม่แสดงให้ผู้ใช้เห็น (error handling ที่ดีกว่า)
-      // eslint-disable-next-line no-console
-      if (process.env.NODE_ENV === "development") {
-        console.error("Navigation error:", error);
+  const handleNavigate = useCallback(
+    async (href: string) => {
+      if (isNavigating || pathname === href) {
+        return;
       }
-    } finally {
-      // Reset loading state after a short delay to allow navigation to start
-      setTimeout(() => {
-        setIsNavigating(false);
-      }, 300);
-    }
-  }, [isNavigating, pathname, router, isMobile, handleClose]);
+
+      setIsNavigating(true);
+      // ปิด Sidebar บน mobile หลังจาก navigate
+      if (isMobile) {
+        handleClose();
+      }
+      try {
+        await router.push(href);
+      } catch (error) {
+        // Log error แต่ไม่แสดงให้ผู้ใช้เห็น (error handling ที่ดีกว่า)
+
+        if (process.env.NODE_ENV === "development") {
+          console.error("Navigation error:", error);
+        }
+      } finally {
+        // Reset loading state after a short delay to allow navigation to start
+        setTimeout(() => {
+          setIsNavigating(false);
+        }, 300);
+      }
+    },
+    [isNavigating, pathname, router, isMobile, handleClose],
+  );
 
   const renderSidebarItem = (item: SidebarItem, isSubItem = false) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
@@ -371,7 +372,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           <Button
             className={cn(
               "sidebar-item w-full justify-start h-10 group",
-              isItemActive && "active"
+              isItemActive && "active",
             )}
             endContent={
               <div className="flex items-center gap-1">
@@ -400,7 +401,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                   "w-4 h-4 transition-colors",
                   isItemActive
                     ? "text-white"
-                    : "text-default-600 group-hover:text-primary-500"
+                    : "text-default-600 group-hover:text-primary-500",
                 )}
               />
             }
@@ -458,9 +459,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               </div>
             }
             startContent={
-              <item.icon
-                className="w-4 h-4 transition-colors text-primary-500"
-              />
+              <item.icon className="w-4 h-4 transition-colors text-primary-500" />
             }
             variant="light"
           >
@@ -509,7 +508,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                   <ChevronRightIcon
                     className={cn(
                       "w-3 h-3 transition-transform",
-                      isExpanded && "rotate-90"
+                      isExpanded && "rotate-90",
                     )}
                   />
                 )}
@@ -517,9 +516,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             }
             isDisabled={isNavigating}
             startContent={
-              <item.icon
-                className="w-4 h-4 transition-colors text-default-600 group-hover:text-primary-500"
-              />
+              <item.icon className="w-4 h-4 transition-colors text-default-600 group-hover:text-primary-500" />
             }
             variant="light"
             onPress={() => handleNavigate(item.href)}
@@ -572,6 +569,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
     if (sidebarIsOpen && isMobile) {
       document.addEventListener("keydown", handleEscape);
+
       return () => document.removeEventListener("keydown", handleEscape);
     }
   }, [sidebarIsOpen, isMobile, handleClose]);
@@ -581,8 +579,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       {/* Mobile Overlay - แสดงเฉพาะบน mobile เมื่อ Sidebar เปิด */}
       {sidebarIsOpen && isMobile && (
         <div
-          aria-label="ปิดเมนู"
           aria-hidden={!sidebarIsOpen}
+          aria-label="ปิดเมนู"
           className="lg:hidden fixed inset-0 backdrop-blur-sm bg-background/80 z-40"
           role="button"
           tabIndex={-1}
@@ -598,15 +596,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
       {/* Sidebar - รองรับ Light/Dark Theme */}
       <aside
-        aria-label="เมนูนำทางหลัก"
         aria-hidden={!sidebarIsOpen}
-        role="navigation"
+        aria-label="เมนูนำทางหลัก"
         className={cn(
           "sidebar fixed inset-y-0 left-0 z-50 h-screen",
           "transition-transform duration-300 ease-in-out",
           isCollapsed ? "w-16" : "w-64",
-          sidebarIsOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarIsOpen ? "translate-x-0" : "-translate-x-full",
         )}
+        role="navigation"
       >
         <div className="flex flex-col h-full shadow-xl border border-divider">
           {/* Header - พื้นหลังสีฟ้าอ่อน */}
@@ -631,8 +629,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             {isMobile && (
               <div className="lg:hidden">
                 <Button
-                  aria-label="ปิดเมนู"
                   isIconOnly
+                  aria-label="ปิดเมนู"
                   className="text-foreground hover:bg-content2 transition-colors"
                   size="sm"
                   variant="light"

@@ -1,7 +1,5 @@
 "use client";
 
-import type { ThemeProviderProps } from "next-themes";
-
 import * as React from "react";
 import { HeroUIProvider } from "@heroui/system";
 import { ToastProvider } from "@heroui/toast";
@@ -29,8 +27,8 @@ export function Providers({ children, themeProps }: ProvidersProps) {
       <HeroUIProvider locale="th" navigate={router.push}>
         <NextThemesProvider
           {...themeProps}
-          forcedTheme="light"
           enableSystem={false}
+          forcedTheme="light"
         >
           {children}
           <ToastProvider
@@ -54,4 +52,3 @@ export function Providers({ children, themeProps }: ProvidersProps) {
     </SessionProvider>
   );
 }
-

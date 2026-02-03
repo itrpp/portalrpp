@@ -83,6 +83,7 @@ export async function GET(
     }
   } catch (error: unknown) {
     const err = error as { code?: number; message?: string };
+
     console.error("Error fetching employee:", err);
 
     // จัดการ gRPC errors
@@ -235,6 +236,24 @@ export async function PUT(
     }
   } catch (error: any) {
     console.error("Error updating employee:", error);
+
+    // ผู้ใช้นี้ผูกกับเจ้าหน้าที่อื่นแล้ว (unique constraint user_id)
+    const details = String(error?.details ?? error?.message ?? "");
+
+    if (
+      details.includes("USER_ALREADY_LINKED") ||
+      error?.message?.includes("USER_ALREADY_LINKED")
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "USER_ALREADY_LINKED",
+          message:
+            "ผู้ใช้นี้ผูกกับเจ้าหน้าที่อื่นแล้ว กรุณาเลือกผู้ใช้อื่นหรือยกเลิกการผูก",
+        },
+        { status: 409 },
+      );
+    }
 
     // จัดการ gRPC errors
     if (error.code === 5) {

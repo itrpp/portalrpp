@@ -1,11 +1,6 @@
 "use client";
 
 import type { ProfileDTO } from "@/lib/profile";
-import {
-  parseMemberOf,
-  getProfileErrorMessage,
-  type MemberOfGroup,
-} from "@/lib/utils";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -25,6 +20,7 @@ import {
   SelectItem,
 } from "@heroui/react";
 
+import { parseMemberOf, getProfileErrorMessage } from "@/lib/utils";
 import {
   LockClosedIcon,
   PhoneIcon,
@@ -56,7 +52,6 @@ const ROLE_OPTIONS = [
   { value: "user", label: "ผู้ใช้งาน" },
   { value: "admin", label: "ผู้ดูแลระบบ" },
 ] as const;
-
 
 export default function ProfileClient({ initialProfile }: Props) {
   const router = useRouter();
@@ -409,9 +404,7 @@ export default function ProfileClient({ initialProfile }: Props) {
       setFeedback({
         type: "error",
         message:
-          error instanceof Error
-            ? error.message
-            : "ไม่สามารถบันทึกข้อมูลได้",
+          error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้",
       });
     } finally {
       setIsSaving(false);

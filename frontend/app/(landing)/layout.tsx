@@ -12,8 +12,7 @@ export default function LandingLayout({
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-content2/20 to-content3/20">
       {/* Landing Header */}
-      <header className="bg-background/80 backdrop-blur-lg border-b border-divider sticky top-0 z-50">
-      </header>
+      <header className="bg-background/80 backdrop-blur-lg border-b border-divider sticky top-0 z-50" />
 
       {/* Landing Content */}
       <main className="flex-1">

@@ -13,12 +13,9 @@ function getProtoPath(): string {
   // จาก frontend/lib/grpcClient.ts ไปที่ shared/proto/porter.proto = ../../shared/proto/porter.proto
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  
+
   // Resolve path จาก frontend/lib/ ไปที่ shared/proto/porter.proto
-  const protoPath = path.resolve(
-    __dirname,
-    "../../shared/proto/porter.proto",
-  );
+  const protoPath = path.resolve(__dirname, "../../shared/proto/porter.proto");
 
   try {
     const fs = require("fs");

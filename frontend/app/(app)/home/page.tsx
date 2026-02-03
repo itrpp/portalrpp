@@ -1,5 +1,7 @@
 "use client";
 
+import type { ExtendedUser } from "@/types/ldap";
+
 import React from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardBody, CardHeader } from "@heroui/react";
@@ -10,7 +12,6 @@ import {
   ShieldCheckIcon,
 } from "@/components/ui/icons";
 import { siteConfig } from "@/config/site";
-import type { ExtendedUser } from "@/types/ldap";
 
 // ========================================
 // HOME PAGE

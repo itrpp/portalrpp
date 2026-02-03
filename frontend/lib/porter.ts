@@ -773,7 +773,7 @@ export function playNotificationSound(): void {
   } catch (error) {
     // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
     // จะไม่แสดง error
-    // eslint-disable-next-line no-console
+
     console.warn("[Sound] Failed to play notification sound:", error);
   }
 }
@@ -839,7 +839,7 @@ export function playSirenSound(): void {
   } catch (error) {
     // ถ้าไม่สามารถเล่นเสียงได้ (เช่น user ยังไม่ได้ interact กับหน้า)
     // จะไม่แสดง error
-    // eslint-disable-next-line no-console
+
     console.warn("[Sound] Failed to play siren sound:", error);
   }
 }

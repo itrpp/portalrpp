@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
+import { callPorterService } from "@/lib/grpcClient";
 
 /**
  * POST /api/auth/login
@@ -138,6 +139,26 @@ export async function POST(request: Request) {
       );
     }
 
+    // ดึง PorterEmployee ที่ผูกกับ user นี้ (ถ้ามี)
+    let porterEmployee: { id: string } | null = null;
+
+    try {
+      const porterResponse = await callPorterService<{
+        success: boolean;
+        data?: Array<{ id: string }>;
+      }>("ListEmployees", { user_id: dbUser.id });
+
+      if (
+        porterResponse?.success &&
+        Array.isArray(porterResponse.data) &&
+        porterResponse.data.length > 0
+      ) {
+        porterEmployee = { id: porterResponse.data[0].id };
+      }
+    } catch {
+      // ไม่บล็อก login ถ้า porter service ไม่พร้อม
+    }
+
     // สร้าง JWT token
     const token = jwt.sign(
       {
@@ -164,6 +185,7 @@ export async function POST(request: Request) {
           position: dbUser.position,
           role: dbUser.role,
         },
+        porterEmployee: porterEmployee ?? undefined,
       },
     });
   } catch (error: unknown) {

@@ -167,26 +167,28 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                       <th className="w-24 p-2 text-xs font-semibold text-default-700 bg-default-100 border-r border-default-300 sticky left-0 z-10">
                         วัน
                       </th>
-                      {Array.from({ length: 24 }, (_, i) => (i + 8) % 24).map((hour, displayIndex) => {
-                        // เพิ่มเส้นหนาแบ่งระหว่างเวร:
-                        // - 8:00 (เริ่มเวรเช้า 08:01-16:00) อยู่ที่ตำแหน่งแรก (displayIndex 0)
-                        // - 16:00 (เริ่มเวรบ่าย 16:01-24:00) อยู่ที่ displayIndex 8
-                        // - 0:00 (เริ่มเวรดึก 00:01-08:00) อยู่ที่ displayIndex 16
-                        const isShiftBoundary = hour === 16 || hour === 0;
+                      {Array.from({ length: 24 }, (_, i) => (i + 8) % 24).map(
+                        (hour, displayIndex) => {
+                          // เพิ่มเส้นหนาแบ่งระหว่างเวร:
+                          // - 8:00 (เริ่มเวรเช้า 08:01-16:00) อยู่ที่ตำแหน่งแรก (displayIndex 0)
+                          // - 16:00 (เริ่มเวรบ่าย 16:01-24:00) อยู่ที่ displayIndex 8
+                          // - 0:00 (เริ่มเวรดึก 00:01-08:00) อยู่ที่ displayIndex 16
+                          const isShiftBoundary = hour === 16 || hour === 0;
 
-                        return (
-                          <th
-                            key={displayIndex}
-                            className={`p-2 text-xs text-center font-semibold text-default-700 bg-default-100 border-r border-default-300 last:border-r-0 min-w-[32px] ${
-                              isShiftBoundary
-                                ? "border-l-4 border-l-default-600"
-                                : ""
-                            }`}
-                          >
-                            {hour.toString().padStart(2, "0")}
-                          </th>
-                        );
-                      })}
+                          return (
+                            <th
+                              key={displayIndex}
+                              className={`p-2 text-xs text-center font-semibold text-default-700 bg-default-100 border-r border-default-300 last:border-r-0 min-w-[32px] ${
+                                isShiftBoundary
+                                  ? "border-l-4 border-l-default-600"
+                                  : ""
+                              }`}
+                            >
+                              {hour.toString().padStart(2, "0")}
+                            </th>
+                          );
+                        },
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -195,42 +197,44 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                         <td className="p-2 text-xs font-semibold text-default-700 bg-default-100 border-r border-default-300 border-t border-default-300 sticky left-0 z-10">
                           {dayName}
                         </td>
-                        {Array.from({ length: 24 }, (_, i) => (i + 8) % 24).map((hour, displayIndex) => {
-                          // ใช้ Map lookup แทน array find (O(1) vs O(n))
-                          // hour คือ hour จริง (0-23) ที่ใช้สำหรับ lookup ข้อมูล
-                          const key = `${dayIndex}-${hour}`;
-                          const cell = cellLookupMap.get(key);
-                          const count = cell?.count || 0;
-                          const color = getColorForValue(
-                            count,
-                            heatmapData.maxValue,
-                          );
-                          // เพิ่มเส้นหนาแบ่งระหว่างเวร:
-                          // - 16:00 (เริ่มเวรบ่าย 16:01-24:00) อยู่ที่ displayIndex 8
-                          // - 0:00 (เริ่มเวรดึก 00:01-08:00) อยู่ที่ displayIndex 16
-                          const isShiftBoundary = hour === 16 || hour === 0;
+                        {Array.from({ length: 24 }, (_, i) => (i + 8) % 24).map(
+                          (hour, displayIndex) => {
+                            // ใช้ Map lookup แทน array find (O(1) vs O(n))
+                            // hour คือ hour จริง (0-23) ที่ใช้สำหรับ lookup ข้อมูล
+                            const key = `${dayIndex}-${hour}`;
+                            const cell = cellLookupMap.get(key);
+                            const count = cell?.count || 0;
+                            const color = getColorForValue(
+                              count,
+                              heatmapData.maxValue,
+                            );
+                            // เพิ่มเส้นหนาแบ่งระหว่างเวร:
+                            // - 16:00 (เริ่มเวรบ่าย 16:01-24:00) อยู่ที่ displayIndex 8
+                            // - 0:00 (เริ่มเวรดึก 00:01-08:00) อยู่ที่ displayIndex 16
+                            const isShiftBoundary = hour === 16 || hour === 0;
 
-                          return (
-                            <td
-                              key={displayIndex}
-                              className={`p-1 border-r border-t border-default-300 last:border-r-0 relative group cursor-pointer transition-all hover:ring-2 hover:ring-primary-300 hover:ring-offset-1 ${
-                                isShiftBoundary
-                                  ? "border-l-4 border-l-default-600"
-                                  : ""
-                              }`}
-                              style={{ backgroundColor: color }}
-                              title={`${dayName} ${hour.toString().padStart(2, "0")}:00 - ${count.toLocaleString("th-TH")} งาน`}
-                            >
-                              <div className="w-full h-10 flex items-center justify-center">
-                                {count > 0 && (
-                                  <span className="text-xs font-semibold text-default-800 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {count.toLocaleString("th-TH")}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        })}
+                            return (
+                              <td
+                                key={displayIndex}
+                                className={`p-1 border-r border-t border-default-300 last:border-r-0 relative group cursor-pointer transition-all hover:ring-2 hover:ring-primary-300 hover:ring-offset-1 ${
+                                  isShiftBoundary
+                                    ? "border-l-4 border-l-default-600"
+                                    : ""
+                                }`}
+                                style={{ backgroundColor: color }}
+                                title={`${dayName} ${hour.toString().padStart(2, "0")}:00 - ${count.toLocaleString("th-TH")} งาน`}
+                              >
+                                <div className="w-full h-10 flex items-center justify-center">
+                                  {count > 0 && (
+                                    <span className="text-xs font-semibold text-default-800 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      {count.toLocaleString("th-TH")}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            );
+                          },
+                        )}
                       </tr>
                     ))}
                   </tbody>

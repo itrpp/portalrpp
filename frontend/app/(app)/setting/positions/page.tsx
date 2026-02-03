@@ -7,21 +7,16 @@ import { SimpleCrudModal } from "../components/SimpleCrudModal";
 import { CrudTable } from "../components/CrudTable";
 import { useCrudManagement } from "../hooks/useCrudManagement";
 
-import {
-  UserGroupIcon,
-  PlusIcon,
-} from "@/components/ui/icons";
+import { UserGroupIcon, PlusIcon } from "@/components/ui/icons";
 import { Position } from "@/types/hrd";
 
 export default function PositionManagementPage() {
   const {
-    items: positions,
     isLoading,
     isSaving,
     isDeleting,
     editingItem: editingPosition,
     isModalOpen,
-    onModalOpen,
     onModalClose,
     currentPage,
     rowsPerPage,
@@ -106,36 +101,33 @@ export default function PositionManagementPage() {
         </CardHeader>
         <CardBody className="pt-4">
           <CrudTable
-            items={currentPositions}
             columns={columns}
+            currentPage={currentPage}
+            emptyContent="ยังไม่มีข้อมูลตำแหน่ง"
+            endIndex={endIndex}
+            isDeleting={isDeleting}
             isLoading={isLoading}
             isSaving={isSaving}
-            isDeleting={isDeleting}
-            currentPage={currentPage}
+            items={currentPositions}
             rowsPerPage={rowsPerPage}
-            totalPages={totalPages}
             startIndex={startIndex}
-            endIndex={endIndex}
-            onEdit={handleEdit}
+            totalPages={totalPages}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             onPageChange={setCurrentPage}
             onRowsPerPageChange={setRowsPerPage}
-            emptyContent="ยังไม่มีข้อมูลตำแหน่ง"
           />
         </CardBody>
       </Card>
 
       {/* Modal */}
       <SimpleCrudModal
-        isOpen={isModalOpen}
-        onClose={onModalClose}
-        onSave={handleSave}
-        item={editingPosition}
-        isLoading={isSaving}
-        itemName="ตำแหน่ง"
-        itemNameFieldLabel="ชื่อตำแหน่ง"
-        itemNamePlaceholder="เช่น พยาบาลวิชาชีพ"
-        additionalFields={({ item, isLoading: isFieldLoading, values, setValue }) => (
+        additionalFields={({
+          item,
+          isLoading: isFieldLoading,
+          values,
+          setValue,
+        }) => (
           <>
             {!item && (
               <Input
@@ -152,7 +144,11 @@ export default function PositionManagementPage() {
                 variant="bordered"
                 onChange={(e) => {
                   const idValue = e.target.value;
-                  setValue("id", idValue ? Number.parseInt(idValue, 10) : undefined);
+
+                  setValue(
+                    "id",
+                    idValue ? Number.parseInt(idValue, 10) : undefined,
+                  );
                 }}
               />
             )}
@@ -162,10 +158,20 @@ export default function PositionManagementPage() {
               placeholder="เช่น SP001 (ไม่บังคับ)"
               value={String(values.positionSpId || "")}
               variant="bordered"
-              onChange={(e) => setValue("positionSpId", e.target.value || undefined)}
+              onChange={(e) =>
+                setValue("positionSpId", e.target.value || undefined)
+              }
             />
           </>
         )}
+        isLoading={isSaving}
+        isOpen={isModalOpen}
+        item={editingPosition}
+        itemName="ตำแหน่ง"
+        itemNameFieldLabel="ชื่อตำแหน่ง"
+        itemNamePlaceholder="เช่น พยาบาลวิชาชีพ"
+        onClose={onModalClose}
+        onSave={handleSave}
       />
     </div>
   );

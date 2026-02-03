@@ -45,7 +45,6 @@ export class LDAPService {
       try {
         await this.client.unbind();
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.warn("LDAP unbind warning:", error);
       }
       this.client = null;
@@ -167,7 +166,6 @@ export class LDAPService {
           .filter((attr) => attr.type !== "dn"),
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("LDAP search error:", error);
 
       // ถ้าเป็น error การเชื่อมต่อ ให้โยนต่อเพื่อให้ชั้นบนจัดการเป็นข้อความที่ถูกต้อง
@@ -199,7 +197,6 @@ export class LDAPService {
 
       return true;
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("User bind test failed:", error);
 
       return false;
@@ -366,7 +363,6 @@ export class LDAPService {
         success: true,
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("LDAP check status error:", error);
 
       if (this.isConnectionError(error)) {
@@ -444,7 +440,6 @@ export class LDAPService {
             break;
           }
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.warn(`Bind failed with ${bindDN}:`, error);
         }
       }
@@ -464,7 +459,6 @@ export class LDAPService {
         user: userData,
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("LDAP authentication error:", error);
 
       // แยกกรณีเชื่อมต่อ LDAP ไม่ได้ ให้แจ้งผู้ใช้ด้วยข้อความที่ถูกต้อง
@@ -521,7 +515,6 @@ export function createLDAPService(): LDAPService {
 
     return new LDAPService(config);
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error("Failed to create LDAP service:", error);
     throw new Error(
       "ไม่สามารถเริ่มต้น LDAP service ได้ กรุณาตรวจสอบ environment variables",

@@ -60,7 +60,7 @@ export interface UseCrudManagementReturn<T extends CrudItem> {
 export function useCrudManagement<T extends CrudItem>({
   apiEndpoint,
   itemName,
-  itemNamePlural,
+  itemNamePlural: _itemNamePlural,
   onLoad,
   onSave,
   onDelete,
@@ -165,6 +165,7 @@ export function useCrudManagement<T extends CrudItem>({
             color: "success",
           });
           onDelete?.(itemId);
+
           return true;
         } else {
           addToast({
@@ -172,6 +173,7 @@ export function useCrudManagement<T extends CrudItem>({
             description: result.message || `ไม่สามารถลบ${itemName}ได้`,
             color: "danger",
           });
+
           return false;
         }
       } catch {
@@ -180,6 +182,7 @@ export function useCrudManagement<T extends CrudItem>({
           description: `ไม่สามารถลบ${itemName}ได้`,
           color: "danger",
         });
+
         return false;
       } finally {
         setIsDeleting(null);
@@ -199,7 +202,8 @@ export function useCrudManagement<T extends CrudItem>({
         // ตรวจสอบชื่อซ้ำ (ยกเว้นกรณีแก้ไข)
         if (!editingItem) {
           const existing = items.find(
-            (i) => i.name.toLowerCase() === (itemData.name as string).toLowerCase(),
+            (i) =>
+              i.name.toLowerCase() === (itemData.name as string).toLowerCase(),
           );
 
           if (existing) {
@@ -324,4 +328,3 @@ export function useCrudManagement<T extends CrudItem>({
     resetEditing,
   };
 }
-

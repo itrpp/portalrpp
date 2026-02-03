@@ -7,21 +7,16 @@ import { SimpleCrudModal } from "../components/SimpleCrudModal";
 import { CrudTable } from "../components/CrudTable";
 import { useCrudManagement } from "../hooks/useCrudManagement";
 
-import {
-  UserGroupIcon,
-  PlusIcon,
-} from "@/components/ui/icons";
+import { UserGroupIcon, PlusIcon } from "@/components/ui/icons";
 import { PersonType } from "@/types/hrd";
 
 export default function PersonTypeManagementPage() {
   const {
-    items: personTypes,
     isLoading,
     isSaving,
     isDeleting,
     editingItem: editingPersonType,
     isModalOpen,
-    onModalOpen,
     onModalClose,
     currentPage,
     rowsPerPage,
@@ -108,35 +103,35 @@ export default function PersonTypeManagementPage() {
         </CardHeader>
         <CardBody className="pt-4">
           <CrudTable
-            items={currentPersonTypes}
             columns={columns}
+            currentPage={currentPage}
+            emptyContent="ยังไม่มีข้อมูลกลุ่มบุคลากร"
+            endIndex={endIndex}
+            isDeleting={isDeleting}
             isLoading={isLoading}
             isSaving={isSaving}
-            isDeleting={isDeleting}
-            currentPage={currentPage}
+            items={currentPersonTypes}
             rowsPerPage={rowsPerPage}
-            totalPages={totalPages}
             startIndex={startIndex}
-            endIndex={endIndex}
-            onEdit={handleEdit}
+            totalPages={totalPages}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             onPageChange={setCurrentPage}
             onRowsPerPageChange={setRowsPerPage}
-            emptyContent="ยังไม่มีข้อมูลกลุ่มบุคลากร"
           />
         </CardBody>
       </Card>
 
       {/* Modal */}
       <SimpleCrudModal
-        isOpen={isModalOpen}
-        onClose={onModalClose}
-        onSave={handleSave}
-        item={editingPersonType}
         isLoading={isSaving}
+        isOpen={isModalOpen}
+        item={editingPersonType}
         itemName="กลุ่มบุคลากร"
         itemNameFieldLabel="ชื่อกลุ่มบุคลากร"
         itemNamePlaceholder="เช่น กลุ่มบุคลากรทางการแพทย์"
+        onClose={onModalClose}
+        onSave={handleSave}
       />
     </div>
   );

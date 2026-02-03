@@ -1,9 +1,9 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 
-import { Providers } from "@/components/providers";
 import { ClientLayout } from "./client-layout";
 
+import { Providers } from "@/components/providers";
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { RootLayoutProps } from "@/types/layout";

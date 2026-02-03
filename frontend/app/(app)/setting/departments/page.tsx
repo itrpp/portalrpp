@@ -7,21 +7,16 @@ import { SimpleCrudModal } from "../components/SimpleCrudModal";
 import { CrudTable } from "../components/CrudTable";
 import { useCrudManagement } from "../hooks/useCrudManagement";
 
-import {
-  BuildingOfficeIcon,
-  PlusIcon,
-} from "@/components/ui/icons";
+import { BuildingOfficeIcon, PlusIcon } from "@/components/ui/icons";
 import { Department } from "@/types/hrd";
 
 export default function DepartmentManagementPage() {
   const {
-    items: departments,
     isLoading,
     isSaving,
     isDeleting,
     editingItem: editingDepartment,
     isModalOpen,
-    onModalOpen,
     onModalClose,
     currentPage,
     rowsPerPage,
@@ -109,38 +104,38 @@ export default function DepartmentManagementPage() {
         </CardHeader>
         <CardBody className="pt-4">
           <CrudTable
-            items={currentDepartments}
             columns={columns}
+            currentPage={currentPage}
+            emptyContent="ยังไม่มีข้อมูลกลุ่มภารกิจ"
+            endIndex={endIndex}
+            isDeleting={isDeleting}
             isLoading={isLoading}
             isSaving={isSaving}
-            isDeleting={isDeleting}
-            currentPage={currentPage}
+            items={currentDepartments}
             rowsPerPage={rowsPerPage}
-            totalPages={totalPages}
             startIndex={startIndex}
-            endIndex={endIndex}
-            onEdit={handleEdit}
+            totalPages={totalPages}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             onPageChange={setCurrentPage}
             onRowsPerPageChange={setRowsPerPage}
-            emptyContent="ยังไม่มีข้อมูลกลุ่มภารกิจ"
           />
         </CardBody>
       </Card>
 
       {/* Modal */}
       <SimpleCrudModal
-        isOpen={isModalOpen}
-        onClose={onModalClose}
-        onSave={handleSave}
-        item={editingDepartment}
+        useCheckboxForActive
+        activeFieldDescription="เปิดใช้งานเมื่อต้องการให้กลุ่มภารกิจนี้สามารถเลือกใช้ได้"
+        activeFieldLabel="สถานะการใช้งาน"
         isLoading={isSaving}
+        isOpen={isModalOpen}
+        item={editingDepartment}
         itemName="กลุ่มภารกิจ"
         itemNameFieldLabel="ชื่อกลุ่มภารกิจ"
         itemNamePlaceholder="เช่น กลุ่มภารกิจการพยาบาล"
-        useCheckboxForActive
-        activeFieldLabel="สถานะการใช้งาน"
-        activeFieldDescription="เปิดใช้งานเมื่อต้องการให้กลุ่มภารกิจนี้สามารถเลือกใช้ได้"
+        onClose={onModalClose}
+        onSave={handleSave}
       />
     </div>
   );

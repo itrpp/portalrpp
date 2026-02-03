@@ -47,6 +47,11 @@ export interface LDAPAuthResult {
   errorCode?: LDAPErrorCode;
 }
 
+/** เจ้าหน้าที่เปลที่ผูกกับ user login นี้ (จาก PorterEmployee) */
+export interface PorterEmployeeRef {
+  id: string;
+}
+
 // NextAuth User Interface Extension
 export interface ExtendedUser {
   id: string;
@@ -63,6 +68,8 @@ export interface ExtendedUser {
   image?: string | null;
   ldapDisplayName?: string | null;
   departmentSubSubId?: number | null;
+  /** เจ้าหน้าที่เปลที่ผูกกับ user นี้ (มีเมื่อ user ถูกผูกกับ PorterEmployee) */
+  porterEmployee?: PorterEmployeeRef | null;
 }
 
 // NextAuth Token Interface Extension
@@ -79,6 +86,7 @@ export interface ExtendedToken {
   image?: string | null;
   ldapDisplayName?: string | null;
   departmentSubSubId?: number | null;
+  porterEmployee?: PorterEmployeeRef | null;
 }
 
 // NextAuth Session Interface Extension

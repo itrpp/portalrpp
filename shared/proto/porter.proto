@@ -596,6 +596,7 @@ message ListEmployeesRequest {
   optional bool status = 3;
   optional int32 page = 4;
   optional int32 page_size = 5;
+  optional string user_id = 6; // ค้นหา employee ที่ผูกกับ user login นี้
 }
 
 message UpdateEmployeeRequest {

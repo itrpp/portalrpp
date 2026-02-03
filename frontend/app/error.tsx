@@ -2,10 +2,14 @@
 
 import { useEffect } from "react";
 import { Button, Card, CardBody } from "@heroui/react";
+import Link from "next/link";
 
 import { ErrorProps } from "@/types/error";
-import { ExclamationTriangleIcon, RefreshIcon, HomeIcon } from "@/components/ui/icons";
-import Link from "next/link";
+import {
+  ExclamationTriangleIcon,
+  RefreshIcon,
+  HomeIcon,
+} from "@/components/ui/icons";
 
 /**
  * ========================================
@@ -18,7 +22,7 @@ export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log the error to an error reporting service
     // TODO: ในอนาคตควรส่ง error ไปยัง error reporting service (เช่น Sentry, LogRocket)
-    // eslint-disable-next-line no-console
+
     console.error("Error boundary caught:", error);
   }, [error]);
 
@@ -31,7 +35,9 @@ export default function Error({ error, reset }: ErrorProps) {
               <div className="flex justify-center mb-4">
                 <ExclamationTriangleIcon className="w-24 h-24 text-danger-500" />
               </div>
-              <h1 className="text-6xl font-bold text-danger-500 mb-4">เกิดข้อผิดพลาด</h1>
+              <h1 className="text-6xl font-bold text-danger-500 mb-4">
+                เกิดข้อผิดพลาด
+              </h1>
               <h2 className="text-2xl font-bold text-foreground mb-4">
                 มีบางอย่างผิดพลาด
               </h2>

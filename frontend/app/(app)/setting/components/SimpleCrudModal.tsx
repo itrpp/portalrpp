@@ -70,6 +70,7 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
       // Set additional values if any
       if (additionalFields) {
         const additional: Record<string, unknown> = {};
+
         Object.keys(item).forEach((key) => {
           if (key !== "id" && key !== "name" && key !== "active") {
             additional[key] = item[key];
@@ -188,4 +189,3 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
     </Modal>
   );
 }
-

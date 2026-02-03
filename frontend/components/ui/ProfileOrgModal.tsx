@@ -9,6 +9,7 @@ import {
   ModalFooter,
   Button,
 } from "@heroui/react";
+
 import { ProfileOrgModalProps } from "@/types";
 
 export default function ProfileOrgModal({
