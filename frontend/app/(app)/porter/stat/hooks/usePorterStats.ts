@@ -163,12 +163,21 @@ export function usePorterStats() {
     >();
 
     // Single loop ผ่าน jobs ทั้งหมด
+    const isWaitingStatus = (status: string | undefined | null) =>
+      status === "WAITING_CENTER" || status === "WAITING_ACCEPT";
+    const isInProgressStatus = (status: string | undefined | null) =>
+      status === "IN_PROGRESS";
+    const isCompletedStatus = (status: string | undefined | null) =>
+      status === "COMPLETED";
+    const isCancelledStatus = (status: string | undefined | null) =>
+      status === "CANCELLED";
+
     for (const job of filteredJobs) {
-      // 1. นับจำนวนงานตาม status
-      if (job.status === "waiting") waitingJobs++;
-      else if (job.status === "in-progress") inProgressJobs++;
-      else if (job.status === "completed") completedJobs++;
-      else if (job.status === "cancelled") cancelledJobs++;
+      // 1. นับจำนวนงานตาม status (ใช้สถานะจริงจาก DB)
+      if (isWaitingStatus(job.status)) waitingJobs++;
+      else if (isInProgressStatus(job.status)) inProgressJobs++;
+      else if (isCompletedStatus(job.status)) completedJobs++;
+      else if (isCancelledStatus(job.status)) cancelledJobs++;
 
       // 2. คำนวณ dailyJobs (ใช้ string comparison แทน Date object)
       if (job.createdAt) {

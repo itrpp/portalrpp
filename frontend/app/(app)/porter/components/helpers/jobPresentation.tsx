@@ -26,7 +26,7 @@ export const getUrgencyStyle = (urgencyLevel: string | undefined) =>
   urgencyStyleMap[urgencyLevel || "ปกติ"] ?? urgencyStyleMap["ปกติ"];
 
 export const renderStatusChip = (job: PorterJobItem) => {
-  if (job.status === "in-progress") {
+  if (job.status === "IN_PROGRESS") {
     // แสดงชื่อเจ้าหน้าที่ถ้ามี ถ้าไม่มีให้ fallback ไปใช้ ID
 
     const staffInfo =
@@ -42,7 +42,7 @@ export const renderStatusChip = (job: PorterJobItem) => {
     );
   }
 
-  if (job.status === "completed") {
+  if (job.status === "COMPLETED") {
     return (
       <Chip color="success" size="sm" variant="flat">
         เสร็จสิ้น
@@ -50,7 +50,7 @@ export const renderStatusChip = (job: PorterJobItem) => {
     );
   }
 
-  if (job.status === "cancelled") {
+  if (job.status === "CANCELLED") {
     const staffInfo =
       job.cancelledByName ||
       (job.cancelledById ? `ID: ${job.cancelledById}` : "");

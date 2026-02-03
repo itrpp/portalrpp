@@ -58,16 +58,27 @@ export interface PorterRequestFormData {
 }
 
 /**
- * สถานะงานในรายการคำขอ
+ * สถานะงานในรายการคำขอ (สำหรับแท็บแสดงผล)
+ * - ใช้สำหรับ UI tabs เท่านั้น ไม่ใช่ค่าสถานะจริงในฐานข้อมูล
  */
 export type JobListTab = "waiting" | "in-progress" | "completed" | "cancelled";
+
+/**
+ * สถานะจริงของงาน Porter (ตรงกับฐานข้อมูล / Proto)
+ */
+export type PorterJobStatus =
+  | "WAITING_CENTER"
+  | "WAITING_ACCEPT"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
 
 /**
  * รายการงานพนักงานเปล
  */
 export interface PorterJobItem {
   id: string;
-  status: JobListTab;
+  status: PorterJobStatus;
   form: PorterRequestFormData;
   assignedTo?: string; // ID ของผู้ปฎิบัติงาน
   assignedToName?: string; // ชื่อของผู้ปฎิบัติงาน

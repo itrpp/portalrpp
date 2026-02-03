@@ -456,31 +456,39 @@ export default function JobDetailDrawer({
 
   const getStatusChip = () => {
     switch (job.status) {
-      case "waiting":
+      case "WAITING_CENTER":
         return <Chip color="default">รอศูนย์เปลรับงาน</Chip>;
-      case "in-progress":
+      case "WAITING_ACCEPT":
+        return <Chip color="default">รอผู้ปฏิบัติรับงาน</Chip>;
+      case "IN_PROGRESS":
         return <Chip color="warning">กำลังดำเนินการ</Chip>;
-      case "completed":
+      case "COMPLETED":
         return <Chip color="success">เสร็จสิ้น</Chip>;
-      case "cancelled":
+      case "CANCELLED":
         return <Chip color="danger">ยกเลิก</Chip>;
     }
   };
 
   /** มอบหมายได้เมื่อสถานะรอศูนย์รับ (WAITING_CENTER) และยังไม่มีผู้รับมอบหมาย */
-  const canAssignJob =
-    !readOnly &&
-    job.status === "waiting" &&
-    !job.assignedTo &&
-    !!selectedStaffId;
+  const canAssignJob = !readOnly && job.status === "WAITING_CENTER";
+
   /** รับงานได้เมื่อมีผู้รับมอบหมายแล้ว (WAITING_ACCEPT) */
-  const canAcceptJob =
-    !readOnly && job.status === "waiting" && !!job.assignedTo;
+  // const canAcceptJob =
+  //   !readOnly &&
+  //   job.status === "WAITING_ACCEPT" &&
+  //   !!job.assignedTo;
   const canCancelJob =
-    !readOnly && (job.status === "waiting" || job.status === "in-progress");
-  const canCompleteJob = !readOnly && job.status === "in-progress";
+    !readOnly &&
+    (job.status === "WAITING_CENTER" ||
+      job.status === "WAITING_ACCEPT" ||
+      job.status === "IN_PROGRESS");
+  const canCompleteJob =
+    !readOnly && job.status === "IN_PROGRESS";
   const canEdit =
-    !readOnly && (job.status === "waiting" || job.status === "in-progress");
+    !readOnly &&
+    (job.status === "WAITING_CENTER" ||
+      job.status === "WAITING_ACCEPT" ||
+      job.status === "IN_PROGRESS");
 
   return (
     <Drawer isOpen={isOpen} placement="right" size="3xl" onClose={onClose}>
@@ -580,7 +588,7 @@ export default function JobDetailDrawer({
                 </CardHeader>
                 <CardBody className="pt-4">
                   {Array.isArray(formData.patientCondition) &&
-                  formData.patientCondition.length > 0 ? (
+                    formData.patientCondition.length > 0 ? (
                     <div className="space-y-2">
                       {formData.patientCondition.map((condition) => (
                         <div
@@ -636,9 +644,9 @@ export default function JobDetailDrawer({
                             setFormData((prev) =>
                               prev
                                 ? {
-                                    ...prev,
-                                    pickupLocationDetail: location,
-                                  }
+                                  ...prev,
+                                  pickupLocationDetail: location,
+                                }
                                 : null,
                             );
                           }}
@@ -652,9 +660,9 @@ export default function JobDetailDrawer({
                             setFormData((prev) =>
                               prev
                                 ? {
-                                    ...prev,
-                                    deliveryLocationDetail: location,
-                                  }
+                                  ...prev,
+                                  deliveryLocationDetail: location,
+                                }
                                 : null,
                             );
                           }}
@@ -747,7 +755,7 @@ export default function JobDetailDrawer({
                               isDisabled={!canEdit || !isEditMode}
                               startContent={
                                 option.value === "ฉุกเฉิน" ||
-                                option.value === "ด่วน" ? (
+                                  option.value === "ด่วน" ? (
                                   <AmbulanceIcon className="w-4 h-4" />
                                 ) : (
                                   <ClipboardListIcon className="w-4 h-4" />
@@ -834,32 +842,29 @@ export default function JobDetailDrawer({
                     <div className="space-y-3">
                       {formData.urgencyLevel && (
                         <div
-                          className={`rounded-lg p-4 border ${
-                            formData.urgencyLevel === "ฉุกเฉิน"
-                              ? "bg-danger-50 dark:bg-danger-50/20 border-danger-200"
-                              : formData.urgencyLevel === "ด่วน"
-                                ? "bg-warning-50 dark:bg-warning-50/20 border-warning-200"
-                                : "bg-success-50 dark:bg-success-50/20 border-success-200"
-                          }`}
+                          className={`rounded-lg p-4 border ${formData.urgencyLevel === "ฉุกเฉิน"
+                            ? "bg-danger-50 dark:bg-danger-50/20 border-danger-200"
+                            : formData.urgencyLevel === "ด่วน"
+                              ? "bg-warning-50 dark:bg-warning-50/20 border-warning-200"
+                              : "bg-success-50 dark:bg-success-50/20 border-success-200"
+                            }`}
                         >
                           <div className="flex items-start gap-3">
                             <div
-                              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
-                                formData.urgencyLevel === "ฉุกเฉิน"
-                                  ? "bg-danger-100 dark:bg-danger-500/30"
-                                  : formData.urgencyLevel === "ด่วน"
-                                    ? "bg-warning-100 dark:bg-warning-500/30"
-                                    : "bg-success-100 dark:bg-success-500/30"
-                              }`}
+                              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${formData.urgencyLevel === "ฉุกเฉิน"
+                                ? "bg-danger-100 dark:bg-danger-500/30"
+                                : formData.urgencyLevel === "ด่วน"
+                                  ? "bg-warning-100 dark:bg-warning-500/30"
+                                  : "bg-success-100 dark:bg-success-500/30"
+                                }`}
                             >
                               {formData.urgencyLevel === "ฉุกเฉิน" ||
-                              formData.urgencyLevel === "ด่วน" ? (
+                                formData.urgencyLevel === "ด่วน" ? (
                                 <AmbulanceIcon
-                                  className={`w-5 h-5 ${
-                                    formData.urgencyLevel === "ฉุกเฉิน"
-                                      ? "text-danger-600 dark:text-danger-400"
-                                      : "text-warning-600 dark:text-warning-400"
-                                  }`}
+                                  className={`w-5 h-5 ${formData.urgencyLevel === "ฉุกเฉิน"
+                                    ? "text-danger-600 dark:text-danger-400"
+                                    : "text-warning-600 dark:text-warning-400"
+                                    }`}
                                 />
                               ) : (
                                 <ClockIcon className="w-5 h-5 text-success-600 dark:text-success-400" />
@@ -880,7 +885,7 @@ export default function JobDetailDrawer({
                                 size="sm"
                                 startContent={
                                   formData.urgencyLevel === "ฉุกเฉิน" ||
-                                  formData.urgencyLevel === "ด่วน" ? (
+                                    formData.urgencyLevel === "ด่วน" ? (
                                     <AmbulanceIcon className="w-3 h-3" />
                                   ) : null
                                 }
@@ -1289,9 +1294,8 @@ export default function JobDetailDrawer({
                 </div>
               </>
             )}
-
             {/* เลือกผู้ปฎิบัติงาน (ให้เลือกได้แม้ไม่อยู่ในโหมดแก้ไข สำหรับสถานะรอรับงาน) */}
-            {canAcceptJob && !readOnly && (
+            {canAssignJob && !readOnly && (
               <section>
                 <Divider className="my-6" />
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -1379,7 +1383,7 @@ export default function JobDetailDrawer({
                   มอบหมาย
                 </Button>
               )}
-              {canAcceptJob && (
+              {/* {canAcceptJob && (
                 <Button
                   color="success"
                   isDisabled={isSubmitting}
@@ -1389,7 +1393,7 @@ export default function JobDetailDrawer({
                 >
                   รับงาน
                 </Button>
-              )}
+              )} */}
               {canCompleteJob && (
                 <Button
                   color="success"
@@ -1414,7 +1418,7 @@ export default function JobDetailDrawer({
               )}
             </div>
             <div className="flex items-center gap-2">
-              {canAcceptJob && (
+              {canEdit && (
                 <Button
                   color="primary"
                   isDisabled={isSubmitting}

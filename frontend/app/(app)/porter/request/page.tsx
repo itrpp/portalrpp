@@ -201,7 +201,11 @@ export default function PorterRequestPage() {
     }
 
     // ตรวจสอบ status ก่อนโหลดข้อมูลแก้ไข
-    if (request.status !== "waiting") {
+    // แก้ไขได้เฉพาะงานที่ยังไม่ถูกผู้ปฏิบัติรับ (WAITING_CENTER / WAITING_ACCEPT)
+    if (
+      request.status !== "WAITING_CENTER" &&
+      request.status !== "WAITING_ACCEPT"
+    ) {
       addToast({
         title: "ไม่สามารถแก้ไขได้",
         description: "สามารถแก้ไขได้เฉพาะงานที่ยังไม่รับงานเท่านั้น",
@@ -1244,29 +1248,32 @@ export default function PorterRequestPage() {
                       {(item) => (
                         <TableRow key={item.id}>
                           <TableCell>
-                            <Chip
-                              color={
-                                item.status === "waiting"
-                                  ? "secondary" // เปลี่ยนเป็นม่วงให้ดูแตกต่างจาก urgency
-                                  : item.status === "in-progress"
-                                    ? "primary"
-                                    : item.status === "completed"
-                                      ? "success"
-                                      : "default"
-                              }
-                              size="sm"
-                              variant="flat"
-                            >
-                              {item.status === "waiting"
-                                ? "รอศูนย์รับ"
-                                : item.status === "in-progress"
+                          <Chip
+                            color={
+                              item.status === "WAITING_CENTER" ||
+                              item.status === "WAITING_ACCEPT"
+                                ? "secondary" // เปลี่ยนเป็นม่วงให้ดูแตกต่างจาก urgency
+                                : item.status === "IN_PROGRESS"
+                                  ? "primary"
+                                  : item.status === "COMPLETED"
+                                    ? "success"
+                                    : "default"
+                            }
+                            size="sm"
+                            variant="flat"
+                          >
+                            {item.status === "WAITING_CENTER"
+                              ? "รอศูนย์รับ"
+                              : item.status === "WAITING_ACCEPT"
+                                ? "รอผู้ปฏิบัติรับงาน"
+                                : item.status === "IN_PROGRESS"
                                   ? "กำลังดำเนินการ"
-                                  : item.status === "completed"
+                                  : item.status === "COMPLETED"
                                     ? "เสร็จสิ้น"
-                                    : item.status === "cancelled"
+                                    : item.status === "CANCELLED"
                                       ? "ยกเลิก"
                                       : item.status}
-                            </Chip>
+                          </Chip>
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -1333,7 +1340,10 @@ export default function PorterRequestPage() {
                                 <Button
                                   isIconOnly
                                   color="primary"
-                                  isDisabled={item.status !== "waiting"}
+                                  isDisabled={
+                                    item.status !== "WAITING_CENTER" &&
+                                    item.status !== "WAITING_ACCEPT"
+                                  }
                                   size="sm"
                                   variant="light"
                                   onPress={() => handleEditRequest(item.id)}
@@ -1344,8 +1354,9 @@ export default function PorterRequestPage() {
                               <Tooltip
                                 color="danger"
                                 content={
-                                  item.status === "waiting" ||
-                                  item.status === "in-progress"
+                                  item.status === "WAITING_CENTER" ||
+                                  item.status === "WAITING_ACCEPT" ||
+                                  item.status === "IN_PROGRESS"
                                     ? "ยกเลิก"
                                     : "ไม่สามารถยกเลิกได้"
                                 }
@@ -1354,8 +1365,9 @@ export default function PorterRequestPage() {
                                   isIconOnly
                                   color="danger"
                                   isDisabled={
-                                    item.status !== "waiting" &&
-                                    item.status !== "in-progress"
+                                    item.status !== "WAITING_CENTER" &&
+                                    item.status !== "WAITING_ACCEPT" &&
+                                    item.status !== "IN_PROGRESS"
                                   }
                                   size="sm"
                                   variant="light"

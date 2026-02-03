@@ -5,6 +5,7 @@ import {
   PorterJobItem,
   PorterRequestFormData,
   JobListTab,
+  PorterJobStatus,
   Building,
   FloorDepartment,
   RoomBed,
@@ -248,18 +249,27 @@ export function sortJobs(
  */
 
 /**
- * แปลง Status จาก Frontend (waiting, in-progress, completed, cancelled) เป็น Proto string
- * tab "waiting" ส่ง WAITING ให้ backend ขยายเป็น WAITING_CENTER | WAITING_ACCEPT
+ * แปลง Status จาก Frontend เป็น Proto string
+ * รองรับทั้งค่า tab เก่า (waiting, in-progress, ...) และค่า Status ใหม่ (WAITING_CENTER, ...)
  */
 export function mapStatusToProto(status: string): string {
   const map: Record<string, string> = {
+    // ค่าเก่าสำหรับ tab / backward compatibility
     waiting: "WAITING",
     "in-progress": "IN_PROGRESS",
     completed: "COMPLETED",
     cancelled: "CANCELLED",
+
+    // ค่า Status จริง (ตรงกับ Proto / DB)
+    WAITING_CENTER: "WAITING_CENTER",
+    WAITING_ACCEPT: "WAITING_ACCEPT",
+    IN_PROGRESS: "IN_PROGRESS",
+    COMPLETED: "COMPLETED",
+    CANCELLED: "CANCELLED",
   };
 
-  return map[status] ?? "WAITING";
+  // ถ้าไม่รู้จัก ให้ fallback ไป WAITING_CENTER
+  return map[status] ?? "WAITING_CENTER";
 }
 
 /**
@@ -330,31 +340,37 @@ export function mapEquipmentToProto(equipment: string[]): string[] {
 }
 
 /**
- * แปลง Status จาก Proto string เป็น Frontend format
+ * แปลง Status จาก Proto string/number เป็นสถานะจริงใน Frontend (PorterJobStatus)
  */
-function mapStatusFromProto(status: string | number): JobListTab {
-  // รองรับทั้ง string และ number (backward compatibility)
+function mapStatusFromProto(status: string | number): PorterJobStatus {
+  // รองรับทั้ง number enum และ string enum
   if (typeof status === "number") {
-    const map: Record<number, JobListTab> = {
-      0: "waiting",
-      1: "in-progress",
-      2: "completed",
-      3: "cancelled",
+    const map: Record<number, PorterJobStatus> = {
+      0: "WAITING_CENTER",
+      1: "WAITING_ACCEPT",
+      2: "IN_PROGRESS",
+      3: "COMPLETED",
+      4: "CANCELLED",
     };
 
-    return map[status] ?? "waiting";
+    return map[status] ?? "WAITING_CENTER";
   }
 
-  const map: Record<string, JobListTab> = {
-    WAITING: "waiting",
-    WAITING_CENTER: "waiting",
-    WAITING_ACCEPT: "waiting",
-    IN_PROGRESS: "in-progress",
-    COMPLETED: "completed",
-    CANCELLED: "cancelled",
+  const normalized = status.trim();
+
+  const map: Record<string, PorterJobStatus> = {
+    // ค่าปกติจาก Proto / Prisma
+    WAITING_CENTER: "WAITING_CENTER",
+    WAITING_ACCEPT: "WAITING_ACCEPT",
+    IN_PROGRESS: "IN_PROGRESS",
+    COMPLETED: "COMPLETED",
+    CANCELLED: "CANCELLED",
+
+    // ค่าเก่าสำหรับ backward compatibility
+    WAITING: "WAITING_CENTER",
   };
 
-  return map[status] ?? "waiting";
+  return map[normalized] ?? "WAITING_CENTER";
 }
 
 /**

@@ -374,13 +374,15 @@ export default function PorterJobListPage() {
                         const urgencyLevel = data.form
                           ?.urgencyLevel as UrgencyLevel;
                         const statusText =
-                          data.status === "waiting"
+                          data.status === "WAITING_CENTER"
                             ? "รอศูนย์เปลรับงาน"
-                            : data.status === "in-progress"
-                              ? "กำลังดำเนินการ"
-                              : data.status === "completed"
-                                ? "เสร็จสิ้น"
-                                : "ยกเลิก";
+                            : data.status === "WAITING_ACCEPT"
+                              ? "รอผู้ปฏิบัติรับงาน"
+                              : data.status === "IN_PROGRESS"
+                                ? "กำลังดำเนินการ"
+                                : data.status === "COMPLETED"
+                                  ? "เสร็จสิ้น"
+                                  : "ยกเลิก";
 
                         if (urgencyLevel === "ฉุกเฉิน") {
                           addToast({
@@ -490,27 +492,52 @@ export default function PorterJobListPage() {
     };
   }, [selectedJob]);
 
+  // Helper สำหรับ map status จริง → กลุ่มของแท็บ
+  const isWaitingStatus = (status: string | undefined | null) =>
+    status === "WAITING_CENTER" || status === "WAITING_ACCEPT";
+  const isInProgressStatus = (status: string | undefined | null) =>
+    status === "IN_PROGRESS";
+  const isCompletedStatus = (status: string | undefined | null) =>
+    status === "COMPLETED";
+  const isCancelledStatus = (status: string | undefined | null) =>
+    status === "CANCELLED";
+
   // คำนวณจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
   const waitingCount = useMemo(
-    () => jobList.filter((job) => job.status === "waiting").length,
+    () => jobList.filter((job) => isWaitingStatus(job.status)).length,
     [jobList],
   );
   const inProgressCount = useMemo(
-    () => jobList.filter((job) => job.status === "in-progress").length,
+    () => jobList.filter((job) => isInProgressStatus(job.status)).length,
     [jobList],
   );
   const completedCount = useMemo(
-    () => jobList.filter((job) => job.status === "completed").length,
+    () => jobList.filter((job) => isCompletedStatus(job.status)).length,
     [jobList],
   );
   const cancelledCount = useMemo(
-    () => jobList.filter((job) => job.status === "cancelled").length,
+    () => jobList.filter((job) => isCancelledStatus(job.status)).length,
     [jobList],
   );
 
   // กรองข้อมูลตามแท็บที่เลือกและ date range (ถ้ามี)
   const filteredJobs = useMemo(() => {
-    let filtered = jobList.filter((job) => job.status === selectedTab);
+    let filtered = jobList.filter((job) => {
+      if (selectedTab === "waiting") {
+        return isWaitingStatus(job.status);
+      }
+      if (selectedTab === "in-progress") {
+        return isInProgressStatus(job.status);
+      }
+      if (selectedTab === "completed") {
+        return isCompletedStatus(job.status);
+      }
+      if (selectedTab === "cancelled") {
+        return isCancelledStatus(job.status);
+      }
+
+      return false;
+    });
 
     // Filter ตาม date range สำหรับ completed tab
     if (selectedTab === "completed") {
@@ -710,7 +737,7 @@ export default function PorterJobListPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: "waiting",
+          status: "WAITING_ACCEPT",
           assignedToId: staffId,
         }),
       });
@@ -759,7 +786,7 @@ export default function PorterJobListPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: "in-progress",
+          status: "IN_PROGRESS",
           assignedToId: staffId,
         }),
       });
@@ -806,7 +833,7 @@ export default function PorterJobListPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: "cancelled",
+          status: "CANCELLED",
           cancelledReason: cancelledReason || undefined,
         }),
       });
@@ -853,7 +880,7 @@ export default function PorterJobListPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: "completed",
+          status: "COMPLETED",
         }),
       });
 

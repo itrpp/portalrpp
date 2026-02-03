@@ -48,7 +48,11 @@ export async function PUT(
       }
     }
     // เพิ่มข้อมูลผู้ที่กดรับงาน เมื่อ status เป็น in-progress
-    if (requestData.status === "in-progress" && session?.user?.id) {
+    if (
+      (requestData.status === "IN_PROGRESS" ||
+        requestData.status === "in-progress") &&
+      session?.user?.id
+    ) {
       protoRequest.accepted_by_id = session.user.id;
     }
 
