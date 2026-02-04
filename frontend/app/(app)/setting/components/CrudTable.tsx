@@ -1,5 +1,7 @@
 "use client";
 
+import type { CrudItem, CrudTableProps } from "../types";
+
 import React from "react";
 import {
   Table,
@@ -14,37 +16,7 @@ import {
 
 import { PencilIcon, TrashIcon } from "@/components/ui/icons";
 
-export interface CrudItem {
-  id: number;
-  name: string;
-  active?: boolean;
-  [key: string]: unknown;
-}
-
-export interface CrudTableColumn<T extends CrudItem = CrudItem> {
-  key: string;
-  label: string;
-  render?: (item: T) => React.ReactNode;
-}
-
-export interface CrudTableProps<T extends CrudItem> {
-  items: T[];
-  columns: CrudTableColumn<T>[];
-  isLoading: boolean;
-  isSaving: boolean;
-  isDeleting: number | null;
-  currentPage: number;
-  rowsPerPage: number;
-  totalPages: number;
-  startIndex: number;
-  endIndex: number;
-  onEdit: (item: T) => void;
-  onDelete: (itemId: number) => void;
-  onPageChange: (page: number) => void;
-  onRowsPerPageChange: (rows: number) => void;
-  emptyContent?: string;
-  showActions?: boolean;
-}
+export type { CrudItem, CrudTableColumn, CrudTableProps } from "../types";
 
 export function CrudTable<T extends CrudItem>({
   items,
@@ -163,7 +135,7 @@ export function CrudTable<T extends CrudItem>({
                     แสดงต่อหน้า:
                   </label>
                   <select
-                    className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
                     id="rows-per-page"
                     value={rowsPerPage}
                     onChange={(e) => {

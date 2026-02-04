@@ -826,5 +826,3 @@ export const Icons = {
   handStop: HandStopIcon,
   check: CheckIcon,
 };
-
-export default Icons;

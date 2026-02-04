@@ -31,11 +31,7 @@ import {
   TrashIcon,
   PencilIcon,
 } from "@/components/ui/icons";
-import {
-  Building,
-  FloorDepartment,
-  // RoomBed, // เลิกใช้งาน room-beds แล้ว
-} from "@/types/porter";
+import { Building, FloorDepartment } from "@/types/porter";
 import {
   convertBuildingFromProto,
   getDepartmentTypeName,
@@ -774,14 +770,12 @@ export default function LocationSettingsPage() {
   );
   const [isSavingFloor, setIsSavingFloor] = useState(false);
   const [isDeletingFloor, setIsDeletingFloor] = useState<string | null>(null);
-  // const [isSavingRoomBed, setIsSavingRoomBed] = useState(false); // เลิกใช้งาน room-beds แล้ว
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(
     null,
   );
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(
     null,
   );
-  // const [selectedFloor] = useState<FloorDepartment | null>(null); // เลิกใช้งาน room-beds แล้ว
 
   // Fetch buildings from API
   useEffect(() => {
@@ -1479,7 +1473,7 @@ export default function LocationSettingsPage() {
                         className="flex items-center justify-between p-3 border border-default-200 rounded-lg hover:bg-default-50 transition-colors"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <MapPinIcon className="w-4 h-4 text-default-500 flex-shrink-0" />
+                          <MapPinIcon className="w-4 h-4 text-default-500 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               {floor.floorNumber && (
@@ -1524,7 +1518,7 @@ export default function LocationSettingsPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <Button
                             isIconOnly
                             color="primary"

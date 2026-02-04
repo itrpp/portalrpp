@@ -8,7 +8,16 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { RootLayoutProps } from "@/types/layout";
 
+/**
+ * Base URL สำหรับ resolve รูป Open Graph / Twitter (ต้องตั้งเพื่อไม่ให้ Next ใช้ localhost)
+ * ใช้ NEXTAUTH_URL ถ้ามี ไม่เช่นนั้นใช้ localhost ตอน dev
+ */
+const metadataBase = process.env.NEXTAUTH_URL
+  ? new URL(process.env.NEXTAUTH_URL)
+  : new URL("http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase,
   title: {
     default: siteConfig.projectName,
     template: `%s - ${siteConfig.projectName}`,

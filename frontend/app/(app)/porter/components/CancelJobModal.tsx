@@ -53,7 +53,7 @@ export default function CancelJobModal({
             </p>
             <div className="bg-warning-50 dark:bg-warning-900/20 p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                <InfoCircleIcon className="w-5 h-5 text-warning-600 mt-0.5 flex-shrink-0" />
+                <InfoCircleIcon className="w-5 h-5 text-warning-600 mt-0.5 shrink-0" />
                 <div className="text-sm text-warning-800 dark:text-warning-200">
                   <p className="font-medium mb-1">คำเตือน:</p>
                   <ul className="list-disc list-inside space-y-1">

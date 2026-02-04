@@ -111,17 +111,3 @@ export function validateEnvironment(): {
     throw error;
   }
 }
-
-/**
- * ตรวจสอบว่าเป็น production environment หรือไม่
- */
-export function isProduction(): boolean {
-  return process.env.NODE_ENV === "production";
-}
-
-/**
- * ตรวจสอบว่าเป็น development environment หรือไม่
- */
-export function isDevelopment(): boolean {
-  return process.env.NODE_ENV === "development";
-}

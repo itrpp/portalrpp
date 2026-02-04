@@ -1,5 +1,7 @@
 "use client";
 
+import type { SimpleCrudItem, SimpleCrudModalProps } from "../types";
+
 import React, { useState, useEffect } from "react";
 import {
   Modal,
@@ -14,34 +16,7 @@ import {
   addToast,
 } from "@heroui/react";
 
-export interface SimpleCrudItem {
-  id: number;
-  name: string;
-  active?: boolean;
-  [key: string]: unknown;
-}
-
-export interface SimpleCrudModalProps<T extends SimpleCrudItem> {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (
-    item: Omit<T, "id" | "createdAt" | "updatedAt"> & { id?: number },
-  ) => Promise<void>;
-  item?: T | null;
-  isLoading?: boolean;
-  itemName: string; // เช่น "กลุ่มภารกิจ", "กลุ่มบุคลากร"
-  itemNameFieldLabel?: string; // เช่น "ชื่อกลุ่มภารกิจ"
-  itemNamePlaceholder?: string; // เช่น "เช่น กลุ่มภารกิจการพยาบาล"
-  useCheckboxForActive?: boolean; // ใช้ Checkbox แทน Switch
-  activeFieldLabel?: string; // เช่น "สถานะการใช้งาน"
-  activeFieldDescription?: string; // คำอธิบายเพิ่มเติม
-  additionalFields?: (props: {
-    item: T | null;
-    isLoading: boolean;
-    values: Record<string, unknown>;
-    setValue: (key: string, value: unknown) => void;
-  }) => React.ReactNode;
-}
+export type { SimpleCrudItem, SimpleCrudModalProps } from "../types";
 
 export function SimpleCrudModal<T extends SimpleCrudItem>({
   isOpen,

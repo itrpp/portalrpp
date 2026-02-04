@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth/next";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { streamPorterRequests } from "@/lib/grpcClient";
 import {
   mapStatusToProto,
@@ -22,19 +21,9 @@ export const runtime = "nodejs";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return new Response(
-        JSON.stringify({ success: false, error: "UNAUTHORIZED" }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     // อ่าน query parameters
     const url = new URL(request.url);
@@ -46,27 +35,13 @@ export async function GET(request: NextRequest) {
 
     if (status !== undefined && status !== null) {
       protoRequest.status = mapStatusToProto(status);
-      console.info("[Next.js API] Mapped status filter:", {
-        original: status,
-        proto: protoRequest.status,
-      });
     }
     if (urgency_level !== undefined && urgency_level !== null) {
       protoRequest.urgency_level = mapUrgencyLevelToProto(urgency_level);
-      console.info("[Next.js API] Mapped urgency_level filter:", {
-        original: urgency_level,
-        proto: protoRequest.urgency_level,
-      });
     }
-
-    console.info("[Next.js API] Proto request object:", protoRequest);
 
     // สร้าง gRPC stream โดยตรงจาก gRPC service (ไม่ผ่าน API Gateway)
     const grpcStream = streamPorterRequests(protoRequest);
-
-    console.info(
-      "[Next.js API] gRPC stream created directly, waiting for data...",
-    );
 
     // สร้าง ReadableStream เพื่อแปลง gRPC stream เป็น SSE
     let isStreamClosed = false;
@@ -75,8 +50,6 @@ export async function GET(request: NextRequest) {
     const stream = new ReadableStream({
       async start(streamController) {
         try {
-          console.info("[Next.js API] Starting to read gRPC stream...");
-
           // Helper function สำหรับตรวจสอบว่า stream ยังเปิดอยู่
           const isControllerOpen = () => {
             try {
@@ -136,16 +109,6 @@ export async function GET(request: NextRequest) {
                     ? "STATUS_CHANGED"
                     : "DELETED";
 
-            console.info("[Next.js API] Received gRPC stream data event:", {
-              rawType: update.type,
-              typeValue: updateTypeNumber,
-              typeName: updateTypeString,
-              hasRequest: !!update.request,
-              requestId: update.request?.id,
-              requestStatus: update.request?.status,
-              isControllerOpen: isControllerOpen(),
-            });
-
             if (!isControllerOpen()) {
               console.warn(
                 "[Next.js API] Stream controller is closed, ignoring data",
@@ -164,12 +127,6 @@ export async function GET(request: NextRequest) {
                   data: frontendData,
                 };
 
-                console.info("[Next.js API] Converted to frontend format:", {
-                  type: updateData.type,
-                  requestId: frontendData.id,
-                  status: frontendData.status,
-                });
-
                 // ส่งข้อมูลผ่าน SSE
                 const sseMessage = `data: ${JSON.stringify(updateData)}\n\n`;
                 const encoder = new TextEncoder();
@@ -177,13 +134,6 @@ export async function GET(request: NextRequest) {
                 if (isControllerOpen()) {
                   try {
                     streamController.enqueue(encoder.encode(sseMessage));
-                    console.info(
-                      "[Next.js API] Successfully sent SSE message:",
-                      {
-                        type: updateData.type,
-                        requestId: frontendData.id,
-                      },
-                    );
                   } catch (enqueueError) {
                     console.error(
                       "[Next.js API] Error enqueueing SSE message:",
@@ -220,7 +170,6 @@ export async function GET(request: NextRequest) {
               (error.details?.includes("Cancelled") ||
                 error.message?.includes("Cancelled"))
             ) {
-              console.info("[Next.js API] Stream cancelled by client (normal)");
               safeClose();
 
               return;
@@ -245,7 +194,6 @@ export async function GET(request: NextRequest) {
 
           // จัดการเมื่อ stream end
           grpcStream.on("end", () => {
-            console.info("[Next.js API] gRPC stream ended");
             safeClose();
           });
 
@@ -265,7 +213,6 @@ export async function GET(request: NextRequest) {
               const encoder = new TextEncoder();
 
               streamController.enqueue(encoder.encode(keepAlive));
-              console.info("[Next.js API] Sent keep-alive message");
             } catch {
               // Connection closed
               if (keepAliveInterval) {
@@ -294,8 +241,6 @@ export async function GET(request: NextRequest) {
       },
       cancel() {
         // เมื่อ client ปิด connection - cancel gRPC stream
-        console.info("[Next.js API] Stream cancelled by client");
-
         isStreamClosed = true;
 
         if (keepAliveInterval) {

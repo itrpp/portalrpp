@@ -43,6 +43,7 @@ import {
   VehicleType,
   EquipmentType,
 } from "@/types/porter";
+import { formatDateTimeFromString } from "@/lib/utils";
 import { formatLocationString } from "@/lib/porter";
 import {
   URGENCY_OPTIONS,
@@ -72,10 +73,7 @@ interface JobDetailDrawerProps {
   isOpen: boolean;
   job: PorterJobItem | null;
   onClose: () => void;
-  /** มอบหมายงาน (เลือกผู้ปฏิบัติ) → สถานะ WAITING_ACCEPT */
   onAssignJob?: (jobId: string, staffId: string, staffName: string) => void;
-  /** รับงานโดยผู้ปฏิบัติ → สถานะ IN_PROGRESS */
-  onAcceptJob?: (jobId: string, staffId: string, staffName: string) => void;
   onCancelJob?: (jobId: string, cancelledReason?: string) => void;
   onCompleteJob?: (jobId: string) => void;
   onUpdateJob?: (jobId: string, updatedForm: PorterRequestFormData) => void;
@@ -87,7 +85,6 @@ export default function JobDetailDrawer({
   job,
   onClose,
   onAssignJob,
-  onAcceptJob,
   onCancelJob,
   onCompleteJob,
   onUpdateJob,
@@ -213,26 +210,6 @@ export default function JobDetailDrawer({
   }, [formData?.requesterDepartment]);
 
   if (!job || !formData) return null;
-
-  const formatDate = (dateString: string | undefined | null) => {
-    if (!dateString || dateString.trim() === "") {
-      return "-";
-    }
-    const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-      return "-";
-    }
-
-    return date.toLocaleString("th-TH", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
 
   const handleInputChange = (
     field: keyof PorterRequestFormData,
@@ -438,8 +415,10 @@ export default function JobDetailDrawer({
       job.status === "WAITING_ACCEPT" ||
       job.status === "IN_PROGRESS");
 
-  const canCompleteJob = !readOnly && job.status === "WAITING_ACCEPT" || job.status === "IN_PROGRESS";
-  
+  const canCompleteJob =
+    (!readOnly && job.status === "WAITING_ACCEPT") ||
+    job.status === "IN_PROGRESS";
+
   const canEdit =
     !readOnly &&
     (job.status === "WAITING_CENTER" ||
@@ -462,7 +441,7 @@ export default function JobDetailDrawer({
             </Chip>
             <ClockIcon className="w-4 h-4 text-default-500" />
             <span className="text-sm text-default-500">
-              {formatDate(job.form.requestedDateTime)}
+              {formatDateTimeFromString(job.form.requestedDateTime)}
             </span>
           </div>
         </DrawerHeader>
@@ -470,7 +449,7 @@ export default function JobDetailDrawer({
           <div className="space-y-4">
             {/* ข้อมูลผู้แจ้ง และผู้ป่วย */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="shadow-sm border border-default-200 bg-content1">
+              <Card className="shadow-xs border border-default-200 bg-content1">
                 <CardHeader className="pb-0 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     <BuildingOfficeIcon className="w-5 h-5 text-primary" />
@@ -488,7 +467,7 @@ export default function JobDetailDrawer({
                       <span className="font-medium text-foreground">
                         ผู้แจ้ง
                       </span>
-                      <span className="text-foreground break-words">
+                      <span className="text-foreground wrap-break-word">
                         {formData.requesterName || "-"}
                       </span>
                     </div>
@@ -496,7 +475,7 @@ export default function JobDetailDrawer({
                       <span className="font-medium text-foreground">
                         โทรศัพท์ภายใน
                       </span>
-                      <span className="text-foreground break-words">
+                      <span className="text-foreground wrap-break-word">
                         {formData.requesterPhone || "-"}
                       </span>
                     </div>
@@ -504,7 +483,7 @@ export default function JobDetailDrawer({
                 </CardBody>
               </Card>
 
-              <Card className="shadow-sm border border-default-200 bg-content1">
+              <Card className="shadow-xs border border-default-200 bg-content1">
                 <CardHeader className="pb-0 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     <UserIcon className="w-5 h-5 text-primary" />
@@ -522,7 +501,7 @@ export default function JobDetailDrawer({
                       <span className="font-medium text-foreground">
                         ชื่อผู้ป่วย
                       </span>
-                      <span className="text-foreground break-words">
+                      <span className="text-foreground wrap-break-word">
                         {formData.patientName || "-"}
                       </span>
                     </div>
@@ -533,7 +512,7 @@ export default function JobDetailDrawer({
 
             {/* ข้อมูลอาการผู้ป่วยเบื้องต้น */}
             <div className="grid grid-cols-1 gap-6">
-              <Card className="shadow-sm border border-default-200 bg-content1">
+              <Card className="shadow-xs border border-default-200 bg-content1">
                 <CardHeader className="pb-0">
                   <div className="flex items-center gap-2">
                     <BuildingOfficeIcon className="w-5 h-5 text-primary" />
@@ -544,7 +523,7 @@ export default function JobDetailDrawer({
                 </CardHeader>
                 <CardBody className="pt-4">
                   {Array.isArray(formData.patientCondition) &&
-                    formData.patientCondition.length > 0 ? (
+                  formData.patientCondition.length > 0 ? (
                     <div className="space-y-2">
                       {formData.patientCondition.map((condition) => (
                         <div
@@ -600,9 +579,9 @@ export default function JobDetailDrawer({
                             setFormData((prev) =>
                               prev
                                 ? {
-                                  ...prev,
-                                  pickupLocationDetail: location,
-                                }
+                                    ...prev,
+                                    pickupLocationDetail: location,
+                                  }
                                 : null,
                             );
                           }}
@@ -616,9 +595,9 @@ export default function JobDetailDrawer({
                             setFormData((prev) =>
                               prev
                                 ? {
-                                  ...prev,
-                                  deliveryLocationDetail: location,
-                                }
+                                    ...prev,
+                                    deliveryLocationDetail: location,
+                                  }
                                 : null,
                             );
                           }}
@@ -711,7 +690,7 @@ export default function JobDetailDrawer({
                               isDisabled={!canEdit || !isEditMode}
                               startContent={
                                 option.value === "ฉุกเฉิน" ||
-                                  option.value === "ด่วน" ? (
+                                option.value === "ด่วน" ? (
                                   <AmbulanceIcon className="w-4 h-4" />
                                 ) : (
                                   <ClipboardListIcon className="w-4 h-4" />
@@ -798,29 +777,32 @@ export default function JobDetailDrawer({
                     <div className="space-y-3">
                       {formData.urgencyLevel && (
                         <div
-                          className={`rounded-lg p-4 border ${formData.urgencyLevel === "ฉุกเฉิน"
-                            ? "bg-danger-50 dark:bg-danger-50/20 border-danger-200"
-                            : formData.urgencyLevel === "ด่วน"
-                              ? "bg-warning-50 dark:bg-warning-50/20 border-warning-200"
-                              : "bg-success-50 dark:bg-success-50/20 border-success-200"
-                            }`}
+                          className={`rounded-lg p-4 border ${
+                            formData.urgencyLevel === "ฉุกเฉิน"
+                              ? "bg-danger-50 dark:bg-danger-50/20 border-danger-200"
+                              : formData.urgencyLevel === "ด่วน"
+                                ? "bg-warning-50 dark:bg-warning-50/20 border-warning-200"
+                                : "bg-success-50 dark:bg-success-50/20 border-success-200"
+                          }`}
                         >
                           <div className="flex items-start gap-3">
                             <div
-                              className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${formData.urgencyLevel === "ฉุกเฉิน"
-                                ? "bg-danger-100 dark:bg-danger-500/30"
-                                : formData.urgencyLevel === "ด่วน"
-                                  ? "bg-warning-100 dark:bg-warning-500/30"
-                                  : "bg-success-100 dark:bg-success-500/30"
-                                }`}
+                              className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                                formData.urgencyLevel === "ฉุกเฉิน"
+                                  ? "bg-danger-100 dark:bg-danger-500/30"
+                                  : formData.urgencyLevel === "ด่วน"
+                                    ? "bg-warning-100 dark:bg-warning-500/30"
+                                    : "bg-success-100 dark:bg-success-500/30"
+                              }`}
                             >
                               {formData.urgencyLevel === "ฉุกเฉิน" ||
-                                formData.urgencyLevel === "ด่วน" ? (
+                              formData.urgencyLevel === "ด่วน" ? (
                                 <AmbulanceIcon
-                                  className={`w-5 h-5 ${formData.urgencyLevel === "ฉุกเฉิน"
-                                    ? "text-danger-600 dark:text-danger-400"
-                                    : "text-warning-600 dark:text-warning-400"
-                                    }`}
+                                  className={`w-5 h-5 ${
+                                    formData.urgencyLevel === "ฉุกเฉิน"
+                                      ? "text-danger-600 dark:text-danger-400"
+                                      : "text-warning-600 dark:text-warning-400"
+                                  }`}
                                 />
                               ) : (
                                 <ClockIcon className="w-5 h-5 text-success-600 dark:text-success-400" />
@@ -841,7 +823,7 @@ export default function JobDetailDrawer({
                                 size="sm"
                                 startContent={
                                   formData.urgencyLevel === "ฉุกเฉิน" ||
-                                    formData.urgencyLevel === "ด่วน" ? (
+                                  formData.urgencyLevel === "ด่วน" ? (
                                     <AmbulanceIcon className="w-3 h-3" />
                                   ) : null
                                 }
@@ -857,7 +839,7 @@ export default function JobDetailDrawer({
                       {formData.transportReason && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                               <InfoCircleIcon className="w-5 h-5 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -875,7 +857,7 @@ export default function JobDetailDrawer({
                       {formData.vehicleType && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                               <CarIcon className="w-5 h-5 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -916,7 +898,7 @@ export default function JobDetailDrawer({
                       {formData.equipment.length > 0 && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
+                            <div className="shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
                               <ToolsIcon className="w-5 h-5 text-default-600 dark:text-default-700" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -980,7 +962,7 @@ export default function JobDetailDrawer({
                       {formData.specialNotes && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
+                            <div className="shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
                               <DocumentTextIcon className="w-5 h-5 text-default-600 dark:text-default-700" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -1006,7 +988,7 @@ export default function JobDetailDrawer({
                       <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-default-200" />
                       <div className="space-y-6">
                         <div className="relative flex gap-4">
-                          <div className="relative z-10 flex-shrink-0">
+                          <div className="relative z-10 shrink-0">
                             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                               <DocumentTextIcon className="w-4 h-4 text-white" />
                             </div>
@@ -1018,8 +1000,10 @@ export default function JobDetailDrawer({
                               </h4>
                               <p className="text-sm text-default-500 mb-2">
                                 {job.createdAt
-                                  ? formatDate(job.createdAt)
-                                  : formatDate(job.form.requestedDateTime)}
+                                  ? formatDateTimeFromString(job.createdAt)
+                                  : formatDateTimeFromString(
+                                      job.form.requestedDateTime,
+                                    )}
                               </p>
                             </div>
 
@@ -1037,7 +1021,7 @@ export default function JobDetailDrawer({
                         </div>
 
                         <div className="relative flex gap-4">
-                          <div className="relative z-10 flex-shrink-0">
+                          <div className="relative z-10 shrink-0">
                             <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
                               <ClockIcon className="w-4 h-4 text-default-600" />
                             </div>
@@ -1048,7 +1032,7 @@ export default function JobDetailDrawer({
                                 ศูนย์เปลรับงาน
                               </h4>
                               <p className="text-sm text-default-500 mb-2">
-                                {formatDate(job.acceptedAt)}
+                                {formatDateTimeFromString(job.acceptedAt)}
                               </p>
                             </div>
                             {job.acceptedAt ? (
@@ -1105,7 +1089,7 @@ export default function JobDetailDrawer({
                           formData.deliveryLocationDetail && (
                             <>
                               <div className="relative flex gap-4">
-                                <div className="relative z-10 flex-shrink-0">
+                                <div className="relative z-10 shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                                     <MapPinIcon className="w-4 h-4 text-white" />
                                   </div>
@@ -1118,8 +1102,8 @@ export default function JobDetailDrawer({
                                   </div>
                                   {/* <p className="text-xs text-default-500 mb-2">
                                     {job.acceptedAt
-                                      ? formatDate(job.acceptedAt)
-                                      : formatDate(job.form.requestedDateTime)}
+                                      ? formatDateTimeFromString(job.acceptedAt)
+                                      : formatDateTimeFromString(job.form.requestedDateTime)}
                                   </p> */}
                                   <div className="text-sm text-default-600">
                                     <p className="font-medium text-foreground">
@@ -1132,7 +1116,7 @@ export default function JobDetailDrawer({
                               </div>
 
                               <div className="relative flex gap-4">
-                                <div className="relative z-10 flex-shrink-0">
+                                <div className="relative z-10 shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
                                     <MapPinIcon className="w-4 h-4 text-white" />
                                   </div>
@@ -1145,10 +1129,10 @@ export default function JobDetailDrawer({
                                   </div>
                                   {/* <p className="text-xs text-default-500 mb-2">
                                     {job.completedAt
-                                      ? formatDate(job.completedAt)
+                                      ? formatDateTimeFromString(job.completedAt)
                                       : job.acceptedAt
-                                        ? formatDate(job.acceptedAt)
-                                        : formatDate(
+                                        ? formatDateTimeFromString(job.acceptedAt)
+                                        : formatDateTimeFromString(
                                           job.form.requestedDateTime,
                                         )}
                                   </p> */}
@@ -1164,7 +1148,7 @@ export default function JobDetailDrawer({
 
                               {formData.returnTrip === "รับกลับด้วย" && (
                                 <div className="relative flex gap-4">
-                                  <div className="relative z-10 flex-shrink-0">
+                                  <div className="relative z-10 shrink-0">
                                     <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
                                       <MapPinIcon className="w-4 h-4 text-default-600" />
                                     </div>
@@ -1177,8 +1161,8 @@ export default function JobDetailDrawer({
                                     </div>
                                     {/* <p className="text-xs text-default-500 mb-2">
                                       {job.completedAt
-                                        ? formatDate(job.completedAt)
-                                        : formatDate(
+                                        ? formatDateTimeFromString(job.completedAt)
+                                        : formatDateTimeFromString(
                                           job.form.requestedDateTime,
                                         )}
                                     </p> */}
@@ -1195,7 +1179,7 @@ export default function JobDetailDrawer({
 
                               {job.completedAt && (
                                 <div className="relative flex gap-4">
-                                  <div className="relative z-10 flex-shrink-0">
+                                  <div className="relative z-10 shrink-0">
                                     <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
                                       <CheckCircleIcon className="w-4 h-4 text-white" />
                                     </div>
@@ -1207,7 +1191,9 @@ export default function JobDetailDrawer({
                                       </h4>
                                     </div>
                                     <p className="text-xs text-default-500 mb-2">
-                                      {formatDate(job.completedAt)}
+                                      {formatDateTimeFromString(
+                                        job.completedAt,
+                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -1215,7 +1201,7 @@ export default function JobDetailDrawer({
 
                               {job.cancelledAt && (
                                 <div className="relative flex gap-4">
-                                  <div className="relative z-10 flex-shrink-0">
+                                  <div className="relative z-10 shrink-0">
                                     <div className="w-8 h-8 rounded-full bg-danger flex items-center justify-center">
                                       <XMarkIcon className="w-4 h-4 text-white" />
                                     </div>
@@ -1227,7 +1213,9 @@ export default function JobDetailDrawer({
                                       </h4>
                                     </div>
                                     <p className="text-xs text-default-500 mb-2">
-                                      {formatDate(job.cancelledAt)}
+                                      {formatDateTimeFromString(
+                                        job.cancelledAt,
+                                      )}
                                     </p>
                                     {job.cancelledReason && (
                                       <div className="text-sm text-default-600">
@@ -1289,11 +1277,11 @@ export default function JobDetailDrawer({
                           {employee.profileImage ? (
                             <Avatar
                               alt={fullName}
-                              className="w-10 h-10 flex-shrink-0"
+                              className="w-10 h-10 shrink-0"
                               src={employee.profileImage}
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center shrink-0">
                               <span className="text-default-400 text-sm font-medium">
                                 {employee.firstName.charAt(0)}
                                 {employee.lastName.charAt(0)}

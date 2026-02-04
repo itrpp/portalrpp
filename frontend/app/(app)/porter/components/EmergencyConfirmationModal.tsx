@@ -55,7 +55,7 @@ export default function EmergencyConfirmationModal({
           <div className="space-y-4">
             <div className="bg-danger-50 dark:bg-danger-900/20 p-4 rounded-lg">
               <div className="flex items-center gap-2">
-                <InfoCircleIcon className="w-5 h-5 text-danger-600 dark:text-danger-400 mt-0.5 flex-shrink-0" />
+                <InfoCircleIcon className="w-5 h-5 text-danger-600 dark:text-danger-400 mt-0.5 shrink-0" />
                 <div className="text-sm text-danger-800 dark:text-danger-200">
                   <p className="font-medium">
                     เจ้าหน้าที่เปล จะถึงจุดรับภายใน 5 นาที
@@ -74,7 +74,7 @@ export default function EmergencyConfirmationModal({
                     key={index}
                     className="flex items-start gap-2 text-sm text-default-700 dark:text-default-300"
                   >
-                    <span className="text-danger-500 dark:text-danger-400 mt-1.5 flex-shrink-0">
+                    <span className="text-danger-500 dark:text-danger-400 mt-1.5 shrink-0">
                       •
                     </span>
                     <span>{symptom}</span>
@@ -84,7 +84,7 @@ export default function EmergencyConfirmationModal({
             </div>
             <div className="bg-warning-50 dark:bg-warning-900/20 p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                <InfoCircleIcon className="w-5 h-5 text-warning-600 dark:text-warning-400 mt-0.5 flex-shrink-0" />
+                <InfoCircleIcon className="w-5 h-5 text-warning-600 dark:text-warning-400 mt-0.5 shrink-0" />
                 <div className="text-sm text-warning-800 dark:text-warning-200">
                   <p className="font-medium">
                     กรุณาตรวจสอบว่าผู้ป่วยมีอาการเข้าข่ายเคสฉุกเฉินตามรายการข้างต้น

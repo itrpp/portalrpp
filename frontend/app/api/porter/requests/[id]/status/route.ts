@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { callPorterService } from "@/lib/grpcClient";
 import { mapStatusToProto, convertProtoToFrontend } from "@/lib/porter";
 
@@ -14,16 +13,9 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
 
@@ -42,18 +34,13 @@ export async function PUT(
     if (requestData.cancelledReason) {
       protoRequest.cancelled_reason = requestData.cancelledReason;
 
-      // เพิ่มข้อมูลผู้ยกเลิก ถ้ามี session
-      if (session?.user?.id) {
-        protoRequest.cancelled_by_id = session.user.id;
-      }
+      protoRequest.cancelled_by_id = auth.userId;
     }
-    // เพิ่มข้อมูลผู้ที่กดรับงาน เมื่อ status เป็น in-progress
     if (
-      (requestData.status === "IN_PROGRESS" ||
-        requestData.status === "in-progress") &&
-      session?.user?.id
+      requestData.status === "IN_PROGRESS" ||
+      requestData.status === "in-progress"
     ) {
-      protoRequest.accepted_by_id = session.user.id;
+      protoRequest.accepted_by_id = auth.userId;
     }
 
     // เรียก gRPC service

@@ -10,22 +10,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * ฟังก์ชันสำหรับ format วันที่ (ภาษาไทย)
- * แสดงผลรูปแบบ: วัน เดือน ปี ชั่วโมง:นาที (ระบบไทย)
- * หมายเหตุ: ฟังก์ชันนี้ใช้ Intl.DateTimeFormat ซึ่งแสดงปีเป็น ค.ศ.
- * สำหรับการแสดงปี พ.ศ. ควรใช้ formatDateThai หรือ formatDateTimeThai
- */
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("th-TH", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-/**
  * ฟังก์ชันสำหรับแปลงปี ค.ศ. เป็น พ.ศ.
  * @param year ปี ค.ศ. (จำนวนเต็ม)
  * @returns ปี พ.ศ. (จำนวนเต็ม)
@@ -35,12 +19,50 @@ export function toBuddhistEra(year: number): number {
 }
 
 /**
- * ฟังก์ชันสำหรับแปลงปี พ.ศ. เป็น ค.ศ.
- * @param year ปี พ.ศ. (จำนวนเต็ม)
- * @returns ปี ค.ศ. (จำนวนเต็ม)
+ * แปลง Date เป็น string รูปแบบ ISO date เท่านั้น "YYYY-MM-DD"
+ * ใช้สำหรับเปรียบเทียบหรือส่ง API แทนการเขียน toISOString().split("T")[0] ซ้ำ
  */
-export function fromBuddhistEra(year: number): number {
-  return year - 543;
+export function toISODateString(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
+/**
+ * ดึงส่วนวันที่ "YYYY-MM-DD" จาก ISO datetime string (เช่น "2024-01-15T10:30:00.000Z")
+ * ใช้เมื่อ input เป็น string ไม่ใช่ Date เพื่อไม่ต้อง parse เป็น Date
+ */
+export function getISODatePart(isoDateTime: string): string {
+  const idx = isoDateTime.indexOf("T");
+
+  return idx === -1 ? isoDateTime : isoDateTime.slice(0, idx);
+}
+
+/**
+ * แยกชื่อเต็มเป็น firstName และ lastName (คั่นด้วยช่องว่าง)
+ * ส่วนแรกเป็น firstName ส่วนที่เหลือรวมเป็น lastName
+ */
+export function parseFullName(fullName: string): {
+  firstName: string;
+  lastName: string;
+} {
+  const parts = fullName.trim().split(/\s+/);
+  const firstName = parts[0] ?? "";
+  const lastName = parts.slice(1).join(" ") ?? "";
+
+  return { firstName, lastName };
+}
+
+/**
+ * แปลง route param id เป็นจำนวนเต็มบวก สำหรับ API [id] routes
+ * @returns จำนวนเต็มบวก หรือ null ถ้า parse ไม่ได้/ไม่ใช่จำนวนบวก
+ */
+export function parsePositiveIntId(id: string): number | null {
+  const n = Number.parseInt(id, 10);
+
+  if (!Number.isInteger(n) || n <= 0) {
+    return null;
+  }
+
+  return n;
 }
 
 /**
@@ -145,22 +167,42 @@ export function formatDateShort(date: Date | string): string {
 }
 
 /**
- * ฟังก์ชันสำหรับการคำนวณและแสดงขนาดไฟล์
- * รองรับหน่วย: Bytes, KB, MB, GB
+ * แปลง string วันที่/เวลา (หรือ undefined/null) เป็นข้อความรูปแบบ th-TH
+ * ใช้ใน UI เมื่อรับค่าจาก API เป็น string
+ * @param value ISO date string หรือ undefined/null
+ * @returns ข้อความเช่น "15 ม.ค. 2568 14:30" หรือ "-" ถ้าไม่ถูกต้อง
  */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
+export function formatDateTimeFromString(
+  value: string | undefined | null,
+): string {
+  if (value == null || String(value).trim() === "") return "-";
+  const date = new Date(value);
 
-  const base = 1024;
-  const units = ["Bytes", "KB", "MB", "GB"] as const;
-  const unitIndex = Math.min(
-    units.length - 1,
-    Math.floor(Math.log(bytes) / Math.log(base)),
-  );
+  if (Number.isNaN(date.getTime())) return "-";
 
-  const value = bytes / Math.pow(base, unitIndex);
+  return date.toLocaleString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 
-  return `${parseFloat(value.toFixed(2))} ${units[unitIndex]}`;
+/**
+ * แปลงจำนวนนาทีเป็นข้อความ "X ชม. Y นาที" หรือ "Y นาที"
+ * @param minutes จำนวนนาที (อาจเป็นทศนิยม)
+ * @returns ข้อความเช่น "1 ชม. 30 นาที" หรือ "45 นาที" หรือ "-" ถ้า 0
+ */
+export function formatDurationMinutes(minutes: number): string {
+  if (minutes === 0) return "-";
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.floor(minutes % 60);
+
+  if (hours > 0) return `${hours} ชม. ${mins} นาที`;
+
+  return `${mins} นาที`;
 }
 
 /**
@@ -283,8 +325,8 @@ export function getDateRangeFromFilter(filterState: {
     const { start, end } = getMonthRange(filterState.year, filterState.month);
 
     return {
-      startDate: start.toISOString().split("T")[0],
-      endDate: end.toISOString().split("T")[0],
+      startDate: toISODateString(start),
+      endDate: toISODateString(end),
     };
   }
 
@@ -292,8 +334,8 @@ export function getDateRangeFromFilter(filterState: {
     const { start, end } = getFiscalYearRange(filterState.fiscalYear);
 
     return {
-      startDate: start.toISOString().split("T")[0],
-      endDate: end.toISOString().split("T")[0],
+      startDate: toISODateString(start),
+      endDate: toISODateString(end),
     };
   }
 
@@ -400,9 +442,9 @@ export function getProfileErrorMessage(errorCode: string): string {
  */
 
 /**
- * Interface สำหรับ parsed memberOf group
+ * Interface สำหรับ parsed memberOf group (ใช้เฉพาะใน parseMemberOf)
  */
-export interface MemberOfGroup {
+interface MemberOfGroup {
   cn: string;
   fullDn: string;
 }

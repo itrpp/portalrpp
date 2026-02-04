@@ -115,16 +115,6 @@ export interface JobTableProps {
 }
 
 /**
- * ข้อมูลเจ้าหน้าที่พนักงานเปล
- */
-export interface StaffMember {
-  id: string;
-  name: string;
-  department?: string;
-  title?: string;
-}
-
-/**
  * Interface สำหรับประเภทการจ้าง
  */
 export interface EmploymentType {
@@ -254,6 +244,38 @@ export interface DetailedLocation {
   floorDepartmentName?: string;
   roomBedId?: string;
   roomBedName?: string;
+}
+
+/**
+ * Query params สำหรับ List Porter Requests API
+ */
+export interface ListPorterRequestsParams {
+  status?: string | null;
+  urgency_level?: string | null;
+  requester_user_id?: string | null;
+  assigned_to_id?: string | null;
+  page?: string | null;
+  page_size?: string | null;
+}
+
+/**
+ * ผลลัพธ์สำเร็จของ List Porter Requests
+ */
+export interface ListPorterRequestsResult {
+  success: true;
+  data: PorterJobItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+/**
+ * ผลลัพธ์ error ของ List Porter Requests
+ */
+export interface ListPorterRequestsError {
+  success: false;
+  error: string;
+  message: string;
 }
 
 /**

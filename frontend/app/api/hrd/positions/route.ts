@@ -1,20 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  const session = (await getServerSession(
-    authOptions as any,
-  )) as import("@/types/ldap").ExtendedSession;
+  const auth = await getAuthSession();
 
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { success: false, error: "UNAUTHORIZED" },
-      { status: 401 },
-    );
-  }
+  if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
@@ -61,16 +53,9 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const requestData = await request.json();
     const { name, positionSpId, id, active } = requestData;

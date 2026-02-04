@@ -111,7 +111,47 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, pathname]);
 
+  // อัปเดต user activity เมื่อผู้ใช้ authenticated และ navigate หน้า
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user?.id) {
+      return;
+    }
+
+    // อัปเดต activity เมื่อ pathname เปลี่ยน
+    const updateActivity = async () => {
+      try {
+        await fetch("/api/auth/update-activity", {
+          method: "POST",
+        });
+      } catch {
+        // Ignore errors
+      }
+    };
+
+    updateActivity();
+
+    // อัปเดต activity ทุก 30 วินาทีเพื่อ track activity แม้ผู้ใช้ไม่ได้ navigate
+    const interval = setInterval(() => {
+      updateActivity();
+    }, 30000); // 30 วินาที
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [status, session, pathname]);
+
   const handleLogout = async () => {
+    try {
+      // Cleanup user_activity ก่อน logout
+      await fetch("/api/auth/cleanup-activity", {
+        method: "DELETE",
+      }).catch(() => {
+        // Ignore errors - ไม่ให้กระทบการ logout
+      });
+    } catch {
+      // Ignore errors
+    }
+
     await signOut({
       redirect: true,
       callbackUrl: "/login",

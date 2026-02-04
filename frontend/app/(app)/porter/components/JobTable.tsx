@@ -12,12 +12,13 @@ import {
   TableRow,
 } from "@heroui/react";
 
+import { useDepartmentName } from "../hooks/useDepartmentName";
+
 import {
   buildMetaChipData,
   getUrgencyStyle,
   renderStatusChip,
 } from "./helpers/jobPresentation";
-import { useDepartmentName } from "./helpers/useDepartmentName";
 
 import { formatThaiDateTimeShort } from "@/lib/utils";
 import { JobTableProps, PorterJobItem } from "@/types/porter";
@@ -160,7 +161,7 @@ export default function JobTable({
                 แสดงต่อหน้า:
               </label>
               <select
-                className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
                 id={paginationId}
                 value={rowsPerPage}
                 onChange={(e) => {

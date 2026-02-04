@@ -1,9 +1,8 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { profileSelect } from "@/lib/profile";
 
@@ -14,16 +13,9 @@ import { profileSelect } from "@/lib/profile";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const url = new URL(request.url);
     const search = (url.searchParams.get("search") || "").trim();

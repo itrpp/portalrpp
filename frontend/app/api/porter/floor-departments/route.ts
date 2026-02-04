@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { callPorterService } from "@/lib/grpcClient";
 
 /**
@@ -10,16 +9,9 @@ import { callPorterService } from "@/lib/grpcClient";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     // อ่าน query parameters
     const url = new URL(request.url);
@@ -90,16 +82,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: Request) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     // อ่านข้อมูลจาก request body
     const requestData = await request.json();

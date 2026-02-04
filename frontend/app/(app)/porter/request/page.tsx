@@ -722,7 +722,7 @@ export default function PorterRequestPage() {
                         <div className="flex items-center gap-1">
                           {formData.patientHN && (
                             <button
-                              className="focus:outline-none p-1 rounded-md hover:bg-default-100 transition-colors"
+                              className="focus:outline-hidden p-1 rounded-md hover:bg-default-100 transition-colors"
                               disabled={isLoadingPatient}
                               tabIndex={-1}
                               type="button"
@@ -732,7 +732,7 @@ export default function PorterRequestPage() {
                             </button>
                           )}
                           <button
-                            className="focus:outline-none p-1.5 rounded-md bg-primary text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="focus:outline-hidden p-1.5 rounded-md bg-primary text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={
                               isLoadingPatient || !formData.patientHN?.trim()
                             }
@@ -1248,32 +1248,32 @@ export default function PorterRequestPage() {
                       {(item) => (
                         <TableRow key={item.id}>
                           <TableCell>
-                          <Chip
-                            color={
-                              item.status === "WAITING_CENTER" ||
-                              item.status === "WAITING_ACCEPT"
-                                ? "secondary" // เปลี่ยนเป็นม่วงให้ดูแตกต่างจาก urgency
-                                : item.status === "IN_PROGRESS"
-                                  ? "primary"
-                                  : item.status === "COMPLETED"
-                                    ? "success"
-                                    : "default"
-                            }
-                            size="sm"
-                            variant="flat"
-                          >
-                            {item.status === "WAITING_CENTER"
-                              ? "รอศูนย์รับ"
-                              : item.status === "WAITING_ACCEPT"
-                                ? "รอผู้ปฏิบัติรับงาน"
-                                : item.status === "IN_PROGRESS"
-                                  ? "กำลังดำเนินการ"
-                                  : item.status === "COMPLETED"
-                                    ? "เสร็จสิ้น"
-                                    : item.status === "CANCELLED"
-                                      ? "ยกเลิก"
-                                      : item.status}
-                          </Chip>
+                            <Chip
+                              color={
+                                item.status === "WAITING_CENTER" ||
+                                item.status === "WAITING_ACCEPT"
+                                  ? "secondary" // เปลี่ยนเป็นม่วงให้ดูแตกต่างจาก urgency
+                                  : item.status === "IN_PROGRESS"
+                                    ? "primary"
+                                    : item.status === "COMPLETED"
+                                      ? "success"
+                                      : "default"
+                              }
+                              size="sm"
+                              variant="flat"
+                            >
+                              {item.status === "WAITING_CENTER"
+                                ? "รอศูนย์รับ"
+                                : item.status === "WAITING_ACCEPT"
+                                  ? "รอผู้ปฏิบัติรับงาน"
+                                  : item.status === "IN_PROGRESS"
+                                    ? "กำลังดำเนินการ"
+                                    : item.status === "COMPLETED"
+                                      ? "เสร็จสิ้น"
+                                      : item.status === "CANCELLED"
+                                        ? "ยกเลิก"
+                                        : item.status}
+                            </Chip>
                           </TableCell>
                           <TableCell>
                             <Chip

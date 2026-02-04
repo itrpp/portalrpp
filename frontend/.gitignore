@@ -34,6 +34,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Prisma generated client
+/generated
+
 pnpm-lock.yaml
 yarn.lock
 package-lock.json

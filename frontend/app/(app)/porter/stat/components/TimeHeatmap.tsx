@@ -15,8 +15,8 @@ interface TimeHeatmapProps {
 }
 
 interface HeatmapCell {
-  dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  hour: number; // 0-23
+  dayOfWeek: number;
+  hour: number;
   count: number;
 }
 
@@ -30,26 +30,18 @@ const DAYS_OF_WEEK = [
   "เสาร์",
 ];
 
-// ฟังก์ชันสำหรับคำนวณ day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 function getDayOfWeek(date: Date): number {
   return date.getDay();
 }
 
-// ฟังก์ชันสำหรับคำนวณ hour (0-23)
 function getHour(date: Date): number {
   return date.getHours();
 }
 
-// ฟังก์ชันสำหรับแปลงค่าเป็นสี (gradient จากสีอ่อนไปเข้ม)
 function getColorForValue(value: number, maxValue: number): string {
   if (maxValue === 0) return "#f5f5f5";
 
   const intensity = value / maxValue;
-
-  // ใช้สีน้ำเงินไล่เฉด (จากอ่อนไปเข้ม) เหมือนในภาพตัวอย่าง
-  // สีเริ่มต้น: #f0f0f0 (เทาอ่อน)
-  // สีกลาง: #90caf9 (น้ำเงินอ่อน)
-  // สีเข้ม: #1976d2 (น้ำเงินเข้ม)
 
   if (intensity === 0) return "#f5f5f5";
   if (intensity < 0.2) return "#e3f2fd";
@@ -62,16 +54,11 @@ function getColorForValue(value: number, maxValue: number): string {
 }
 
 export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
-  // ใช้ shared filtered jobs hook เพื่อลดการ filter ซ้ำซ้อน
   const filteredJobs = useFilteredJobs(jobs, filterState);
 
-  // คำนวณ heatmap data (Optimized - ใช้ Map แทน array find)
   const heatmapData = useMemo(() => {
-    // สร้าง Map สำหรับเก็บจำนวนงานในแต่ละ cell (dayOfWeek, hour)
-    // ใช้ key format: `${dayOfWeek}-${hour}` เพื่อ O(1) lookup
     const cellMap = new Map<string, number>();
 
-    // Single pass: คำนวณ cell counts
     for (const job of filteredJobs) {
       if (!job.createdAt) continue;
 
@@ -83,7 +70,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
       cellMap.set(key, (cellMap.get(key) || 0) + 1);
     }
 
-    // สร้าง cells array และหา max value ใน loop เดียว
     const cells: HeatmapCell[] = [];
     let maxValue = 0;
 
@@ -100,7 +86,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
     return { cells, maxValue };
   }, [filteredJobs]);
 
-  // Cache cell lookup เพื่อลดการ find ซ้ำซ้อน
   const cellLookupMap = useMemo(() => {
     const map = new Map<string, HeatmapCell>();
 
@@ -121,7 +106,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
             <div className="w-1 h-6 bg-primary rounded-full" />
             แผนที่ความร้อนตามเวลา
           </h3>
-          {/* Legend */}
           {heatmapData.maxValue > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-default-600 whitespace-nowrap">
@@ -159,7 +143,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
         ) : (
           <div className="w-full overflow-x-auto">
             <div className="inline-block min-w-full">
-              {/* Heatmap Grid */}
               <div className="border border-default-200 rounded-lg overflow-hidden">
                 <table className="w-full border-collapse">
                   <thead>
@@ -169,10 +152,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                       </th>
                       {Array.from({ length: 24 }, (_, i) => (i + 8) % 24).map(
                         (hour, displayIndex) => {
-                          // เพิ่มเส้นหนาแบ่งระหว่างเวร:
-                          // - 8:00 (เริ่มเวรเช้า 08:01-16:00) อยู่ที่ตำแหน่งแรก (displayIndex 0)
-                          // - 16:00 (เริ่มเวรบ่าย 16:01-24:00) อยู่ที่ displayIndex 8
-                          // - 0:00 (เริ่มเวรดึก 00:01-08:00) อยู่ที่ displayIndex 16
                           const isShiftBoundary = hour === 16 || hour === 0;
 
                           return (
@@ -199,8 +178,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                         </td>
                         {Array.from({ length: 24 }, (_, i) => (i + 8) % 24).map(
                           (hour, displayIndex) => {
-                            // ใช้ Map lookup แทน array find (O(1) vs O(n))
-                            // hour คือ hour จริง (0-23) ที่ใช้สำหรับ lookup ข้อมูล
                             const key = `${dayIndex}-${hour}`;
                             const cell = cellLookupMap.get(key);
                             const count = cell?.count || 0;
@@ -208,9 +185,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                               count,
                               heatmapData.maxValue,
                             );
-                            // เพิ่มเส้นหนาแบ่งระหว่างเวร:
-                            // - 16:00 (เริ่มเวรบ่าย 16:01-24:00) อยู่ที่ displayIndex 8
-                            // - 0:00 (เริ่มเวรดึก 00:01-08:00) อยู่ที่ displayIndex 16
                             const isShiftBoundary = hour === 16 || hour === 0;
 
                             return (
@@ -240,8 +214,6 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                   </tbody>
                 </table>
               </div>
-
-              {/* Summary */}
               <div className="mt-4 text-center text-sm text-default-600">
                 แสดงปริมาณงานตามวันในสัปดาห์และชั่วโมงในวัน
               </div>

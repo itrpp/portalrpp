@@ -7,13 +7,14 @@
 
 /**
  * กลุ่มภารกิจ
+ * มี index signature เพื่อให้ใช้กับ CrudItem (useCrudManagement) ได้
  */
 export interface Department {
   id: number;
   name: string;
   active: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string | null;
+  updatedAt: string | null;
   [key: string]: unknown;
 }
 

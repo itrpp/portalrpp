@@ -35,12 +35,10 @@ export default function LoginPage() {
 
   const authErrorParam = searchParams.get("error");
 
-  // อ่าน callbackUrl จาก query string และ decode
-  const callbackUrl = searchParams.get("callbackUrl")
-    ? decodeURIComponent(searchParams.get("callbackUrl")!)
-    : "/home";
+  // หลัง login สำเร็จให้ไปที่หน้า home เสมอ
+  const redirectUrl = "/home";
 
-  // ถ้ามี session แล้วให้ redirect ไปหน้าเดิมหรือหน้าแรก
+  // ถ้ามี session แล้วให้ redirect ไปหน้า home
   useEffect(() => {
     if (status === "authenticated" && session) {
       setShouldRedirect(true);
@@ -49,10 +47,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (shouldRedirect) {
-      // ใช้ callbackUrl ถ้ามี ถ้าไม่มีใช้ /home
-      router.push(callbackUrl);
+      router.push(redirectUrl);
     }
-  }, [shouldRedirect, router, callbackUrl]);
+  }, [shouldRedirect, router, redirectUrl]);
 
   useEffect(() => {
     if (!authErrorParam) {
@@ -86,7 +83,7 @@ export default function LoginPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-content2 to-content3">
         <div className="text-center">
           <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto animate-spin" />
           <p className="mt-4 text-default-600">กำลังตรวจสอบการเข้าสู่ระบบ...</p>
@@ -97,7 +94,7 @@ export default function LoginPage() {
 
   if (status === "authenticated" && session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-content2 to-content3">
         <div className="text-center">
           <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto animate-spin" />
           <p className="mt-4 text-default-600">กำลังเปลี่ยนหน้า...</p>
@@ -143,7 +140,7 @@ export default function LoginPage() {
     setIsLineLoading(true);
 
     try {
-      await signIn("line", { callbackUrl });
+      await signIn("line", { callbackUrl: redirectUrl });
     } catch {
       setError(
         "ไม่สามารถเริ่มการเข้าสู่ระบบผ่าน LINE ได้ กรุณาลองใหม่อีกครั้ง",
@@ -160,7 +157,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-content2 to-content3">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-content2 to-content3">
       <div className="w-full max-w-md p-6 sm:p-8">
         <Card className="rounded-3xl shadow-2xl border-0 bg-background/90 backdrop-blur-lg">
           <CardBody className="p-8">
@@ -217,7 +214,7 @@ export default function LoginPage() {
                   className="focus-within:ring-2 focus-within:ring-primary"
                   endContent={
                     <button
-                      className="focus:outline-none"
+                      className="focus:outline-hidden"
                       tabIndex={-1}
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
@@ -249,7 +246,7 @@ export default function LoginPage() {
               {/* Error Message */}
               {error && (
                 <div className="flex items-center gap-2 text-danger text-sm bg-danger-50 p-3 rounded-lg">
-                  <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
+                  <ExclamationTriangleIcon className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
@@ -257,7 +254,7 @@ export default function LoginPage() {
               {/* Success Message */}
               {successMessage && (
                 <div className="flex items-center gap-2 text-success text-sm bg-success-50 p-3 rounded-lg">
-                  <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
+                  <CheckCircleIcon className="w-4 h-4 shrink-0" />
                   <span>{successMessage}</span>
                 </div>
               )}
@@ -291,7 +288,7 @@ export default function LoginPage() {
 
             <div className="flex justify-between items-center mt-4 text-xs text-default-600">
               <button
-                className="flex items-center gap-1 hover:text-primary hover:bg-content2 px-2 py-1 rounded"
+                className="flex items-center gap-1 hover:text-primary hover:bg-content2 px-2 py-1 rounded-sm"
                 type="button"
                 onClick={() => router.push("/")}
               >

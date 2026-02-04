@@ -38,3 +38,5 @@ build/
 
 # Prisma
 prisma/migrations/
+generated/
+src/generated/

@@ -22,7 +22,7 @@ import {
 
 import DepartmentSubSubModal from "./components/DepartmentSubSubModal";
 
-import { usePagination } from "@/app/(app)/porter/hooks/usePagination";
+import { usePagination } from "@/hooks/usePagination";
 import {
   BuildingOfficeIcon,
   PlusIcon,
@@ -428,7 +428,7 @@ export default function DepartmentSubSubManagementPage() {
                         แสดงต่อหน้า:
                       </label>
                       <select
-                        className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
                         id="rows-per-page"
                         value={rowsPerPage}
                         onChange={(e) => {

@@ -19,17 +19,6 @@ export interface Pagination {
 }
 
 /**
- * Props สำหรับ Upload Modal component
- */
-export interface UploadModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onFileSelect: (files: FileList | null) => void;
-  onUpload: () => void;
-  onUploadComplete: () => void;
-}
-
-/**
  * Props สำหรับ Sidebar component
  */
 export interface SidebarProps {
@@ -124,4 +113,30 @@ export interface OptionalEnvVars {
   LDAP_RECONNECT?: string;
   LINE_CLIENT_ID?: string;
   LINE_CLIENT_SECRET?: string;
+}
+
+/**
+ * ข้อมูลผู้ใช้ที่ Online
+ */
+export interface OnlineUser {
+  id: string;
+  name: string;
+  email: string | null;
+  department: string | null;
+  departmentId: number | null;
+  departmentSubId: number | null;
+  departmentSubSubId: number | null;
+  loginAt: Date;
+  lastActivityAt: Date;
+}
+
+/**
+ * Response จาก API /api/auth/online-users
+ */
+export interface OnlineUsersResponse {
+  success: boolean;
+  count: number;
+  users: OnlineUser[];
+  error?: string;
+  message?: string;
 }

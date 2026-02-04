@@ -1,11 +1,9 @@
-"use client";
-
 import { useMemo } from "react";
 
 import { FilterState } from "../components/StatFilter";
 
 import { PorterJobItem } from "@/types/porter";
-import { getDateRangeFromFilter } from "@/lib/utils";
+import { getDateRangeFromFilter, getISODatePart } from "@/lib/utils";
 
 /**
  * Hook สำหรับ filter jobs ตาม filterState และ cache ผลลัพธ์
@@ -35,7 +33,7 @@ export function useFilteredJobs(
       if (!job.createdAt) continue;
 
       // ใช้ string comparison แทน Date object (เร็วกว่า)
-      const jobDateStr = job.createdAt.split("T")[0];
+      const jobDateStr = getISODatePart(job.createdAt);
 
       if (
         jobDateStr >= dateRange.startDate &&

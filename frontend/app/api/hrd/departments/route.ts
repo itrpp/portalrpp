@@ -1,148 +1,86 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/authOptions";
-import { prisma } from "@/lib/prisma";
+import { getAuthSession } from "@/lib/auth";
+import {
+  listDepartments,
+  createDepartment,
+  CreateDepartmentError,
+} from "@/lib/hrd";
 
+/**
+ * GET /api/hrd/departments
+ * ดึงรายการกลุ่มภารกิจ (auth + เรียก service + ส่ง response)
+ */
 export async function GET(request: Request) {
-  const session = (await getServerSession(
-    authOptions as any,
-  )) as import("@/types/ldap").ExtendedSession;
+  const auth = await getAuthSession();
 
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { success: false, error: "UNAUTHORIZED" },
-      { status: 401 },
-    );
-  }
+  if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
 
-  const where: any = {
-    ACTIVE: "True",
-  };
+  const data = await listDepartments(query);
 
-  if (query.length > 0) {
-    where.HR_DEPARTMENT_NAME = {
-      contains: query,
-    };
-  }
-
-  const items = await prisma.hrd_department.findMany({
-    where,
-    select: {
-      HR_DEPARTMENT_ID: true,
-      HR_DEPARTMENT_NAME: true,
-      ACTIVE: true,
-      created_at: true,
-      updated_at: true,
-    },
-    orderBy: {
-      HR_DEPARTMENT_NAME: "asc",
-    },
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: items.map((item) => ({
-      id: item.HR_DEPARTMENT_ID,
-      name: item.HR_DEPARTMENT_NAME ?? "",
-      active: item.ACTIVE === "True",
-      createdAt: item.created_at?.toISOString(),
-      updatedAt: item.updated_at?.toISOString(),
-    })),
-  });
+  return NextResponse.json({ success: true, data });
 }
 
 /**
  * POST /api/hrd/departments
- * สร้างกลุ่มภารกิจใหม่
+ * สร้างกลุ่มภารกิจใหม่ (auth + เรียก service + ส่ง response)
  */
 export async function POST(request: Request) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
-    const requestData = await request.json();
-    const { name, active } = requestData;
+    const requestData = (await request.json()) as {
+      name?: string;
+      active?: boolean;
+    };
+    const name = requestData.name;
+    const active = requestData.active !== undefined ? requestData.active : true;
 
-    // Validation
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณากรอกชื่อกลุ่มภารกิจ",
-        },
-        { status: 400 },
-      );
-    }
-
-    // ตรวจสอบชื่อซ้ำ
-    const existing = await prisma.hrd_department.findFirst({
-      where: {
-        HR_DEPARTMENT_NAME: {
-          equals: name.trim(),
-        },
-      },
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "DUPLICATE_NAME",
-          message: "ชื่อกลุ่มภารกิจนี้มีอยู่ในระบบแล้ว",
-        },
-        { status: 409 },
-      );
-    }
-
-    // สร้างข้อมูลใหม่
-    const newDepartment = await prisma.hrd_department.create({
-      data: {
-        HR_DEPARTMENT_NAME: name.trim(),
-        ACTIVE: active !== undefined ? (active ? "True" : "False") : "True",
-      },
-      select: {
-        HR_DEPARTMENT_ID: true,
-        HR_DEPARTMENT_NAME: true,
-        ACTIVE: true,
-        created_at: true,
-        updated_at: true,
-      },
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          id: newDepartment.HR_DEPARTMENT_ID,
-          name: newDepartment.HR_DEPARTMENT_NAME ?? "",
-          active: newDepartment.ACTIVE === "True",
-          createdAt: newDepartment.created_at?.toISOString(),
-          updatedAt: newDepartment.updated_at?.toISOString(),
-        },
-      },
-      { status: 201 },
+    const data = await createDepartment(
+      typeof name === "string" ? name : "",
+      active,
     );
-  } catch (error: any) {
-    console.error("Error creating department:", error);
+
+    return NextResponse.json({ success: true, data }, { status: 201 });
+  } catch (error) {
+    if (error instanceof CreateDepartmentError) {
+      if (error.code === "VALIDATION_ERROR") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "VALIDATION_ERROR",
+            message: error.message,
+          },
+          { status: 400 },
+        );
+      }
+      if (error.code === "DUPLICATE_NAME") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "DUPLICATE_NAME",
+            message: error.message,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "เกิดข้อผิดพลาดในการสร้างกลุ่มภารกิจ";
 
     return NextResponse.json(
       {
         success: false,
         error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างกลุ่มภารกิจ",
+        message,
       },
       { status: 500 },
     );

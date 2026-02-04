@@ -1,8 +1,9 @@
+import type { ExtendedUser } from "@/types/ldap";
+
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import jwt from "jsonwebtoken";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 
 /**
  * สร้าง JWT token สำหรับ SSE stream connection
@@ -10,16 +11,11 @@ import { authOptions } from "@/app/api/auth/authOptions";
  */
 export async function GET() {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
+
+    const user = auth.session.user as ExtendedUser;
 
     // สร้าง JWT token สำหรับ authentication กับ API Gateway
     const jwtSecret =
@@ -27,11 +23,11 @@ export async function GET() {
 
     const signedToken = jwt.sign(
       {
-        sub: session.user.id,
-        department: session.user.department,
-        position: session.user.position,
-        memberOf: session.user.memberOf,
-        role: session.user.role,
+        sub: user.id,
+        department: user.department,
+        position: user.position,
+        memberOf: user.memberOf,
+        role: user.role,
       },
       jwtSecret,
       { expiresIn: "15m" },

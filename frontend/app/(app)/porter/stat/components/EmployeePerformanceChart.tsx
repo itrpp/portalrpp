@@ -15,23 +15,18 @@ import {
 import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
 import { RangeValue } from "@react-types/shared";
 
+import { calculateEmployeePerformance } from "../utils/employeePerformance";
+
 import { FilterState } from "./StatFilter";
 
 import { PorterJobItem } from "@/types/porter";
 import {
   getDateRangeFromFilter,
   formatDateRangeThai,
+  formatDurationMinutes,
   getFiscalYearRange,
   getMonthRange,
 } from "@/lib/utils";
-
-interface EmployeePerformance {
-  employeeName: string;
-  firstName: string;
-  lastName: string;
-  assignedJobCount: number;
-  averageDuration: number; // ในหน่วยนาที
-}
 
 interface EmployeePerformanceChartProps {
   jobs: PorterJobItem[];
@@ -39,122 +34,6 @@ interface EmployeePerformanceChartProps {
 }
 
 type DateRange = RangeValue<CalendarDate> | null;
-
-function formatDuration(minutes: number): string {
-  if (minutes === 0) return "-";
-
-  const hours = Math.floor(minutes / 60);
-  const mins = Math.floor(minutes % 60);
-
-  if (hours > 0) {
-    return `${hours} ชม. ${mins} นาที`;
-  }
-
-  return `${mins} นาที`;
-}
-
-// ฟังก์ชันสำหรับคำนวณประสิทธิผลรายบุคคลจาก jobs (Optimized)
-function calculateEmployeePerformance(
-  jobs: PorterJobItem[],
-  startDate?: string,
-  endDate?: string,
-): EmployeePerformance[] {
-  const employeeMap = new Map<
-    string,
-    {
-      firstName: string;
-      lastName: string;
-      jobs: Array<{
-        acceptedAt?: string;
-        completedAt?: string;
-      }>;
-    }
-  >();
-
-  // Filter jobs ตาม date range (ใช้ string comparison แทน Date object)
-  // Pre-extract date string เพื่อลดการสร้าง Date object ซ้ำซ้อน
-  const filteredJobs: Array<{
-    job: PorterJobItem;
-    acceptedDateStr: string;
-  }> = [];
-
-  for (const job of jobs) {
-    if (!job.assignedToName || !job.acceptedAt) continue;
-
-    // ใช้ string comparison แทน Date object
-    const acceptedDateStr = job.acceptedAt.split("T")[0];
-
-    if (startDate && acceptedDateStr < startDate) continue;
-    if (endDate && acceptedDateStr > endDate) continue;
-
-    filteredJobs.push({ job, acceptedDateStr });
-  }
-
-  // Single pass: สร้าง employee map และเก็บ jobs
-  for (const { job } of filteredJobs) {
-    const employeeName = job.assignedToName!;
-
-    if (!employeeMap.has(employeeName)) {
-      const nameParts = employeeName.trim().split(/\s+/);
-      const firstName = nameParts[0] || "";
-      const lastName = nameParts.slice(1).join(" ") || "";
-
-      employeeMap.set(employeeName, {
-        firstName,
-        lastName,
-        jobs: [],
-      });
-    }
-
-    const employee = employeeMap.get(employeeName)!;
-
-    employee.jobs.push({
-      acceptedAt: job.acceptedAt,
-      completedAt: job.completedAt,
-    });
-  }
-
-  // คำนวณ employee performance
-  const employeePerformance: EmployeePerformance[] = [];
-
-  for (const [employeeName, data] of employeeMap.entries()) {
-    const assignedJobCount = data.jobs.length;
-
-    // คำนวณระยะเวลาเฉลี่ยจาก jobs ที่มีทั้ง acceptedAt และ completedAt
-    let totalDuration = 0;
-    let completedCount = 0;
-
-    for (const job of data.jobs) {
-      if (job.acceptedAt && job.completedAt) {
-        // Parse dates ครั้งเดียว
-        const acceptedTime = new Date(job.acceptedAt).getTime();
-        const completedTime = new Date(job.completedAt).getTime();
-        const durationMinutes = (completedTime - acceptedTime) / (1000 * 60);
-
-        totalDuration += durationMinutes;
-        completedCount++;
-      }
-    }
-
-    const averageDuration =
-      completedCount > 0
-        ? Math.round((totalDuration / completedCount) * 100) / 100
-        : 0;
-
-    employeePerformance.push({
-      employeeName,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      assignedJobCount,
-      averageDuration,
-    });
-  }
-
-  // Sort โดยจำนวนงาน
-  employeePerformance.sort((a, b) => b.assignedJobCount - a.assignedJobCount);
-
-  return employeePerformance;
-}
 
 export function EmployeePerformanceChart({
   jobs,
@@ -172,22 +51,6 @@ export function EmployeePerformanceChart({
   };
 
   const [dateRange] = useState<DateRange>(getDefaultDateRange());
-
-  // Presets สำหรับเลือกช่วงวันที่
-  // const datePresets = [
-  //   {
-  //     label: "7 วัน",
-  //     value: createDateRangeFromDays(7),
-  //   },
-  //   {
-  //     label: "15 วัน",
-  //     value: createDateRangeFromDays(15),
-  //   },
-  //   {
-  //     label: "30 วัน",
-  //     value: createDateRangeFromDays(30),
-  //   },
-  // ];
 
   // คำนวณประสิทธิผลรายบุคคลตาม date range ที่เลือก (Memoized)
   const employeePerformance = useMemo(() => {
@@ -405,7 +268,7 @@ export function EmployeePerformanceChart({
               </ResponsiveContainer>
             </div>
 
-            {/* Chart ด้านล่าง: แสดงเวลาเฉลี่ย พร้อม Brush */}
+            {/* Chart ด้านล่าง: แสดงเวลาเฉลี่ย */}
             <div>
               <h4 className="text-sm font-medium text-default-700 mb-2">
                 เวลาเฉลี่ยในการทำงาน
@@ -468,7 +331,7 @@ export function EmployeePerformanceChart({
                               <span
                                 style={{ fontWeight: "600", fontSize: "12px" }}
                               >
-                                {formatDuration(data.averageDuration)}
+                                {formatDurationMinutes(data.averageDuration)}
                               </span>
                             </div>
                           </div>

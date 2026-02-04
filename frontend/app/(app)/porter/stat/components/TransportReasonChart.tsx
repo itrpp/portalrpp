@@ -129,8 +129,12 @@ export function TransportReasonChart({ data }: TransportReasonChartProps) {
             <Tooltip content={<CustomTooltip totalCount={totalCount} />} />
             <Legend
               align="right"
-              formatter={(value, entry: any) => {
-                return entry.payload?.reasonFull || value;
+              formatter={(value, entry) => {
+                const payload = entry?.payload as
+                  | { reasonFull?: string }
+                  | undefined;
+
+                return payload?.reasonFull ?? value;
               }}
               layout="vertical"
               verticalAlign="middle"

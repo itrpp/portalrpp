@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { callPorterService } from "@/lib/grpcClient";
 import {
   mapUrgencyLevelToProto,
@@ -21,16 +20,9 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
 
@@ -43,7 +35,9 @@ export async function PUT(
     };
 
     // หน่วยงานผู้แจ้งควรถูกอัปเดตจากโปรไฟล์ผู้ใช้งาน (departmentSubSubId)
-    const requesterDepartment = (session.user as any)?.departmentSubSubId;
+    const requesterDepartment = (
+      auth.session.user as { departmentSubSubId?: number }
+    )?.departmentSubSubId;
 
     if (requesterDepartment !== null && requesterDepartment !== undefined) {
       protoRequest.requester_department = requesterDepartment;

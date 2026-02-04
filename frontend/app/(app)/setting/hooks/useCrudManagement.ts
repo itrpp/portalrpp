@@ -1,3 +1,5 @@
+import type { CrudItem } from "../types";
+
 import { useState, useEffect, useCallback } from "react";
 import { useDisclosure } from "@heroui/react";
 import { addToast } from "@heroui/react";
@@ -6,12 +8,7 @@ import { addToast } from "@heroui/react";
  * Generic CRUD Management Hook
  * สำหรับจัดการ state และ operations ของ CRUD pages
  */
-export interface CrudItem {
-  id: number;
-  name: string;
-  active?: boolean;
-  [key: string]: unknown;
-}
+export type { CrudItem } from "../types";
 
 export interface UseCrudManagementOptions<T extends CrudItem> {
   apiEndpoint: string;

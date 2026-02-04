@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserProfile } from "@/lib/profile";
 
@@ -17,20 +16,12 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    // ตรวจสอบ authentication
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     // ตรวจสอบสิทธิ์ admin
-    if (session.user.role !== "admin") {
+    if ((auth.session.user as { role?: string }).role !== "admin") {
       return NextResponse.json(
         { success: false, error: "FORBIDDEN" },
         { status: 403 },

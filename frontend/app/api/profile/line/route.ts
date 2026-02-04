@@ -1,26 +1,18 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserProfile } from "@/lib/profile";
 
 const LINE_PROVIDER_ID = "line";
 
 export async function DELETE() {
-  const session = (await getServerSession(
-    authOptions as any,
-  )) as import("@/types/ldap").ExtendedSession;
+  const auth = await getAuthSession();
 
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { success: false, error: "UNAUTHORIZED" },
-      { status: 401 },
-    );
-  }
+  if (!auth.ok) return auth.response;
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: auth.userId },
     select: {
       id: true,
       lineUserId: true,

@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
 model account {
@@ -134,6 +134,20 @@ model user {
 
   account              account[]
   session              session[]
+  user_activity        user_activity?
+}
+
+model user_activity {
+  id             String   @id @default(cuid())
+  userId         String   @unique(map: "UserActivity_userId_key")
+  loginAt        DateTime @default(now()) @db.DateTime(0)
+  lastActivityAt DateTime @default(now()) @db.DateTime(0)
+  ipAddress      String?  @db.VarChar(45)
+  userAgent      String?  @db.Text
+  user           user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserActivity_userId_fkey")
+
+  @@index([lastActivityAt], map: "UserActivity_lastActivityAt_idx")
+  @@map("user_activity")
 }
 
 model verificationtoken {

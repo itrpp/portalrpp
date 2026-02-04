@@ -14,8 +14,6 @@ import {
   DetailedLocation,
   DepartmentType,
   DepartmentTypeId,
-  RoomType,
-  RoomTypeId,
 } from "@/types/porter";
 
 /**
@@ -888,33 +886,6 @@ export const ROOM_TYPES = {
  */
 export function getDepartmentTypeName(id: number): DepartmentType | undefined {
   return DEPARTMENT_TYPES[id as DepartmentTypeId];
-}
-
-/**
- * Helper function สำหรับหา ID จากชื่อประเภทหน่วยงาน
- */
-export function getDepartmentTypeId(
-  name: DepartmentType,
-): DepartmentTypeId | undefined {
-  return Object.entries(DEPARTMENT_TYPES).find(
-    ([, value]) => value === name,
-  )?.[0] as DepartmentTypeId | undefined;
-}
-
-/**
- * Helper function สำหรับ mapping ประเภทห้องพัก
- */
-export function getRoomTypeName(id: number): RoomType | undefined {
-  return ROOM_TYPES[id as RoomTypeId];
-}
-
-/**
- * Helper function สำหรับหา ID จากชื่อประเภทห้องพัก
- */
-export function getRoomTypeId(name: RoomType): RoomTypeId | undefined {
-  return Object.entries(ROOM_TYPES).find(([, value]) => value === name)?.[0] as
-    | RoomTypeId
-    | undefined;
 }
 
 /**

@@ -249,7 +249,7 @@ export const authOptions: any = {
   providers,
   session: {
     strategy: "jwt", // ใช้ JWT strategy เพื่อรองรับ LDAP authentication
-    maxAge: 1 * 60 * 60, // 24 hours
+    maxAge: 1 * 60 * 60, // 1 hours
   },
   callbacks: {
     async signIn({
@@ -479,6 +479,68 @@ export const authOptions: any = {
     },
   },
   events: {
+    // บันทึกข้อมูลผู้ใช้ที่ login สำเร็จลง user_activity
+    async signIn({ user, account }: { user: any; account: any }) {
+      try {
+        if (!user?.id) {
+          return;
+        }
+
+        const now = new Date();
+
+        // อัปเดตหรือสร้าง record ใน user_activity
+        await prisma.user_activity.upsert({
+          where: { userId: user.id },
+          update: {
+            loginAt: now,
+            lastActivityAt: now,
+          },
+          create: {
+            userId: user.id,
+            loginAt: now,
+            lastActivityAt: now,
+          },
+        });
+      } catch (e) {
+        console.error("Failed to update user_activity on signIn:", e);
+      }
+    },
+
+    // ลบข้อมูลผู้ใช้ที่ logout ออกจาก user_activity
+    async signOut({ token }: { token?: any }) {
+      try {
+        // ดึง userId จาก token หรือจาก session token ใน cookies
+        let userId: string | undefined = token?.sub;
+
+        // ถ้าไม่มี userId ใน token ให้ลองดึงจาก cookies
+        if (!userId) {
+          const cookieStore = await cookies();
+          const sessionToken =
+            cookieStore.get("__Secure-next-auth.session-token")?.value ||
+            cookieStore.get("next-auth.session-token")?.value;
+
+          if (sessionToken) {
+            const secret = process.env.NEXTAUTH_SECRET || "your-secret-key-here";
+            const decoded = await decode({
+              token: sessionToken,
+              secret,
+            });
+
+            userId = decoded?.sub;
+          }
+        }
+
+        if (userId) {
+          await prisma.user_activity.deleteMany({
+            where: { userId },
+          });
+        }
+      } catch (e) {
+        // ไม่ throw error เพื่อไม่ให้กระทบการ logout
+        console.error("Failed to delete user_activity on signOut:", e);
+      }
+    },
+
     // อัปเดต providerType ใน DB หลังจากเชื่อมบัญชี OAuth/LINE สำเร็จ
     async linkAccount({
       user,

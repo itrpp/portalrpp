@@ -581,7 +581,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         <div
           aria-hidden={!sidebarIsOpen}
           aria-label="ปิดเมนู"
-          className="lg:hidden fixed inset-0 backdrop-blur-sm bg-background/80 z-40"
+          className="lg:hidden fixed inset-0 backdrop-blur-xs bg-background/80 z-40"
           role="button"
           tabIndex={-1}
           onClick={handleClose}

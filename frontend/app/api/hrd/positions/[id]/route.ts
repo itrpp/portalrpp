@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePositiveIntId } from "@/lib/utils";
 
 /**
  * GET /api/hrd/positions/[id]
@@ -13,21 +13,14 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
-    const positionId = Number.parseInt(id, 10);
+    const positionId = parsePositiveIntId(id);
 
-    if (!Number.isInteger(positionId) || positionId <= 0) {
+    if (positionId === null) {
       return NextResponse.json(
         {
           success: false,
@@ -96,21 +89,14 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
-    const positionId = Number.parseInt(id, 10);
+    const positionId = parsePositiveIntId(id);
 
-    if (!Number.isInteger(positionId) || positionId <= 0) {
+    if (positionId === null) {
       return NextResponse.json(
         {
           success: false,
@@ -238,21 +224,14 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
-    const positionId = Number.parseInt(id, 10);
+    const positionId = parsePositiveIntId(id);
 
-    if (!Number.isInteger(positionId) || positionId <= 0) {
+    if (positionId === null) {
       return NextResponse.json(
         {
           success: false,

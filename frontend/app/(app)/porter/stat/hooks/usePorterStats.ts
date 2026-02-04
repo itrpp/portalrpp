@@ -1,9 +1,8 @@
-"use client";
-
 import { useState, useEffect, useMemo } from "react";
 
 import { PorterJobItem } from "@/types/porter";
 import { formatLocationString } from "@/lib/porter";
+import { getISODatePart, parseFullName, toISODateString } from "@/lib/utils";
 
 interface PorterStats {
   totalJobs: number;
@@ -89,7 +88,7 @@ export function usePorterStats() {
         const date = new Date(today);
 
         date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split("T")[0];
+        const dateStr = toISODateString(date);
 
         dailyJobsMap.set(dateStr, { ปกติ: 0, ด่วน: 0, ฉุกเฉิน: 0 });
       }
@@ -121,7 +120,7 @@ export function usePorterStats() {
     const thirtyDaysAgo = new Date(today);
 
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
+    const thirtyDaysAgoStr = toISODateString(thirtyDaysAgo);
 
     // สร้าง Map สำหรับเก็บข้อมูลรายวัน (30 วันย้อนหลัง)
     const dailyJobsMap = new Map<
@@ -133,7 +132,7 @@ export function usePorterStats() {
       const date = new Date(today);
 
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = toISODateString(date);
 
       dailyJobsMap.set(dateStr, { ปกติ: 0, ด่วน: 0, ฉุกเฉิน: 0 });
     }
@@ -181,7 +180,7 @@ export function usePorterStats() {
 
       // 2. คำนวณ dailyJobs (ใช้ string comparison แทน Date object)
       if (job.createdAt) {
-        const createdAtStr = job.createdAt.split("T")[0];
+        const createdAtStr = getISODatePart(job.createdAt);
 
         if (createdAtStr >= thirtyDaysAgoStr) {
           const dayData = dailyJobsMap.get(createdAtStr);
@@ -251,9 +250,7 @@ export function usePorterStats() {
         const employeeName = job.assignedToName;
 
         if (!employeeMap.has(employeeName)) {
-          const nameParts = employeeName.trim().split(/\s+/);
-          const firstName = nameParts[0] || "";
-          const lastName = nameParts.slice(1).join(" ") || "";
+          const { firstName, lastName } = parseFullName(employeeName);
 
           employeeMap.set(employeeName, {
             firstName,

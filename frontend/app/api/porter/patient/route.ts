@@ -1,8 +1,9 @@
+import type { ExtendedUser } from "@/types/ldap";
+
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import jwt from "jsonwebtoken";
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getAuthSession } from "@/lib/auth";
 
 // กำหนด base URL ของ API Gateway จาก env และตัดเครื่องหมาย / ท้ายออกเพื่อป้องกันซ้ำซ้อน
 const baseUrl = (process.env.NEXT_PUBLIC_API_GATEWAY_URL || "").replace(
@@ -76,16 +77,11 @@ function convertHNANFormat(patientHN: string): {
  */
 export async function POST(request: Request) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as import("@/types/ldap").ExtendedSession;
+    const auth = await getAuthSession();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
-    }
+    if (!auth.ok) return auth.response;
+
+    const user = auth.session.user as ExtendedUser;
 
     // อ่านข้อมูลจาก request body
     const body = await request.json();
@@ -110,11 +106,11 @@ export async function POST(request: Request) {
       process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "";
     const signedToken = jwt.sign(
       {
-        sub: session.user.id,
-        department: session.user.department,
-        position: session.user.position,
-        memberOf: session.user.memberOf,
-        role: session.user.role,
+        sub: user.id,
+        department: user.department,
+        position: user.position,
+        memberOf: user.memberOf,
+        role: user.role,
       },
       jwtSecret,
       { expiresIn: "15m" },

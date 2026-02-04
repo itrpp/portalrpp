@@ -3,7 +3,7 @@ import type { ExtendedSession } from "@/types/ldap";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
-import ProfileClient from "./ProfileClient";
+import ProfileClient from "./components/ProfileClient";
 
 import { authOptions } from "@/app/api/auth/authOptions";
 import { getUserProfile } from "@/lib/profile";

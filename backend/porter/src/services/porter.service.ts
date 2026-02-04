@@ -1,6 +1,12 @@
-import { Prisma, type PorterRequest, type FloorDepartment, type PorterEmployee, type FloorPlan, type BleStation } from '@prisma/client';
-import prisma from '../config/database';
+import { Prisma, type PorterRequest } from '../generated/prisma/client';
 import porterEventEmitter from '../utils/eventEmitter';
+import * as buildingRepo from '../repositories/building.repository';
+import * as bleStationRepo from '../repositories/bleStation.repository';
+import * as floorDepartmentRepo from '../repositories/floorDepartment.repository';
+import * as floorPlanRepo from '../repositories/floorPlan.repository';
+import * as porterEmployeeRepo from '../repositories/porterEmployee.repository';
+import * as porterRequestRepo from '../repositories/porterRequest.repository';
+import { ping as dbPing } from '../repositories/database.repository';
 import {
   mapEquipmentToPrisma,
   mapEquipmentToProto,
@@ -48,10 +54,11 @@ import {
   BleStationMessage
 } from '../types/porter';
 
-type BuildingWithFloors = Prisma.BuildingGetPayload<{ include: { floors: true; floorPlans: { include: { stations: true } } } }>;
-type FloorPlanEntity = FloorPlan & { stations: BleStation[] };
-type FloorDepartmentEntity = FloorDepartment;
-type PorterEmployeeWithRelations = PorterEmployee;
+import type { Building, FloorDepartment } from '../generated/prisma/client';
+import type { BuildingWithFloorsAndFloorPlans } from '../repositories/building.repository';
+import type { FloorDepartmentWithBuilding } from '../repositories/floorDepartment.repository';
+import type { FloorPlanWithStations } from '../repositories/floorPlan.repository';
+import type { PorterEmployee } from '../generated/prisma/client';
 
 type PorterRequestWithLocationNames = PorterRequest & {
   pickupBuildingName?: string;
@@ -125,9 +132,8 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     status: 'WAITING_CENTER'
   };
 
-  const porterRequest = await prisma.porterRequest.create({ data: createData });
-  
-  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
+  const porterRequest = await porterRequestRepo.createPorterRequest(createData);
+
   const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
   const protoResponse = convertToProtoResponse(enrichedRequest);
 
@@ -137,33 +143,11 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
 };
 
 export const getPorterRequestById = async (id: string): Promise<PorterRequestMessage | null> => {
-  const porterRequest = await prisma.porterRequest.findUnique({ where: { id } });
+  const porterRequest = await porterRequestRepo.findPorterRequestById(id);
   if (!porterRequest) return null;
 
-  // Fetch building and floor department names
-  const [pickupBuilding, pickupFloorDepartment, deliveryBuilding, deliveryFloorDepartment, assignedEmployee] = await Promise.all([
-    prisma.building.findUnique({ where: { id: porterRequest.pickupBuildingId }, select: { name: true } }),
-    prisma.floorDepartment.findUnique({ where: { id: porterRequest.pickupFloorDepartmentId }, select: { name: true } }),
-    prisma.building.findUnique({ where: { id: porterRequest.deliveryBuildingId }, select: { name: true } }),
-    prisma.floorDepartment.findUnique({ where: { id: porterRequest.deliveryFloorDepartmentId }, select: { name: true } }),
-    porterRequest.assignedToId
-      ? prisma.porterEmployee.findUnique({
-          where: { id: porterRequest.assignedToId },
-          select: { firstName: true, lastName: true }
-        })
-      : Promise.resolve(null)
-  ]);
-
-  const requestWithNames: PorterRequestWithLocationNames = {
-    ...porterRequest,
-    pickupBuildingName: pickupBuilding?.name,
-    pickupFloorDepartmentName: pickupFloorDepartment?.name,
-    deliveryBuildingName: deliveryBuilding?.name,
-    deliveryFloorDepartmentName: deliveryFloorDepartment?.name,
-    assignedToName: assignedEmployee ? `${assignedEmployee.firstName} ${assignedEmployee.lastName}` : undefined
-  };
-
-  return convertToProtoResponse(requestWithNames);
+  const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
+  return convertToProtoResponse(enrichedRequest);
 };
 
 export const listPorterRequests = async (
@@ -194,16 +178,15 @@ export const listPorterRequests = async (
   const skip = (page - 1) * page_size;
 
   const [porterRequests, total] = await Promise.all([
-    prisma.porterRequest.findMany({
+    porterRequestRepo.findManyPorterRequests({
       where,
       skip,
       take: page_size,
       orderBy: { createdAt: 'desc' }
     }),
-    prisma.porterRequest.count({ where })
+    porterRequestRepo.countPorterRequests(where)
   ]);
 
-  // Fetch all unique building and floor department IDs
   const buildingIds = new Set<string>();
   const floorDepartmentIds = new Set<string>();
   const employeeIds = new Set<string>();
@@ -218,30 +201,12 @@ export const listPorterRequests = async (
     }
   });
 
-  // Fetch all buildings and floor departments in parallel
-  const [buildings, floorDepartments, employees] = await Promise.all([
-    prisma.building.findMany({
-      where: { id: { in: Array.from(buildingIds) } },
-      select: { id: true, name: true }
-    }),
-    prisma.floorDepartment.findMany({
-      where: { id: { in: Array.from(floorDepartmentIds) } },
-      select: { id: true, name: true }
-    }),
-    prisma.porterEmployee.findMany({
-      where: { id: { in: Array.from(employeeIds) } },
-      select: { id: true, firstName: true, lastName: true }
-    })
+  const [buildingMap, floorDepartmentMap, employeeMap] = await Promise.all([
+    buildingRepo.findBuildingNamesByIds(Array.from(buildingIds)),
+    floorDepartmentRepo.findFloorDepartmentNamesByIds(Array.from(floorDepartmentIds)),
+    porterEmployeeRepo.findPorterEmployeeNamesByIds(Array.from(employeeIds))
   ]);
 
-  // Create lookup maps
-  const buildingMap = new Map(buildings.map(b => [b.id, b.name]));
-  const floorDepartmentMap = new Map(floorDepartments.map(f => [f.id, f.name]));
-  const employeeMap = new Map(
-    employees.map(e => [e.id, `${e.firstName} ${e.lastName}`])
-  );
-
-  // Enrich porter requests with location names
   const requestsWithNames: PorterRequestWithLocationNames[] = porterRequests.map(req => ({
     ...req,
     pickupBuildingName: buildingMap.get(req.pickupBuildingId),
@@ -340,15 +305,11 @@ export const updatePorterRequest = async (
     data.equipmentOther = updateData.equipment_other ?? null;
   }
 
-  const porterRequest = await prisma.porterRequest.update({
-    where: { id },
-    data
-  });
+  const porterRequest = await porterRequestRepo.updatePorterRequest(id, data);
 
-  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
   const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
   const protoResponse = convertToProtoResponse(enrichedRequest);
-  
+
   porterEventEmitter.emit('porterRequestUpdated', protoResponse);
 
   return protoResponse;
@@ -361,7 +322,7 @@ export const updatePorterRequestStatus = async (
   const { status, assigned_to_id, cancelled_reason, cancelled_by_id, accepted_by_id } = statusData;
   let newStatus = mapStatusToPrisma(status);
 
-  const oldRequest = await prisma.porterRequest.findUnique({ where: { id } });
+  const oldRequest = await porterRequestRepo.findPorterRequestById(id);
   const oldStatus = oldRequest?.status;
 
   // หลังเลือกผู้ปฏิบัติงาน (มอบหมาย): ถ้ามี assigned_to_id และสถานะเดิมเป็น WAITING_CENTER → เปลี่ยนเป็น WAITING_ACCEPT
@@ -394,12 +355,8 @@ export const updatePorterRequestStatus = async (
     data.assignedToId = assigned_to_id;
   }
 
-  const porterRequest = await prisma.porterRequest.update({
-    where: { id },
-    data
-  });
+  const porterRequest = await porterRequestRepo.updatePorterRequest(id, data);
 
-  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
   const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
   const protoResponse = convertToProtoResponse(enrichedRequest);
 
@@ -429,37 +386,32 @@ export const updatePorterRequestTimestamps = async (
     data.returnAt = new Date(return_at);
   }
 
-  const porterRequest = await prisma.porterRequest.update({
-    where: { id },
-    data
-  });
+  const porterRequest = await porterRequestRepo.updatePorterRequest(id, data);
 
-  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนส่งผ่าน stream
   const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
   const protoResponse = convertToProtoResponse(enrichedRequest);
-  
+
   porterEventEmitter.emit('porterRequestUpdated', protoResponse);
 
   return protoResponse;
 };
 
 export const deletePorterRequest = async (id: string): Promise<void> => {
-  const porterRequest = await prisma.porterRequest.findUnique({ where: { id } });
+  const porterRequest = await porterRequestRepo.findPorterRequestById(id);
 
   if (!porterRequest) {
     return;
   }
 
-  // ดึงข้อมูล building names, floor department names, และ assigned employee name ก่อนลบและส่งผ่าน stream
   const enrichedRequest = await enrichPorterRequestWithNames(porterRequest);
   const protoResponse = convertToProtoResponse(enrichedRequest);
-  
-  await prisma.porterRequest.delete({ where: { id } });
+
+  await porterRequestRepo.deletePorterRequest(id);
   porterEventEmitter.emit('porterRequestDeleted', protoResponse);
 };
 
 export const healthCheck = async (): Promise<HealthCheckResult> => {
-  await prisma.$queryRaw`SELECT 1`;
+  await dbPing();
   return {
     success: true,
     message: 'Porter service is healthy',
@@ -488,40 +440,12 @@ export const createBuilding = async (requestData: CreateBuildingInput): Promise<
     createData.id = id;
   }
 
-  const building = await prisma.building.create({
-    data: createData,
-    include: {
-      floors: {
-        // ลบ orderBy ออกเพื่อหลีกเลี่ยง MySQL sort memory error
-        // Frontend สามารถ sort เองได้ถ้าต้องการ
-      },
-      floorPlans: {
-        include: {
-          stations: true
-        }
-      }
-    }
-  });
-
+  const building = await buildingRepo.createBuilding(createData);
   return convertBuildingToProto(building);
 };
 
 export const getBuildingById = async (id: string): Promise<BuildingMessage | null> => {
-  const building = await prisma.building.findUnique({
-    where: { id },
-    include: {
-      floors: {
-        // ลบ orderBy ออกเพื่อหลีกเลี่ยง MySQL sort memory error
-        // Frontend สามารถ sort เองได้ถ้าต้องการ
-      },
-      floorPlans: {
-        include: {
-          stations: true
-        }
-      }
-    }
-  });
-
+  const building = await buildingRepo.findBuildingById(id);
   return building ? convertBuildingToProto(building) : null;
 };
 
@@ -531,41 +455,17 @@ export const listBuildings = async (
   const { page = 1, page_size = 100 } = filters;
   const skip = (page - 1) * page_size;
 
-  // ใช้ select แทน include เพื่อ exclude floorPlans (JSON field ที่ใหญ่มาก) 
-  // เพื่อหลีกเลี่ยง MySQL sort memory error
-  // ไม่ใช้ orderBy ใน nested floors เพื่อลด memory usage ในการ sort
   const [buildings, total] = await Promise.all([
-    prisma.building.findMany({
+    buildingRepo.findBuildingsList({
       skip,
       take: page_size,
-      select: {
-        id: true,
-        name: true,
-        floorCount: true,
-        // ไม่ดึง floorPlans เพื่อลด memory usage
-        // floorPlans: true, // exclude เพื่อลด memory
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        floors: {
-          // ลบ orderBy ออกเพื่อหลีกเลี่ยง MySQL sort memory error
-          // Frontend สามารถ sort เองได้ถ้าต้องการ
-        }
-      },
       orderBy: { createdAt: 'asc' }
     }),
-    prisma.building.count()
+    buildingRepo.countBuildings()
   ]);
 
-  // แปลงเป็น BuildingWithFloors format โดยเพิ่ม floorPlans เป็น empty array
-  // Type assertion เพื่อให้ type ตรงกับ BuildingWithFloors
-  const buildingsWithFloors = buildings.map(b => ({
-    ...b,
-    floorPlans: []
-  })) as BuildingWithFloors[];
-
   return {
-    data: buildingsWithFloors.map(convertBuildingToProto),
+    data: buildings.map(convertBuildingToProto),
     total,
     page,
     page_size
@@ -588,77 +488,42 @@ export const updateBuilding = async (
     data.status = updateData.status;
   }
 
-  // จัดการ floor plans แบบ upsert
   if (updateData.floor_plans !== undefined) {
-    // ลบ floor plans ที่ไม่มีในรายการใหม่
-    const existingFloorPlans = await prisma.floorPlan.findMany({
-      where: { buildingId: id },
-      select: { id: true, floorNumber: true }
-    });
-
+    const existingFloorPlans = await floorPlanRepo.findManyFloorPlanIdsByBuildingId(id);
     const incomingFloorNumbers = new Set(updateData.floor_plans.map(fp => fp.floor_number));
-    const toDelete = existingFloorPlans.filter((efp: { id: string; floorNumber: number }) => !incomingFloorNumbers.has(efp.floorNumber));
+    const toDelete = existingFloorPlans.filter(
+      (efp) => !incomingFloorNumbers.has(efp.floorNumber)
+    );
 
     if (toDelete.length > 0) {
-      await prisma.floorPlan.deleteMany({
-        where: {
-          id: { in: toDelete.map((d: { id: string }) => d.id) }
-        }
-      });
+      await floorPlanRepo.deleteManyFloorPlansByIds(toDelete.map((d) => d.id));
     }
 
-    // Upsert floor plans
     if (updateData.floor_plans.length > 0) {
-      // ใช้ Promise.all เพื่อ upsert แต่ละ floor plan
       await Promise.all(
-        updateData.floor_plans.map(fp =>
-          prisma.floorPlan.upsert({
-            where: {
-              buildingId_floorNumber: {
-                buildingId: id,
-                floorNumber: fp.floor_number
-              }
-            },
+        updateData.floor_plans.map((fp) =>
+          floorPlanRepo.upsertFloorPlan({
+            where: { buildingId: id, floorNumber: fp.floor_number },
             create: {
               buildingId: id,
               floorNumber: fp.floor_number,
               imageData: fp.image_data
             },
-            update: {
-              imageData: fp.image_data
-            }
+            update: { imageData: fp.image_data }
           })
         )
       );
     } else {
-      // ถ้าไม่มี floor plans ให้ลบทั้งหมด
-      await prisma.floorPlan.deleteMany({
-        where: { buildingId: id }
-      });
+      await floorPlanRepo.deleteManyFloorPlansByBuildingId(id);
     }
   }
 
-  const building = await prisma.building.update({
-    where: { id },
-    data,
-    include: {
-      floors: {
-        // ลบ orderBy ออกเพื่อหลีกเลี่ยง MySQL sort memory error
-        // Frontend สามารถ sort เองได้ถ้าต้องการ
-      },
-      floorPlans: {
-        include: {
-          stations: true
-        }
-      }
-    }
-  });
-
+  const building = await buildingRepo.updateBuilding(id, data);
   return convertBuildingToProto(building);
 };
 
 export const deleteBuilding = async (id: string): Promise<void> => {
-  await prisma.building.delete({ where: { id } });
+  await buildingRepo.deleteBuilding(id);
 };
 
 export const createFloorDepartment = async (
@@ -691,22 +556,12 @@ export const createFloorDepartment = async (
     createData.id = id;
   }
 
-  const floorDepartment = await prisma.floorDepartment.create({
-    data: createData,
-    include: {
-      building: true
-    }
-  });
-
+  const floorDepartment = await floorDepartmentRepo.createFloorDepartment(createData);
   return convertFloorDepartmentToProto(floorDepartment);
 };
 
 export const getFloorDepartmentById = async (id: string): Promise<FloorDepartmentMessage | null> => {
-  const floorDepartment = await prisma.floorDepartment.findUnique({
-    where: { id },
-    include: { building: true }
-  });
-
+  const floorDepartment = await floorDepartmentRepo.findFloorDepartmentById(id);
   return floorDepartment ? convertFloorDepartmentToProto(floorDepartment) : null;
 };
 
@@ -716,25 +571,19 @@ export const listFloorDepartments = async (
   const { building_id, department_type, page = 1, page_size = 100 } = filters;
 
   const where: Prisma.FloorDepartmentWhereInput = {};
-
-  if (building_id) {
-    where.buildingId = building_id;
-  }
-  if (department_type) {
-    where.departmentType = department_type;
-  }
+  if (building_id) where.buildingId = building_id;
+  if (department_type) where.departmentType = department_type;
 
   const skip = (page - 1) * page_size;
 
   const [floorDepartments, total] = await Promise.all([
-    prisma.floorDepartment.findMany({
+    floorDepartmentRepo.findManyFloorDepartments({
       where,
       skip,
       take: page_size,
-      include: { building: true },
       orderBy: { createdAt: 'asc' }
     }),
-    prisma.floorDepartment.count({ where })
+    floorDepartmentRepo.countFloorDepartments(where)
   ]);
 
   return {
@@ -773,17 +622,12 @@ export const updateFloorDepartment = async (
     data.status = updateData.status;
   }
 
-  const floorDepartment = await prisma.floorDepartment.update({
-    where: { id },
-    data,
-    include: { building: true }
-  });
-
+  const floorDepartment = await floorDepartmentRepo.updateFloorDepartment(id, data);
   return convertFloorDepartmentToProto(floorDepartment);
 };
 
 export const deleteFloorDepartment = async (id: string): Promise<void> => {
-  await prisma.floorDepartment.delete({ where: { id } });
+  await floorDepartmentRepo.deleteFloorDepartment(id);
 };
 
 // ----- Employee Management Service -----
@@ -812,18 +656,12 @@ export const createEmployee = async (requestData: CreateEmployeeInput): Promise<
     userId: user_id?.trim() || null
   };
 
-  const employee = await prisma.porterEmployee.create({
-    data: createData
-  });
-
+  const employee = await porterEmployeeRepo.createPorterEmployee(createData);
   return convertEmployeeToProto(employee);
 };
 
 export const getEmployeeById = async (id: string): Promise<PorterEmployeeMessage | null> => {
-  const employee = await prisma.porterEmployee.findUnique({
-    where: { id }
-  });
-
+  const employee = await porterEmployeeRepo.findPorterEmployeeById(id);
   return employee ? convertEmployeeToProto(employee) : null;
 };
 
@@ -833,53 +671,38 @@ export const listEmployees = async (
   const { employment_type_id, position_id, status, user_id, page = 1, page_size } = filters;
 
   const where: Prisma.PorterEmployeeWhereInput = {};
-
   if (employment_type_id !== undefined && employment_type_id !== null) {
-    // แปลงจาก string เป็น Int
     const employmentTypeIdInt = parseInt(employment_type_id, 10);
-    if (!isNaN(employmentTypeIdInt)) {
-      where.employmentTypeId = employmentTypeIdInt;
-    }
+    if (!isNaN(employmentTypeIdInt)) where.employmentTypeId = employmentTypeIdInt;
   }
   if (position_id !== undefined && position_id !== null) {
-    // แปลงจาก string เป็น Int
     const positionIdInt = parseInt(position_id, 10);
-    if (!isNaN(positionIdInt)) {
-      where.positionId = positionIdInt;
-    }
+    if (!isNaN(positionIdInt)) where.positionId = positionIdInt;
   }
-  if (status !== undefined && status !== null) {
-    where.status = status;
-  }
+  if (status !== undefined && status !== null) where.status = status;
   if (user_id !== undefined && user_id !== null && user_id.trim() !== '') {
     where.userId = user_id.trim();
   }
 
-  // ถ้า page_size เป็น undefined หรือ null ให้ดึงข้อมูลทั้งหมด
   const shouldPaginate = page_size !== undefined && page_size !== null;
   const skip = shouldPaginate ? (page - 1) * page_size : undefined;
   const take = shouldPaginate ? page_size : undefined;
 
-  const queryOptions: any = {
-    where,
-    orderBy: { createdAt: 'desc' }
-  };
-
-  if (shouldPaginate) {
-    queryOptions.skip = skip;
-    queryOptions.take = take;
-  }
-
   const [employees, total] = await Promise.all([
-    prisma.porterEmployee.findMany(queryOptions),
-    prisma.porterEmployee.count({ where })
+    porterEmployeeRepo.findManyPorterEmployees({
+      where,
+      skip,
+      take,
+      orderBy: { createdAt: 'desc' }
+    }),
+    porterEmployeeRepo.countPorterEmployees(where)
   ]);
 
   return {
     data: employees.map(convertEmployeeToProto),
     total,
     page,
-    page_size: page_size || total
+    page_size: page_size ?? total
   };
 };
 
@@ -927,28 +750,23 @@ export const updateEmployee = async (
     const newUserId = updateData.user_id?.trim() || null;
     data.userId = newUserId;
 
-    // ตรวจสอบ unique: user หนึ่งคนผูกได้แค่หนึ่ง employee ถ้ามีการตั้ง userId ที่ไม่ว่าง และ user นั้นถูกผูกกับ employee อื่นอยู่แล้ว ให้ throw
     if (newUserId) {
-      const existing = await prisma.porterEmployee.findFirst({
-        where: { userId: newUserId, id: { not: id } },
-        select: { id: true },
-      });
+      const existing = await porterEmployeeRepo.findFirstPorterEmployeeIdByUserId(
+        newUserId,
+        id
+      );
       if (existing) {
         throw new Error('USER_ALREADY_LINKED');
       }
     }
   }
 
-  const employee = await prisma.porterEmployee.update({
-    where: { id },
-    data
-  });
-
+  const employee = await porterEmployeeRepo.updatePorterEmployee(id, data);
   return convertEmployeeToProto(employee);
 };
 
 export const deleteEmployee = async (id: string): Promise<void> => {
-  await prisma.porterEmployee.delete({ where: { id } });
+  await porterEmployeeRepo.deletePorterEmployee(id);
 };
 
 // ----- Helper functions -----
@@ -972,33 +790,42 @@ const normalizePatientCondition = (
 };
 
 /**
- * Helper function สำหรับดึงข้อมูล building names, floor department names, และ assigned employee name
- * เพื่อให้ข้อมูลครบถ้วนก่อนส่งผ่าน stream
+ * ดึง building / floor department / employee names แล้ว merge เข้า porter request (สำหรับ stream และ response)
  */
 const enrichPorterRequestWithNames = async (
   porterRequest: PorterRequest
 ): Promise<PorterRequestWithLocationNames> => {
-  // ดึงข้อมูล building names, floor department names, และ assigned employee name พร้อมกัน
-  const [pickupBuilding, pickupFloorDepartment, deliveryBuilding, deliveryFloorDepartment, assignedEmployee] = await Promise.all([
-    prisma.building.findUnique({ where: { id: porterRequest.pickupBuildingId }, select: { name: true } }),
-    prisma.floorDepartment.findUnique({ where: { id: porterRequest.pickupFloorDepartmentId }, select: { name: true } }),
-    prisma.building.findUnique({ where: { id: porterRequest.deliveryBuildingId }, select: { name: true } }),
-    prisma.floorDepartment.findUnique({ where: { id: porterRequest.deliveryFloorDepartmentId }, select: { name: true } }),
-    porterRequest.assignedToId
-      ? prisma.porterEmployee.findUnique({
-          where: { id: porterRequest.assignedToId },
-          select: { firstName: true, lastName: true }
-        })
-      : Promise.resolve(null)
+  const buildingIds = [
+    porterRequest.pickupBuildingId,
+    porterRequest.deliveryBuildingId
+  ];
+  const floorDepartmentIds = [
+    porterRequest.pickupFloorDepartmentId,
+    porterRequest.deliveryFloorDepartmentId
+  ];
+  const employeeIds = porterRequest.assignedToId
+    ? [porterRequest.assignedToId]
+    : [];
+
+  const [buildingMap, floorDepartmentMap, employeeMap] = await Promise.all([
+    buildingRepo.findBuildingNamesByIds(buildingIds),
+    floorDepartmentRepo.findFloorDepartmentNamesByIds(floorDepartmentIds),
+    porterEmployeeRepo.findPorterEmployeeNamesByIds(employeeIds)
   ]);
 
   return {
     ...porterRequest,
-    pickupBuildingName: pickupBuilding?.name,
-    pickupFloorDepartmentName: pickupFloorDepartment?.name,
-    deliveryBuildingName: deliveryBuilding?.name,
-    deliveryFloorDepartmentName: deliveryFloorDepartment?.name,
-    assignedToName: assignedEmployee ? `${assignedEmployee.firstName} ${assignedEmployee.lastName}` : undefined
+    pickupBuildingName: buildingMap.get(porterRequest.pickupBuildingId),
+    pickupFloorDepartmentName: floorDepartmentMap.get(
+      porterRequest.pickupFloorDepartmentId
+    ),
+    deliveryBuildingName: buildingMap.get(porterRequest.deliveryBuildingId),
+    deliveryFloorDepartmentName: floorDepartmentMap.get(
+      porterRequest.deliveryFloorDepartmentId
+    ),
+    assignedToName: porterRequest.assignedToId
+      ? employeeMap.get(porterRequest.assignedToId)
+      : undefined
   };
 };
 
@@ -1074,20 +901,32 @@ const formatPatientCondition = (value: Prisma.JsonValue | null): string | undefi
   return undefined;
 };
 
-const convertBuildingToProto = (building: BuildingWithFloors): BuildingMessage => {
+type BuildingListItem = Building & { floors: unknown[]; floorPlans: never[] };
+
+const convertBuildingToProto = (
+  building: BuildingWithFloorsAndFloorPlans | BuildingListItem
+): BuildingMessage => {
+  const floorPlans = Array.isArray(building.floorPlans)
+    ? (building.floorPlans as FloorPlanWithStations[]).map(convertFloorPlanToProto)
+    : [];
+  const floors = Array.isArray(building.floors)
+    ? (building.floors as FloorDepartment[]).map(convertFloorDepartmentToProto)
+    : [];
   return {
     id: building.id,
     name: building.name,
     floor_count: building.floorCount ?? undefined,
-    floor_plans: building.floorPlans?.map(convertFloorPlanToProto) ?? [],
+    floor_plans: floorPlans,
     status: building.status,
     created_at: building.createdAt.toISOString(),
     updated_at: building.updatedAt.toISOString(),
-    floors: building.floors?.map(convertFloorDepartmentToProto) ?? []
+    floors
   };
 };
 
-const convertFloorPlanToProto = (floorPlan: FloorPlanEntity): import('../types/porter').FloorPlanMessage => {
+const convertFloorPlanToProto = (
+  floorPlan: FloorPlanWithStations
+): import('../types/porter').FloorPlanMessage => {
   return {
     id: floorPlan.id,
     building_id: floorPlan.buildingId,
@@ -1099,7 +938,9 @@ const convertFloorPlanToProto = (floorPlan: FloorPlanEntity): import('../types/p
   };
 };
 
-const convertBleStationToProto = (station: BleStation): import('../types/porter').BleStationMessage => {
+const convertBleStationToProto = (
+  station: import('../generated/prisma/client').BleStation
+): import('../types/porter').BleStationMessage => {
   return {
     id: station.id,
     floor_plan_id: station.floorPlanId,
@@ -1116,7 +957,9 @@ const convertBleStationToProto = (station: BleStation): import('../types/porter'
   };
 };
 
-const convertFloorDepartmentToProto = (floorDepartment: FloorDepartmentEntity): FloorDepartmentMessage => ({
+const convertFloorDepartmentToProto = (
+  floorDepartment: FloorDepartmentWithBuilding | FloorDepartment
+): FloorDepartmentMessage => ({
   id: floorDepartment.id,
   name: floorDepartment.name,
   building_id: floorDepartment.buildingId,
@@ -1131,7 +974,9 @@ const convertFloorDepartmentToProto = (floorDepartment: FloorDepartmentEntity): 
   rooms: []
 });
 
-const convertEmployeeToProto = (employee: PorterEmployeeWithRelations): PorterEmployeeMessage => ({
+const convertEmployeeToProto = (
+  employee: PorterEmployee
+): PorterEmployeeMessage => ({
   id: employee.id,
   citizen_id: employee.citizenId,
   first_name: employee.firstName,
@@ -1154,27 +999,19 @@ const convertEmployeeToProto = (employee: PorterEmployeeWithRelations): PorterEm
 export const createFloorPlan = async (requestData: CreateFloorPlanInput): Promise<FloorPlanMessage> => {
   const { id, building_id, floor_number, image_data } = requestData;
 
-  // ตรวจสอบว่า building_id มีอยู่จริง
-  const building = await prisma.building.findUnique({
-    where: { id: building_id }
-  });
-
+  const building = await buildingRepo.findBuildingById(building_id);
   if (!building) {
     throw new Error(`Building with id ${building_id} not found`);
   }
 
-  // ตรวจสอบว่า floor_number นี้มีอยู่แล้วหรือไม่
-  const existingFloorPlan = await prisma.floorPlan.findUnique({
-    where: {
-      buildingId_floorNumber: {
-        buildingId: building_id,
-        floorNumber: floor_number
-      }
-    }
-  });
-
+  const existingFloorPlan = await floorPlanRepo.findFloorPlanByBuildingIdAndFloorNumber(
+    building_id,
+    floor_number
+  );
   if (existingFloorPlan) {
-    throw new Error(`Floor plan for building ${building_id} at floor ${floor_number} already exists`);
+    throw new Error(
+      `Floor plan for building ${building_id} at floor ${floor_number} already exists`
+    );
   }
 
   const createData: Prisma.FloorPlanUncheckedCreateInput = {
@@ -1182,29 +1019,14 @@ export const createFloorPlan = async (requestData: CreateFloorPlanInput): Promis
     floorNumber: floor_number,
     imageData: image_data
   };
+  if (id) createData.id = id;
 
-  if (id) {
-    createData.id = id;
-  }
-
-  const floorPlan = await prisma.floorPlan.create({
-    data: createData,
-    include: {
-      stations: true
-    }
-  });
-
+  const floorPlan = await floorPlanRepo.createFloorPlan(createData);
   return convertFloorPlanToProto(floorPlan);
 };
 
 export const getFloorPlanById = async (id: string): Promise<FloorPlanMessage | null> => {
-  const floorPlan = await prisma.floorPlan.findUnique({
-    where: { id },
-    include: {
-      stations: true
-    }
-  });
-
+  const floorPlan = await floorPlanRepo.findFloorPlanById(id);
   return floorPlan ? convertFloorPlanToProto(floorPlan) : null;
 };
 
@@ -1215,27 +1037,17 @@ export const listFloorPlans = async (
   const skip = (page - 1) * page_size;
 
   const where: Prisma.FloorPlanWhereInput = {};
-  if (building_id) {
-    where.buildingId = building_id;
-  }
-  if (floor_number !== undefined) {
-    where.floorNumber = floor_number;
-  }
+  if (building_id) where.buildingId = building_id;
+  if (floor_number !== undefined) where.floorNumber = floor_number;
 
   const [floorPlans, total] = await Promise.all([
-    prisma.floorPlan.findMany({
+    floorPlanRepo.findManyFloorPlans({
       where,
       skip,
       take: page_size,
-      include: {
-        stations: true
-      },
-      orderBy: [
-        { buildingId: 'asc' },
-        { floorNumber: 'asc' }
-      ]
+      orderBy: [{ buildingId: 'asc' }, { floorNumber: 'asc' }]
     }),
-    prisma.floorPlan.count({ where })
+    floorPlanRepo.countFloorPlans(where)
   ]);
 
   return {
@@ -1253,51 +1065,30 @@ export const updateFloorPlan = async (
   const data: Prisma.FloorPlanUncheckedUpdateInput = {};
 
   if (updateData.building_id !== undefined) {
-    // ตรวจสอบว่า building_id มีอยู่จริง
-    const building = await prisma.building.findUnique({
-      where: { id: updateData.building_id }
-    });
-
+    const building = await buildingRepo.findBuildingById(updateData.building_id);
     if (!building) {
       throw new Error(`Building with id ${updateData.building_id} not found`);
     }
-
     data.buildingId = updateData.building_id;
   }
 
   if (updateData.floor_number !== undefined) {
     data.floorNumber = updateData.floor_number;
 
-    // ตรวจสอบว่า floor_number ใหม่ไม่ซ้ำกับ floor plan อื่นใน building เดียวกัน
-    const currentFloorPlan = await prisma.floorPlan.findUnique({
-      where: { id }
-    });
+    const currentFloorPlan = await floorPlanRepo.findFloorPlanById(id);
+    const targetBuildingId = updateData.building_id ?? currentFloorPlan?.buildingId;
+    const targetFloorNumber = updateData.floor_number;
 
-    if (currentFloorPlan && updateData.building_id) {
-      const existingFloorPlan = await prisma.floorPlan.findUnique({
-        where: {
-          buildingId_floorNumber: {
-            buildingId: updateData.building_id,
-            floorNumber: updateData.floor_number
-          }
-        }
-      });
-
+    if (currentFloorPlan && targetBuildingId) {
+      const existingFloorPlan =
+        await floorPlanRepo.findFloorPlanByBuildingIdAndFloorNumber(
+          targetBuildingId,
+          targetFloorNumber
+        );
       if (existingFloorPlan && existingFloorPlan.id !== id) {
-        throw new Error(`Floor plan for building ${updateData.building_id} at floor ${updateData.floor_number} already exists`);
-      }
-    } else if (currentFloorPlan && !updateData.building_id) {
-      const existingFloorPlan = await prisma.floorPlan.findUnique({
-        where: {
-          buildingId_floorNumber: {
-            buildingId: currentFloorPlan.buildingId,
-            floorNumber: updateData.floor_number
-          }
-        }
-      });
-
-      if (existingFloorPlan && existingFloorPlan.id !== id) {
-        throw new Error(`Floor plan for building ${currentFloorPlan.buildingId} at floor ${updateData.floor_number} already exists`);
+        throw new Error(
+          `Floor plan for building ${targetBuildingId} at floor ${targetFloorNumber} already exists`
+        );
       }
     }
   }
@@ -1306,21 +1097,12 @@ export const updateFloorPlan = async (
     data.imageData = updateData.image_data;
   }
 
-  const floorPlan = await prisma.floorPlan.update({
-    where: { id },
-    data,
-    include: {
-      stations: true
-    }
-  });
-
+  const floorPlan = await floorPlanRepo.updateFloorPlan(id, data);
   return convertFloorPlanToProto(floorPlan);
 };
 
 export const deleteFloorPlan = async (id: string): Promise<void> => {
-  await prisma.floorPlan.delete({
-    where: { id }
-  });
+  await floorPlanRepo.deleteFloorPlan(id);
 };
 
 // ===== BleStation Service Functions =====
@@ -1328,20 +1110,12 @@ export const deleteFloorPlan = async (id: string): Promise<void> => {
 export const createBleStation = async (requestData: CreateBleStationInput): Promise<BleStationMessage> => {
   const { id, floor_plan_id, name, mac_address, uuid, position_x, position_y, signal_strength, battery_level, status } = requestData;
 
-  // ตรวจสอบว่า floor_plan_id มีอยู่จริง
-  const floorPlan = await prisma.floorPlan.findUnique({
-    where: { id: floor_plan_id }
-  });
-
+  const floorPlan = await floorPlanRepo.findFloorPlanById(floor_plan_id);
   if (!floorPlan) {
     throw new Error(`Floor plan with id ${floor_plan_id} not found`);
   }
 
-  // ตรวจสอบว่า mac_address ไม่ซ้ำ
-  const existingStation = await prisma.bleStation.findUnique({
-    where: { macAddress: mac_address }
-  });
-
+  const existingStation = await bleStationRepo.findBleStationByMacAddress(mac_address);
   if (existingStation) {
     throw new Error(`BLE Station with MAC address ${mac_address} already exists`);
   }
@@ -1357,23 +1131,14 @@ export const createBleStation = async (requestData: CreateBleStationInput): Prom
     batteryLevel: battery_level ?? null,
     status: status !== undefined ? status : true
   };
+  if (id) createData.id = id;
 
-  if (id) {
-    createData.id = id;
-  }
-
-  const station = await prisma.bleStation.create({
-    data: createData
-  });
-
+  const station = await bleStationRepo.createBleStation(createData);
   return convertBleStationToProto(station);
 };
 
 export const getBleStationById = async (id: string): Promise<BleStationMessage | null> => {
-  const station = await prisma.bleStation.findUnique({
-    where: { id }
-  });
-
+  const station = await bleStationRepo.findBleStationById(id);
   return station ? convertBleStationToProto(station) : null;
 };
 
@@ -1384,21 +1149,17 @@ export const listBleStations = async (
   const skip = (page - 1) * page_size;
 
   const where: Prisma.BleStationWhereInput = {};
-  if (floor_plan_id) {
-    where.floorPlanId = floor_plan_id;
-  }
-  if (status !== undefined) {
-    where.status = status;
-  }
+  if (floor_plan_id) where.floorPlanId = floor_plan_id;
+  if (status !== undefined) where.status = status;
 
   const [stations, total] = await Promise.all([
-    prisma.bleStation.findMany({
+    bleStationRepo.findManyBleStations({
       where,
       skip,
       take: page_size,
       orderBy: { createdAt: 'asc' }
     }),
-    prisma.bleStation.count({ where })
+    bleStationRepo.countBleStations(where)
   ]);
 
   return {
@@ -1420,15 +1181,14 @@ export const updateBleStation = async (
   }
 
   if (updateData.mac_address !== undefined) {
-    // ตรวจสอบว่า mac_address ไม่ซ้ำกับ station อื่น
-    const existingStation = await prisma.bleStation.findUnique({
-      where: { macAddress: updateData.mac_address }
-    });
-
+    const existingStation = await bleStationRepo.findBleStationByMacAddress(
+      updateData.mac_address
+    );
     if (existingStation && existingStation.id !== id) {
-      throw new Error(`BLE Station with MAC address ${updateData.mac_address} already exists`);
+      throw new Error(
+        `BLE Station with MAC address ${updateData.mac_address} already exists`
+      );
     }
-
     data.macAddress = updateData.mac_address;
   }
 
@@ -1436,38 +1196,22 @@ export const updateBleStation = async (
     data.uuid = updateData.uuid || null;
   }
 
-  if (updateData.position_x !== undefined) {
-    data.positionX = updateData.position_x;
-  }
-
-  if (updateData.position_y !== undefined) {
-    data.positionY = updateData.position_y;
-  }
-
+  if (updateData.position_x !== undefined) data.positionX = updateData.position_x;
+  if (updateData.position_y !== undefined) data.positionY = updateData.position_y;
   if (updateData.signal_strength !== undefined) {
     data.signalStrength = updateData.signal_strength ?? null;
   }
-
   if (updateData.battery_level !== undefined) {
     data.batteryLevel = updateData.battery_level ?? null;
   }
+  if (updateData.status !== undefined) data.status = updateData.status;
 
-  if (updateData.status !== undefined) {
-    data.status = updateData.status;
-  }
-
-  const station = await prisma.bleStation.update({
-    where: { id },
-    data
-  });
-
+  const station = await bleStationRepo.updateBleStation(id, data);
   return convertBleStationToProto(station);
 };
 
 export const deleteBleStation = async (id: string): Promise<void> => {
-  await prisma.bleStation.delete({
-    where: { id }
-  });
+  await bleStationRepo.deleteBleStation(id);
 };
 
 

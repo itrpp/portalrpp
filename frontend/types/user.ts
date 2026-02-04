@@ -5,7 +5,7 @@
  * Types สำหรับระบบจัดการผู้ใช้ (User Management)
  */
 
-import type { ProfileDTO } from "@/lib/profile";
+import type { ProfileDTO } from "@/types/profile";
 
 /**
  * User DTO - ข้อมูล user ที่ใช้ในระบบ
@@ -56,14 +56,6 @@ export interface UserResponse {
 export interface UserUpdateResponse {
   success: boolean;
   data: UserDTO;
-}
-
-/**
- * Response สำหรับ DELETE /api/users/[id]
- */
-export interface UserDeleteResponse {
-  success: boolean;
-  message: string;
 }
 
 /**

@@ -18,35 +18,35 @@ export function StatCard({
 }: StatCardProps) {
   const colorConfig = {
     default: {
-      bg: "bg-gradient-to-br from-default-50 to-default-100",
+      bg: "bg-linear-to-br from-default-50 to-default-100",
       border: "border-default-200",
       text: "text-default-700",
       iconBg: "bg-default-100",
       iconColor: "text-default-600",
     },
     primary: {
-      bg: "bg-gradient-to-br from-primary-50 to-primary-100",
+      bg: "bg-linear-to-br from-primary-50 to-primary-100",
       border: "border-primary-200",
       text: "text-primary-700",
       iconBg: "bg-primary-100",
       iconColor: "text-primary-600",
     },
     success: {
-      bg: "bg-gradient-to-br from-success-50 to-success-100",
+      bg: "bg-linear-to-br from-success-50 to-success-100",
       border: "border-success-200",
       text: "text-success-700",
       iconBg: "bg-success-100",
       iconColor: "text-success-600",
     },
     warning: {
-      bg: "bg-gradient-to-br from-warning-50 to-warning-100",
+      bg: "bg-linear-to-br from-warning-50 to-warning-100",
       border: "border-warning-200",
       text: "text-warning-700",
       iconBg: "bg-warning-100",
       iconColor: "text-warning-600",
     },
     danger: {
-      bg: "bg-gradient-to-br from-danger-50 to-danger-100",
+      bg: "bg-linear-to-br from-danger-50 to-danger-100",
       border: "border-danger-200",
       text: "text-danger-700",
       iconBg: "bg-danger-100",

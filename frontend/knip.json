@@ -1,0 +1,30 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreFiles": [
+    "app/(app)/porter/stat/components/TransportReasonChart.tsx"
+  ],
+  "ignoreDependencies": [
+    "@heroicons/react",
+    "@heroui/shared-icons",
+    "@react-aria/ssr",
+    "@react-aria/utils",
+    "@react-aria/visually-hidden",
+    "intl-messageformat",
+    "@next/eslint-plugin-next",
+    "eslint-config-next",
+    "eslint-plugin-node",
+    "eslint-plugin-react-hooks",
+    "tailwind-variants"
+  ],
+  "ignoreIssues": {
+    "components/ui/icons.tsx": ["exports"],
+    "config/fonts.ts": ["exports"],
+    "config/site.ts": ["exports", "types"],
+    "lib/porter.ts": ["exports"],
+    "lib/grpcClient.ts": ["exports"],
+    "lib/porterRequests.ts": ["exports"],
+    "types/porter.ts": ["types"],
+    "types/index.ts": ["exports", "types"],
+    "app/(app)/setting/components/CrudTable.tsx": ["types"]
+  }
+}

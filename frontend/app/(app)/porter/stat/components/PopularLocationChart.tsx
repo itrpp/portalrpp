@@ -181,7 +181,6 @@ export function PopularLocationChart({
               width={100}
             />
             <Tooltip content={<CustomTooltip totalCount={totalCount} />} />
-            {/* <Legend /> */}
             <Bar
               dataKey="count"
               fill={color}
