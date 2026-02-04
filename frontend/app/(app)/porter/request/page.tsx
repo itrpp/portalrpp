@@ -355,8 +355,8 @@ export default function PorterRequestPage() {
     }
   };
 
-  // Helper function to convert string to CalendarDateTime
-  const stringToCalendarDateTime = (dateString: string): CalendarDateTime => {
+  // Helper function to convert string to CalendarDateTime (ใช้ any เพื่อลดปัญหา type conflict)
+  const stringToCalendarDateTime = (dateString: string): any => {
     try {
       // Parse string in format "YYYY-MM-DDTHH:mm"
       const [datePart, timePart] = dateString.split("T");
@@ -378,8 +378,8 @@ export default function PorterRequestPage() {
     }
   };
 
-  // Helper function to convert CalendarDateTime to string
-  const calendarDateTimeToString = (date: CalendarDateTime): string => {
+  // Helper function to convert CalendarDateTime-like value to string
+  const calendarDateTimeToString = (date: any): string => {
     const year = date.year.toString().padStart(4, "0");
     const month = date.month.toString().padStart(2, "0");
     const day = date.day.toString().padStart(2, "0");
@@ -524,13 +524,13 @@ export default function PorterRequestPage() {
     }
   };
 
-  // Get CalendarDateTime value for DatePicker
-  const getDateTimeValue = (): CalendarDateTime => {
+  // Get CalendarDateTime-like value for DatePicker
+  const getDateTimeValue = (): any => {
     return stringToCalendarDateTime(formData.requestedDateTime);
   };
 
   // Handle DatePicker change
-  const handleDateTimeChange = (value: CalendarDateTime | null) => {
+  const handleDateTimeChange = (value: any | null) => {
     if (value) {
       handleInputChange("requestedDateTime", calendarDateTimeToString(value));
     }
