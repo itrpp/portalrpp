@@ -1,5 +1,7 @@
 "use client";
 
+import type { DateValue } from "@internationalized/date";
+
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
@@ -12,7 +14,6 @@ import {
   DatePicker,
   addToast,
 } from "@heroui/react";
-import { CalendarDate } from "@internationalized/date";
 
 import { JobTable, JobDetailDrawer } from "../components";
 
@@ -45,15 +46,22 @@ export default function JobListClient() {
 
   // Date range filters สำหรับ completed และ cancelled tabs
   const [completedStartDate, setCompletedStartDate] =
-    useState<CalendarDate | null>(null);
-  const [completedEndDate, setCompletedEndDate] = useState<CalendarDate | null>(
+    useState<DateValue | null>(null);
+  const [completedEndDate, setCompletedEndDate] = useState<DateValue | null>(
     null,
   );
   const [cancelledStartDate, setCancelledStartDate] =
-    useState<CalendarDate | null>(null);
-  const [cancelledEndDate, setCancelledEndDate] = useState<CalendarDate | null>(
+    useState<DateValue | null>(null);
+  const [cancelledEndDate, setCancelledEndDate] = useState<DateValue | null>(
     null,
   );
+
+  // แปลง DateValue (เช่น ค่าจาก DatePicker) เป็น Date (เฉพาะส่วนวันที่)
+  const toDateOnly = (value: DateValue) => {
+    const v = value as unknown as { year: number; month: number; day: number };
+
+    return new Date(v.year, v.month - 1, v.day);
+  };
 
   // อัพเดทเวลาแบบ real-time ทุกวินาที
   useEffect(() => {
@@ -486,11 +494,7 @@ export default function JobListClient() {
 
           // ตรวจสอบ startDate
           if (completedStartDate) {
-            const startDateOnly = new Date(
-              completedStartDate.year,
-              completedStartDate.month - 1,
-              completedStartDate.day,
-            );
+            const startDateOnly = toDateOnly(completedStartDate);
 
             if (jobDateOnly < startDateOnly) {
               return false;
@@ -499,11 +503,7 @@ export default function JobListClient() {
 
           // ตรวจสอบ endDate
           if (completedEndDate) {
-            const endDateOnly = new Date(
-              completedEndDate.year,
-              completedEndDate.month - 1,
-              completedEndDate.day,
-            );
+            const endDateOnly = toDateOnly(completedEndDate);
 
             if (jobDateOnly > endDateOnly) {
               return false;
@@ -532,11 +532,7 @@ export default function JobListClient() {
 
           // ตรวจสอบ startDate
           if (cancelledStartDate) {
-            const startDateOnly = new Date(
-              cancelledStartDate.year,
-              cancelledStartDate.month - 1,
-              cancelledStartDate.day,
-            );
+            const startDateOnly = toDateOnly(cancelledStartDate);
 
             if (jobDateOnly < startDateOnly) {
               return false;
@@ -545,11 +541,7 @@ export default function JobListClient() {
 
           // ตรวจสอบ endDate
           if (cancelledEndDate) {
-            const endDateOnly = new Date(
-              cancelledEndDate.year,
-              cancelledEndDate.month - 1,
-              cancelledEndDate.day,
-            );
+            const endDateOnly = toDateOnly(cancelledEndDate);
 
             if (jobDateOnly > endDateOnly) {
               return false;
@@ -976,7 +968,7 @@ export default function JobListClient() {
                       <CardBody>
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DatePicker<CalendarDate>
+                            <DatePicker
                               label="วันที่เริ่มต้น"
                               maxValue={completedEndDate || undefined}
                               selectorIcon={
@@ -987,16 +979,17 @@ export default function JobListClient() {
                               onChange={(date) => {
                                 setCompletedStartDate(date);
                                 // ถ้าวันที่เริ่มต้นมากกว่าวันที่สิ้นสุด ให้ล้างวันที่สิ้นสุด
-                                if (
-                                  date &&
-                                  completedEndDate &&
-                                  date.compare(completedEndDate) > 0
-                                ) {
-                                  setCompletedEndDate(null);
+                                if (date && completedEndDate) {
+                                  const start = toDateOnly(date);
+                                  const end = toDateOnly(completedEndDate);
+
+                                  if (start > end) {
+                                    setCompletedEndDate(null);
+                                  }
                                 }
                               }}
                             />
-                            <DatePicker<CalendarDate>
+                            <DatePicker
                               label="วันที่สิ้นสุด"
                               minValue={completedStartDate || undefined}
                               selectorIcon={
@@ -1059,7 +1052,7 @@ export default function JobListClient() {
                       <CardBody>
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DatePicker<CalendarDate>
+                            <DatePicker
                               label="วันที่เริ่มต้น"
                               maxValue={cancelledEndDate || undefined}
                               selectorIcon={
@@ -1070,16 +1063,17 @@ export default function JobListClient() {
                               onChange={(date) => {
                                 setCancelledStartDate(date);
                                 // ถ้าวันที่เริ่มต้นมากกว่าวันที่สิ้นสุด ให้ล้างวันที่สิ้นสุด
-                                if (
-                                  date &&
-                                  cancelledEndDate &&
-                                  date.compare(cancelledEndDate) > 0
-                                ) {
-                                  setCancelledEndDate(null);
+                                if (date && cancelledEndDate) {
+                                  const start = toDateOnly(date);
+                                  const end = toDateOnly(cancelledEndDate);
+
+                                  if (start > end) {
+                                    setCancelledEndDate(null);
+                                  }
                                 }
                               }}
                             />
-                            <DatePicker<CalendarDate>
+                            <DatePicker
                               label="วันที่สิ้นสุด"
                               minValue={cancelledStartDate || undefined}
                               selectorIcon={
