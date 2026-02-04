@@ -173,7 +173,7 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
                   <tbody>
                     {DAYS_OF_WEEK.map((dayName, dayIndex) => (
                       <tr key={dayIndex}>
-                        <td className="p-2 text-xs font-semibold text-default-700 bg-default-100 border-r border-default-300 border-t border-default-300 sticky left-0 z-10">
+                        <td className="p-2 text-xs font-semibold text-default-700 bg-default-100 border-r border-t border-default-300 sticky left-0 z-10">
                           {dayName}
                         </td>
                         {Array.from({ length: 24 }, (_, i) => (i + 8) % 24).map(

@@ -433,7 +433,7 @@ export default function EmployeeManagementPage() {
                         <span className="text-foreground">{item.lastName}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-foreground text-sm text-default-500">
+                        <span className="text-sm text-default-500">
                           {item.nickname || "-"}
                         </span>
                       </TableCell>

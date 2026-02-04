@@ -21,7 +21,7 @@ export async function updateUserActivity(userId: string): Promise<void> {
   } catch (error) {
     // ไม่ throw error เพื่อไม่ให้กระทบการทำงานของระบบหลัก
     // ถ้าไม่มี record ใน user_activity ก็ไม่เป็นไร (อาจจะยังไม่ได้ login)
-    console.debug("Failed to update user activity:", error);
+    console.info("Failed to update user activity:", error);
   }
 }
 
@@ -31,7 +31,9 @@ export async function updateUserActivity(userId: string): Promise<void> {
  *
  * @param userId - ID ของผู้ใช้ที่ต้องการอัปเดต
  */
-export async function updateUserActivitySafe(userId: string | undefined): Promise<void> {
+export async function updateUserActivitySafe(
+  userId: string | undefined,
+): Promise<void> {
   if (!userId) {
     return;
   }

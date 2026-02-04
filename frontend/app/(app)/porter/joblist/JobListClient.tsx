@@ -976,7 +976,7 @@ export default function JobListClient() {
                       <CardBody>
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DatePicker
+                            <DatePicker<CalendarDate>
                               label="วันที่เริ่มต้น"
                               maxValue={completedEndDate || undefined}
                               selectorIcon={
@@ -996,7 +996,7 @@ export default function JobListClient() {
                                 }
                               }}
                             />
-                            <DatePicker
+                            <DatePicker<CalendarDate>
                               label="วันที่สิ้นสุด"
                               minValue={completedStartDate || undefined}
                               selectorIcon={
@@ -1059,7 +1059,7 @@ export default function JobListClient() {
                       <CardBody>
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DatePicker
+                            <DatePicker<CalendarDate>
                               label="วันที่เริ่มต้น"
                               maxValue={cancelledEndDate || undefined}
                               selectorIcon={
@@ -1079,7 +1079,7 @@ export default function JobListClient() {
                                 }
                               }}
                             />
-                            <DatePicker
+                            <DatePicker<CalendarDate>
                               label="วันที่สิ้นสุด"
                               minValue={cancelledStartDate || undefined}
                               selectorIcon={

@@ -480,7 +480,7 @@ export const authOptions: any = {
   },
   events: {
     // บันทึกข้อมูลผู้ใช้ที่ login สำเร็จลง user_activity
-    async signIn({ user, account }: { user: any; account: any }) {
+    async signIn({ user, account: _account }: { user: any; account: any }) {
       try {
         if (!user?.id) {
           return;
@@ -520,7 +520,8 @@ export const authOptions: any = {
             cookieStore.get("next-auth.session-token")?.value;
 
           if (sessionToken) {
-            const secret = process.env.NEXTAUTH_SECRET || "your-secret-key-here";
+            const secret =
+              process.env.NEXTAUTH_SECRET || "your-secret-key-here";
             const decoded = await decode({
               token: sessionToken,
               secret,

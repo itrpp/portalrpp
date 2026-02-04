@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     // ไม่ return error เพื่อไม่ให้กระทบการทำงานของระบบหลัก
     // ถ้าไม่มี record ใน user_activity ก็ไม่เป็นไร
-    console.debug("Failed to update user activity:", error);
+    console.info("Failed to update user activity:", error);
 
     return NextResponse.json(
       {
