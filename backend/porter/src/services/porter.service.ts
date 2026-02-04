@@ -320,9 +320,8 @@ export const updatePorterRequestStatus = async (
   statusData: Omit<UpdatePorterRequestStatusInput, 'id'>
 ): Promise<PorterRequestMessage> => {
   const { status, assigned_to_id, cancelled_reason, cancelled_by_id, accepted_by_id } = statusData;
-  let newStatus = mapStatusToPrisma(status);
-
   const oldRequest = await porterRequestRepo.findPorterRequestById(id);
+  let newStatus = mapStatusToPrisma(status);
   const oldStatus = oldRequest?.status;
 
   // หลังเลือกผู้ปฏิบัติงาน (มอบหมาย): ถ้ามี assigned_to_id และสถานะเดิมเป็น WAITING_CENTER → เปลี่ยนเป็น WAITING_ACCEPT
@@ -333,6 +332,11 @@ export const updatePorterRequestStatus = async (
   const data: Prisma.PorterRequestUpdateInput = {
     status: newStatus
   };
+
+  // คืนงานจาก WAITING_ACCEPT กลับไปที่ WAITING_CENTER ต้องล้างผู้ปฏิบัติงานที่ถูกมอบหมาย
+  if (oldRequest?.status === 'WAITING_ACCEPT' && newStatus === 'WAITING_CENTER') {
+    data.assignedToId = null;
+  }
 
   if (newStatus === 'IN_PROGRESS') {
     data.acceptedAt = new Date();

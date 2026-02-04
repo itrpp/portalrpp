@@ -365,7 +365,8 @@ export default function EmployeeModal({
         position: "", // จะถูก populate จาก backend
         positionId,
         status,
-        userId: userId && userId.trim() !== "" ? userId.trim() : undefined,
+        // ส่งค่าว่าง ("") เมื่อผู้ใช้ลบการเลือก user เพื่อให้ backend เคลียร์การผูก user ออกจากเจ้าหน้าที่
+        userId: userId.trim(),
       });
       onClose();
     } catch {

@@ -80,6 +80,13 @@ interface JobDetailDrawerProps {
   readOnly?: boolean; // โหมดอ่านอย่างเดียว
 }
 
+type OnlineUser = {
+  id: string;
+  porterEmployee?: {
+    id: string;
+  };
+};
+
 export default function JobDetailDrawer({
   isOpen,
   job,
@@ -93,8 +100,10 @@ export default function JobDetailDrawer({
   const [formData, setFormData] = useState<PorterRequestFormData | null>(null);
   const [employees, setEmployees] = useState<PorterEmployee[]>([]);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
+  const [onlineEmployeeIds, setOnlineEmployeeIds] = useState<string[]>([]);
+  const [isLoadingOnlineUsers, setIsLoadingOnlineUsers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelReasonError, setCancelReasonError] = useState<string>("");
@@ -140,14 +149,62 @@ export default function JobDetailDrawer({
     }
   }, [isOpen]);
 
+  // โหลดข้อมูล online-users เพื่อหา PorterEmployee ที่ออนไลน์ (มี porterEmployee id)
+  useEffect(() => {
+    const loadOnlineUsers = async () => {
+      if (!isOpen || readOnly || job?.status !== "WAITING_CENTER") {
+        setOnlineEmployeeIds([]);
+
+        return;
+      }
+
+      try {
+        setIsLoadingOnlineUsers(true);
+
+        const response = await fetch("/api/auth/online-users");
+        const result = (await response.json()) as {
+          success: boolean;
+          users?: OnlineUser[];
+        };
+
+        if (result.success && Array.isArray(result.users)) {
+          const porterIds = result.users
+            .map((user) => user.porterEmployee?.id)
+            .filter(
+              (id): id is string => typeof id === "string" && id.length > 0,
+            );
+
+          const uniqueIds = Array.from(new Set(porterIds));
+
+          setOnlineEmployeeIds(uniqueIds);
+        } else {
+          setOnlineEmployeeIds([]);
+        }
+      } catch (error) {
+        console.error("Error loading online users:", error);
+        setOnlineEmployeeIds([]);
+      } finally {
+        setIsLoadingOnlineUsers(false);
+      }
+    };
+
+    void loadOnlineUsers();
+  }, [isOpen, job?.status, readOnly]);
+
   // Sync form data with job when it changes
   useEffect(() => {
     if (job && !isEditMode) {
       setIsEditMode(false);
       setFormData({ ...job.form });
-      setSelectedStaffId(job.assignedTo || "");
     }
   }, [job, isEditMode]);
+
+  // รีเซ็ตการเลือกผู้ปฏิบัติงานทุกครั้งที่เปิด Drawer ในโหมดมอบหมายงาน
+  useEffect(() => {
+    if (isOpen && !readOnly && job?.status === "WAITING_CENTER") {
+      setSelectedStaffId(null);
+    }
+  }, [isOpen, job?.status, readOnly]);
 
   // ดึงชื่อผู้รับงานจาก user table โดยใช้ acceptedById
   useEffect(() => {
@@ -424,6 +481,13 @@ export default function JobDetailDrawer({
     (job.status === "WAITING_CENTER" ||
       job.status === "WAITING_ACCEPT" ||
       job.status === "IN_PROGRESS");
+
+  // กรองรายชื่อ employees ให้เหลือเฉพาะคนที่อยู่ใน online-users (มี porterEmployee id) ถ้ามีข้อมูลออนไลน์
+  const onlineEmployeeIdSet = new Set(onlineEmployeeIds);
+  const availableEmployees =
+    onlineEmployeeIds.length > 0
+      ? employees.filter((emp) => onlineEmployeeIdSet.has(emp.id))
+      : employees;
 
   return (
     <Drawer isOpen={isOpen} placement="right" size="3xl" onClose={onClose}>
@@ -1247,22 +1311,23 @@ export default function JobDetailDrawer({
                   ผู้ปฎิบัติงาน
                 </h3>
                 <Autocomplete
-                  isRequired
-                  defaultSelectedKey={job.assignedTo || undefined}
-                  isDisabled={isLoadingEmployees}
+                  isClearable
+                  isDisabled={isLoadingEmployees || isLoadingOnlineUsers}
                   label="ผู้ปฎิบัติงาน"
                   placeholder={
-                    isLoadingEmployees
+                    isLoadingEmployees || isLoadingOnlineUsers
                       ? "กำลังโหลดข้อมูลเจ้าหน้าที่..."
-                      : "เลือกเจ้าหน้าที่ผู้ปฎิบัติงาน"
+                      : availableEmployees.length > 0
+                        ? "เลือกเจ้าหน้าที่ผู้ปฎิบัติงาน"
+                        : "ไม่พบผู้ปฏิบัติงานที่ออนไลน์"
                   }
-                  selectedKey={selectedStaffId || job.assignedTo || ""}
+                  selectedKey={selectedStaffId ?? undefined}
                   variant="bordered"
                   onSelectionChange={(key) => {
-                    setSelectedStaffId((key as string) || "");
+                    setSelectedStaffId((key as string | null) ?? null);
                   }}
                 >
-                  {employees.map((employee) => {
+                  {availableEmployees.map((employee) => {
                     const fullName = `${employee.firstName} ${employee.lastName}`;
                     const displayName = employee.nickname
                       ? `[${employee.nickname}] ${employee.firstName} ${employee.lastName}`

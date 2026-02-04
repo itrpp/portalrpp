@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 
 import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { callPorterService } from "@/lib/grpcClient";
 
 /**
  * GET /api/auth/online-users
@@ -76,18 +77,42 @@ export async function GET(request: NextRequest) {
     // นับจำนวนผู้ใช้ Online
     const count = onlineUsers.length;
 
-    // สร้าง response data
-    const users = onlineUsers.map((activity) => ({
-      id: activity.user.id,
-      name: activity.user.displayName || activity.user.email || "ไม่ระบุ",
-      email: activity.user.email,
-      department: activity.user.department,
-      departmentId: activity.user.departmentId,
-      departmentSubId: activity.user.departmentSubId,
-      departmentSubSubId: activity.user.departmentSubSubId,
-      loginAt: activity.loginAt,
-      lastActivityAt: activity.lastActivityAt,
-    }));
+    // สร้าง response data พร้อมดึง PorterEmployee ที่ผูกกับ user แต่ละคน (ถ้ามี)
+    const users = await Promise.all(
+      onlineUsers.map(async (activity) => {
+        let porterEmployee: { id: string } | null = null;
+
+        try {
+          const porterResponse = await callPorterService<{
+            success: boolean;
+            data?: Array<{ id: string }>;
+          }>("ListEmployees", { user_id: activity.user.id });
+
+          if (
+            porterResponse?.success &&
+            Array.isArray(porterResponse.data) &&
+            porterResponse.data.length > 0
+          ) {
+            porterEmployee = { id: porterResponse.data[0].id };
+          }
+        } catch {
+          // ไม่บล็อกการดึง online users ถ้า porter service ไม่พร้อม
+        }
+
+        return {
+          id: activity.user.id,
+          name: activity.user.displayName || activity.user.email || "ไม่ระบุ",
+          email: activity.user.email,
+          department: activity.user.department,
+          departmentId: activity.user.departmentId,
+          departmentSubId: activity.user.departmentSubId,
+          departmentSubSubId: activity.user.departmentSubSubId,
+          loginAt: activity.loginAt,
+          lastActivityAt: activity.lastActivityAt,
+          porterEmployee: porterEmployee ?? undefined,
+        };
+      }),
+    );
 
     return NextResponse.json(
       {
