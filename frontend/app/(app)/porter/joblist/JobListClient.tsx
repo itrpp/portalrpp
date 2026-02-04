@@ -1,7 +1,5 @@
 "use client";
 
-import type { DateValue } from "@internationalized/date";
-
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
@@ -45,20 +43,27 @@ export default function JobListClient() {
   const [error, setError] = useState<string | null>(null);
 
   // Date range filters สำหรับ completed และ cancelled tabs
-  const [completedStartDate, setCompletedStartDate] =
-    useState<DateValue | null>(null);
-  const [completedEndDate, setCompletedEndDate] = useState<DateValue | null>(
-    null,
-  );
-  const [cancelledStartDate, setCancelledStartDate] =
-    useState<DateValue | null>(null);
-  const [cancelledEndDate, setCancelledEndDate] = useState<DateValue | null>(
-    null,
-  );
+  // ใช้ any เพื่อลดปัญหา type conflict ระหว่าง instance ของ @internationalized/date
+  const [completedStartDate, setCompletedStartDate] = useState<any>(null);
+  const [completedEndDate, setCompletedEndDate] = useState<any>(null);
+  const [cancelledStartDate, setCancelledStartDate] = useState<any>(null);
+  const [cancelledEndDate, setCancelledEndDate] = useState<any>(null);
 
-  // แปลง DateValue (เช่น ค่าจาก DatePicker) เป็น Date (เฉพาะส่วนวันที่)
-  const toDateOnly = (value: DateValue) => {
-    const v = value as unknown as { year: number; month: number; day: number };
+  // แปลงค่าจาก DatePicker (เช่น CalendarDate) เป็น Date (เฉพาะส่วนวันที่)
+  const toDateOnly = (value: any): Date | null => {
+    if (!value) {
+      return null;
+    }
+
+    const v = value as { year: number; month: number; day: number };
+
+    if (
+      typeof v.year !== "number" ||
+      typeof v.month !== "number" ||
+      typeof v.day !== "number"
+    ) {
+      return null;
+    }
 
     return new Date(v.year, v.month - 1, v.day);
   };
@@ -496,7 +501,7 @@ export default function JobListClient() {
           if (completedStartDate) {
             const startDateOnly = toDateOnly(completedStartDate);
 
-            if (jobDateOnly < startDateOnly) {
+            if (startDateOnly && jobDateOnly < startDateOnly) {
               return false;
             }
           }
@@ -505,7 +510,7 @@ export default function JobListClient() {
           if (completedEndDate) {
             const endDateOnly = toDateOnly(completedEndDate);
 
-            if (jobDateOnly > endDateOnly) {
+            if (endDateOnly && jobDateOnly > endDateOnly) {
               return false;
             }
           }
@@ -534,7 +539,7 @@ export default function JobListClient() {
           if (cancelledStartDate) {
             const startDateOnly = toDateOnly(cancelledStartDate);
 
-            if (jobDateOnly < startDateOnly) {
+            if (startDateOnly && jobDateOnly < startDateOnly) {
               return false;
             }
           }
@@ -543,7 +548,7 @@ export default function JobListClient() {
           if (cancelledEndDate) {
             const endDateOnly = toDateOnly(cancelledEndDate);
 
-            if (jobDateOnly > endDateOnly) {
+            if (endDateOnly && jobDateOnly > endDateOnly) {
               return false;
             }
           }
@@ -983,7 +988,7 @@ export default function JobListClient() {
                                   const start = toDateOnly(date);
                                   const end = toDateOnly(completedEndDate);
 
-                                  if (start > end) {
+                                  if (start && end && start > end) {
                                     setCompletedEndDate(null);
                                   }
                                 }
@@ -1067,7 +1072,7 @@ export default function JobListClient() {
                                   const start = toDateOnly(date);
                                   const end = toDateOnly(cancelledEndDate);
 
-                                  if (start > end) {
+                                  if (start && end && start > end) {
                                     setCancelledEndDate(null);
                                   }
                                 }

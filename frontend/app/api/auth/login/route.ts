@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
 import { callPorterService } from "@/lib/grpcClient";
+import { upsertUserActivityOnLogin } from "@/lib/userActivity";
 
 /**
  * POST /api/auth/login
@@ -137,6 +138,13 @@ export async function POST(request: Request) {
         },
         { status: 500 },
       );
+    }
+
+    // อัปเดต user_activity เมื่อ login สำเร็จ (ไม่ให้ error กระทบ flow หลัก)
+    try {
+      await upsertUserActivityOnLogin(dbUser.id);
+    } catch (error) {
+      console.info("Failed to upsert user_activity from /api/auth/login:", error);
     }
 
     // ดึง PorterEmployee ที่ผูกกับ user นี้ (ถ้ามี)

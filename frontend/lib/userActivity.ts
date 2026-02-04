@@ -40,3 +40,34 @@ export async function updateUserActivitySafe(
 
   await updateUserActivity(userId);
 }
+
+/**
+ * upsert user_activity เมื่อผู้ใช้ login สำเร็จ
+ * ใช้ร่วมกันทั้งใน NextAuth signIn event และ /api/auth/login
+ */
+export async function upsertUserActivityOnLogin(
+  userId: string,
+  date: Date = new Date(),
+): Promise<void> {
+  if (!userId) {
+    return;
+  }
+
+  try {
+    await prisma.user_activity.upsert({
+      where: { userId },
+      update: {
+        loginAt: date,
+        lastActivityAt: date,
+      },
+      create: {
+        userId,
+        loginAt: date,
+        lastActivityAt: date,
+      },
+    });
+  } catch (error) {
+    // ไม่ให้ error นี้ทำให้ flow การ login ล้มเหลว
+    console.info("Failed to upsert user_activity on login:", error);
+  }
+}

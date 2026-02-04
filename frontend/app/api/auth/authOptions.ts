@@ -15,6 +15,7 @@ import { cookies } from "next/headers";
 import { createLDAPService } from "@/lib/ldap";
 import { prisma } from "@/lib/prisma";
 import { callPorterService } from "@/lib/grpcClient";
+import { upsertUserActivityOnLogin } from "@/lib/userActivity";
 
 const LINE_PROVIDER_ID = "line";
 const LINE_LOGIN_GUARD_CODE = "LINE_LDAP_REQUIRED";
@@ -486,21 +487,8 @@ export const authOptions: any = {
           return;
         }
 
-        const now = new Date();
-
         // อัปเดตหรือสร้าง record ใน user_activity
-        await prisma.user_activity.upsert({
-          where: { userId: user.id },
-          update: {
-            loginAt: now,
-            lastActivityAt: now,
-          },
-          create: {
-            userId: user.id,
-            loginAt: now,
-            lastActivityAt: now,
-          },
-        });
+        await upsertUserActivityOnLogin(user.id);
       } catch (e) {
         console.error("Failed to update user_activity on signIn:", e);
       }
