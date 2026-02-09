@@ -43,14 +43,18 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 
 const porterProto = grpc.loadPackageDefinition(packageDefinition).porter as any;
 
+/** ชื่อ env สำหรับ gRPC URL (ใช้ key แบบ dynamic เพื่อให้ Next.js ไม่ inline ตอน build จะได้อ่านค่าจาก .env.local ตอน runtime) */
+const PORTER_GRPC_URL_KEY = "PORTER_SERVICE_GRPC_URL";
+const DEFAULT_PORTER_GRPC_URL = "localhost:50051";
+
 /**
  * สร้าง gRPC Client สำหรับ Porter Service
  * เรียกโดยตรงจาก Next.js API route
  */
 export function getPorterClient(): any {
-  // อ่าน gRPC URL จาก environment variable
-  // ใช้ NEXT_PUBLIC_ prefix สำหรับ client-side แต่ใน API route ใช้ process.env ได้
-  const grpcUrl = process.env.PORTER_SERVICE_GRPC_URL || "localhost:50051";
+  const grpcUrl =
+    (process.env[PORTER_GRPC_URL_KEY] as string | undefined) ||
+    DEFAULT_PORTER_GRPC_URL;
 
   if (!grpcUrl) {
     throw new Error("PORTER_SERVICE_GRPC_URL is not configured");
