@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
   Card,
@@ -17,6 +17,9 @@ import {
   TableRow,
   TableCell,
   Pagination,
+  Input,
+  Select,
+  SelectItem,
 } from "@heroui/react";
 
 import { EmployeeModal, ImagePreviewModal } from "../../components";
@@ -27,6 +30,7 @@ import {
   PlusIcon,
   TrashIcon,
   PencilIcon,
+  MagnifyingGlassIcon,
 } from "@/components/ui/icons";
 import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
 
@@ -38,6 +42,55 @@ export default function EmployeeManagementPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterEmploymentTypeId, setFilterEmploymentTypeId] = useState("");
+  const [filterPositionId, setFilterPositionId] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
+
+  const filteredEmployees = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return employees.filter((item) => {
+      if (query) {
+        const searchText = [
+          item.citizenId,
+          item.firstName,
+          item.lastName,
+          item.nickname ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        if (!searchText.includes(query)) {
+          return false;
+        }
+      }
+      if (
+        filterEmploymentTypeId &&
+        String(item.employmentTypeId) !== filterEmploymentTypeId
+      ) {
+        return false;
+      }
+      if (filterPositionId && String(item.positionId) !== filterPositionId) {
+        return false;
+      }
+      if (filterStatus === "active" && !item.status) {
+        return false;
+      }
+      if (filterStatus === "inactive" && item.status) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    employees,
+    searchQuery,
+    filterEmploymentTypeId,
+    filterPositionId,
+    filterStatus,
+  ]);
+
   const {
     currentPage,
     rowsPerPage,
@@ -47,7 +100,17 @@ export default function EmployeeManagementPage() {
     paginatedItems: currentEmployees,
     setCurrentPage,
     setRowsPerPage,
-  } = usePagination(employees, { initialRowsPerPage: 10 });
+  } = usePagination(filteredEmployees, { initialRowsPerPage: 10 });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchQuery,
+    filterEmploymentTypeId,
+    filterPositionId,
+    filterStatus,
+    setCurrentPage,
+  ]);
 
   const {
     isOpen: isEmployeeModalOpen,
@@ -353,6 +416,69 @@ export default function EmployeeManagementPage() {
         </Button>
       </div>
 
+      {/* Filters */}
+      <Card className="shadow-lg border border-default-200">
+        <CardBody>
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input
+              isClearable
+              className="flex-1"
+              placeholder="ค้นหาด้วยชื่อ นามสกุล ชื่อเล่น หรือเลขบัตรประชาชน..."
+              startContent={
+                <MagnifyingGlassIcon className="w-5 h-5 text-default-400" />
+              }
+              value={searchQuery}
+              onClear={() => setSearchQuery("")}
+              onValueChange={setSearchQuery}
+            />
+            <Select
+              className="w-full md:w-48"
+              placeholder="ประเภทการจ้าง"
+              selectedKeys={
+                filterEmploymentTypeId ? [filterEmploymentTypeId] : []
+              }
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+
+                setFilterEmploymentTypeId(selected ?? "");
+              }}
+            >
+              {employmentTypes.map((item) => (
+                <SelectItem key={item.id}>{item.name}</SelectItem>
+              ))}
+            </Select>
+            <Select
+              className="w-full md:w-48"
+              placeholder="ตำแหน่ง"
+              selectedKeys={filterPositionId ? [filterPositionId] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+
+                setFilterPositionId(selected ?? "");
+              }}
+            >
+              {positions.map((item) => (
+                <SelectItem key={item.id}>{item.name}</SelectItem>
+              ))}
+            </Select>
+            <Select
+              className="w-full md:w-48"
+              placeholder="สถานะ"
+              selectedKeys={filterStatus ? [filterStatus] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+
+                setFilterStatus(selected ?? "");
+              }}
+            >
+              <SelectItem key="all">ทั้งหมด</SelectItem>
+              <SelectItem key="active">ใช้งาน</SelectItem>
+              <SelectItem key="inactive">ไม่ใช้งาน</SelectItem>
+            </Select>
+          </div>
+        </CardBody>
+      </Card>
+
       {/* Table */}
       <Card className="shadow-lg border border-default-200">
         <CardHeader className="pb-0">
@@ -487,12 +613,12 @@ export default function EmployeeManagementPage() {
               </Table>
 
               {/* Pagination */}
-              {employees.length > 0 && (
+              {filteredEmployees.length > 0 && (
                 <div className="flex items-center justify-between mt-4 px-2">
                   <div className="text-sm text-default-600">
                     แสดง {startIndex + 1} - {""}
-                    {Math.min(endIndex, employees.length)} จาก {""}
-                    {employees.length} รายการ
+                    {Math.min(endIndex, filteredEmployees.length)} จาก {""}
+                    {filteredEmployees.length} รายการ
                   </div>
                   <Pagination
                     showControls
