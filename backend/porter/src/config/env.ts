@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 const projectRoot = path.resolve(__dirname, '..', '..');
 const defaultEnvPath = path.join(projectRoot, '.env');
 const localEnvPath = path.join(projectRoot, '.env.local');
+const cwdLocalEnvPath = path.join(process.cwd(), '.env.local');
 
 if (fs.existsSync(defaultEnvPath)) {
   dotenv.config({ path: defaultEnvPath });
@@ -14,6 +15,8 @@ if (fs.existsSync(defaultEnvPath)) {
 
 if (fs.existsSync(localEnvPath)) {
   dotenv.config({ path: localEnvPath, override: true });
+} else if (fs.existsSync(cwdLocalEnvPath)) {
+  dotenv.config({ path: cwdLocalEnvPath, override: true });
 }
 
 const requiredEnvVars = ['NODE_ENV', 'PORT', 'DATABASE_URL'] as const;
