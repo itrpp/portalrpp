@@ -5,6 +5,19 @@
 
 import { RequiredEnvVars, OptionalEnvVars } from "@/types";
 
+const DEFAULT_API_GATEWAY_URL = "http://localhost:3001";
+
+/**
+ * คืนค่า API Gateway base URL ที่ sanitize แล้ว
+ * ลบเครื่องหมายคำพูด (" หรือ ') ที่อาจติดมาจาก .env และตัด / ท้ายออก
+ */
+export function getApiGatewayBaseUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_API_GATEWAY_URL || DEFAULT_API_GATEWAY_URL;
+  const sanitized = raw.replace(/^["']|["']$/g, "").replace(/\/$/, "").trim();
+  return sanitized || DEFAULT_API_GATEWAY_URL;
+}
+
 /**
  * ตรวจสอบ required environment variables
  */

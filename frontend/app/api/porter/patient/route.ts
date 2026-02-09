@@ -4,12 +4,7 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
 import { getAuthSession } from "@/lib/auth";
-
-// กำหนด base URL ของ API Gateway จาก env และตัดเครื่องหมาย / ท้ายออกเพื่อป้องกันซ้ำซ้อน
-const baseUrl = (process.env.NEXT_PUBLIC_API_GATEWAY_URL || "").replace(
-  /\/$/,
-  "",
-);
+import { getApiGatewayBaseUrl } from "@/lib/env";
 
 /**
  * แปลงรูปแบบ HN/AN จาก "123456/68" หรือ "123456-68" เป็น "680123456"
@@ -117,6 +112,7 @@ export async function POST(request: Request) {
     );
 
     // เรียก API Gateway endpoint
+    const baseUrl = getApiGatewayBaseUrl();
     const endpoint = `${baseUrl}/api-gateway/ephis/patient`;
 
     // ส่งเฉพาะประเภทที่ตรวจพบ (hn หรือ an) ไม่ส่งทั้งสองอย่าง

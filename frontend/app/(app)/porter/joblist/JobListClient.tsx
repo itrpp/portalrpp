@@ -23,6 +23,7 @@ import {
   CheckCircleIcon,
   CalendarIcon,
 } from "@/components/ui/icons";
+import { getApiGatewayBaseUrl } from "@/lib/env";
 import { formatDateTimeThai } from "@/lib/utils";
 import {
   JobListTab,
@@ -157,8 +158,7 @@ export default function JobListClient() {
         // สำหรับทดสอบ: ตั้งค่า USE_DIRECT_CONNECTION=true ใน .env.local
         const useDirectConnection =
           process.env.NEXT_PUBLIC_USE_DIRECT_SSE === "true";
-        const apiGatewayUrl =
-          process.env.NEXT_PUBLIC_API_GATEWAY_URL || "http://localhost:3001";
+        const apiGatewayUrl = getApiGatewayBaseUrl();
 
         let streamUrl: string;
         let headers: HeadersInit = {};
