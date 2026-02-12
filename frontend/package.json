@@ -2,11 +2,15 @@
   "name": "next-app-template",
   "version": "0.0.1",
   "private": true,
+  "overrides": {
+    "@next/swc": "15.5.11"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "lint:unused-exports": "ts-prune",
     "lint:knip": "knip",
     "db:push:local": "prisma generate && dotenv -e .env.local -- npx prisma db push"
@@ -72,7 +76,7 @@
     "knip": "5.83.0",
     "postcss": "8.5.6",
     "prettier": "3.5.3",
-    "prisma": "^6.19.2",
+    "prisma": "7.3.0",
     "tailwind-variants": "3.1.1",
     "tailwindcss": "4.1.18",
     "ts-prune": "0.10.3",

@@ -42,9 +42,9 @@ export function buildListProtoRequest(
   if (params.page) {
     protoRequest.page = parseInt(params.page, 10);
   }
-  if (params.page_size) {
-    protoRequest.page_size = parseInt(params.page_size, 10);
-  }
+  protoRequest.page_size = params.page_size
+    ? parseInt(params.page_size, 10)
+    : 1000;
 
   return protoRequest;
 }
@@ -120,6 +120,6 @@ export async function listPorterRequestsWithEnrichment(
     data: frontendData,
     total: response.total ?? frontendData.length,
     page: response.page ?? 1,
-    page_size: response.page_size ?? frontendData.length,
+    page_size: response.page_size ?? 1000,
   };
 }

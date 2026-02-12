@@ -54,13 +54,20 @@ export async function upsertUserActivityOnLogin(
   }
 
   try {
-    await prisma.user_activity.upsert({
-      where: { userId },
-      update: {
-        loginAt: date,
-        lastActivityAt: date,
+    // ปิด session เดิมที่ยังไม่ logout (ถ้ามี) เพื่อให้มีเพียง 1 session ปัจจุบันที่ active
+    await prisma.user_activity.updateMany({
+      where: {
+        userId,
+        logoutAt: null,
       },
-      create: {
+      data: {
+        logoutAt: date,
+      },
+    });
+
+    // สร้าง record ใหม่สำหรับการ login ครั้งนี้
+    await prisma.user_activity.create({
+      data: {
         userId,
         loginAt: date,
         lastActivityAt: date,

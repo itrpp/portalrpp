@@ -23,7 +23,6 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
     try {
       const queryParams = new URLSearchParams({
         requester_user_id: userId,
-        page_size: "100",
       });
 
       const response = await fetch(

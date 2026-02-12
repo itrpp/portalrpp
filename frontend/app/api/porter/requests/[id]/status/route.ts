@@ -28,19 +28,14 @@ export async function PUT(
       status: mapStatusToProto(requestData.status),
     };
 
+    // ศูนย์เปลมอบหมายงาน: ส่ง assigned_to_id (ผู้ที่ได้รับมอบหมาย) และ accepted_by_id (ผู้ที่ดำเนินการมอบหมาย = ศูนย์เปล)
     if (requestData.assignedToId) {
       protoRequest.assigned_to_id = requestData.assignedToId;
+      protoRequest.accepted_by_id = auth.userId;
     }
     if (requestData.cancelledReason) {
       protoRequest.cancelled_reason = requestData.cancelledReason;
-
       protoRequest.cancelled_by_id = auth.userId;
-    }
-    if (
-      requestData.status === "IN_PROGRESS" ||
-      requestData.status === "in-progress"
-    ) {
-      protoRequest.accepted_by_id = auth.userId;
     }
 
     // เรียก gRPC service

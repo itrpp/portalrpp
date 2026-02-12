@@ -616,6 +616,7 @@ export function convertProtoToFrontend(protoData: any): PorterJobItem {
     assignedTo: protoData.assigned_to_id || protoData.assignedToId || undefined,
     assignedToName:
       protoData.assigned_to_name || protoData.assignedToName || undefined,
+    assignedAt: protoData.assigned_at || protoData.assignedAt || undefined,
     createdAt: protoData.created_at || protoData.createdAt || undefined,
     updatedAt: protoData.updated_at || protoData.updatedAt || undefined,
     acceptedAt: protoData.accepted_at || protoData.acceptedAt || undefined,

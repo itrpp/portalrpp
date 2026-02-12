@@ -47,9 +47,17 @@ export async function DELETE(request: NextRequest) {
       userId = auth.userId;
     }
 
-    // ลบ user_activity ของผู้ใช้ที่กำลัง logout
-    await prisma.user_activity.deleteMany({
-      where: { userId },
+    // ปิด session ปัจจุบันของผู้ใช้ที่กำลัง logout โดยไม่ลบประวัติ
+    const now = new Date();
+
+    await prisma.user_activity.updateMany({
+      where: {
+        userId,
+        logoutAt: null,
+      },
+      data: {
+        logoutAt: now,
+      },
     });
 
     return NextResponse.json(

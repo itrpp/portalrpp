@@ -760,6 +760,12 @@ export default function PorterRequestPage() {
 
                         handleInputChange("patientHN", filteredValue);
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSearchPatient();
+                        }
+                      }}
                     />
                   </div>
 
@@ -1252,12 +1258,14 @@ export default function PorterRequestPage() {
                               color={
                                 item.status === "WAITING_CENTER" ||
                                 item.status === "WAITING_ACCEPT"
-                                  ? "secondary" // เปลี่ยนเป็นม่วงให้ดูแตกต่างจาก urgency
+                                  ? "default"
                                   : item.status === "IN_PROGRESS"
-                                    ? "primary"
+                                    ? "warning"
                                     : item.status === "COMPLETED"
                                       ? "success"
-                                      : "default"
+                                      : item.status === "CANCELLED"
+                                        ? "danger"
+                                        : "default"
                               }
                               size="sm"
                               variant="flat"
@@ -1311,9 +1319,9 @@ export default function PorterRequestPage() {
                             <div className="flex flex-col gap-1">
                               <div className="text-tiny">
                                 <span className="text-default-500">รับ: </span>
-                                <span className="text-primary-500">
-                                  {item.form.pickupLocationDetail?.roomBedName}
-                                </span>
+                                {formatLocationString(
+                                  item.form.pickupLocationDetail,
+                                )}
                               </div>
                               <div className="text-tiny">
                                 <span className="text-default-500">ส่ง: </span>

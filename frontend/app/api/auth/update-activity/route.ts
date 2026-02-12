@@ -4,10 +4,51 @@ import jwt from "jsonwebtoken";
 import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// ดึง IP ของ client จาก header ที่ Nginx / Proxy ส่งมา
+function getClientIp(request: NextRequest): string | null {
+  // 1) ให้ความสำคัญกับ X-Real-IP ก่อน (Nginx set จาก $remote_addr)
+  const xRealIp =
+    request.headers.get("x-real-ip") ?? request.headers.get("X-Real-IP");
+
+  if (xRealIp && xRealIp !== "127.0.0.1" && xRealIp !== "::1") {
+    return xRealIp;
+  }
+
+  // 2) ถัดมาค่อยดู X-Forwarded-For (อาจมีหลายชั้น: client, proxy1, proxy2, ...)
+  const xForwardedFor =
+    request.headers.get("x-forwarded-for") ??
+    request.headers.get("X-Forwarded-For");
+
+  if (xForwardedFor) {
+    const ips = xForwardedFor
+      .split(",")
+      .map((ip) => ip.trim())
+      .filter(Boolean);
+
+    if (ips.length > 0) {
+      // หา IP แรกที่ไม่ใช่ loopback (::1, 127.0.0.1)
+      const nonLoopback = ips.find((ip) => ip !== "127.0.0.1" && ip !== "::1");
+
+      if (nonLoopback) {
+        return nonLoopback;
+      }
+
+      // ถ้าไม่เจอเลยก็คืนตัวสุดท้ายเป็น fallback
+      return ips[ips.length - 1];
+    }
+  }
+
+  return null;
+}
+
+/** ระยะเวลา idle สูงสุด (มิลลิวินาที) — เกินนี้ถือว่า session หมดอายุ ต้อง auth ใหม่ */
+const INACTIVITY_MAX_MS = 60 * 60 * 1000; // 60 นาที
+
 /**
  * POST /api/auth/update-activity
  * อัปเดต lastActivityAt ของผู้ใช้ที่กำลังใช้งาน
- * เรียกจาก client-side เพื่อ track activity
+ * - เรียกจาก client-side ทุก 30 วินาที (เก็บสถานะด้วย NextAuth session/cookie)
+ * - ถ้าไม่ใช้งานเกิน 60 นาที จะคืน 401 SESSION_EXPIRED (ไม่ลบ record — เก็บประวัติ)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -31,9 +72,8 @@ export async function POST(request: NextRequest) {
             userId = String(decoded.sub);
           }
         }
-      } catch (error) {
-        // ถ้า token ใช้ไม่ได้ ให้ fallback ไปใช้ NextAuth session ตามเดิม
-        console.info("Invalid bearer token for update-activity:", error);
+      } catch {
+        // token ใช้ไม่ได้ — fallback ไปใช้ NextAuth session
       }
     }
 
@@ -49,20 +89,61 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
+    const clientIp = getClientIp(request) || undefined;
+    const userAgent = request.headers.get("user-agent") || undefined;
 
-    // อัปเดต lastActivityAt
-    // ถ้ายังไม่มี record ใน user_activity ให้สร้างใหม่ทันที
-    await prisma.user_activity.upsert({
-      where: { userId },
-      update: {
-        lastActivityAt: now,
-      },
-      create: {
+    // หา session ปัจจุบันของ user: record ล่าสุดที่ยังไม่ถูก logout
+    const currentSession = await prisma.user_activity.findFirst({
+      where: {
         userId,
-        loginAt: now,
-        lastActivityAt: now,
+        logoutAt: null,
+      },
+      orderBy: {
+        loginAt: "desc",
+      },
+      select: {
+        id: true,
+        lastActivityAt: true,
       },
     });
+
+    if (!currentSession) {
+      // กรณีไม่พบ session ปัจจุบัน (เช่น schema เพิ่งเปลี่ยน หรือข้อมูลเก่า)
+      // ให้สร้าง record ใหม่แทนการคืน 401 เพื่อไม่ให้ user หลุด flow
+      await prisma.user_activity.create({
+        data: {
+          userId,
+          loginAt: now,
+          lastActivityAt: now,
+          ipAddress: clientIp,
+          userAgent,
+        },
+      });
+    } else {
+      const lastAt = currentSession.lastActivityAt.getTime();
+
+      // ถ้า idle เกินเวลาที่กำหนด ให้ถือว่า session หมดอายุ
+      if (now.getTime() - lastAt > INACTIVITY_MAX_MS) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "SESSION_EXPIRED",
+            message: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
+          },
+          { status: 401 },
+        );
+      }
+
+      // อัปเดต lastActivityAt ของ session ปัจจุบันเท่านั้น
+      await prisma.user_activity.update({
+        where: { id: currentSession.id },
+        data: {
+          lastActivityAt: now,
+          ipAddress: clientIp,
+          userAgent,
+        },
+      });
+    }
 
     return NextResponse.json(
       {
@@ -71,16 +152,17 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    // ไม่ return error เพื่อไม่ให้กระทบการทำงานของระบบหลัก
-    // ถ้าไม่มี record ใน user_activity ก็ไม่เป็นไร
-    console.info("Failed to update user activity:", error);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "เกิดข้อผิดพลาดในการอัปเดต activity";
 
     return NextResponse.json(
       {
         success: false,
         error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการอัปเดต activity",
+        message,
       },
       { status: 500 },
     );

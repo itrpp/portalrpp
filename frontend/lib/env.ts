@@ -14,7 +14,11 @@ const DEFAULT_API_GATEWAY_URL = "http://localhost:3001";
 export function getApiGatewayBaseUrl(): string {
   const raw =
     process.env.NEXT_PUBLIC_API_GATEWAY_URL || DEFAULT_API_GATEWAY_URL;
-  const sanitized = raw.replace(/^["']|["']$/g, "").replace(/\/$/, "").trim();
+  const sanitized = raw
+    .replace(/^["']|["']$/g, "")
+    .replace(/\/$/, "")
+    .trim();
+
   return sanitized || DEFAULT_API_GATEWAY_URL;
 }
 

@@ -24,9 +24,7 @@ export async function GET(request: NextRequest) {
     if (page) {
       protoRequest.page = parseInt(page, 10);
     }
-    if (page_size) {
-      protoRequest.page_size = parseInt(page_size, 10);
-    }
+    protoRequest.page_size = page_size ? parseInt(page_size, 10) : 1000;
 
     // เรียก gRPC service
     const response = await callPorterService<any>(
@@ -41,7 +39,7 @@ export async function GET(request: NextRequest) {
           data: response.data || [],
           total: response.total || 0,
           page: response.page || 1,
-          page_size: response.page_size || 100,
+          page_size: response.page_size || 1000,
         },
         { status: 200 },
       );

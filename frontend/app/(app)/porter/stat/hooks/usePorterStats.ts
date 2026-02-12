@@ -4,6 +4,24 @@ import { PorterJobItem } from "@/types/porter";
 import { formatLocationString } from "@/lib/porter";
 import { getISODatePart, parseFullName, toISODateString } from "@/lib/utils";
 
+type PorterRequestsApiSuccess = {
+  success: true;
+  data: PorterJobItem[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+type PorterRequestsApiError = {
+  success: false;
+  error: string;
+  message: string;
+};
+
+type PorterRequestsApiResponse =
+  | PorterRequestsApiSuccess
+  | PorterRequestsApiError;
+
 interface PorterStats {
   totalJobs: number;
   waitingJobs: number;
@@ -33,30 +51,137 @@ export function usePorterStats() {
   const [jobs, setJobs] = useState<PorterJobItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [summaryCounts, setSummaryCounts] = useState<{
+    totalJobs: number;
+    waitingJobs: number;
+    inProgressJobs: number;
+    completedJobs: number;
+    cancelledJobs: number;
+  }>({
+    totalJobs: 0,
+    waitingJobs: 0,
+    inProgressJobs: 0,
+    completedJobs: 0,
+    cancelledJobs: 0,
+  });
+  const [hasSummary, setHasSummary] = useState(false);
 
-  // ดึงข้อมูลทั้งหมดจาก API
+  // ดึง summary ด้วย Prisma count (ผ่าน total ใน API) + ดึง sample jobs สำหรับกราฟ
   useEffect(() => {
-    const fetchAllJobs = async () => {
+    const fetchStats = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // ดึงข้อมูลทั้งหมดโดยไม่ระบุ status filter
-        const response = await fetch("/api/porter/requests?page_size=10000");
+        const buildUrl = (params: Record<string, string | undefined>) => {
+          const searchParams = new URLSearchParams();
 
-        if (!response.ok) {
-          const errorData = await response.json();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined) {
+              searchParams.set(key, value);
+            }
+          });
 
-          throw new Error(errorData.message || "ไม่สามารถโหลดข้อมูลสถิติได้");
+          return `/api/porter/requests?${searchParams.toString()}`;
+        };
+
+        const fetchCount = async (status?: string): Promise<number> => {
+          const url = buildUrl({
+            page: "1",
+            page_size: "1",
+            status,
+          });
+
+          const response = await fetch(url);
+          const result: PorterRequestsApiResponse = await response.json();
+
+          if (!response.ok) {
+            const message =
+              !("success" in result) || result.success === true
+                ? "ไม่สามารถโหลดข้อมูลสถิติได้"
+                : result.message;
+
+            throw new Error(message);
+          }
+
+          if (!result.success) {
+            throw new Error(result.message || "ไม่สามารถโหลดข้อมูลสถิติได้");
+          }
+
+          return typeof result.total === "number"
+            ? result.total
+            : (result.data ?? []).length;
+        };
+
+        const [
+          totalJobs,
+          waitingJobs,
+          inProgressJobs,
+          completedJobs,
+          cancelledJobs,
+        ] = await Promise.all([
+          fetchCount(), // ทั้งหมด
+          fetchCount("WAITING"), // WAITING_CENTER + WAITING_ACCEPT
+          fetchCount("IN_PROGRESS"),
+          fetchCount("COMPLETED"),
+          fetchCount("CANCELLED"),
+        ]);
+
+        setSummaryCounts({
+          totalJobs,
+          waitingJobs,
+          inProgressJobs,
+          completedJobs,
+          cancelledJobs,
+        });
+        setHasSummary(true);
+
+        // ดึง jobs หลายหน้าเพื่อใช้คำนวณกราฟ/สถิติตามช่วงเวลา (ไม่จำกัดแค่ 1000 รายการ)
+        const PAGE_SIZE = 1000;
+        const MAX_JOBS_FOR_STATS = 20_000; // ขีดจำกัดเพื่อไม่ให้ request มากเกินไป
+        const allJobs: PorterJobItem[] = [];
+        let page = 1;
+        let totalFetched = 0;
+        let grandTotal = totalJobs;
+
+        while (
+          totalFetched < grandTotal &&
+          allJobs.length < MAX_JOBS_FOR_STATS
+        ) {
+          const jobsResponse = await fetch(
+            buildUrl({
+              page: String(page),
+              page_size: String(PAGE_SIZE),
+            }),
+          );
+
+          const jobsResult: PorterRequestsApiResponse =
+            await jobsResponse.json();
+
+          if (!jobsResponse.ok || !jobsResult.success) {
+            const message =
+              !("success" in jobsResult) || jobsResult.success === true
+                ? "ไม่สามารถโหลดข้อมูลสถิติได้"
+                : jobsResult.message;
+
+            throw new Error(message);
+          }
+
+          const chunk = jobsResult.data ?? [];
+
+          allJobs.push(...chunk);
+          totalFetched += chunk.length;
+
+          if (jobsResult.success && typeof jobsResult.total === "number") {
+            grandTotal = jobsResult.total;
+          }
+
+          if (chunk.length < PAGE_SIZE) break;
+
+          page += 1;
         }
 
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          setJobs(result.data as PorterJobItem[]);
-        } else {
-          throw new Error("รูปแบบข้อมูลไม่ถูกต้อง");
-        }
+        setJobs(allJobs);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล";
@@ -67,21 +192,25 @@ export function usePorterStats() {
       }
     };
 
-    void fetchAllJobs();
+    void fetchStats();
   }, []);
 
   // คำนวณสถิติทั้งหมด - Single Pass Optimization
   const stats = useMemo<PorterStats>(() => {
     // ใช้ข้อมูลทั้งหมด ไม่กรองตามวันที่
     const filteredJobs = jobs.filter((job) => job.createdAt !== undefined);
-    const totalJobs = filteredJobs.length;
+    const hasJobs = filteredJobs.length > 0;
 
     // ถ้าไม่มีข้อมูลให้ return ค่าว่าง
-    if (totalJobs === 0) {
+    if (!hasJobs) {
       const today = new Date();
       const dailyJobsMap = new Map<
         string,
-        { ปกติ: number; ด่วน: number; ฉุกเฉิน: number }
+        {
+          ปกติ: number;
+          ด่วน: number;
+          ฉุกเฉิน: number;
+        }
       >();
 
       for (let i = 29; i >= 0; i--) {
@@ -102,11 +231,11 @@ export function usePorterStats() {
         .sort((a, b) => a.date.localeCompare(b.date));
 
       return {
-        totalJobs: 0,
-        waitingJobs: 0,
-        inProgressJobs: 0,
-        completedJobs: 0,
-        cancelledJobs: 0,
+        totalJobs: summaryCounts.totalJobs,
+        waitingJobs: summaryCounts.waitingJobs,
+        inProgressJobs: summaryCounts.inProgressJobs,
+        completedJobs: summaryCounts.completedJobs,
+        cancelledJobs: summaryCounts.cancelledJobs,
         dailyJobs,
         transportReasons: [],
         popularPickupLocations: [],
@@ -125,7 +254,11 @@ export function usePorterStats() {
     // สร้าง Map สำหรับเก็บข้อมูลรายวัน (30 วันย้อนหลัง)
     const dailyJobsMap = new Map<
       string,
-      { ปกติ: number; ด่วน: number; ฉุกเฉิน: number }
+      {
+        ปกติ: number;
+        ด่วน: number;
+        ฉุกเฉิน: number;
+      }
     >();
 
     for (let i = 29; i >= 0; i--) {
@@ -245,9 +378,10 @@ export function usePorterStats() {
         );
       }
 
-      // 6. ประสิทธิผลรายบุคคล
-      if (job.assignedToName && job.acceptedAt) {
+      // 6. ประสิทธิผลรายบุคคล (assignedAt = เวลาที่เจ้าหน้าที่เปลกดรับงาน ตาม schema)
+      if (job.assignedToName && (job.assignedAt ?? job.acceptedAt)) {
         const employeeName = job.assignedToName;
+        const acceptedAt = job.assignedAt ?? job.acceptedAt;
 
         if (!employeeMap.has(employeeName)) {
           const { firstName, lastName } = parseFullName(employeeName);
@@ -262,7 +396,7 @@ export function usePorterStats() {
         const employee = employeeMap.get(employeeName)!;
 
         employee.jobs.push({
-          acceptedAt: job.acceptedAt,
+          acceptedAt,
           completedAt: job.completedAt,
         });
       }
@@ -345,19 +479,35 @@ export function usePorterStats() {
       })
       .sort((a, b) => b.assignedJobCount - a.assignedJobCount);
 
+    const totalJobsForSummary = hasSummary
+      ? summaryCounts.totalJobs
+      : filteredJobs.length;
+    const waitingJobsForSummary = hasSummary
+      ? summaryCounts.waitingJobs
+      : waitingJobs;
+    const inProgressJobsForSummary = hasSummary
+      ? summaryCounts.inProgressJobs
+      : inProgressJobs;
+    const completedJobsForSummary = hasSummary
+      ? summaryCounts.completedJobs
+      : completedJobs;
+    const cancelledJobsForSummary = hasSummary
+      ? summaryCounts.cancelledJobs
+      : cancelledJobs;
+
     return {
-      totalJobs,
-      waitingJobs,
-      inProgressJobs,
-      completedJobs,
-      cancelledJobs,
+      totalJobs: totalJobsForSummary,
+      waitingJobs: waitingJobsForSummary,
+      inProgressJobs: inProgressJobsForSummary,
+      completedJobs: completedJobsForSummary,
+      cancelledJobs: cancelledJobsForSummary,
       dailyJobs,
       transportReasons,
       popularPickupLocations,
       popularDeliveryLocations,
       employeePerformance,
     };
-  }, [jobs]);
+  }, [jobs, hasSummary, summaryCounts]);
 
   return {
     stats,

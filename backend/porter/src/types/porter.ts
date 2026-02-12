@@ -63,6 +63,7 @@ export interface PorterRequestMessage {
   status: PorterStatus;
   assigned_to_id?: string;
   assigned_to_name?: string;
+  assigned_at?: string;
   accepted_at?: string;
   accepted_by_id?: string;
   completed_at?: string;

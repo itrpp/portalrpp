@@ -144,7 +144,10 @@ export async function POST(request: Request) {
     try {
       await upsertUserActivityOnLogin(dbUser.id);
     } catch (error) {
-      console.info("Failed to upsert user_activity from /api/auth/login:", error);
+      console.info(
+        "Failed to upsert user_activity from /api/auth/login:",
+        error,
+      );
     }
 
     // ดึง PorterEmployee ที่ผูกกับ user นี้ (ถ้ามี)

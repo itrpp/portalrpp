@@ -333,16 +333,17 @@ export const updatePorterRequestStatus = async (
     status: newStatus
   };
 
-  // คืนงานจาก WAITING_ACCEPT กลับไปที่ WAITING_CENTER ต้องล้างผู้ปฏิบัติงานที่ถูกมอบหมาย
+  // คืนงานจาก WAITING_ACCEPT กลับไปที่ WAITING_CENTER ต้องล้างผู้ปฏิบัติงานและข้อมูลมอบหมาย
   if (oldRequest?.status === 'WAITING_ACCEPT' && newStatus === 'WAITING_CENTER') {
     data.assignedToId = null;
+    data.assignedAt = null;
+    data.acceptedById = null;
+    data.acceptedAt = null;
   }
 
+  // เจ้าหน้าที่เปลกดรับงาน (IN_PROGRESS) → บันทึกเวลาที่รับงานเท่านั้น (assignedAt ตาม schema)
   if (newStatus === 'IN_PROGRESS') {
-    data.acceptedAt = new Date();
-    if (accepted_by_id) {
-      data.acceptedById = accepted_by_id;
-    }
+    data.assignedAt = new Date();
   } else if (newStatus === 'COMPLETED') {
     data.completedAt = new Date();
   } else if (newStatus === 'CANCELLED') {
@@ -355,8 +356,13 @@ export const updatePorterRequestStatus = async (
     }
   }
 
-  if (assigned_to_id) {
+  // ศูนย์เปลมอบหมายงาน (เลือกผู้ปฏิบัติ) → acceptedById = ผู้มอบหมาย (ศูนย์เปล), acceptedAt = เวลามอบหมาย, assignedToId = ผู้ที่ได้รับมอบหมาย (ยังไม่ set assignedAt จนกว่าผู้ปฏิบัติจะกดรับ)
+  if (assigned_to_id && oldRequest?.status === 'WAITING_CENTER') {
     data.assignedToId = assigned_to_id;
+    data.acceptedAt = new Date();
+    if (accepted_by_id) {
+      data.acceptedById = accepted_by_id;
+    }
   }
 
   const porterRequest = await porterRequestRepo.updatePorterRequest(id, data);
@@ -867,6 +873,7 @@ const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): 
     status: mapStatusToProto(porterRequest.status),
     assigned_to_id: porterRequest.assignedToId || undefined,
     assigned_to_name: porterRequest.assignedToName || undefined,
+    assigned_at: porterRequest.assignedAt?.toISOString() || undefined,
     accepted_at: porterRequest.acceptedAt?.toISOString() || undefined,
     accepted_by_id: porterRequest.acceptedById || undefined,
     completed_at: porterRequest.completedAt?.toISOString() || undefined,

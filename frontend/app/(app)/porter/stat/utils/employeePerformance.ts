@@ -35,9 +35,13 @@ export function calculateEmployeePerformance(
     acceptedDateStr: string;
   }> = [];
 
+  const acceptedAtField = (j: PorterJobItem) => j.assignedAt ?? j.acceptedAt;
+
   for (const job of jobs) {
-    if (!job.assignedToName || !job.acceptedAt) continue;
-    const acceptedDateStr = getISODatePart(job.acceptedAt);
+    const acceptedAt = acceptedAtField(job);
+
+    if (!job.assignedToName || !acceptedAt) continue;
+    const acceptedDateStr = getISODatePart(acceptedAt);
 
     if (startDate && acceptedDateStr < startDate) continue;
     if (endDate && acceptedDateStr > endDate) continue;
@@ -46,6 +50,7 @@ export function calculateEmployeePerformance(
 
   for (const { job } of filteredJobs) {
     const employeeName = job.assignedToName!;
+    const acceptedAt = acceptedAtField(job);
 
     if (!employeeMap.has(employeeName)) {
       const { firstName, lastName } = parseFullName(employeeName);
@@ -55,7 +60,7 @@ export function calculateEmployeePerformance(
     const employee = employeeMap.get(employeeName)!;
 
     employee.jobs.push({
-      acceptedAt: job.acceptedAt,
+      acceptedAt,
       completedAt: job.completedAt,
     });
   }

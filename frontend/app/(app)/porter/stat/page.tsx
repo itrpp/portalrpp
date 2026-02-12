@@ -91,12 +91,6 @@ export default function PorterStatPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          color="primary"
-          icon={<ClipboardListIcon className="w-8 h-8" />}
-          title="งานทั้งหมด"
-          value={stats.totalJobs}
-        />
-        <StatCard
           color="default"
           icon={<ClipboardListIcon className="w-8 h-8" />}
           title="ยังไม่ได้รับงาน"
@@ -119,6 +113,12 @@ export default function PorterStatPage() {
           icon={<XMarkIcon className="w-8 h-8" />}
           title="งานที่ยกเลิก"
           value={stats.cancelledJobs}
+        />
+        <StatCard
+          color="primary"
+          icon={<ClipboardListIcon className="w-8 h-8" />}
+          title="งานทั้งหมด"
+          value={stats.totalJobs}
         />
       </div>
 

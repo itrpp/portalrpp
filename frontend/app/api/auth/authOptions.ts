@@ -20,6 +20,19 @@ import { upsertUserActivityOnLogin } from "@/lib/userActivity";
 const LINE_PROVIDER_ID = "line";
 const LINE_LOGIN_GUARD_CODE = "LINE_LDAP_REQUIRED";
 
+/** ต้องตั้ง NEXTAUTH_SECRET ใน env เสมอ (ความยาวอย่างน้อย 32 ตัว) */
+function getNextAuthSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "NEXTAUTH_SECRET is required and must be at least 32 characters. Set it in environment variables.",
+    );
+  }
+
+  return secret;
+}
+
 type MinimalUserRecord = {
   id: string;
   ldapId: string | null;
@@ -83,9 +96,9 @@ async function getSessionUser(): Promise<MinimalUserRecord | null> {
     cookieStore.get("__Secure-next-auth.session-token")?.value ||
     cookieStore.get("next-auth.session-token")?.value;
 
-  const secret = process.env.NEXTAUTH_SECRET || "your-secret-key-here";
+  const secret = getNextAuthSecret();
 
-  if (!sessionToken || !secret) {
+  if (!sessionToken) {
     return null;
   }
 
@@ -494,40 +507,9 @@ export const authOptions: any = {
       }
     },
 
-    // ลบข้อมูลผู้ใช้ที่ logout ออกจาก user_activity
-    async signOut({ token }: { token?: any }) {
-      try {
-        // ดึง userId จาก token หรือจาก session token ใน cookies
-        let userId: string | undefined = token?.sub;
-
-        // ถ้าไม่มี userId ใน token ให้ลองดึงจาก cookies
-        if (!userId) {
-          const cookieStore = await cookies();
-          const sessionToken =
-            cookieStore.get("__Secure-next-auth.session-token")?.value ||
-            cookieStore.get("next-auth.session-token")?.value;
-
-          if (sessionToken) {
-            const secret =
-              process.env.NEXTAUTH_SECRET || "your-secret-key-here";
-            const decoded = await decode({
-              token: sessionToken,
-              secret,
-            });
-
-            userId = decoded?.sub;
-          }
-        }
-
-        if (userId) {
-          await prisma.user_activity.deleteMany({
-            where: { userId },
-          });
-        }
-      } catch (e) {
-        // ไม่ throw error เพื่อไม่ให้กระทบการ logout
-        console.error("Failed to delete user_activity on signOut:", e);
-      }
+    // logout: เคลียร์ session/cookie เท่านั้น — ไม่ลบ user_activity เพื่อเก็บประวัติการใช้งาน
+    async signOut() {
+      // ไม่ลบ record ใน user_activity
     },
 
     // อัปเดต providerType ใน DB หลังจากเชื่อมบัญชี OAuth/LINE สำเร็จ
@@ -577,5 +559,5 @@ export const authOptions: any = {
     signIn: "/login",
     error: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET || "your-secret-key-here",
+  secret: getNextAuthSecret(),
 };

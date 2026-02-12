@@ -7,6 +7,9 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 dotenv.config({ path: path.join(projectRoot, '.env') });
 dotenv.config({ path: path.join(projectRoot, '.env.local') });
 
+/** ใช้เฉพาะใน development — ใน production ต้องตั้ง JWT_SECRET ใน env */
+const DEV_JWT_SECRET_DEFAULT = 'your-super-secret-key-change-this-in-production';
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce
@@ -19,7 +22,10 @@ const EnvSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   REVENUE_SERVICE_URL: z.string().url().optional(),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').default('your-super-secret-key-change-this-in-production'),
+  JWT_SECRET: z
+    .string()
+    .min(32, 'JWT_SECRET must be at least 32 characters')
+    .default(DEV_JWT_SECRET_DEFAULT),
   EPHIS_API_BASE_URL: z.string().url().optional(),
   EPHIS_API_USER: z.string().optional(),
   EPHIS_API_PASSWORD: z.string().optional()
@@ -48,6 +54,20 @@ export type AppConfig = {
 };
 
 const parsed = EnvSchema.parse(process.env);
+
+if (parsed.NODE_ENV === 'production') {
+  const secret = parsed.JWT_SECRET;
+
+  if (
+    !secret ||
+    secret.length < 32 ||
+    secret === DEV_JWT_SECRET_DEFAULT
+  ) {
+    throw new Error(
+      'In production, JWT_SECRET must be set in environment and be at least 32 characters. Do not use the default value.',
+    );
+  }
+}
 
 const allowOrigins = parsed.ALLOW_ORIGINS
   ? parsed.ALLOW_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)

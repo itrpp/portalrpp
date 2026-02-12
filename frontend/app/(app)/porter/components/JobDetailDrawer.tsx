@@ -13,7 +13,6 @@ import {
   DrawerFooter,
   DrawerHeader,
   useDisclosure,
-  User,
 } from "@heroui/react";
 import {
   Avatar,
@@ -270,8 +269,8 @@ export default function JobDetailDrawer({
   const handleAssignJob = async () => {
     if (!selectedStaffId) {
       addToast({
-        title: "กรุณาเลือกผู้ปฎิบัติงาน",
-        description: "กรุณาเลือกเจ้าหน้าที่ผู้ปฎิบัติงานก่อน",
+        title: "กรุณาเลือกผู้ปฏิบัติงาน",
+        description: "กรุณาเลือกเจ้าหน้าที่เปลที่ต้องการมอบหมายก่อน",
         color: "warning",
       });
 
@@ -478,7 +477,7 @@ export default function JobDetailDrawer({
   const availableEmployees = employees;
 
   return (
-    <Drawer isOpen={isOpen} placement="right" size="3xl" onClose={onClose}>
+    <Drawer isOpen={isOpen} placement="right" size="4xl" onClose={onClose}>
       <DrawerContent>
         <DrawerHeader className="flex flex-col gap-1 border-b border-divider">
           <div className="flex items-center justify-between w-full">
@@ -593,8 +592,86 @@ export default function JobDetailDrawer({
                 </CardBody>
               </Card>
             </div>
+            {/* เลือกผู้ปฏิบัติงาน: ศูนย์เปลเลือกเจ้าหน้าที่เปลที่ต้องการมอบหมายให้รับงานนี้ (สถานะ WAITING_CENTER) — ซ่อนเมื่ออยู่ในโหมดแก้ไข */}
+            {canAssignJob && !readOnly && !isEditMode && (
+              <section>
+                <Divider className="my-6" />
+                <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+                  <UserIcon className="w-5 h-5 text-primary" />
+                  เลือกผู้ปฏิบัติงาน
+                </h3>
+                <p className="text-sm text-default-500 mb-4">
+                  ศูนย์เปลมอบหมายงานโดยเลือกเจ้าหน้าที่เปลที่ต้องการให้รับงานนี้
+                </p>
+                <Autocomplete
+                  isClearable
+                  isDisabled={isLoadingEmployees}
+                  label="เลือกเจ้าหน้าที่เปลที่ต้องการมอบหมาย"
+                  placeholder={
+                    isLoadingEmployees
+                      ? "กำลังโหลดข้อมูลเจ้าหน้าที่..."
+                      : availableEmployees.length > 0
+                        ? "เลือกเจ้าหน้าที่เปลที่ต้องการมอบหมาย"
+                        : "ไม่พบรายชื่อเจ้าหน้าที่"
+                  }
+                  selectedKey={selectedStaffId ?? undefined}
+                  variant="bordered"
+                  onSelectionChange={(key) => {
+                    setSelectedStaffId((key as string | null) ?? null);
+                  }}
+                >
+                  {availableEmployees.map((employee) => {
+                    const fullName = `${employee.firstName} ${employee.lastName}`;
+                    const displayName = employee.nickname
+                      ? `[${employee.nickname}] ${employee.firstName} ${employee.lastName}`
+                      : fullName;
+
+                    return (
+                      <AutocompleteItem
+                        key={employee.id}
+                        textValue={displayName}
+                      >
+                        <div className="flex items-center gap-3">
+                          {employee.profileImage ? (
+                            <Avatar
+                              alt={fullName}
+                              className="w-10 h-10 shrink-0"
+                              src={employee.profileImage}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center shrink-0">
+                              <span className="text-default-400 text-sm font-medium">
+                                {employee.firstName.charAt(0)}
+                                {employee.lastName.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-foreground font-medium truncate">
+                              {employee.nickname && (
+                                <span className="text-default-500 font-normal">
+                                  [{employee.nickname}]{" "}
+                                </span>
+                              )}
+                              {employee.firstName} {employee.lastName}
+                            </span>
+                            <span className="text-default-500 text-sm">
+                              {employee.position}
+                              {employee.employmentType
+                                ? ` • ${employee.employmentType}`
+                                : ""}
+                            </span>
+                          </div>
+                        </div>
+                      </AutocompleteItem>
+                    );
+                  })}
+                </Autocomplete>
+              </section>
+            )}
 
             <Divider />
+
             {isEditMode ? (
               <>
                 {canEdit && isEditMode && (
@@ -1039,6 +1116,7 @@ export default function JobDetailDrawer({
                     <div className="relative">
                       <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-default-200" />
                       <div className="space-y-6">
+                        {/* 1. คำขอถูกสร้าง */}
                         <div className="relative flex gap-4">
                           <div className="relative z-10 shrink-0">
                             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -1046,11 +1124,26 @@ export default function JobDetailDrawer({
                             </div>
                           </div>
                           <div className="flex-1 pb-6">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <h4 className="text-sm font-semibold text-foreground">
-                                คำขอถูกสร้าง
-                              </h4>
-                              <p className="text-sm text-default-500 mb-2">
+                            <h4 className="text-sm font-semibold text-foreground mb-2">
+                              คำขอถูกสร้าง
+                            </h4>
+                            <div className="text-sm text-default-600 space-y-1">
+                              <p>
+                                <span className="font-medium">
+                                  ชื่อหน่วยงาน:
+                                </span>{" "}
+                                {requesterDepartmentName || "-"}
+                              </p>
+                              <p>
+                                <span className="font-medium">
+                                  ชื่อผู้แจ้ง:
+                                </span>{" "}
+                                {formData.requesterName}
+                              </p>
+                              <p>
+                                <span className="font-medium">
+                                  เวลาที่สร้างคำขอ:
+                                </span>{" "}
                                 {job.createdAt
                                   ? formatDateTimeFromString(job.createdAt)
                                   : formatDateTimeFromString(
@@ -1058,20 +1151,10 @@ export default function JobDetailDrawer({
                                     )}
                               </p>
                             </div>
-
-                            <div className="text-sm text-default-600 space-y-1">
-                              <p>
-                                <span className="font-medium">หน่วยงาน:</span>{" "}
-                                {requesterDepartmentName || "-"}
-                              </p>
-                              <p>
-                                <span className="font-medium">ผู้แจ้ง:</span>{" "}
-                                {formData.requesterName}
-                              </p>
-                            </div>
                           </div>
                         </div>
 
+                        {/* 2. ศูนย์เปลมอบหมายงาน (acceptedById = ผู้มอบหมาย, acceptedAt = เวลามอบหมาย ตาม schema) */}
                         <div className="relative flex gap-4">
                           <div className="relative z-10 shrink-0">
                             <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
@@ -1079,60 +1162,61 @@ export default function JobDetailDrawer({
                             </div>
                           </div>
                           <div className="flex-1 pb-6">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <h4 className="text-sm font-semibold text-foreground">
-                                ศูนย์เปลรับงาน
-                              </h4>
-                              <p className="text-sm text-default-500 mb-2">
-                                {formatDateTimeFromString(job.acceptedAt)}
+                            <h4 className="text-sm font-semibold text-foreground mb-2">
+                              ศูนย์เปลมอบหมายงาน
+                            </h4>
+                            <div className="text-sm text-default-600 space-y-1">
+                              <p>
+                                <span className="font-medium">สถานะ:</span>{" "}
+                                {job.status === "WAITING_CENTER"
+                                  ? "รอการมอบหมาย"
+                                  : "มอบหมายแล้ว"}
+                              </p>
+                              <p>
+                                <span className="font-medium">
+                                  ชื่อผู้ที่ดำเนินการ:
+                                </span>{" "}
+                                {acceptedByName || "-"}
+                              </p>
+                              <p>
+                                <span className="font-medium">
+                                  เวลาที่มอบหมาย:
+                                </span>{" "}
+                                {job.acceptedAt
+                                  ? formatDateTimeFromString(job.acceptedAt)
+                                  : "-"}
                               </p>
                             </div>
-                            {job.acceptedAt ? (
-                              <>
-                                <div className="text-sm text-default-600 space-y-1">
-                                  {job.acceptedById && (
-                                    <div className="flex items-center gap-2 mt-2">
-                                      <span className="font-medium">
-                                        ผู้รับงาน :
-                                      </span>
-                                      <span>{acceptedByName || "-"}</span>
-                                    </div>
-                                  )}
-                                  {job.assignedTo && (
-                                    <div className="flex items-center gap-2 mt-2">
-                                      {(() => {
-                                        const assignedEmp = employees.find(
-                                          (e) => e.id === job.assignedTo,
-                                        );
+                          </div>
+                        </div>
 
-                                        return (
-                                          <>
-                                            <User
-                                              avatarProps={{
-                                                src:
-                                                  assignedEmp?.profileImage ||
-                                                  "",
-                                              }}
-                                              description={
-                                                job.assignedToName ||
-                                                (assignedEmp
-                                                  ? `${assignedEmp.firstName} ${assignedEmp.lastName}`
-                                                  : "-")
-                                              }
-                                              name="ผู้ปฎิบัติงาน"
-                                            />
-                                          </>
-                                        );
-                                      })()}
-                                    </div>
-                                  )}
-                                </div>
-                              </>
-                            ) : (
-                              <p className="text-xs text-default-500 mb-2">
-                                กำลังรอการรับงาน
+                        {/* 3. เจ้าหน้าที่เปลรับงาน (assignedToId = ผู้ที่ได้รับมอบหมาย, assignedAt = เวลาที่กดรับงาน ตาม schema) */}
+                        <div className="relative flex gap-4">
+                          <div className="relative z-10 shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                              <UserIcon className="w-4 h-4 text-white" />
+                            </div>
+                          </div>
+                          <div className="flex-1 pb-6">
+                            <h4 className="text-sm font-semibold text-foreground mb-2">
+                              เจ้าหน้าที่เปลรับงาน
+                            </h4>
+                            <div className="text-sm text-default-600 space-y-1">
+                              <p>
+                                <span className="font-medium">
+                                  ชื่อเจ้าหน้าที่:
+                                </span>{" "}
+                                {job.assignedToName || "-"}
                               </p>
-                            )}
+                              <p>
+                                <span className="font-medium">
+                                  เวลาที่กดรับงาน:
+                                </span>{" "}
+                                {job.assignedAt
+                                  ? formatDateTimeFromString(job.assignedAt)
+                                  : "-"}
+                              </p>
+                            </div>
                           </div>
                         </div>
 
@@ -1140,6 +1224,7 @@ export default function JobDetailDrawer({
                           formData.pickupLocationDetail &&
                           formData.deliveryLocationDetail && (
                             <>
+                              {/* 4. ไปถึงจุดรับ */}
                               <div className="relative flex gap-4">
                                 <div className="relative z-10 shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -1147,26 +1232,28 @@ export default function JobDetailDrawer({
                                   </div>
                                 </div>
                                 <div className="flex-1 pb-6">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="text-sm font-semibold text-foreground">
-                                      จุดรับ
-                                    </h4>
-                                  </div>
-                                  {/* <p className="text-xs text-default-500 mb-2">
-                                    {job.acceptedAt
-                                      ? formatDateTimeFromString(job.acceptedAt)
-                                      : formatDateTimeFromString(job.form.requestedDateTime)}
-                                  </p> */}
-                                  <div className="text-sm text-default-600">
+                                  <h4 className="text-sm font-semibold text-foreground mb-2">
+                                    ไปถึงจุดรับ
+                                  </h4>
+                                  <div className="text-sm text-default-600 space-y-1">
                                     <p className="font-medium text-foreground">
                                       {formatLocationString(
                                         formData.pickupLocationDetail,
                                       )}
                                     </p>
+                                    <p>
+                                      <span className="font-medium">
+                                        เวลาที่มาถึง:
+                                      </span>{" "}
+                                      {job.pickupAt
+                                        ? formatDateTimeFromString(job.pickupAt)
+                                        : "-"}
+                                    </p>
                                   </div>
                                 </div>
                               </div>
 
+                              {/* 5. ไปถึงจุดส่ง */}
                               <div className="relative flex gap-4">
                                 <div className="relative z-10 shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
@@ -1174,30 +1261,30 @@ export default function JobDetailDrawer({
                                   </div>
                                 </div>
                                 <div className="flex-1 pb-6">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="text-sm font-semibold text-foreground">
-                                      จุดส่ง
-                                    </h4>
-                                  </div>
-                                  {/* <p className="text-xs text-default-500 mb-2">
-                                    {job.completedAt
-                                      ? formatDateTimeFromString(job.completedAt)
-                                      : job.acceptedAt
-                                        ? formatDateTimeFromString(job.acceptedAt)
-                                        : formatDateTimeFromString(
-                                          job.form.requestedDateTime,
-                                        )}
-                                  </p> */}
-                                  <div className="text-sm text-default-600">
+                                  <h4 className="text-sm font-semibold text-foreground mb-2">
+                                    ไปถึงจุดส่ง
+                                  </h4>
+                                  <div className="text-sm text-default-600 space-y-1">
                                     <p className="font-medium text-foreground">
                                       {formatLocationString(
                                         formData.deliveryLocationDetail,
                                       )}
                                     </p>
+                                    <p>
+                                      <span className="font-medium">
+                                        เวลาที่มาถึง:
+                                      </span>{" "}
+                                      {job.deliveryAt
+                                        ? formatDateTimeFromString(
+                                            job.deliveryAt,
+                                          )
+                                        : "-"}
+                                    </p>
                                   </div>
                                 </div>
                               </div>
 
+                              {/* 6. ไปถึงจุดส่งกลับ — แสดงเฉพาะเมื่อ job ต้องส่งกลับ (returnTrip = รับกลับด้วย) */}
                               {formData.returnTrip === "รับกลับด้วย" && (
                                 <div className="relative flex gap-4">
                                   <div className="relative z-10 shrink-0">
@@ -1206,163 +1293,85 @@ export default function JobDetailDrawer({
                                     </div>
                                   </div>
                                   <div className="flex-1 pb-6">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <h4 className="text-sm font-semibold text-foreground">
-                                        ส่งกลับ
-                                      </h4>
-                                    </div>
-                                    {/* <p className="text-xs text-default-500 mb-2">
-                                      {job.completedAt
-                                        ? formatDateTimeFromString(job.completedAt)
-                                        : formatDateTimeFromString(
-                                          job.form.requestedDateTime,
-                                        )}
-                                    </p> */}
-                                    <div className="text-sm text-default-600">
+                                    <h4 className="text-sm font-semibold text-foreground mb-2">
+                                      ไปถึงจุดส่งกลับ
+                                    </h4>
+                                    <div className="text-sm text-default-600 space-y-1">
                                       <p className="font-medium text-foreground">
                                         {formatLocationString(
                                           formData.pickupLocationDetail,
                                         )}
                                       </p>
+                                      <p>
+                                        <span className="font-medium">
+                                          เวลาที่มาถึง:
+                                        </span>{" "}
+                                        {job.returnAt
+                                          ? formatDateTimeFromString(
+                                              job.returnAt,
+                                            )
+                                          : "-"}
+                                      </p>
                                     </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {job.completedAt && (
-                                <div className="relative flex gap-4">
-                                  <div className="relative z-10 shrink-0">
-                                    <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
-                                      <CheckCircleIcon className="w-4 h-4 text-white" />
-                                    </div>
-                                  </div>
-                                  <div className="flex-1 pb-6">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <h4 className="text-sm font-semibold text-foreground">
-                                        เสร็จสิ้นงาน
-                                      </h4>
-                                    </div>
-                                    <p className="text-xs text-default-500 mb-2">
-                                      {formatDateTimeFromString(
-                                        job.completedAt,
-                                      )}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-
-                              {job.cancelledAt && (
-                                <div className="relative flex gap-4">
-                                  <div className="relative z-10 shrink-0">
-                                    <div className="w-8 h-8 rounded-full bg-danger flex items-center justify-center">
-                                      <XMarkIcon className="w-4 h-4 text-white" />
-                                    </div>
-                                  </div>
-                                  <div className="flex-1 pb-6">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <h4 className="text-sm font-semibold text-foreground">
-                                        ยกเลิกงาน
-                                      </h4>
-                                    </div>
-                                    <p className="text-xs text-default-500 mb-2">
-                                      {formatDateTimeFromString(
-                                        job.cancelledAt,
-                                      )}
-                                    </p>
-                                    {job.cancelledReason && (
-                                      <div className="text-sm text-default-600">
-                                        <p>
-                                          <span className="font-medium">
-                                            เหตุผล:
-                                          </span>{" "}
-                                          {job.cancelledReason}
-                                        </p>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               )}
                             </>
                           )}
+
+                        {/* เสร็จสิ้นงาน / ยกเลิกงาน แสดงนอก block สถานที่ เพื่อให้แสดงเสมอเมื่อมีข้อมูล */}
+                        {job.completedAt && (
+                          <div className="relative flex gap-4">
+                            <div className="relative z-10 shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
+                                <CheckCircleIcon className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
+                            <div className="flex-1 pb-6">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-semibold text-foreground">
+                                  เสร็จสิ้นงาน
+                                </h4>
+                              </div>
+                              <p className="text-xs text-default-500 mb-2">
+                                {formatDateTimeFromString(job.completedAt)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {job.cancelledAt && (
+                          <div className="relative flex gap-4">
+                            <div className="relative z-10 shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-danger flex items-center justify-center">
+                                <XMarkIcon className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
+                            <div className="flex-1 pb-6">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-semibold text-foreground">
+                                  ยกเลิกงาน
+                                </h4>
+                              </div>
+                              <p className="text-xs text-default-500 mb-2">
+                                {formatDateTimeFromString(job.cancelledAt)}
+                              </p>
+                              {job.cancelledReason && (
+                                <div className="text-sm text-default-600">
+                                  <p>
+                                    <span className="font-medium">เหตุผล:</span>{" "}
+                                    {job.cancelledReason}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </section>
                 </div>
               </>
-            )}
-            {/* เลือกผู้ปฎิบัติงาน (ให้เลือกได้แม้ไม่อยู่ในโหมดแก้ไข สำหรับสถานะรอรับงาน) */}
-            {canAssignJob && !readOnly && (
-              <section>
-                <Divider className="my-6" />
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <UserIcon className="w-5 h-5 text-primary" />
-                  ผู้ปฎิบัติงาน
-                </h3>
-                <Autocomplete
-                  isClearable
-                  isDisabled={isLoadingEmployees}
-                  label="ผู้ปฎิบัติงาน"
-                  placeholder={
-                    isLoadingEmployees
-                      ? "กำลังโหลดข้อมูลเจ้าหน้าที่..."
-                      : availableEmployees.length > 0
-                        ? "เลือกเจ้าหน้าที่ผู้ปฎิบัติงาน"
-                        : "ไม่พบรายชื่อเจ้าหน้าที่"
-                  }
-                  selectedKey={selectedStaffId ?? undefined}
-                  variant="bordered"
-                  onSelectionChange={(key) => {
-                    setSelectedStaffId((key as string | null) ?? null);
-                  }}
-                >
-                  {availableEmployees.map((employee) => {
-                    const fullName = `${employee.firstName} ${employee.lastName}`;
-                    const displayName = employee.nickname
-                      ? `[${employee.nickname}] ${employee.firstName} ${employee.lastName}`
-                      : fullName;
-
-                    return (
-                      <AutocompleteItem
-                        key={employee.id}
-                        textValue={displayName}
-                      >
-                        <div className="flex items-center gap-3">
-                          {employee.profileImage ? (
-                            <Avatar
-                              alt={fullName}
-                              className="w-10 h-10 shrink-0"
-                              src={employee.profileImage}
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center shrink-0">
-                              <span className="text-default-400 text-sm font-medium">
-                                {employee.firstName.charAt(0)}
-                                {employee.lastName.charAt(0)}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex flex-col flex-1 min-w-0">
-                            <span className="text-foreground font-medium truncate">
-                              {employee.nickname && (
-                                <span className="text-default-500 font-normal">
-                                  [{employee.nickname}]{" "}
-                                </span>
-                              )}
-                              {employee.firstName} {employee.lastName}
-                            </span>
-                            <span className="text-default-500 text-sm">
-                              {employee.position}
-                              {employee.employmentType
-                                ? ` • ${employee.employmentType}`
-                                : ""}
-                            </span>
-                          </div>
-                        </div>
-                      </AutocompleteItem>
-                    );
-                  })}
-                </Autocomplete>
-              </section>
             )}
           </div>
         </DrawerBody>

@@ -80,12 +80,13 @@ export interface PorterJobItem {
   id: string;
   status: PorterJobStatus;
   form: PorterRequestFormData;
-  assignedTo?: string; // ID ของผู้ปฎิบัติงาน
-  assignedToName?: string; // ชื่อของผู้ปฎิบัติงาน
+  assignedTo?: string; // ID เจ้าหน้าที่เปลที่ได้รับมอบหมาย (assignedToId ตาม schema)
+  assignedToName?: string; // ชื่อเจ้าหน้าที่เปลที่ได้รับมอบหมาย
+  assignedAt?: string; // ISO 8601 - เวลาที่เจ้าหน้าที่เปลกดรับงาน (ตาม schema)
   createdAt?: string; // ISO 8601 format
   updatedAt?: string; // ISO 8601 format
-  acceptedAt?: string; // ISO 8601 format - เวลาที่รับงาน
-  acceptedById?: string; // ID ของผู้ที่กดรับงาน
+  acceptedAt?: string; // ISO 8601 - เวลาที่ศูนย์เปลมอบหมายงาน (ตาม schema)
+  acceptedById?: string; // ID ผู้ที่ดำเนินการมอบหมาย (ศูนย์เปล)
   completedAt?: string; // ISO 8601 format - เวลาที่เสร็จสิ้น
   cancelledAt?: string; // ISO 8601 format - เวลาที่ยกเลิก
   cancelledReason?: string; // เหตุผลการยกเลิก

@@ -50,11 +50,13 @@ export async function GET(request: NextRequest) {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     // ดึง records จาก user_activity ที่ lastActivityAt ยังไม่เกิน 15 นาที
+    // และยังไม่ถูก logout (logoutAt = null)
     const onlineUsers = await prisma.user_activity.findMany({
       where: {
         lastActivityAt: {
           gte: fifteenMinutesAgo,
         },
+        logoutAt: null,
       },
       include: {
         user: {

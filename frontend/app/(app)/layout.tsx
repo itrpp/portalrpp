@@ -111,29 +111,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, pathname]);
 
-  // อัปเดต user activity เมื่อผู้ใช้ authenticated และ navigate หน้า
+  // อัปเดต user activity เมื่อผู้ใช้ authenticated (เก็บสถานะด้วย session/cookie, เรียกทุก 30 วินาที)
   useEffect(() => {
     if (status !== "authenticated" || !session?.user?.id) {
       return;
     }
 
-    // อัปเดต activity เมื่อ pathname เปลี่ยน
+    const ACTIVITY_INTERVAL_MS = 30000; // 30 วินาที
+
     const updateActivity = async () => {
       try {
-        await fetch("/api/auth/update-activity", {
+        const res = await fetch("/api/auth/update-activity", {
           method: "POST",
+          credentials: "same-origin",
         });
+
+        if (res.status === 401) {
+          const body = await res.json().catch(() => ({}));
+
+          if (body?.error === "SESSION_EXPIRED") {
+            await signOut({ redirect: true, callbackUrl: "/login" });
+          }
+        }
       } catch {
-        // Ignore errors
+        // Ignore network errors
       }
     };
 
     updateActivity();
 
-    // อัปเดต activity ทุก 30 วินาทีเพื่อ track activity แม้ผู้ใช้ไม่ได้ navigate
-    const interval = setInterval(() => {
-      updateActivity();
-    }, 30000); // 30 วินาที
+    const interval = setInterval(updateActivity, ACTIVITY_INTERVAL_MS);
 
     return () => {
       clearInterval(interval);
@@ -141,17 +148,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [status, session, pathname]);
 
   const handleLogout = async () => {
-    try {
-      // Cleanup user_activity ก่อน logout
-      await fetch("/api/auth/cleanup-activity", {
-        method: "DELETE",
-      }).catch(() => {
-        // Ignore errors - ไม่ให้กระทบการ logout
-      });
-    } catch {
-      // Ignore errors
-    }
-
+    // เคลียร์ session/cookie เท่านั้น — ไม่ลบ record ใน user_activity เพื่อเก็บประวัติ
     await signOut({
       redirect: true,
       callbackUrl: "/login",
