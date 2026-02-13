@@ -1,5 +1,7 @@
 "use client";
 
+import type { CalendarDate } from "@internationalized/date";
+
 import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
@@ -14,7 +16,13 @@ import {
   addToast,
 } from "@heroui/react";
 
-import { JobTable, JobDetailDrawer } from "../components";
+import {
+  JobTable,
+  EditableJobDetailDrawer,
+  PorterLoadingSkeleton,
+  PorterEmptyState,
+} from "../components";
+import { CurrentTimeDisplay } from "../components/CurrentTimeDisplay";
 
 import { usePagination } from "@/hooks/usePagination";
 import {
@@ -25,7 +33,6 @@ import {
   CalendarIcon,
 } from "@/components/ui/icons";
 import { getApiGatewayBaseUrl } from "@/lib/env";
-import { formatDateTimeThai } from "@/lib/utils";
 import {
   JobListTab,
   PorterJobItem,
@@ -33,7 +40,6 @@ import {
   UrgencyLevel,
 } from "@/types/porter";
 import { sortJobs, playNotificationSound, playSirenSound } from "@/lib/porter";
-import type { CalendarDate } from "@internationalized/date";
 
 const JOBLIST_TAB_KEYS: JobListTab[] = [
   "waiting",
@@ -64,12 +70,13 @@ export default function JobListClient() {
 
   const handleTabChange = (key: React.Key) => {
     const tab = key as JobListTab;
+
     setSelectedTab(tab);
     const next = new URLSearchParams(searchParams.toString());
+
     next.set("tab", tab);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   };
-  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -80,29 +87,24 @@ export default function JobListClient() {
   // Date range filters สำหรับ completed และ cancelled tabs
   const [completedStartDate, setCompletedStartDate] =
     useState<CalendarDate | null>(null);
-  const [completedEndDate, setCompletedEndDate] =
-    useState<CalendarDate | null>(null);
+  const [completedEndDate, setCompletedEndDate] = useState<CalendarDate | null>(
+    null,
+  );
   const [cancelledStartDate, setCancelledStartDate] =
     useState<CalendarDate | null>(null);
-  const [cancelledEndDate, setCancelledEndDate] =
-    useState<CalendarDate | null>(null);
+  const [cancelledEndDate, setCancelledEndDate] = useState<CalendarDate | null>(
+    null,
+  );
 
   /** แปลงค่าจาก DatePicker (CalendarDate) เป็น Date เฉพาะส่วนวันที่ */
   function toDateOnly(value: CalendarDate | null): Date | null {
     if (!value) return null;
+
     return new Date(value.year, value.month - 1, value.day);
   }
 
-  // อัพเดทเวลาแบบ real-time ทุกวินาที
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
+  // เวลาปัจจุบันถูกแสดงโดย CurrentTimeDisplay component แทน
+  // เพื่อไม่ให้ re-render ทั้งหน้าเมื่อเวลาอัปเดต
 
   // ดึงข้อมูลรายการคำขอจาก API
   const fetchPorterRequests = async (status?: JobListTab) => {
@@ -830,7 +832,7 @@ export default function JobListClient() {
           <ClockIcon aria-hidden className="w-5 h-5" />
           <div className="text-sm">
             <div className="font-medium">
-              {formatDateTimeThai(currentDateTime)}
+              <CurrentTimeDisplay />
             </div>
           </div>
         </div>
@@ -867,14 +869,14 @@ export default function JobListClient() {
           <CardBody>
             {/* แสดง Loading หรือ Error */}
             {isLoading && (
-              <div className="flex justify-center items-center py-8">
-                <div className="text-default-600">กำลังโหลดข้อมูล…</div>
-              </div>
+              <PorterLoadingSkeleton rows={5} variant="table-row" />
             )}
             {error && !isLoading && (
-              <div className="flex justify-center items-center py-8">
-                <div className="text-danger">{error}</div>
-              </div>
+              <PorterEmptyState
+                icon={<XMarkIcon className="w-12 h-12 text-danger" />}
+                message={error}
+                variant="error"
+              />
             )}
             {/* Tab Navigation - HeroUI Tabs */}
             {!isLoading && !error && (
@@ -911,6 +913,7 @@ export default function JobListClient() {
                   <JobTable
                     currentPage={currentPage}
                     endIndex={endIndex}
+                    isLoading={isLoading}
                     items={paginatedJobs}
                     paginationId="rows-per-page"
                     rowsPerPage={rowsPerPage}
@@ -944,9 +947,11 @@ export default function JobListClient() {
                   <JobTable
                     currentPage={currentPage}
                     endIndex={endIndex}
+                    isLoading={isLoading}
                     items={paginatedJobs}
                     paginationId="rows-per-page-2"
                     rowsPerPage={rowsPerPage}
+                    selectedKeys={selectedKeys}
                     sortedJobs={sortedJobs}
                     startIndex={startIndex}
                     totalPages={totalPages}
@@ -1027,6 +1032,7 @@ export default function JobListClient() {
                     <JobTable
                       currentPage={currentPage}
                       endIndex={endIndex}
+                      isLoading={isLoading}
                       items={paginatedJobs}
                       paginationId="rows-per-page-3"
                       rowsPerPage={rowsPerPage}
@@ -1111,6 +1117,7 @@ export default function JobListClient() {
                     <JobTable
                       currentPage={currentPage}
                       endIndex={endIndex}
+                      isLoading={isLoading}
                       items={paginatedJobs}
                       paginationId="rows-per-page-4"
                       rowsPerPage={rowsPerPage}
@@ -1129,8 +1136,8 @@ export default function JobListClient() {
         </Card>
       </div>
 
-      {/* Job Detail Drawer */}
-      <JobDetailDrawer
+      {/* Job Detail Drawer - Editable variant */}
+      <EditableJobDetailDrawer
         isOpen={isDrawerOpen}
         job={selectedJob}
         onAssignJob={handleAssignJob}

@@ -3,13 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Select, SelectItem } from "@heroui/react";
 
-import {
-  Building,
-  FloorDepartment,
-  RoomBed,
-  DetailedLocation,
-} from "@/types/porter";
-import { convertBuildingFromProto } from "@/lib/porter";
+import { usePorterBuildings } from "../hooks/usePorterBuildings";
+
+import { FloorDepartment, RoomBed, DetailedLocation } from "@/types/porter";
 
 /**
  * Props สำหรับ LocationSelector
@@ -38,24 +34,30 @@ export function LocationSelector({
   showOnlyBeds = false,
 }: LocationSelectorProps) {
   // Data State
-  const [buildings, setBuildings] = useState<Building[]>([]);
   const [floors, setFloors] = useState<FloorDepartment[]>([]);
   const [roomBeds, setRoomBeds] = useState<RoomBed[]>([]);
 
-  // Loading State
-  const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+  // ดึง buildings จาก React Query hook
+  const { data: buildings = [], isLoading: isLoadingBuildings } =
+    usePorterBuildings();
 
   // Selection State
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
   const [selectedFloorId, setSelectedFloorId] = useState<string>("");
   const [selectedRoomBed, setSelectedRoomBed] = useState<string>("");
 
+  // Filter buildings ที่มี status = true (ต้องประกาศก่อน useMemo อื่น ๆ ที่ใช้มัน)
+  const activeBuildings = useMemo(
+    () => buildings.filter((building) => building.status === true),
+    [buildings],
+  );
+
   // Check if selected building is "โรงพยาบาลอื่น"
   const isOtherHospital = useMemo(() => {
-    const building = buildings.find((b) => b.id === selectedBuildingId);
+    const building = activeBuildings.find((b) => b.id === selectedBuildingId);
 
     return building?.name === "โรงพยาบาลอื่น";
-  }, [buildings, selectedBuildingId]);
+  }, [activeBuildings, selectedBuildingId]);
 
   // Check if selected floor is "หอผู้ป่วย" (departmentType === 2)
   const isWard = useMemo(() => {
@@ -88,52 +90,39 @@ export function LocationSelector({
     }
   }, [roomBeds, value?.roomBedName]);
 
-  // Fetch buildings on mount
-  useEffect(() => {
-    const fetchBuildings = async () => {
-      try {
-        setIsLoadingBuildings(true);
-        const response = await fetch("/api/porter/buildings");
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          const convertedBuildings = result.data
-            .map((b: any) => convertBuildingFromProto(b))
-            .filter((building: Building) => building.status === true);
-
-          setBuildings(convertedBuildings);
-        }
-      } catch (error) {
-        console.error("Error fetching buildings:", error);
-      } finally {
-        setIsLoadingBuildings(false);
-      }
-    };
-
-    fetchBuildings();
-  }, []);
-
   // Update floors when building changes or buildings load
-  useEffect(() => {
+  // ใช้ useMemo เพื่อ memoize selectedBuilding เพื่อป้องกัน infinite loop
+  // และใช้ JSON.stringify เพื่อเปรียบเทียบ deep equality ของ buildings
+  const buildingsKey = useMemo(
+    () =>
+      JSON.stringify(buildings.map((b) => ({ id: b.id, status: b.status }))),
+    [buildings],
+  );
+
+  const selectedBuilding = useMemo(() => {
     if (!selectedBuildingId || buildings.length === 0) {
+      return null;
+    }
+
+    const activeBuildingsList = buildings.filter((b) => b.status === true);
+
+    return activeBuildingsList.find((b) => b.id === selectedBuildingId) ?? null;
+  }, [selectedBuildingId, buildingsKey]);
+
+  useEffect(() => {
+    if (!selectedBuilding) {
       setFloors([]);
 
       return;
     }
 
-    const selectedBuilding = buildings.find((b) => b.id === selectedBuildingId);
+    // Filter active floors
+    const activeFloors = selectedBuilding.floors.filter(
+      (f) => f.status === true,
+    );
 
-    if (selectedBuilding) {
-      // Filter active floors
-      const activeFloors = selectedBuilding.floors.filter(
-        (f) => f.status === true,
-      );
-
-      setFloors(activeFloors);
-    } else {
-      setFloors([]);
-    }
-  }, [selectedBuildingId, buildings]);
+    setFloors(activeFloors);
+  }, [selectedBuilding]);
 
   // เรียงลำดับ floors จากชั้นบนสุดไปชั้นล่างสุด
   const sortedFloors = useMemo(() => {
@@ -214,7 +203,8 @@ export function LocationSelector({
   // Helper to update parent
   const updateLocation = useCallback(
     (buildingId: string, floorId: string, roomBedId: string) => {
-      const building = buildings.find((b) => b.id === buildingId);
+      const activeBuildingsList = buildings.filter((b) => b.status === true);
+      const building = activeBuildingsList.find((b) => b.id === buildingId);
       const floor = floors.find((f) => f.id === floorId);
 
       let roomBedName: string | undefined;
@@ -269,29 +259,33 @@ export function LocationSelector({
   );
 
   // Handlers
-  const handleBuildingChange = (keys: any) => {
-    const buildingId = Array.from(keys)[0] as string;
+  const handleBuildingChange = useCallback(
+    (keys: any) => {
+      const buildingId = Array.from(keys)[0] as string;
 
-    if (!buildingId) return;
+      if (!buildingId) return;
 
-    setSelectedBuildingId(buildingId);
-    setSelectedFloorId("");
-    setSelectedRoomBed("");
+      setSelectedBuildingId(buildingId);
+      setSelectedFloorId("");
+      setSelectedRoomBed("");
 
-    // Check if "Other Hospital" immediately to update parent
-    const building = buildings.find((b) => b.id === buildingId);
+      // Check if "Other Hospital" immediately to update parent
+      const activeBuildingsList = buildings.filter((b) => b.status === true);
+      const building = activeBuildingsList.find((b) => b.id === buildingId);
 
-    if (building && building.name === "โรงพยาบาลอื่น") {
-      const location: DetailedLocation = {
-        buildingId: building.id,
-        buildingName: building.name,
-      };
+      if (building && building.name === "โรงพยาบาลอื่น") {
+        const location: DetailedLocation = {
+          buildingId: building.id,
+          buildingName: building.name,
+        };
 
-      onChange(location);
-    } else {
-      onChange(null);
-    }
-  };
+        onChange(location);
+      } else {
+        onChange(null);
+      }
+    },
+    [buildings, onChange],
+  );
 
   const handleFloorChange = (keys: any) => {
     const floorId = Array.from(keys)[0] as string;
@@ -336,7 +330,7 @@ export function LocationSelector({
           variant="bordered"
           onSelectionChange={handleBuildingChange}
         >
-          {buildings.map((building) => (
+          {activeBuildings.map((building) => (
             <SelectItem key={building.id}>{building.name}</SelectItem>
           ))}
         </Select>

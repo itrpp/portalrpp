@@ -153,7 +153,7 @@ export const getPorterRequestById = async (id: string): Promise<PorterRequestMes
 export const listPorterRequests = async (
   filters: ListPorterRequestsFilters
 ): Promise<PaginationResult<PorterRequestMessage>> => {
-  const { status, urgency_level, requester_user_id, assigned_to_id, page = 1, page_size = 20 } = filters;
+  const { status, urgency_level, requester_user_id, assigned_to_id, search, page = 1, page_size = 20 } = filters;
 
   const where: Prisma.PorterRequestWhereInput = {};
 
@@ -173,6 +173,15 @@ export const listPorterRequests = async (
   }
   if (assigned_to_id) {
     where.assignedToId = assigned_to_id;
+  }
+  if (search && search.trim() !== "") {
+    const searchTerm = search.trim();
+    // MySQL doesn't support mode: 'insensitive' in Prisma
+    // Use contains which works with MySQL's default case-insensitive collation (utf8mb4_unicode_ci)
+    where.OR = [
+      { patientName: { contains: searchTerm } },
+      { patientHN: { contains: searchTerm } },
+    ];
   }
 
   const skip = (page - 1) * page_size;

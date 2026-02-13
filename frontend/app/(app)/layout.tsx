@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -209,8 +209,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-background">
       {/* Skip link สำหรับ accessibility — ข้ามไปเนื้อหาหลัก */}
       <a
-        href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-100 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary-foreground"
+        href="#main-content"
       >
         ข้ามไปเนื้อหาหลัก
       </a>
@@ -237,11 +237,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Content Area */}
         <main
-          id="main-content"
           className="flex-1 overflow-auto bg-default-50"
+          id="main-content"
           tabIndex={-1}
         >
-          {children}
+          <Suspense fallback={<Loading />}>{children}</Suspense>
         </main>
 
         {/* Modal บังคับให้ผู้ใช้ไปปรับปรุงข้อมูลโครงสร้างองค์กรในโปรไฟล์ */}

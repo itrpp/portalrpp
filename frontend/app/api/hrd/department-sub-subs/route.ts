@@ -10,14 +10,35 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const departmentSubIdParam = searchParams.get("departmentSubId");
+  const idsParam = searchParams.get("ids"); // สำหรับดึงแบบ batch
   const query = searchParams.get("q")?.trim() ?? "";
 
   const where: any = {
     ACTIVE: "True",
   };
 
+  // ถ้ามี ids parameter ให้ดึงแบบ batch (สำหรับลด N+1 queries)
+  if (idsParam) {
+    const ids = idsParam
+      .split(",")
+      .map((id) => Number.parseInt(id.trim(), 10))
+      .filter((id) => !Number.isNaN(id) && id > 0);
+
+    if (ids.length > 0) {
+      where.HR_DEPARTMENT_SUB_SUB_ID = {
+        in: ids,
+      };
+    } else {
+      // ถ้า ids ไม่ valid ให้คืน empty array
+      return NextResponse.json({
+        success: true,
+        data: [],
+      });
+    }
+  }
+
   // ถ้ามี departmentSubId ให้ filter
-  if (departmentSubIdParam) {
+  if (departmentSubIdParam && !idsParam) {
     const departmentSubId = Number.parseInt(departmentSubIdParam, 10);
 
     if (Number.isInteger(departmentSubId) && departmentSubId > 0) {
@@ -25,7 +46,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (query.length > 0) {
+  if (query.length > 0 && !idsParam) {
     where.HR_DEPARTMENT_SUB_SUB_NAME = {
       contains: query,
     };
@@ -41,9 +62,11 @@ export async function GET(request: Request) {
       created_at: true,
       updated_at: true,
     },
-    orderBy: {
-      HR_DEPARTMENT_SUB_SUB_NAME: "asc",
-    },
+    orderBy: idsParam
+      ? undefined // ไม่ต้อง sort เมื่อดึงแบบ batch
+      : {
+          HR_DEPARTMENT_SUB_SUB_NAME: "asc",
+        },
   });
 
   // ดึงชื่อ department_sub สำหรับแสดงผล

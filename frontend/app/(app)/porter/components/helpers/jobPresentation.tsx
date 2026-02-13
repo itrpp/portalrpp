@@ -1,65 +1,40 @@
-import { Chip } from "@heroui/react";
+import React from "react";
+
+import { PorterStatusBadge } from "../shared/PorterStatusBadge";
 
 import { PorterJobItem } from "@/types/porter";
 
-type UrgencyStyle = {
-  containerClass: string;
-  chipColor: "default" | "warning" | "danger";
-};
+// Re-export getUrgencyStyle จาก designTokens
+export { getUrgencyStyle } from "../shared/designTokens";
 
-const urgencyStyleMap: Record<string, UrgencyStyle> = {
-  ฉุกเฉิน: {
-    containerClass: "bg-danger-50/30 border-danger-200",
-    chipColor: "danger",
-  },
-  ด่วน: {
-    containerClass: "bg-warning-50/30 border-warning-200",
-    chipColor: "warning",
-  },
-  ปกติ: {
-    containerClass: "bg-content1 border-default-200",
-    chipColor: "default",
-  },
-};
-
-export const getUrgencyStyle = (urgencyLevel: string | undefined) =>
-  urgencyStyleMap[urgencyLevel || "ปกติ"] ?? urgencyStyleMap["ปกติ"];
-
+/**
+ * Render status chip component
+ * ใช้ PorterStatusBadge จาก design tokens
+ */
 export const renderStatusChip = (job: PorterJobItem) => {
-  if (job.status === "IN_PROGRESS") {
-    // แสดงชื่อเจ้าหน้าที่ถ้ามี ถ้าไม่มีให้ fallback ไปใช้ ID
-
-    const staffInfo =
-      job.assignedToName || (job.assignedTo ? `ID: ${job.assignedTo}` : null);
-    const label = staffInfo
-      ? `กำลังดำเนินการ [${staffInfo}]`
-      : "กำลังดำเนินการ";
-
+  // แสดง badge เฉพาะ status ที่มี visual indicator
+  if (
+    job.status === "IN_PROGRESS" ||
+    job.status === "COMPLETED" ||
+    job.status === "CANCELLED"
+  ) {
     return (
-      <Chip color="warning" size="sm" variant="flat">
-        {label}
-      </Chip>
-    );
-  }
-
-  if (job.status === "COMPLETED") {
-    return (
-      <Chip color="success" size="sm" variant="flat">
-        เสร็จสิ้น
-      </Chip>
-    );
-  }
-
-  if (job.status === "CANCELLED") {
-    const staffInfo =
-      job.cancelledByName ||
-      (job.cancelledById ? `ID: ${job.cancelledById}` : "");
-    const label = staffInfo ? `ยกเลิก [${staffInfo}]` : "ยกเลิก";
-
-    return (
-      <Chip color="danger" size="sm" variant="flat">
-        {label}
-      </Chip>
+      <PorterStatusBadge
+        showStaffInfo
+        size="sm"
+        staffId={
+          job.status === "IN_PROGRESS"
+            ? job.assignedTo
+            : (job.cancelledById ?? undefined)
+        }
+        staffName={
+          job.status === "IN_PROGRESS"
+            ? job.assignedToName
+            : job.cancelledByName
+        }
+        status={job.status}
+        variant="flat"
+      />
     );
   }
 

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { SidebarProps, SidebarItem, SidebarSection } from "@/types";
+import LoadingPage from "@/components/ui/LoadingPage";
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const pathname = usePathname();
@@ -32,6 +33,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [isCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isNavigating, setIsNavigating] = useState(false);
+  const [showLoadingPage, setShowLoadingPage] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("กำลังโหลด...");
+  const [loadingMenu, setLoadingMenu] = useState<string | null>(null);
+  const [targetPathname, setTargetPathname] = useState<string | null>(null);
 
   // ใช้ prop isOpen ถ้ามี ถ้าไม่มีใช้ false (controlled component)
   const sidebarIsOpen = isOpen ?? false;
@@ -77,14 +82,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       newExpandedItems.add("ส่งออกข้อมูล");
     }
 
-    // Auto-expand "รายการงานที่ต้องดำเนินการ" when on job list pages
+    // Auto-expand "ศูนย์สั่งการ" when on job list pages
     if (pathname.startsWith("/porter/joblist")) {
-      newExpandedItems.add("ศูนย์เปล");
+      newExpandedItems.add("ศูนย์สั่งการ");
     }
 
-    // Auto-expand "ตั้งค่า" when on setting pages
+    // Auto-expand "ศูนย์สั่งการ" และ "ตั้งค่า" when on setting pages
     if (pathname.startsWith("/porter/setting/")) {
-      newExpandedItems.add("ศูนย์เปล");
+      newExpandedItems.add("ศูนย์สั่งการ");
       newExpandedItems.add("ตั้งค่า");
     }
 
@@ -101,6 +106,23 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
     setExpandedItems(newExpandedItems);
   }, [pathname]);
+
+  // ตรวจจับการเปลี่ยน pathname เพื่อปิด loading page เมื่อ navigation เสร็จจริง
+  useEffect(() => {
+    if (targetPathname && pathname === targetPathname && showLoadingPage) {
+      // เมื่อ pathname เปลี่ยนเป็น targetPathname จริงๆ แล้ว
+      // รอให้ progress bar แสดง 100% (300ms) แล้วค่อยซ่อน loading page
+      const timeoutId = setTimeout(() => {
+        setShowLoadingPage(false);
+        setLoadingMenu(null);
+        setTargetPathname(null);
+      }, 300);
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [pathname, targetPathname, showLoadingPage]);
 
   // ตรวจสอบว่าเป็น superadmin (ฝ่ายวิชาการ admin) - memoized
   const isSuperAdmin = useMemo(() => {
@@ -333,32 +355,48 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   }, []);
 
   const handleNavigate = useCallback(
-    async (href: string) => {
+    async (href: string, menuName?: string) => {
       if (isNavigating || pathname === href) {
         return;
       }
 
+      // ป้องกันการคลิกซ้ำ
+      if (isNavigating && loadingMenu === menuName) {
+        return;
+      }
+
       setIsNavigating(true);
+      setLoadingMenu(menuName || null);
+      setLoadingMessage(menuName ? `กำลังโหลด ${menuName}...` : "กำลังโหลด...");
+      setShowLoadingPage(true);
+      setTargetPathname(href); // เก็บ target pathname เพื่อรอให้ pathname เปลี่ยนจริง
+
       // ปิด Sidebar บน mobile หลังจาก navigate
       if (isMobile) {
         handleClose();
       }
+
       try {
+        // Simulate an async operation before navigation
+        await new Promise((resolve) => setTimeout(resolve, 500));
         await router.push(href);
+        // router.push() resolve แล้ว แต่ pathname ยังไม่เปลี่ยน
+        // ให้ setIsNavigating(false เพื่อให้ progress bar เป็น 100%
+        // แต่ยังไม่ซ่อน loading page (ให้ useEffect จัดการแทน)
+        setIsNavigating(false);
       } catch (error) {
         // Log error แต่ไม่แสดงให้ผู้ใช้เห็น (error handling ที่ดีกว่า)
-
         if (process.env.NODE_ENV === "development") {
           console.error("Navigation error:", error);
         }
-      } finally {
-        // Reset loading state after a short delay to allow navigation to start
-        setTimeout(() => {
-          setIsNavigating(false);
-        }, 300);
+        // ถ้า navigation error ให้ซ่อน loading page ทันที
+        setShowLoadingPage(false);
+        setIsNavigating(false);
+        setLoadingMenu(null);
+        setTargetPathname(null);
       }
     },
-    [isNavigating, pathname, router, isMobile, handleClose],
+    [isNavigating, pathname, router, isMobile, handleClose, loadingMenu],
   );
 
   const renderSidebarItem = (item: SidebarItem, isSubItem = false) => {
@@ -519,7 +557,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               <item.icon className="w-4 h-4 transition-colors text-default-600 group-hover:text-primary-500" />
             }
             variant="light"
-            onPress={() => handleNavigate(item.href)}
+            onPress={() => handleNavigate(item.href, item.name)}
           >
             {!isCollapsed && (
               <div className="flex items-center justify-between w-full">
@@ -576,6 +614,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
   return (
     <>
+      {/* Loading Page */}
+      {showLoadingPage && (
+        <LoadingPage message={loadingMessage} showProgress={true} />
+      )}
+
       {/* Mobile Overlay - แสดงเฉพาะบน mobile เมื่อ Sidebar เปิด */}
       {sidebarIsOpen && isMobile && (
         <div

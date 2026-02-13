@@ -123,6 +123,7 @@ message ListPorterRequestsRequest {
   optional string urgency_level = 2; // NORMAL, RUSH, EMERGENCY
   optional string assigned_to_id = 3;
   optional string requester_user_id = 6;
+  optional string search = 7; // ค้นหาจาก patientName หรือ patientHN
   optional int32 page = 4;
   optional int32 page_size = 5;
 }

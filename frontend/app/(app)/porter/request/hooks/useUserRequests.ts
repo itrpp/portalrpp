@@ -1,74 +1,127 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { usePorterRequests } from "../../hooks/usePorterRequests";
+import { porterQueryKeys } from "../../lib/queryKeys";
 
 import { PorterJobItem } from "@/types/porter";
+
+const DEFAULT_PAGE_SIZE = 10;
+const SEARCH_DEBOUNCE_MS = 500;
 
 interface UseUserRequestsOptions {
   userId?: string;
 }
 
+/**
+ * Hook สำหรับจัดการ user requests พร้อม pagination และ search
+ * ใช้ React Query ภายในสำหรับ data fetching และ caching
+ */
 export function useUserRequests({ userId }: UseUserRequestsOptions) {
-  const [userRequests, setUserRequests] = useState<PorterJobItem[]>([]);
-  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchUserRequests = useCallback(async () => {
-    if (!userId) {
-      setUserRequests([]);
-      setIsLoadingRequests(false);
-
-      return;
-    }
-
-    setIsLoadingRequests(true);
-
-    try {
-      const queryParams = new URLSearchParams({
-        requester_user_id: userId,
-      });
-
-      const response = await fetch(
-        `/api/porter/requests?${queryParams.toString()}`,
-      );
-
-      if (!response.ok) {
-        throw new Error("ไม่สามารถโหลดข้อมูลรายการคำขอได้");
-      }
-
-      const result = await response.json();
-
-      if (result.success && Array.isArray(result.data)) {
-        // ไม่ต้อง filter สถานะ ให้แสดงทั้งหมด (Waiting, In-progress, Completed, Cancelled)
-        const allRequests = result.data as PorterJobItem[];
-
-        // เรียงลำดับตามวันที่นัดหมาย (ใหม่ล่าสุดขึ้นก่อน)
-        const sortedRequests = allRequests.sort((a, b) => {
-          return (
-            new Date(b.form.requestedDateTime).getTime() -
-            new Date(a.form.requestedDateTime).getTime()
-          );
-        });
-
-        setUserRequests(sortedRequests);
-      } else {
-        setUserRequests([]);
-      }
-    } catch (error) {
-      console.error("Error fetching user requests:", error);
-      setUserRequests([]);
-    } finally {
-      setIsLoadingRequests(false);
-    }
-  }, [userId]);
-
-  // โหลดข้อมูลเมื่อ userId เปลี่ยน (รวมถึงเมื่อเปลี่ยนจาก undefined เป็น string)
-  // ใช้ fetchUserRequests ใน dependency เพื่อให้ trigger เมื่อ callback เปลี่ยน
+  // Debounce search query
   useEffect(() => {
-    fetchUserRequests();
-  }, [fetchUserRequests]);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Reset page to 1 when filter/search changes
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, debouncedSearchQuery]);
+
+  // Use React Query hook for data fetching
+  const {
+    data: response,
+    isLoading: isLoadingRequests,
+    error,
+    refetch,
+  } = usePorterRequests({
+    userId,
+    page,
+    pageSize,
+    status: statusFilter,
+    search: debouncedSearchQuery,
+  });
+
+  // Extract data from response
+  const userRequests: PorterJobItem[] = response?.data ?? [];
+  const total = response?.total ?? 0;
+  const totalPages = Math.ceil(total / pageSize) || 1;
+
+  const handleStatusFilterChange = useCallback((status: string | null) => {
+    setStatusFilter(status);
+  }, []);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+  }, []);
+
+  const handlePageSizeChange = useCallback((newPageSize: number) => {
+    setPageSize(newPageSize);
+  }, []);
+
+  const refreshUserRequests = useCallback(async () => {
+    // Invalidate queries เพื่อให้ refetch
+    await queryClient.invalidateQueries({
+      queryKey: porterQueryKeys.requests.list({
+        userId,
+        page,
+        pageSize,
+        status: statusFilter ?? undefined,
+        search: debouncedSearchQuery || undefined,
+      }),
+    });
+
+    return refetch();
+  }, [
+    queryClient,
+    userId,
+    page,
+    pageSize,
+    statusFilter,
+    debouncedSearchQuery,
+    refetch,
+  ]);
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
 
   return {
     userRequests,
     isLoadingRequests,
-    refreshUserRequests: fetchUserRequests,
-    setUserRequests,
+    page,
+    pageSize,
+    total,
+    totalPages,
+    statusFilter,
+    searchQuery,
+    setPage,
+    setPageSize,
+    handlePageChange,
+    handlePageSizeChange,
+    handleStatusFilterChange,
+    handleSearchChange,
+    refreshUserRequests,
+    error,
   };
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Button,
   Card,
@@ -19,38 +20,44 @@ import {
   Radio,
   Form,
   DatePicker,
+  DateRangePicker,
   useDisclosure,
   addToast,
   Tabs,
   Tab,
-  Table,
-  TableHeader,
-  TableBody,
-  TableColumn,
-  TableRow,
-  TableCell,
+  Pagination,
   Tooltip,
 } from "@heroui/react";
-import { CalendarDateTime } from "@internationalized/date";
+import {
+  CalendarDateTime,
+  CalendarDate,
+  parseDate,
+} from "@internationalized/date";
+import { RangeValue } from "@react-types/shared";
 
 import {
   LocationSelector,
   CancelJobModal,
-  JobDetailDrawer,
+  ReadOnlyJobDetailDrawer,
   EmergencyConfirmationModal,
+  PorterEmptyState,
+  PorterLoadingSkeleton,
 } from "../components";
+import { PORTER_TABLE_STYLES } from "../components/shared/tableStyles";
+import { useDepartmentName } from "../hooks/useDepartmentsMap";
 
+import { RequestHistoryTable } from "./components/RequestHistoryTable";
 import { usePorterRequestForm } from "./hooks/usePorterRequestForm";
 import { useUserRequests } from "./hooks/useUserRequests";
 
+import { getISODatePart } from "@/lib/utils";
 import {
   PorterRequestFormData,
   VehicleType,
   EquipmentType,
   PorterJobItem,
 } from "@/types/porter";
-import { formatLocationString } from "@/lib/porter";
-import { formatThaiDateTimeShort, getDateTimeLocal } from "@/lib/utils";
+import { getDateTimeLocal } from "@/lib/utils";
 import {
   URGENCY_OPTIONS,
   VEHICLE_TYPE_OPTIONS,
@@ -67,14 +74,22 @@ import {
   CalendarIcon,
   ClipboardListIcon,
   XMarkIcon,
-  PencilIcon,
   MagnifyingGlassIcon,
   RefreshIcon,
-  EyeIcon,
 } from "@/components/ui/icons";
 
 export default function PorterRequestPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // อ่าน filters จาก URL query params
+  const urlStatusFilter = searchParams.get("status");
+  const urlSearchQuery = searchParams.get("search") ?? "";
+  const urlDateFrom = searchParams.get("dateFrom");
+  const urlDateTo = searchParams.get("dateTo");
+  const urlPage = searchParams.get("page");
 
   const [selectedTab, setSelectedTab] = useState<string>("form");
 
@@ -97,11 +112,6 @@ export default function PorterRequestPage() {
       (session?.user as any)?.departmentSubSubId ?? undefined,
   });
 
-  // State สำหรับเก็บชื่อหน่วยงาน
-  const [requesterDepartmentName, setRequesterDepartmentName] = useState<
-    string | null
-  >(null);
-
   // Sync หน่วยงานผู้แจ้งจาก session ให้กับฟอร์มเมื่อ session โหลดแล้ว
   useEffect(() => {
     const departmentSubSubId = (session?.user as any)?.departmentSubSubId;
@@ -111,44 +121,130 @@ export default function PorterRequestPage() {
     }
   }, [session?.user, formData.requesterDepartment, setFormField]);
 
-  // ดึงชื่อหน่วยงานจาก departmentSubSubId
+  // ดึงชื่อหน่วยงานจาก departmentSubSubId (ใช้ React Query hook)
+  const requesterDepartmentName = useDepartmentName(
+    formData.requesterDepartment,
+  );
+
+  const {
+    userRequests,
+    isLoadingRequests,
+    refreshUserRequests,
+    page,
+    pageSize,
+    total,
+    totalPages,
+    statusFilter,
+    searchQuery,
+    handlePageChange,
+    handlePageSizeChange,
+    handleStatusFilterChange,
+    handleSearchChange,
+  } = useUserRequests({
+    userId: session?.user?.id,
+  });
+
+  // State สำหรับ date filter (เลือกช่วงวันที่)
+  const [dateRange, setDateRange] = useState<RangeValue<CalendarDate> | null>(
+    null,
+  );
+
+  // อ่าน date range จาก URL เมื่อ component mount
   useEffect(() => {
-    const fetchDepartmentName = async () => {
-      if (!formData.requesterDepartment) {
-        setRequesterDepartmentName(null);
-
-        return;
-      }
-
+    if (urlDateFrom && urlDateTo) {
       try {
-        const response = await fetch(
-          `/api/hrd/department-sub-subs/${formData.requesterDepartment}`,
-        );
+        const start = parseDate(urlDateFrom);
+        const end = parseDate(urlDateTo);
 
-        if (response.ok) {
-          const result = await response.json();
-
-          if (result.success && result.data) {
-            setRequesterDepartmentName(result.data.name);
-          } else {
-            setRequesterDepartmentName(null);
-          }
-        } else {
-          setRequesterDepartmentName(null);
-        }
-      } catch (error) {
-        console.error("Error fetching department name:", error);
-        setRequesterDepartmentName(null);
+        setDateRange({ start, end });
+      } catch {
+        // Ignore parse errors
       }
-    };
+    }
+  }, []); // Run once on mount
 
-    void fetchDepartmentName();
-  }, [formData.requesterDepartment]);
+  // Sync initial filters จาก URL
+  useEffect(() => {
+    if (urlStatusFilter && urlStatusFilter !== statusFilter) {
+      handleStatusFilterChange(urlStatusFilter);
+    }
+    if (urlSearchQuery && urlSearchQuery !== searchQuery) {
+      handleSearchChange(urlSearchQuery);
+    }
+    if (urlPage) {
+      const pageNum = Number.parseInt(urlPage, 10);
 
-  const { userRequests, isLoadingRequests, refreshUserRequests } =
-    useUserRequests({
-      userId: session?.user?.id,
+      if (!Number.isNaN(pageNum) && pageNum > 0 && pageNum !== page) {
+        handlePageChange(pageNum);
+      }
+    }
+  }, []); // Run once on mount
+
+  // Sync filters กับ URL query params
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    // อัปเดต status filter
+    if (statusFilter) {
+      params.set("status", statusFilter);
+    } else {
+      params.delete("status");
+    }
+
+    // อัปเดต search query
+    if (searchQuery) {
+      params.set("search", searchQuery);
+    } else {
+      params.delete("search");
+    }
+
+    // อัปเดต date range
+    if (dateRange?.start && dateRange?.end) {
+      params.set("dateFrom", dateRange.start.toString());
+      params.set("dateTo", dateRange.end.toString());
+    } else {
+      params.delete("dateFrom");
+      params.delete("dateTo");
+    }
+
+    // อัปเดต page
+    if (page > 1) {
+      params.set("page", String(page));
+    } else {
+      params.delete("page");
+    }
+
+    // อัปเดต URL โดยไม่ scroll
+    const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+
+    router.replace(newUrl, { scroll: false });
+  }, [
+    statusFilter,
+    searchQuery,
+    dateRange,
+    page,
+    pathname,
+    router,
+    searchParams,
+  ]);
+
+  // Filter userRequests ตามช่วงวันที่ที่เลือก (client-side)
+  const filteredUserRequests = useMemo(() => {
+    if (!dateRange || !dateRange.start || !dateRange.end) {
+      return userRequests;
+    }
+
+    const startDateStr = dateRange.start.toString();
+    const endDateStr = dateRange.end.toString();
+
+    return userRequests.filter((request) => {
+      if (!request.createdAt) return false;
+
+      const requestDateStr = getISODatePart(request.createdAt);
+
+      return requestDateStr >= startDateStr && requestDateStr <= endDateStr;
     });
+  }, [userRequests, dateRange]);
 
   // State สำหรับค้นหาข้อมูลผู้ป่วย
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
@@ -168,11 +264,8 @@ export default function PorterRequestPage() {
 
   // State สำหรับ JobDetailDrawer
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
-  const {
-    isOpen: isJobDetailDrawerOpen,
-    onOpen: onJobDetailDrawerOpen,
-    onClose: onJobDetailDrawerClose,
-  } = useDisclosure();
+  const { isOpen: isJobDetailDrawerOpen, onClose: onJobDetailDrawerClose } =
+    useDisclosure();
 
   // State สำหรับ Modal ยืนยันการเลือก "ฉุกเฉิน"
   const {
@@ -226,24 +319,6 @@ export default function PorterRequestPage() {
 
   const handleCancelEdit = () => {
     cancelEditing();
-  };
-
-  // Handler สำหรับดูรายละเอียดคำขอ
-  const handleViewRequest = (requestId: string) => {
-    const request = userRequests.find((r) => r.id === requestId);
-
-    if (!request) {
-      addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่พบข้อมูลคำขอ",
-        color: "danger",
-      });
-
-      return;
-    }
-
-    setSelectedJob(request);
-    onJobDetailDrawerOpen();
   };
 
   // Handle form submission
@@ -666,6 +741,7 @@ export default function PorterRequestPage() {
 
                   <Input
                     isRequired
+                    autoComplete="name"
                     label="ชื่อผู้แจ้ง"
                     name="requesterName"
                     placeholder="กรอกชื่อผู้แจ้ง"
@@ -681,6 +757,7 @@ export default function PorterRequestPage() {
 
                   <Input
                     isRequired
+                    autoComplete="tel"
                     classNames={{
                       input:
                         "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
@@ -691,7 +768,7 @@ export default function PorterRequestPage() {
                     startContent={
                       <PhoneIcon className="w-4 h-4 text-default-400" />
                     }
-                    type="number"
+                    type="tel"
                     value={formData.requesterPhone}
                     variant="bordered"
                     onChange={(e) => {
@@ -722,7 +799,7 @@ export default function PorterRequestPage() {
                         <div className="flex items-center gap-1">
                           {formData.patientHN && (
                             <button
-                              className="focus:outline-hidden p-1 rounded-md hover:bg-default-100 transition-colors"
+                              className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none p-1 rounded-md hover:bg-default-100 transition-colors"
                               disabled={isLoadingPatient}
                               tabIndex={-1}
                               type="button"
@@ -732,7 +809,7 @@ export default function PorterRequestPage() {
                             </button>
                           )}
                           <button
-                            className="focus:outline-hidden p-1.5 rounded-md bg-primary text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="focus-visible:ring-2 focus-visible:ring-primary-foreground focus-visible:outline-none p-1.5 rounded-md bg-primary text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={
                               isLoadingPatient || !formData.patientHN?.trim()
                             }
@@ -771,6 +848,7 @@ export default function PorterRequestPage() {
 
                   <Input
                     isRequired
+                    autoComplete="off"
                     label="ชื่อผู้ป่วย"
                     name="patientName"
                     placeholder="กรอกชื่อผู้ป่วย"
@@ -1195,201 +1273,199 @@ export default function PorterRequestPage() {
             <div className="flex items-center space-x-2">
               <ClipboardListIcon className="w-4 h-4" />
               <span>ประวัติคำขอ</span>
-              {userRequests.length > 0 && (
+              {total > 0 && (
                 <Chip size="sm" variant="flat">
-                  {userRequests.length}
+                  {total}
                 </Chip>
               )}
             </div>
           }
         >
           <div className="mt-4">
-            <Card className="shadow-lg border border-default-200">
-              <CardHeader className="flex gap-3 justify-between">
-                <div className="flex flex-col">
-                  <h2 className="text-lg font-bold text-foreground">
-                    รายการคำขอทั้งหมด
-                  </h2>
-                  <p className="text-small text-default-500">
-                    ประวัติการขอเปลทั้งหมดของคุณ
-                  </p>
-                </div>
-                <Button
-                  isIconOnly
-                  color="primary"
-                  isLoading={isLoadingRequests}
-                  size="sm"
-                  variant="flat"
-                  onPress={refreshUserRequests}
-                >
-                  <RefreshIcon className="w-4 h-4" />
-                </Button>
-              </CardHeader>
+            {/* Filters */}
+            <Card className="shadow-lg border border-default-200 mb-4">
               <CardBody>
-                {isLoadingRequests ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
+                    <Input
+                      isClearable
+                      aria-label="ค้นหาประวัติคำขอ"
+                      className="flex-1 min-w-[200px]"
+                      label="ค้นหา"
+                      labelPlacement="outside"
+                      placeholder="ค้นหาด้วยชื่อผู้ป่วย หรือ HN..."
+                      size="md"
+                      startContent={
+                        <MagnifyingGlassIcon className="w-5 h-5 text-default-400" />
+                      }
+                      value={searchQuery}
+                      variant="bordered"
+                      onClear={() => handleSearchChange("")}
+                      onValueChange={handleSearchChange}
+                    />
+                    <Select
+                      aria-label="กรองตามสถานะ"
+                      className="w-full sm:w-48"
+                      label="สถานะ"
+                      labelPlacement="outside"
+                      placeholder="สถานะ"
+                      selectedKeys={statusFilter ? [statusFilter] : ["all"]}
+                      size="md"
+                      variant="bordered"
+                      onSelectionChange={(keys) => {
+                        const k = Array.from(keys)[0] as string | undefined;
+
+                        handleStatusFilterChange(k && k !== "all" ? k : null);
+                      }}
+                    >
+                      <SelectItem key="all">ทั้งหมด</SelectItem>
+                      <SelectItem key="WAITING_CENTER">รอศูนย์รับ</SelectItem>
+                      <SelectItem key="WAITING_ACCEPT">
+                        รอผู้ปฏิบัติรับงาน
+                      </SelectItem>
+                      <SelectItem key="IN_PROGRESS">กำลังดำเนินการ</SelectItem>
+                      <SelectItem key="COMPLETED">เสร็จสิ้น</SelectItem>
+                      <SelectItem key="CANCELLED">ยกเลิก</SelectItem>
+                    </Select>
+                    <div className="flex flex-col gap-1 flex-1 min-w-[280px]">
+                      <DateRangePicker
+                        aria-label="ช่วงวันที่"
+                        className="w-full"
+                        label="ช่วงวันที่"
+                        labelPlacement="outside"
+                        size="md"
+                        value={dateRange}
+                        variant="bordered"
+                        onChange={setDateRange}
+                      />
+                    </div>
+                    <Button
+                      color="default"
+                      isDisabled={!dateRange && !searchQuery && !statusFilter}
+                      size="md"
+                      variant="flat"
+                      onPress={() => {
+                        setDateRange(null);
+                        handleSearchChange("");
+                        handleStatusFilterChange(null);
+                      }}
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                      ล้างตัวกรอง
+                    </Button>
                   </div>
-                ) : userRequests.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-default-500">
-                    <ClipboardListIcon className="w-12 h-12 mb-2 opacity-50" />
-                    <p>ยังไม่มีประวัติคำขอ</p>
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Table */}
+            <Card className="shadow-lg border border-default-200">
+              <CardHeader className="pb-0">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <ClipboardListIcon className="w-6 h-6 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">
+                      รายการคำขอ
+                    </h2>
                   </div>
-                ) : (
-                  <Table
-                    aria-label="Request History Table"
-                    classNames={{
-                      wrapper: "min-h-[222px]",
-                    }}
+                  <Button
+                    color="success"
+                    size="md"
+                    variant="flat"
+                    onPress={refreshUserRequests}
                   >
-                    <TableHeader>
-                      <TableColumn>สถานะ</TableColumn>
-                      <TableColumn>ความเร่งด่วน</TableColumn>
-                      <TableColumn>เวลานัด</TableColumn>
-                      <TableColumn>ผู้ป่วย</TableColumn>
-                      <TableColumn>สถานที่</TableColumn>
-                      <TableColumn align="center">จัดการ</TableColumn>
-                    </TableHeader>
-                    <TableBody items={userRequests}>
-                      {(item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <Chip
-                              color={
-                                item.status === "WAITING_CENTER" ||
-                                item.status === "WAITING_ACCEPT"
-                                  ? "default"
-                                  : item.status === "IN_PROGRESS"
-                                    ? "warning"
-                                    : item.status === "COMPLETED"
-                                      ? "success"
-                                      : item.status === "CANCELLED"
-                                        ? "danger"
-                                        : "default"
-                              }
-                              size="sm"
-                              variant="flat"
+                    <RefreshIcon className="w-5 h-5" />
+                    รีเฟรช
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardBody className="pt-4">
+                {isLoadingRequests ? (
+                  <PorterLoadingSkeleton rows={5} variant="table-row" />
+                ) : (
+                  <>
+                    <RequestHistoryTable
+                      emptyContent={
+                        <PorterEmptyState
+                          icon={<ClipboardListIcon className="w-12 h-12" />}
+                          message={
+                            dateRange
+                              ? "ไม่พบรายการในช่วงวันที่ที่เลือก"
+                              : searchQuery.trim()
+                                ? "ไม่พบรายการที่ตรงกับคำค้นหา"
+                                : "ยังไม่มีประวัติคำขอ"
+                          }
+                          variant={
+                            dateRange || searchQuery.trim()
+                              ? "no-results"
+                              : "no-data"
+                          }
+                        />
+                      }
+                      isLoading={isLoadingRequests}
+                      items={filteredUserRequests}
+                      onCancel={handleOpenCancelModal}
+                      onEdit={handleEditRequest}
+                    />
+                    {/* Pagination */}
+                    {filteredUserRequests.length > 0 && (
+                      <div className="flex items-center justify-between mt-4 px-2">
+                        <div
+                          className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                        >
+                          แสดง {filteredUserRequests.length > 0 ? 1 : 0} - {""}
+                          {filteredUserRequests.length} จาก {""}
+                          {dateRange
+                            ? `${filteredUserRequests.length} (กรองแล้ว)`
+                            : total}{" "}
+                          รายการ
+                        </div>
+                        {!dateRange && (
+                          <Pagination
+                            showControls
+                            color="primary"
+                            initialPage={1}
+                            page={page}
+                            size="sm"
+                            total={totalPages}
+                            onChange={handlePageChange}
+                          />
+                        )}
+                        {!dateRange && (
+                          <div
+                            className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapLarge}`}
+                          >
+                            <div
+                              className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapMedium}`}
                             >
-                              {item.status === "WAITING_CENTER"
-                                ? "รอศูนย์รับ"
-                                : item.status === "WAITING_ACCEPT"
-                                  ? "รอผู้ปฏิบัติรับงาน"
-                                  : item.status === "IN_PROGRESS"
-                                    ? "กำลังดำเนินการ"
-                                    : item.status === "COMPLETED"
-                                      ? "เสร็จสิ้น"
-                                      : item.status === "CANCELLED"
-                                        ? "ยกเลิก"
-                                        : item.status}
-                            </Chip>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              color={
-                                item.form.urgencyLevel === "ฉุกเฉิน"
-                                  ? "danger"
-                                  : item.form.urgencyLevel === "ด่วน"
-                                    ? "warning"
-                                    : "default"
-                              }
-                              size="sm"
-                              variant="dot"
-                            >
-                              {item.form.urgencyLevel}
-                            </Chip>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-small">
-                              {formatThaiDateTimeShort(
-                                new Date(item.form.requestedDateTime),
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="text-bold text-small capitalize">
-                                {item.form.patientName || "-"}
-                              </span>
-                              <span className="text-tiny text-default-500">
-                                HN/AN : {item.form.patientHN}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col gap-1">
-                              <div className="text-tiny">
-                                <span className="text-default-500">รับ: </span>
-                                {formatLocationString(
-                                  item.form.pickupLocationDetail,
-                                )}
-                              </div>
-                              <div className="text-tiny">
-                                <span className="text-default-500">ส่ง: </span>
-                                {formatLocationString(
-                                  item.form.deliveryLocationDetail,
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-2">
-                              <Tooltip content="ดูรายละเอียด">
-                                <Button
-                                  isIconOnly
-                                  color="success"
-                                  size="sm"
-                                  variant="light"
-                                  onPress={() => handleViewRequest(item.id)}
-                                >
-                                  <EyeIcon className="w-5 h-5" />
-                                </Button>
-                              </Tooltip>
-                              <Tooltip content="แก้ไข">
-                                <Button
-                                  isIconOnly
-                                  color="primary"
-                                  isDisabled={
-                                    item.status !== "WAITING_CENTER" &&
-                                    item.status !== "WAITING_ACCEPT"
-                                  }
-                                  size="sm"
-                                  variant="light"
-                                  onPress={() => handleEditRequest(item.id)}
-                                >
-                                  <PencilIcon className="w-5 h-5" />
-                                </Button>
-                              </Tooltip>
-                              <Tooltip
-                                color="danger"
-                                content={
-                                  item.status === "WAITING_CENTER" ||
-                                  item.status === "WAITING_ACCEPT" ||
-                                  item.status === "IN_PROGRESS"
-                                    ? "ยกเลิก"
-                                    : "ไม่สามารถยกเลิกได้"
-                                }
+                              <label
+                                className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                                htmlFor="rows-per-page"
                               >
-                                <Button
-                                  isIconOnly
-                                  color="danger"
-                                  isDisabled={
-                                    item.status !== "WAITING_CENTER" &&
-                                    item.status !== "WAITING_ACCEPT" &&
-                                    item.status !== "IN_PROGRESS"
-                                  }
-                                  size="sm"
-                                  variant="light"
-                                  onPress={() => handleOpenCancelModal(item.id)}
-                                >
-                                  <XMarkIcon className="w-5 h-5" />
-                                </Button>
-                              </Tooltip>
+                                แสดงต่อหน้า:
+                              </label>
+                              <select
+                                className={`px-2 py-1 ${PORTER_TABLE_STYLES.text.small} border border-default-300 rounded-md bg-background text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:border-transparent`}
+                                id="rows-per-page"
+                                value={pageSize}
+                                onChange={(e) => {
+                                  handlePageSizeChange(
+                                    Number.parseInt(e.target.value, 10),
+                                  );
+                                  handlePageChange(1);
+                                }}
+                              >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                              </select>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </CardBody>
             </Card>
@@ -1414,11 +1490,10 @@ export default function PorterRequestPage() {
         onConfirm={handleCancelJob}
       />
 
-      {/* Job Detail Drawer */}
-      <JobDetailDrawer
+      {/* Job Detail Drawer - Read-only variant */}
+      <ReadOnlyJobDetailDrawer
         isOpen={isJobDetailDrawerOpen}
         job={selectedJob}
-        readOnly={true}
         onClose={() => {
           onJobDetailDrawerClose();
           setSelectedJob(null);

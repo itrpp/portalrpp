@@ -39,6 +39,9 @@ export function buildListProtoRequest(
   if (params.assigned_to_id) {
     protoRequest.assigned_to_id = params.assigned_to_id;
   }
+  if (params.search && params.search.trim() !== "") {
+    protoRequest.search = params.search.trim();
+  }
   if (params.page) {
     protoRequest.page = parseInt(params.page, 10);
   }

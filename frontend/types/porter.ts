@@ -1,4 +1,5 @@
 import type { Selection } from "@react-types/shared";
+import type React from "react";
 
 /**
  * ========================================
@@ -110,6 +111,9 @@ export interface JobTableProps {
   rowsPerPage: number;
   paginationId: string;
   selectedKeys?: Selection;
+  isLoading?: boolean;
+  emptyContent?: React.ReactNode;
+  loadingContent?: React.ReactNode;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
   onSelectionChange?: (keys: Selection) => void;
@@ -152,7 +156,7 @@ export interface PorterEmployee {
   position: string; // ชื่อ (สำหรับ backward compatibility)
   positionId: string | number; // รองรับทั้ง string และ number (hrd_position ใช้ number)
   status: boolean;
-  userId?: string; // map กับ user login (id จาก User table)
+  userId?: string; // ID ของ User ที่ map กับ employee (id จาก User table)
 }
 
 /**
@@ -255,6 +259,7 @@ export interface ListPorterRequestsParams {
   urgency_level?: string | null;
   requester_user_id?: string | null;
   assigned_to_id?: string | null;
+  search?: string | null;
   page?: string | null;
   page_size?: string | null;
 }

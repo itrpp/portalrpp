@@ -32,6 +32,8 @@ import {
   addToast,
 } from "@heroui/react";
 
+import { useDepartmentName } from "../hooks/useDepartmentsMap";
+
 import { LocationSelector } from "./LocationSelector";
 import CancelJobModal from "./CancelJobModal";
 
@@ -105,10 +107,12 @@ export default function JobDetailDrawer({
   const [isEditMode, setIsEditMode] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelReasonError, setCancelReasonError] = useState<string>("");
-  const [requesterDepartmentName, setRequesterDepartmentName] = useState<
-    string | null
-  >(null);
   const [acceptedByName, setAcceptedByName] = useState<string | null>(null);
+
+  // ดึงชื่อหน่วยงานจาก departmentSubSubId (ใช้ React Query hook)
+  const requesterDepartmentName = useDepartmentName(
+    formData?.requesterDepartment,
+  );
   const {
     isOpen: isCancelModalOpen,
     onOpen: onCancelModalOpen,
@@ -222,40 +226,6 @@ export default function JobDetailDrawer({
       setAcceptedByName(null);
     }
   }, [isOpen, job?.acceptedById]);
-
-  // ดึงชื่อหน่วยงานจาก departmentSubSubId
-  useEffect(() => {
-    const fetchDepartmentName = async () => {
-      if (!formData?.requesterDepartment) {
-        setRequesterDepartmentName(null);
-
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `/api/hrd/department-sub-subs/${formData.requesterDepartment}`,
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-
-          if (result.success && result.data) {
-            setRequesterDepartmentName(result.data.name);
-          } else {
-            setRequesterDepartmentName(null);
-          }
-        } else {
-          setRequesterDepartmentName(null);
-        }
-      } catch (error) {
-        console.error("Error fetching department name:", error);
-        setRequesterDepartmentName(null);
-      }
-    };
-
-    void fetchDepartmentName();
-  }, [formData?.requesterDepartment]);
 
   if (!job || !formData) return null;
 
@@ -503,7 +473,10 @@ export default function JobDetailDrawer({
               <Card className="shadow-xs border border-default-200 bg-content1">
                 <CardHeader className="pb-0 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <BuildingOfficeIcon aria-hidden className="w-5 h-5 text-primary" />
+                    <BuildingOfficeIcon
+                      aria-hidden
+                      className="w-5 h-5 text-primary"
+                    />
                     <h3 className="text-lg font-semibold text-foreground">
                       ข้อมูลผู้แจ้ง
                     </h3>
@@ -566,7 +539,10 @@ export default function JobDetailDrawer({
               <Card className="shadow-xs border border-default-200 bg-content1">
                 <CardHeader className="pb-0">
                   <div className="flex items-center gap-2">
-                    <BuildingOfficeIcon aria-hidden className="w-5 h-5 text-primary" />
+                    <BuildingOfficeIcon
+                      aria-hidden
+                      className="w-5 h-5 text-primary"
+                    />
                     <h3 className="text-lg font-semibold text-foreground">
                       อาการผู้ป่วยเบื้องต้น
                     </h3>
@@ -677,7 +653,10 @@ export default function JobDetailDrawer({
                 {canEdit && isEditMode && (
                   <section>
                     <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <MapPinIcon aria-hidden className="w-5 h-5 text-primary" />
+                      <MapPinIcon
+                        aria-hidden
+                        className="w-5 h-5 text-primary"
+                      />
                       แก้ไขข้อมูลการเคลื่อนย้าย
                     </h3>
                     <div className="space-y-4">
@@ -820,9 +799,15 @@ export default function JobDetailDrawer({
                               startContent={
                                 option.value === "ฉุกเฉิน" ||
                                 option.value === "ด่วน" ? (
-                                  <AmbulanceIcon aria-hidden className="w-4 h-4" />
+                                  <AmbulanceIcon
+                                    aria-hidden
+                                    className="w-4 h-4"
+                                  />
                                 ) : (
-                                  <ClipboardListIcon aria-hidden className="w-4 h-4" />
+                                  <ClipboardListIcon
+                                    aria-hidden
+                                    className="w-4 h-4"
+                                  />
                                 )
                               }
                               variant={
@@ -900,7 +885,10 @@ export default function JobDetailDrawer({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <section>
                     <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <ClipboardListIcon aria-hidden className="w-5 h-5 text-primary" />
+                      <ClipboardListIcon
+                        aria-hidden
+                        className="w-5 h-5 text-primary"
+                      />
                       รายละเอียด
                     </h3>
                     <div className="space-y-3">
@@ -934,7 +922,10 @@ export default function JobDetailDrawer({
                                   }`}
                                 />
                               ) : (
-                                <ClockIcon aria-hidden className="w-5 h-5 text-success-600 dark:text-success-400" />
+                                <ClockIcon
+                                  aria-hidden
+                                  className="w-5 h-5 text-success-600 dark:text-success-400"
+                                />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -953,7 +944,10 @@ export default function JobDetailDrawer({
                                 startContent={
                                   formData.urgencyLevel === "ฉุกเฉิน" ||
                                   formData.urgencyLevel === "ด่วน" ? (
-                                    <AmbulanceIcon aria-hidden className="w-3 h-3" />
+                                    <AmbulanceIcon
+                                      aria-hidden
+                                      className="w-3 h-3"
+                                    />
                                   ) : null
                                 }
                                 variant="flat"
@@ -969,7 +963,10 @@ export default function JobDetailDrawer({
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
                             <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <InfoCircleIcon aria-hidden className="w-5 h-5 text-primary" />
+                              <InfoCircleIcon
+                                aria-hidden
+                                className="w-5 h-5 text-primary"
+                              />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
@@ -987,7 +984,10 @@ export default function JobDetailDrawer({
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
                             <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <CarIcon aria-hidden className="w-5 h-5 text-primary" />
+                              <CarIcon
+                                aria-hidden
+                                className="w-5 h-5 text-primary"
+                              />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
@@ -996,13 +996,22 @@ export default function JobDetailDrawer({
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {formData.vehicleType === "รถนั่ง" && (
-                                    <StretcherIcon aria-hidden className="w-4 h-4 text-default-400" />
+                                    <StretcherIcon
+                                      aria-hidden
+                                      className="w-4 h-4 text-default-400"
+                                    />
                                   )}
                                   {formData.vehicleType === "รถนอน" && (
-                                    <BedIcon aria-hidden className="w-4 h-4 text-default-400" />
+                                    <BedIcon
+                                      aria-hidden
+                                      className="w-4 h-4 text-default-400"
+                                    />
                                   )}
                                   {formData.vehicleType === "รถกอล์ฟ" && (
-                                    <CarIcon aria-hidden className="w-4 h-4 text-default-400" />
+                                    <CarIcon
+                                      aria-hidden
+                                      className="w-4 h-4 text-default-400"
+                                    />
                                   )}
                                   <p className="text-sm font-medium text-foreground">
                                     {formData.vehicleType}
@@ -1028,7 +1037,10 @@ export default function JobDetailDrawer({
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
                             <div className="shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
-                              <ToolsIcon aria-hidden className="w-5 h-5 text-default-600 dark:text-default-700" />
+                              <ToolsIcon
+                                aria-hidden
+                                className="w-5 h-5 text-default-600 dark:text-default-700"
+                              />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-2">
@@ -1047,7 +1059,10 @@ export default function JobDetailDrawer({
                                           color="default"
                                           size="sm"
                                           startContent={
-                                            <MedicalBagIcon aria-hidden className="w-3 h-3" />
+                                            <MedicalBagIcon
+                                              aria-hidden
+                                              className="w-3 h-3"
+                                            />
                                           }
                                           variant="flat"
                                         >
@@ -1057,7 +1072,10 @@ export default function JobDetailDrawer({
                                           color="primary"
                                           size="sm"
                                           startContent={
-                                            <MedicalBagIcon aria-hidden className="w-3 h-3" />
+                                            <MedicalBagIcon
+                                              aria-hidden
+                                              className="w-3 h-3"
+                                            />
                                           }
                                           variant="flat"
                                         >
@@ -1074,7 +1092,10 @@ export default function JobDetailDrawer({
                                       color="default"
                                       size="sm"
                                       startContent={
-                                        <MedicalBagIcon aria-hidden className="w-3 h-3" />
+                                        <MedicalBagIcon
+                                          aria-hidden
+                                          className="w-3 h-3"
+                                        />
                                       }
                                       variant="flat"
                                     >
@@ -1092,7 +1113,10 @@ export default function JobDetailDrawer({
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
                           <div className="flex items-start gap-3">
                             <div className="shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
-                              <DocumentTextIcon aria-hidden className="w-5 h-5 text-default-600 dark:text-default-700" />
+                              <DocumentTextIcon
+                                aria-hidden
+                                className="w-5 h-5 text-default-600 dark:text-default-700"
+                              />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
@@ -1120,7 +1144,10 @@ export default function JobDetailDrawer({
                         <div className="relative flex gap-4">
                           <div className="relative z-10 shrink-0">
                             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                              <DocumentTextIcon aria-hidden className="w-4 h-4 text-white" />
+                              <DocumentTextIcon
+                                aria-hidden
+                                className="w-4 h-4 text-white"
+                              />
                             </div>
                           </div>
                           <div className="flex-1 pb-6">
@@ -1158,7 +1185,10 @@ export default function JobDetailDrawer({
                         <div className="relative flex gap-4">
                           <div className="relative z-10 shrink-0">
                             <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
-                              <ClockIcon aria-hidden className="w-4 h-4 text-default-600" />
+                              <ClockIcon
+                                aria-hidden
+                                className="w-4 h-4 text-default-600"
+                              />
                             </div>
                           </div>
                           <div className="flex-1 pb-6">
@@ -1194,7 +1224,10 @@ export default function JobDetailDrawer({
                         <div className="relative flex gap-4">
                           <div className="relative z-10 shrink-0">
                             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                              <UserIcon aria-hidden className="w-4 h-4 text-white" />
+                              <UserIcon
+                                aria-hidden
+                                className="w-4 h-4 text-white"
+                              />
                             </div>
                           </div>
                           <div className="flex-1 pb-6">
@@ -1228,7 +1261,10 @@ export default function JobDetailDrawer({
                               <div className="relative flex gap-4">
                                 <div className="relative z-10 shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                                    <MapPinIcon aria-hidden className="w-4 h-4 text-white" />
+                                    <MapPinIcon
+                                      aria-hidden
+                                      className="w-4 h-4 text-white"
+                                    />
                                   </div>
                                 </div>
                                 <div className="flex-1 pb-6">
@@ -1257,7 +1293,10 @@ export default function JobDetailDrawer({
                               <div className="relative flex gap-4">
                                 <div className="relative z-10 shrink-0">
                                   <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
-                                    <MapPinIcon aria-hidden className="w-4 h-4 text-white" />
+                                    <MapPinIcon
+                                      aria-hidden
+                                      className="w-4 h-4 text-white"
+                                    />
                                   </div>
                                 </div>
                                 <div className="flex-1 pb-6">
@@ -1289,7 +1328,10 @@ export default function JobDetailDrawer({
                                 <div className="relative flex gap-4">
                                   <div className="relative z-10 shrink-0">
                                     <div className="w-8 h-8 rounded-full bg-default-300 flex items-center justify-center">
-                                      <MapPinIcon aria-hidden className="w-4 h-4 text-default-600" />
+                                      <MapPinIcon
+                                        aria-hidden
+                                        className="w-4 h-4 text-default-600"
+                                      />
                                     </div>
                                   </div>
                                   <div className="flex-1 pb-6">
@@ -1324,7 +1366,10 @@ export default function JobDetailDrawer({
                           <div className="relative flex gap-4">
                             <div className="relative z-10 shrink-0">
                               <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center">
-                                <CheckCircleIcon aria-hidden className="w-4 h-4 text-white" />
+                                <CheckCircleIcon
+                                  aria-hidden
+                                  className="w-4 h-4 text-white"
+                                />
                               </div>
                             </div>
                             <div className="flex-1 pb-6">
@@ -1344,7 +1389,10 @@ export default function JobDetailDrawer({
                           <div className="relative flex gap-4">
                             <div className="relative z-10 shrink-0">
                               <div className="w-8 h-8 rounded-full bg-danger flex items-center justify-center">
-                                <XMarkIcon aria-hidden className="w-4 h-4 text-white" />
+                                <XMarkIcon
+                                  aria-hidden
+                                  className="w-4 h-4 text-white"
+                                />
                               </div>
                             </div>
                             <div className="flex-1 pb-6">
@@ -1394,7 +1442,9 @@ export default function JobDetailDrawer({
                   color="success"
                   isDisabled={isSubmitting}
                   isLoading={isSubmitting}
-                  startContent={<CheckCircleIcon aria-hidden className="w-4 h-4" />}
+                  startContent={
+                    <CheckCircleIcon aria-hidden className="w-4 h-4" />
+                  }
                   onPress={handleCompleteJob}
                 >
                   ดำเนินการเสร็จสิ้น

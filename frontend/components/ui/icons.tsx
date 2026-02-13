@@ -465,6 +465,45 @@ export const ExclamationTriangleIcon = (props: IconProps) => (
   />
 );
 
+export const BoltIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:bolt"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const MinusIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:minus"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const TruckIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn("inline-block", props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:truck"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
 export const CheckCircleIcon = (props: IconProps) => (
   <IconifyIcon
     className={cn("inline-block", props.className)}
@@ -812,6 +851,9 @@ export const Icons = {
   trash: TrashIcon,
   refresh: RefreshIcon,
   exclamationTriangle: ExclamationTriangleIcon,
+  bolt: BoltIcon,
+  minus: MinusIcon,
+  truck: TruckIcon,
   checkCircle: CheckCircleIcon,
   alertCircle: AlertCircleIcon,
   upload: UploadIcon,

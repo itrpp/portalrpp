@@ -106,6 +106,7 @@ export interface ListPorterRequestsFilters {
   urgency_level?: UrgencyLevel | number | null;
   requester_user_id?: string | null;
   assigned_to_id?: string | null;
+  search?: string | null;
   page?: number;
   page_size?: number;
 }

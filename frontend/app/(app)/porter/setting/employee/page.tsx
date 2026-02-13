@@ -23,6 +23,7 @@ import {
 } from "@heroui/react";
 
 import { EmployeeModal, ImagePreviewModal } from "../../components";
+import { PORTER_TABLE_STYLES } from "../../components/shared/tableStyles";
 
 import { usePagination } from "@/hooks/usePagination";
 import {
@@ -502,7 +503,10 @@ export default function EmployeeManagementPage() {
                 removeWrapper
                 aria-label="รายชื่อเจ้าหน้าที่เปล"
                 classNames={{
-                  wrapper: "min-h-[400px]",
+                  wrapper: PORTER_TABLE_STYLES.wrapper,
+                  th: PORTER_TABLE_STYLES.th,
+                  td: PORTER_TABLE_STYLES.td,
+                  tr: PORTER_TABLE_STYLES.tr,
                 }}
               >
                 <TableHeader columns={columns}>
@@ -512,10 +516,15 @@ export default function EmployeeManagementPage() {
                 </TableHeader>
                 <TableBody
                   emptyContent="ยังไม่มีข้อมูลเจ้าหน้าที่"
+                  isLoading={isLoading}
                   items={currentEmployees}
+                  loadingContent={PORTER_TABLE_STYLES.loading.content}
                 >
                   {(item) => (
-                    <TableRow key={item.id}>
+                    <TableRow
+                      key={item.id}
+                      className={PORTER_TABLE_STYLES.loading.rowClassName}
+                    >
                       <TableCell>
                         {item.profileImage ? (
                           <div
@@ -538,7 +547,9 @@ export default function EmployeeManagementPage() {
                           </div>
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center">
-                            <span className="text-default-400 text-sm font-medium">
+                            <span
+                              className={`${PORTER_TABLE_STYLES.colors.mutedText} ${PORTER_TABLE_STYLES.text.small} font-medium`}
+                            >
                               {item.firstName.charAt(0)}
                               {item.lastName.charAt(0)}
                             </span>
@@ -546,20 +557,26 @@ export default function EmployeeManagementPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="font-mono text-sm">
+                        <span
+                          className={`font-mono ${PORTER_TABLE_STYLES.text.base}`}
+                        >
                           {item.citizenId}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-foreground">
+                        <span className={PORTER_TABLE_STYLES.colors.cellText}>
                           {item.firstName}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-foreground">{item.lastName}</span>
+                        <span className={PORTER_TABLE_STYLES.colors.cellText}>
+                          {item.lastName}
+                        </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-default-500">
+                        <span
+                          className={`${PORTER_TABLE_STYLES.text.base} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                        >
                           {item.nickname || "-"}
                         </span>
                       </TableCell>
@@ -583,7 +600,9 @@ export default function EmployeeManagementPage() {
                         </Chip>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div
+                          className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapMedium}`}
+                        >
                           <Button
                             isIconOnly
                             color="primary"
@@ -615,7 +634,9 @@ export default function EmployeeManagementPage() {
               {/* Pagination */}
               {filteredEmployees.length > 0 && (
                 <div className="flex items-center justify-between mt-4 px-2">
-                  <div className="text-sm text-default-600">
+                  <div
+                    className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                  >
                     แสดง {startIndex + 1} - {""}
                     {Math.min(endIndex, filteredEmployees.length)} จาก {""}
                     {filteredEmployees.length} รายการ
@@ -629,16 +650,20 @@ export default function EmployeeManagementPage() {
                     total={totalPages}
                     onChange={setCurrentPage}
                   />
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapLarge}`}
+                  >
+                    <div
+                      className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapMedium}`}
+                    >
                       <label
-                        className="text-sm text-default-600"
+                        className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
                         htmlFor="rows-per-page"
                       >
                         แสดงต่อหน้า:
                       </label>
                       <select
-                        className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className={`px-2 py-1 ${PORTER_TABLE_STYLES.text.small} border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent`}
                         id="rows-per-page"
                         value={rowsPerPage}
                         onChange={(e) => {

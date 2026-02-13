@@ -97,6 +97,26 @@ export function usePorterRequestForm({
       return;
     }
 
+    // ใช้ name attribute แทน label text เพื่อความมั่นคง
+    // หา input/select/textarea ที่มี name attribute ตรงกับ field
+    const inputElement = document.querySelector<HTMLElement>(
+      `[name="${firstErrorKey}"]`,
+    );
+
+    if (inputElement) {
+      // Scroll to input element
+      inputElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      // Focus input เพื่อให้เห็น error message ชัดเจน
+      inputElement.focus();
+      previousErrorsCountRef.current = currentErrors.length;
+
+      return;
+    }
+
+    // Fallback: ใช้ label text ถ้าหา input ไม่เจอ
     const label = REQUEST_FIELD_LABELS[firstErrorKey];
 
     if (!label) {
