@@ -138,7 +138,7 @@ export default function JobTable({
 
       {sortedJobs.length > 0 && (
         <div className="flex items-center justify-between mt-4 px-2">
-          <div className="text-sm text-default-600">
+          <div className="text-sm text-default-600 tabular-nums">
             แสดง {startIndex + 1} - {""}
             {Math.min(endIndex, sortedJobs.length)} จาก {""}
             {sortedJobs.length} รายการ
@@ -161,8 +161,10 @@ export default function JobTable({
                 แสดงต่อหน้า:
               </label>
               <select
-                className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
+                aria-label="จำนวนแถวต่อหน้า"
+                className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent"
                 id={paginationId}
+                name="rows-per-page"
                 value={rowsPerPage}
                 onChange={(e) => {
                   onRowsPerPageChange(Number(e.target.value));

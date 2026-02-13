@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Button,
   Card,
@@ -32,9 +33,42 @@ import {
   UrgencyLevel,
 } from "@/types/porter";
 import { sortJobs, playNotificationSound, playSirenSound } from "@/lib/porter";
+import type { CalendarDate } from "@internationalized/date";
+
+const JOBLIST_TAB_KEYS: JobListTab[] = [
+  "waiting",
+  "in-progress",
+  "completed",
+  "cancelled",
+];
+
+function isValidJobListTab(value: string | null): value is JobListTab {
+  return value !== null && JOBLIST_TAB_KEYS.includes(value as JobListTab);
+}
 
 export default function JobListClient() {
-  const [selectedTab, setSelectedTab] = useState<JobListTab>("waiting");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabFromUrl = searchParams.get("tab");
+  const initialTab = isValidJobListTab(tabFromUrl) ? tabFromUrl : "waiting";
+
+  const [selectedTab, setSelectedTab] = useState<JobListTab>(initialTab);
+
+  // Sync tab จาก URL เมื่อเปิดหน้าจาก deep link (client-side nav)
+  useEffect(() => {
+    if (isValidJobListTab(tabFromUrl) && tabFromUrl !== selectedTab) {
+      setSelectedTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  const handleTabChange = (key: React.Key) => {
+    const tab = key as JobListTab;
+    setSelectedTab(tab);
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("tab", tab);
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+  };
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
@@ -44,30 +78,20 @@ export default function JobListClient() {
   const [error, setError] = useState<string | null>(null);
 
   // Date range filters สำหรับ completed และ cancelled tabs
-  // ใช้ any เพื่อลดปัญหา type conflict ระหว่าง instance ของ @internationalized/date
-  const [completedStartDate, setCompletedStartDate] = useState<any>(null);
-  const [completedEndDate, setCompletedEndDate] = useState<any>(null);
-  const [cancelledStartDate, setCancelledStartDate] = useState<any>(null);
-  const [cancelledEndDate, setCancelledEndDate] = useState<any>(null);
+  const [completedStartDate, setCompletedStartDate] =
+    useState<CalendarDate | null>(null);
+  const [completedEndDate, setCompletedEndDate] =
+    useState<CalendarDate | null>(null);
+  const [cancelledStartDate, setCancelledStartDate] =
+    useState<CalendarDate | null>(null);
+  const [cancelledEndDate, setCancelledEndDate] =
+    useState<CalendarDate | null>(null);
 
-  // แปลงค่าจาก DatePicker (เช่น CalendarDate) เป็น Date (เฉพาะส่วนวันที่)
-  const toDateOnly = (value: any): Date | null => {
-    if (!value) {
-      return null;
-    }
-
-    const v = value as { year: number; month: number; day: number };
-
-    if (
-      typeof v.year !== "number" ||
-      typeof v.month !== "number" ||
-      typeof v.day !== "number"
-    ) {
-      return null;
-    }
-
-    return new Date(v.year, v.month - 1, v.day);
-  };
+  /** แปลงค่าจาก DatePicker (CalendarDate) เป็น Date เฉพาะส่วนวันที่ */
+  function toDateOnly(value: CalendarDate | null): Date | null {
+    if (!value) return null;
+    return new Date(value.year, value.month - 1, value.day);
+  }
 
   // อัพเดทเวลาแบบ real-time ทุกวินาที
   useEffect(() => {
@@ -181,11 +205,7 @@ export default function JobListClient() {
             headers = {
               Authorization: `Bearer ${tokenData.token}`,
             };
-          } catch (error) {
-            console.error(
-              "[SSE] Failed to get token, falling back to Next.js API route:",
-              error,
-            );
+          } catch {
             streamUrl = `/api/porter/requests/stream?${params.toString()}`;
           }
         } else {
@@ -373,22 +393,11 @@ export default function JobListClient() {
                         setSelectedJob(null);
                         setSelectedKeys(new Set());
                       }
-                    } else {
-                      console.warn("[SSE] Unknown update type:", type);
                     }
-                  } else {
-                    console.warn("[SSE] Missing type or data in update:", {
-                      hasType: !!updateData.type,
-                      hasData: !!updateData.data,
-                      updateData,
-                    });
                   }
                 }
-              } catch (error) {
-                console.error("[SSE] Error parsing SSE message:", {
-                  error: error instanceof Error ? error.message : String(error),
-                  line: line.substring(0, 200), // จำกัดความยาวของ line
-                });
+              } catch {
+                // Skip malformed SSE message
               }
             }
           }
@@ -401,14 +410,10 @@ export default function JobListClient() {
             }
           }, 3000);
         }
-      } catch (error: any) {
-        // ไม่แสดง error ถ้าเป็น abort (user ปิด connection)
-        if (error.name === "AbortError") {
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === "AbortError") {
           return;
         }
-
-        console.error("[SSE] Connection error:", error);
-
         // Reconnect หลัง 3 วินาที (หรือเมื่อ stream timeout)
         if (isMounted) {
           reconnectTimeout = setTimeout(() => {
@@ -822,7 +827,7 @@ export default function JobListClient() {
           </h1>
         </div>
         <div className="flex items-center space-x-2 text-default-600">
-          <ClockIcon className="w-5 h-5" />
+          <ClockIcon aria-hidden className="w-5 h-5" />
           <div className="text-sm">
             <div className="font-medium">
               {formatDateTimeThai(currentDateTime)}
@@ -836,7 +841,7 @@ export default function JobListClient() {
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center space-x-2">
-                <ClipboardListIcon className="w-6 h-6" />
+                <ClipboardListIcon aria-hidden className="w-6 h-6" />
                 <h2 className="text-xl font-semibold text-foreground">
                   รายการคำขอ
                 </h2>
@@ -846,6 +851,7 @@ export default function JobListClient() {
                   คำขอทั้งหมด {filteredJobs.length} รายการ
                 </div>
                 <Button
+                  aria-label="รีเฟรชข้อมูล"
                   color="primary"
                   isLoading={isLoading}
                   size="sm"
@@ -862,7 +868,7 @@ export default function JobListClient() {
             {/* แสดง Loading หรือ Error */}
             {isLoading && (
               <div className="flex justify-center items-center py-8">
-                <div className="text-default-600">กำลังโหลดข้อมูล...</div>
+                <div className="text-default-600">กำลังโหลดข้อมูล…</div>
               </div>
             )}
             {error && !isLoading && (
@@ -882,13 +888,13 @@ export default function JobListClient() {
                 selectedKey={selectedTab}
                 size="lg"
                 variant="bordered"
-                onSelectionChange={(key) => setSelectedTab(key as JobListTab)}
+                onSelectionChange={handleTabChange}
               >
                 <Tab
                   key="waiting"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <ClipboardListIcon className="w-4 h-4" />
+                      <ClipboardListIcon aria-hidden className="w-4 h-4" />
                       <span>รอศูนย์เปลรับงาน</span>
                       <Chip
                         color="danger"
@@ -921,7 +927,7 @@ export default function JobListClient() {
                   key="in-progress"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <ClockIcon className="w-4 h-4" />
+                      <ClockIcon aria-hidden className="w-4 h-4" />
                       <span>กำลังดำเนินการ</span>
                       <Chip
                         color="warning"
@@ -953,7 +959,7 @@ export default function JobListClient() {
                   key="completed"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <CheckCircleIcon className="w-4 h-4" />
+                      <CheckCircleIcon aria-hidden className="w-4 h-4" />
                       <span>เสร็จสิ้น</span>
                       <Chip
                         color="success"
@@ -977,7 +983,7 @@ export default function JobListClient() {
                               label="วันที่เริ่มต้น"
                               maxValue={completedEndDate || undefined}
                               selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
+                                <CalendarIcon aria-hidden className="w-4 h-4" />
                               }
                               value={completedStartDate}
                               variant="bordered"
@@ -998,7 +1004,7 @@ export default function JobListClient() {
                               label="วันที่สิ้นสุด"
                               minValue={completedStartDate || undefined}
                               selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
+                                <CalendarIcon aria-hidden className="w-4 h-4" />
                               }
                               value={completedEndDate}
                               variant="bordered"
@@ -1037,7 +1043,7 @@ export default function JobListClient() {
                   key="cancelled"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <XMarkIcon className="w-4 h-4" />
+                      <XMarkIcon aria-hidden className="w-4 h-4" />
                       <span>ยกเลิก</span>
                       <Chip
                         color="danger"
@@ -1061,7 +1067,7 @@ export default function JobListClient() {
                               label="วันที่เริ่มต้น"
                               maxValue={cancelledEndDate || undefined}
                               selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
+                                <CalendarIcon aria-hidden className="w-4 h-4" />
                               }
                               value={cancelledStartDate}
                               variant="bordered"
@@ -1082,7 +1088,7 @@ export default function JobListClient() {
                               label="วันที่สิ้นสุด"
                               minValue={cancelledStartDate || undefined}
                               selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
+                                <CalendarIcon aria-hidden className="w-4 h-4" />
                               }
                               value={cancelledEndDate}
                               variant="bordered"

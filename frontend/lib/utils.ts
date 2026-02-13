@@ -65,105 +65,70 @@ export function parsePositiveIntId(id: string): number | null {
   return n;
 }
 
+const TH_LOCALE = "th-TH";
+const BUDDHIST_OPTIONS: Intl.DateTimeFormatOptions = {
+  calendar: "buddhist",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+};
+
 /**
  * ฟังก์ชันสำหรับ format วันที่และเวลาเป็นภาษาไทยพร้อมปี พ.ศ.
+ * ใช้ Intl.DateTimeFormat เพื่อรองรับ locale และรูปแบบที่สอดคล้องกับระบบ
  * แสดงผลรูปแบบ: วัน[ชื่อวัน] ที่ [วัน] [เดือน] [ปี พ.ศ.] [ชั่วโมง]:[นาที]:[วินาที]
  * @param date วันที่ที่ต้องการ format
  * @returns string ที่ถูก format แล้ว เช่น "วันจันทร์ ที่ 15 มกราคม 2567 14:30:45"
  */
 export function formatDateTimeThai(date: Date): string {
-  const days = [
-    "อาทิตย์",
-    "จันทร์",
-    "อังคาร",
-    "พุธ",
-    "พฤหัสบดี",
-    "ศุกร์",
-    "เสาร์",
-  ];
-  const months = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
-  ];
+  const weekday = new Intl.DateTimeFormat(TH_LOCALE, {
+    weekday: "long",
+  }).format(date);
+  const datePart = new Intl.DateTimeFormat(TH_LOCALE, BUDDHIST_OPTIONS).format(
+    date,
+  );
+  const timePart = new Intl.DateTimeFormat(TH_LOCALE, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
 
-  const day = days[date.getDay()];
-  const dayNum = date.getDate();
-  const month = months[date.getMonth()];
-  const buddhistYear = toBuddhistEra(date.getFullYear());
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const seconds = date.getSeconds().toString().padStart(2, "0");
-
-  return `วัน${day} ที่ ${dayNum} ${month} ${buddhistYear} ${hours}:${minutes}:${seconds}`;
+  return `${weekday} ที่ ${datePart} ${timePart}`;
 }
 
 /**
  * ฟอร์แมตรูปแบบวันที่แบบย่อ ภาษาไทย เช่น "29 ตุลาคม 2568 22:54"
- * ไม่มีชื่อวัน และไม่มีวินาที
+ * ใช้ Intl.DateTimeFormat ไม่มีชื่อวัน และไม่มีวินาที
  */
 export function formatThaiDateTimeShort(date: Date): string {
-  const months = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
-  ];
+  const datePart = new Intl.DateTimeFormat(TH_LOCALE, BUDDHIST_OPTIONS).format(
+    date,
+  );
+  const timePart = new Intl.DateTimeFormat(TH_LOCALE, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 
-  const dayNum = date.getDate();
-  const month = months[date.getMonth()];
-  const buddhistYear = toBuddhistEra(date.getFullYear());
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-
-  return `${dayNum} ${month} ${buddhistYear} ${hours}:${minutes}`;
+  return `${datePart} ${timePart}`;
 }
 
 /**
  * ฟังก์ชันสำหรับ format วันที่แบบสั้น (วัน เดือน ปี พ.ศ.) สำหรับใช้ใน chart
- * แสดงผลรูปแบบ: วัน เดือนย่อ ปี พ.ศ. เช่น "1 ม.ค. 2567"
+ * ใช้ Intl.DateTimeFormat แสดงผลรูปแบบ: วัน เดือนย่อ ปี พ.ศ. เช่น "1 ม.ค. 2567"
  * @param date วันที่ที่ต้องการ format (Date object หรือ string ที่แปลงเป็น Date ได้)
  * @returns string ที่ถูก format แล้ว เช่น "1 ม.ค. 2567"
  */
 export function formatDateShort(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  const day = dateObj.getDate();
-  const month = dateObj.getMonth() + 1;
-  const year = toBuddhistEra(dateObj.getFullYear());
 
-  const monthNames = [
-    "ม.ค.",
-    "ก.พ.",
-    "มี.ค.",
-    "เม.ย.",
-    "พ.ค.",
-    "มิ.ย.",
-    "ก.ค.",
-    "ส.ค.",
-    "ก.ย.",
-    "ต.ค.",
-    "พ.ย.",
-    "ธ.ค.",
-  ];
-
-  return `${day} ${monthNames[month - 1]} ${year}`;
+  return new Intl.DateTimeFormat(TH_LOCALE, {
+    calendar: "buddhist",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(dateObj);
 }
 
 /**
