@@ -13,6 +13,7 @@ import {
   ShieldCheckIcon,
 } from "@/components/ui/icons";
 import { siteConfig } from "@/config/site";
+import { LOADING_MESSAGES } from "@/lib/constants";
 
 export default function HomeClient() {
   const { data: session } = useSession();
@@ -120,7 +121,9 @@ export default function HomeClient() {
                 <span className="text-default-600">ผู้ใช้ Online</span>
                 <span className="font-medium">
                   {isLoadingOnlineUsers ? (
-                    <span className="text-default-400">กำลังโหลด...</span>
+                    <span className="text-default-400">
+                      {LOADING_MESSAGES.page}
+                    </span>
                   ) : onlineUsersCount !== null ? (
                     <span className="text-primary-600 font-semibold">
                       {onlineUsersCount} คน

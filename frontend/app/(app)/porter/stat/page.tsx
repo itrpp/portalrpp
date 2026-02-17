@@ -19,6 +19,7 @@ import {
   XMarkIcon,
   ClockIcon,
 } from "@/components/ui/icons";
+import { LOADING_MESSAGES } from "@/lib/constants";
 
 export default function PorterStatPage() {
   const { stats, jobs, isLoading, error } = usePorterStats();
@@ -47,7 +48,7 @@ export default function PorterStatPage() {
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="text-center">
             <Spinner color="primary" size="lg" />
-            <p className="text-default-600 mt-4">กำลังโหลดข้อมูลสถิติ...</p>
+            <p className="text-default-600 mt-4">{LOADING_MESSAGES.stats}</p>
           </div>
         </div>
       </div>

@@ -19,7 +19,6 @@ import {
   getUrgencyStyle,
   renderStatusChip,
 } from "./helpers/jobPresentation";
-import { PORTER_TABLE_STYLES } from "./shared/tableStyles";
 import { DepartmentChip } from "./shared/DepartmentChip";
 import { PorterUrgencyChip } from "./shared/PorterUrgencyChip";
 import { PorterEmptyState } from "./shared/PorterEmptyState";
@@ -28,6 +27,25 @@ import { PorterLoadingSkeleton } from "./shared/PorterLoadingSkeleton";
 import { formatLocationString } from "@/lib/porter";
 import { JobTableProps, PorterJobItem } from "@/types/porter";
 import { formatThaiDateTimeShort } from "@/lib/utils";
+
+/** สไตล์ตารางเฉพาะของ JobTable (ไม่ใช้ shared tableStyles กับ module อื่น) */
+const JOB_TABLE_STYLES = {
+  wrapper: "min-h-[222px]",
+  td: "py-4 px-4 align-top text-sm",
+  tr: "data-[hover=true]:bg-default-100/50 border-b border-default-100",
+  loading: { rowClassName: "bg-default-50/50" },
+  spacing: {
+    cellPadding: "py-4 px-4",
+    gapMedium: "gap-2",
+    gapLarge: "gap-4",
+  },
+  text: { base: "text-base", small: "text-sm" },
+  colors: { headerText: "text-default-700", secondaryText: "text-default-500" },
+  pagination: {
+    selectClass:
+      "px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent",
+  },
+} as const;
 
 // Component สำหรับแสดงชื่อหน่วยงาน
 function DepartmentNameChip({
@@ -110,10 +128,10 @@ export default function JobTable({
         removeWrapper
         aria-label="รายการคำขอ"
         classNames={{
-          wrapper: PORTER_TABLE_STYLES.wrapper,
+          wrapper: JOB_TABLE_STYLES.wrapper,
           thead: "hidden",
-          td: PORTER_TABLE_STYLES.td,
-          tr: PORTER_TABLE_STYLES.tr,
+          td: JOB_TABLE_STYLES.td,
+          tr: JOB_TABLE_STYLES.tr,
         }}
         selectedKeys={selectedKeys}
         selectionMode="single"
@@ -143,13 +161,13 @@ export default function JobTable({
           }
         >
           {(item) => (
-            <TableRow className={PORTER_TABLE_STYLES.loading.rowClassName}>
+            <TableRow className={JOB_TABLE_STYLES.loading.rowClassName}>
               <TableCell>
                 <div
-                  className={`w-full rounded-md border ${getUrgencyStyle(item.form.urgencyLevel).containerClass} ${PORTER_TABLE_STYLES.spacing.cellPadding.replace("py-4", "py-3")}`}
+                  className={`w-full rounded-md border ${getUrgencyStyle(item.form.urgencyLevel).containerClass} ${JOB_TABLE_STYLES.spacing.cellPadding.replace("py-4", "py-3")}`}
                 >
                   <div
-                    className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapMedium} ${PORTER_TABLE_STYLES.text.base}`}
+                    className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapMedium} ${JOB_TABLE_STYLES.text.base}`}
                   >
                     <Chip color="success" size="sm" variant="dot">
                       {formatThaiDateTimeShort(
@@ -164,12 +182,12 @@ export default function JobTable({
                       />
                     )}
                     <span
-                      className={`${PORTER_TABLE_STYLES.colors.headerText} font-medium`}
+                      className={`${JOB_TABLE_STYLES.colors.headerText} font-medium`}
                     >
                       {`รับผู้ป่วยจาก ${formatLocationString(item.form.pickupLocationDetail)}`}
                     </span>
                     <span
-                      className={`${PORTER_TABLE_STYLES.colors.headerText} font-medium`}
+                      className={`${JOB_TABLE_STYLES.colors.headerText} font-medium`}
                     >
                       ➜ {formatLocationString(item.form.deliveryLocationDetail)}
                     </span>
@@ -181,7 +199,7 @@ export default function JobTable({
                   </div>
 
                   <div
-                    className={`mt-3 flex flex-wrap items-center ${PORTER_TABLE_STYLES.spacing.gapMedium}`}
+                    className={`mt-3 flex flex-wrap items-center ${JOB_TABLE_STYLES.spacing.gapMedium}`}
                   >
                     <div>{renderStatusChip(item)}</div>
                     <MetaChips departmentsMap={departmentsMap} job={item} />
@@ -196,7 +214,7 @@ export default function JobTable({
       {sortedJobs.length > 0 && (
         <div className={`flex items-center justify-between mt-4 px-2`}>
           <div
-            className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText} tabular-nums`}
+            className={`${JOB_TABLE_STYLES.text.small} ${JOB_TABLE_STYLES.colors.secondaryText} tabular-nums`}
           >
             แสดง {startIndex + 1} - {""}
             {Math.min(endIndex, sortedJobs.length)} จาก {""}
@@ -212,20 +230,20 @@ export default function JobTable({
             onChange={onPageChange}
           />
           <div
-            className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapLarge}`}
+            className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapLarge}`}
           >
             <div
-              className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapMedium}`}
+              className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapMedium}`}
             >
               <label
-                className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                className={`${JOB_TABLE_STYLES.text.small} ${JOB_TABLE_STYLES.colors.secondaryText}`}
                 htmlFor={paginationId}
               >
                 แสดงต่อหน้า:
               </label>
               <select
                 aria-label="จำนวนแถวต่อหน้า"
-                className={`px-2 py-1 ${PORTER_TABLE_STYLES.text.small} border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent`}
+                className={JOB_TABLE_STYLES.pagination.selectClass}
                 id={paginationId}
                 name="rows-per-page"
                 value={rowsPerPage}

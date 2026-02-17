@@ -2,6 +2,8 @@
 
 import React from "react";
 
+import { LOADING_MESSAGES } from "../../lib/constants";
+
 import { Logo } from "@/components/icons";
 
 interface LoadingPageProps {
@@ -15,11 +17,11 @@ interface LoadingPageProps {
  * React client component สำหรับแสดงหน้าจอโหลดแบบ full-screen overlay
  * ใช้เวลาเปลี่ยนหน้า / โหลดข้อมูล / ทำงานเบื้องหลังที่ต้องการให้ผู้ใช้รอ
  *
- * @param message - ข้อความหลักตรงกลางหน้าจอ (default: "กำลังโหลด...")
+ * @param message - ข้อความหลักตรงกลางหน้าจอ (default: LOADING_MESSAGES.page)
  * @param showProgress - เปิด/ปิด progress bar ด้านล่างข้อความ (default: true)
  */
 export function LoadingPage({
-  message = "กำลังโหลด...",
+  message = LOADING_MESSAGES.page,
   showProgress = true,
 }: LoadingPageProps) {
   const [progress, setProgress] = React.useState(0);
@@ -48,7 +50,12 @@ export function LoadingPage({
   }, [showProgress]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-background via-background to-default-50">
+    <div
+      aria-label={message}
+      aria-live="polite"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background"
+      role="status"
+    >
       <div className="text-center">
         {/* Logo + Loading Animation Combined */}
         <div className="mb-8">
@@ -72,7 +79,9 @@ export function LoadingPage({
         {/* Message */}
         <div className="mb-6">
           <p className="text-lg font-medium text-foreground">{message}</p>
-          <p className="text-sm text-default-500 mt-2">กรุณารอสักครู่...</p>
+          <p className="text-sm text-default-500 mt-2">
+            {LOADING_MESSAGES.pleaseWait}
+          </p>
         </div>
 
         {/* Progress Bar */}

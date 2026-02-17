@@ -37,6 +37,7 @@ import { useDepartmentName } from "../hooks/useDepartmentsMap";
 import { LocationSelector } from "./LocationSelector";
 import CancelJobModal from "./CancelJobModal";
 
+import { LOADING_MESSAGES } from "@/lib/constants";
 import { getUserById } from "@/lib/users";
 import { PorterJobItem } from "@/types/porter";
 import {
@@ -585,7 +586,7 @@ export default function JobDetailDrawer({
                   label="เลือกเจ้าหน้าที่เปลที่ต้องการมอบหมาย"
                   placeholder={
                     isLoadingEmployees
-                      ? "กำลังโหลดข้อมูลเจ้าหน้าที่…"
+                      ? LOADING_MESSAGES.staff
                       : availableEmployees.length > 0
                         ? "เลือกเจ้าหน้าที่เปลที่ต้องการมอบหมาย…"
                         : "ไม่พบรายชื่อเจ้าหน้าที่"

@@ -6,7 +6,7 @@ import { porterQueryKeys } from "../../lib/queryKeys";
 
 import { PorterJobItem } from "@/types/porter";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 5;
 const SEARCH_DEBOUNCE_MS = 500;
 
 interface UseUserRequestsOptions {

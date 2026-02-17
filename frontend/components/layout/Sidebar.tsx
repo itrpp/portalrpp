@@ -22,6 +22,7 @@ import {
   BriefcaseIcon,
   UserGroupIcon,
 } from "@/components/ui/icons";
+import { LOADING_MESSAGES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { SidebarProps, SidebarItem, SidebarSection } from "@/types";
 import LoadingPage from "@/components/ui/LoadingPage";
@@ -34,7 +35,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isNavigating, setIsNavigating] = useState(false);
   const [showLoadingPage, setShowLoadingPage] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("กำลังโหลด...");
+  const [loadingMessage, setLoadingMessage] = useState<string>(
+    LOADING_MESSAGES.page,
+  );
   const [loadingMenu, setLoadingMenu] = useState<string | null>(null);
   const [targetPathname, setTargetPathname] = useState<string | null>(null);
 
@@ -367,7 +370,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
       setIsNavigating(true);
       setLoadingMenu(menuName || null);
-      setLoadingMessage(menuName ? `กำลังโหลด ${menuName}...` : "กำลังโหลด...");
+      setLoadingMessage(
+        menuName ? `กำลังโหลด ${menuName}...` : LOADING_MESSAGES.page,
+      );
       setShowLoadingPage(true);
       setTargetPathname(href); // เก็บ target pathname เพื่อรอให้ pathname เปลี่ยนจริง
 

@@ -31,6 +31,9 @@ import {
   TrashIcon,
   PencilIcon,
 } from "@/components/ui/icons";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { CARD_STYLES } from "@/lib/cardStyles";
+import { LOADING_MESSAGES } from "@/lib/constants";
 import { Building, FloorDepartment } from "@/types/porter";
 import {
   convertBuildingFromProto,
@@ -1303,7 +1306,7 @@ export default function LocationSettingsPage() {
       {/* 2 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Column 1: รายการอาคาร */}
-        <Card className="shadow-lg border border-default-200">
+        <Card className={CARD_STYLES.default}>
           <CardHeader className="pb-0">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
@@ -1317,7 +1320,7 @@ export default function LocationSettingsPage() {
           <CardBody className="pt-4">
             {isLoading ? (
               <div className="text-center py-8 text-default-500">
-                <p>กำลังโหลดข้อมูล...</p>
+                <p>{LOADING_MESSAGES.table}</p>
               </div>
             ) : (
               <ScrollShadow className="h-[600px]">
@@ -1400,13 +1403,15 @@ export default function LocationSettingsPage() {
                     </div>
                   ))}
                   {buildings.length === 0 && (
-                    <div className="text-center py-8 text-default-500">
-                      <BuildingOfficeIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>ยังไม่มีข้อมูลอาคาร</p>
-                      <p className="text-sm">
-                        คลิกปุ่ม &quot;เพิ่มอาคาร&quot; เพื่อเพิ่มข้อมูล
-                      </p>
-                    </div>
+                    <EmptyState
+                      compact
+                      description='คลิกปุ่ม "เพิ่มอาคาร" เพื่อเพิ่มข้อมูล'
+                      icon={
+                        <BuildingOfficeIcon className="w-12 h-12 opacity-50" />
+                      }
+                      message="ยังไม่มีข้อมูลอาคาร"
+                      variant="no-data"
+                    />
                   )}
                 </div>
               </ScrollShadow>
@@ -1415,7 +1420,7 @@ export default function LocationSettingsPage() {
         </Card>
 
         {/* Column 2: รายการคลีนิก/หอผู้ป่วยภายในอาคาร */}
-        <Card className="shadow-lg border border-default-200">
+        <Card className={CARD_STYLES.default}>
           <CardHeader className="pb-0">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
@@ -1550,14 +1555,13 @@ export default function LocationSettingsPage() {
                       </div>
                     ))}
                   {selectedBuilding.floors.length === 0 && (
-                    <div className="text-center py-8 text-default-500">
-                      <MapPinIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>ยังไม่มีข้อมูลคลีนิก/หอผู้ป่วย</p>
-                      <p className="text-sm">
-                        คลิกปุ่ม &quot;เพิ่มคลีนิก/หอผู้ป่วย&quot;
-                        เพื่อเพิ่มข้อมูล
-                      </p>
-                    </div>
+                    <EmptyState
+                      compact
+                      description='คลิกปุ่ม "เพิ่มคลีนิก/หอผู้ป่วย" เพื่อเพิ่มข้อมูล'
+                      icon={<MapPinIcon className="w-12 h-12 opacity-50" />}
+                      message="ยังไม่มีข้อมูลคลีนิก/หอผู้ป่วย"
+                      variant="no-data"
+                    />
                   )}
                 </div>
               </ScrollShadow>

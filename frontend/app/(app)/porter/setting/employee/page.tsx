@@ -23,8 +23,9 @@ import {
 } from "@heroui/react";
 
 import { EmployeeModal, ImagePreviewModal } from "../../components";
-import { PORTER_TABLE_STYLES } from "../../components/shared/tableStyles";
 
+import { TABLE_STYLES } from "@/lib/tableStyles";
+import { CARD_STYLES } from "@/lib/cardStyles";
 import { usePagination } from "@/hooks/usePagination";
 import {
   UserIcon,
@@ -32,6 +33,7 @@ import {
   TrashIcon,
   PencilIcon,
   MagnifyingGlassIcon,
+  XMarkIcon,
 } from "@/components/ui/icons";
 import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
 
@@ -418,70 +420,124 @@ export default function EmployeeManagementPage() {
       </div>
 
       {/* Filters */}
-      <Card className="shadow-lg border border-default-200">
+      <Card className={CARD_STYLES.default}>
         <CardBody>
-          <div className="flex flex-col md:flex-row gap-4">
-            <Input
-              isClearable
-              className="flex-1"
-              placeholder="ค้นหาด้วยชื่อ นามสกุล ชื่อเล่น หรือเลขบัตรประชาชน..."
-              startContent={
-                <MagnifyingGlassIcon className="w-5 h-5 text-default-400" />
-              }
-              value={searchQuery}
-              onClear={() => setSearchQuery("")}
-              onValueChange={setSearchQuery}
-            />
-            <Select
-              className="w-full md:w-48"
-              placeholder="ประเภทการจ้าง"
-              selectedKeys={
-                filterEmploymentTypeId ? [filterEmploymentTypeId] : []
-              }
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
+              <Input
+                isClearable
+                aria-label="ค้นหาเจ้าหน้าที่"
+                className="flex-1 min-w-[200px]"
+                label="ค้นหา"
+                labelPlacement="outside"
+                placeholder="ค้นหาด้วยชื่อ นามสกุล ชื่อเล่น หรือเลขบัตรประชาชน..."
+                size="md"
+                startContent={
+                  <MagnifyingGlassIcon className="w-5 h-5 text-default-400" />
+                }
+                value={searchQuery}
+                variant="bordered"
+                onClear={() => setSearchQuery("")}
+                onValueChange={setSearchQuery}
+              />
+              <Select
+                aria-label="กรองตามประเภทการจ้าง"
+                className="w-full sm:w-48"
+                label="ประเภทการจ้าง"
+                labelPlacement="outside"
+                placeholder="ทั้งหมด"
+                selectedKeys={
+                  filterEmploymentTypeId ? [filterEmploymentTypeId] : ["all"]
+                }
+                size="md"
+                variant="bordered"
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
 
-                setFilterEmploymentTypeId(selected ?? "");
-              }}
-            >
-              {employmentTypes.map((item) => (
-                <SelectItem key={item.id}>{item.name}</SelectItem>
-              ))}
-            </Select>
-            <Select
-              className="w-full md:w-48"
-              placeholder="ตำแหน่ง"
-              selectedKeys={filterPositionId ? [filterPositionId] : []}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
+                  setFilterEmploymentTypeId(
+                    selected && selected !== "all" ? selected : "",
+                  );
+                }}
+              >
+                <>
+                  <SelectItem key="all">ทั้งหมด</SelectItem>
+                  {employmentTypes.map((item) => (
+                    <SelectItem key={item.id}>{item.name}</SelectItem>
+                  ))}
+                </>
+              </Select>
+              <Select
+                aria-label="กรองตามตำแหน่ง"
+                className="w-full sm:w-48"
+                label="ตำแหน่ง"
+                labelPlacement="outside"
+                placeholder="ทั้งหมด"
+                selectedKeys={filterPositionId ? [filterPositionId] : ["all"]}
+                size="md"
+                variant="bordered"
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
 
-                setFilterPositionId(selected ?? "");
-              }}
-            >
-              {positions.map((item) => (
-                <SelectItem key={item.id}>{item.name}</SelectItem>
-              ))}
-            </Select>
-            <Select
-              className="w-full md:w-48"
-              placeholder="สถานะ"
-              selectedKeys={filterStatus ? [filterStatus] : []}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
+                  setFilterPositionId(
+                    selected && selected !== "all" ? selected : "",
+                  );
+                }}
+              >
+                <>
+                  <SelectItem key="all">ทั้งหมด</SelectItem>
+                  {positions.map((item) => (
+                    <SelectItem key={item.id}>{item.name}</SelectItem>
+                  ))}
+                </>
+              </Select>
+              <Select
+                aria-label="กรองตามสถานะ"
+                className="w-full sm:w-48"
+                label="สถานะ"
+                labelPlacement="outside"
+                placeholder="ทั้งหมด"
+                selectedKeys={filterStatus ? [filterStatus] : ["all"]}
+                size="md"
+                variant="bordered"
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
 
-                setFilterStatus(selected ?? "");
-              }}
-            >
-              <SelectItem key="all">ทั้งหมด</SelectItem>
-              <SelectItem key="active">ใช้งาน</SelectItem>
-              <SelectItem key="inactive">ไม่ใช้งาน</SelectItem>
-            </Select>
+                  setFilterStatus(
+                    selected && selected !== "all" ? selected : "",
+                  );
+                }}
+              >
+                <SelectItem key="all">ทั้งหมด</SelectItem>
+                <SelectItem key="active">ใช้งาน</SelectItem>
+                <SelectItem key="inactive">ไม่ใช้งาน</SelectItem>
+              </Select>
+              <Button
+                color="default"
+                isDisabled={
+                  !searchQuery &&
+                  !filterEmploymentTypeId &&
+                  !filterPositionId &&
+                  !filterStatus
+                }
+                size="md"
+                variant="flat"
+                onPress={() => {
+                  setSearchQuery("");
+                  setFilterEmploymentTypeId("");
+                  setFilterPositionId("");
+                  setFilterStatus("");
+                }}
+              >
+                <XMarkIcon className="w-5 h-5" />
+                ล้างตัวกรอง
+              </Button>
+            </div>
           </div>
         </CardBody>
       </Card>
 
       {/* Table */}
-      <Card className="shadow-lg border border-default-200">
+      <Card className={CARD_STYLES.default}>
         <CardHeader className="pb-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
@@ -495,7 +551,7 @@ export default function EmployeeManagementPage() {
         <CardBody className="pt-4">
           {isLoading ? (
             <div className="text-center py-8 text-default-500">
-              <p>กำลังโหลดข้อมูล...</p>
+              <p>{TABLE_STYLES.loading.content}</p>
             </div>
           ) : (
             <>
@@ -503,10 +559,10 @@ export default function EmployeeManagementPage() {
                 removeWrapper
                 aria-label="รายชื่อเจ้าหน้าที่เปล"
                 classNames={{
-                  wrapper: PORTER_TABLE_STYLES.wrapper,
-                  th: PORTER_TABLE_STYLES.th,
-                  td: PORTER_TABLE_STYLES.td,
-                  tr: PORTER_TABLE_STYLES.tr,
+                  wrapper: TABLE_STYLES.wrapper,
+                  th: TABLE_STYLES.th,
+                  td: TABLE_STYLES.td,
+                  tr: TABLE_STYLES.tr,
                 }}
               >
                 <TableHeader columns={columns}>
@@ -518,12 +574,12 @@ export default function EmployeeManagementPage() {
                   emptyContent="ยังไม่มีข้อมูลเจ้าหน้าที่"
                   isLoading={isLoading}
                   items={currentEmployees}
-                  loadingContent={PORTER_TABLE_STYLES.loading.content}
+                  loadingContent={TABLE_STYLES.loading.content}
                 >
                   {(item) => (
                     <TableRow
                       key={item.id}
-                      className={PORTER_TABLE_STYLES.loading.rowClassName}
+                      className={TABLE_STYLES.loading.rowClassName}
                     >
                       <TableCell>
                         {item.profileImage ? (
@@ -548,7 +604,7 @@ export default function EmployeeManagementPage() {
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-default-200 flex items-center justify-center">
                             <span
-                              className={`${PORTER_TABLE_STYLES.colors.mutedText} ${PORTER_TABLE_STYLES.text.small} font-medium`}
+                              className={`${TABLE_STYLES.colors.mutedText} ${TABLE_STYLES.text.small} font-medium`}
                             >
                               {item.firstName.charAt(0)}
                               {item.lastName.charAt(0)}
@@ -557,25 +613,23 @@ export default function EmployeeManagementPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span
-                          className={`font-mono ${PORTER_TABLE_STYLES.text.base}`}
-                        >
+                        <span className={`font-mono ${TABLE_STYLES.text.base}`}>
                           {item.citizenId}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={PORTER_TABLE_STYLES.colors.cellText}>
+                        <span className={TABLE_STYLES.colors.cellText}>
                           {item.firstName}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={PORTER_TABLE_STYLES.colors.cellText}>
+                        <span className={TABLE_STYLES.colors.cellText}>
                           {item.lastName}
                         </span>
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`${PORTER_TABLE_STYLES.text.base} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                          className={`${TABLE_STYLES.text.base} ${TABLE_STYLES.colors.secondaryText}`}
                         >
                           {item.nickname || "-"}
                         </span>
@@ -601,20 +655,22 @@ export default function EmployeeManagementPage() {
                       </TableCell>
                       <TableCell>
                         <div
-                          className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapMedium}`}
+                          className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
                         >
                           <Button
                             isIconOnly
+                            aria-label="แก้ไขเจ้าหน้าที่"
                             color="primary"
                             isDisabled={isDeleting === item.id || isSaving}
                             size="sm"
                             variant="light"
                             onPress={() => handleEditEmployee(item)}
                           >
-                            <PencilIcon className="w-4 h-4" />
+                            <PencilIcon aria-hidden className="w-4 h-4" />
                           </Button>
                           <Button
                             isIconOnly
+                            aria-label="ลบเจ้าหน้าที่"
                             color="danger"
                             isDisabled={isDeleting === item.id}
                             isLoading={isDeleting === item.id}
@@ -622,7 +678,7 @@ export default function EmployeeManagementPage() {
                             variant="light"
                             onPress={() => handleDeleteEmployee(item.id)}
                           >
-                            <TrashIcon className="w-4 h-4" />
+                            <TrashIcon aria-hidden className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -635,7 +691,7 @@ export default function EmployeeManagementPage() {
               {filteredEmployees.length > 0 && (
                 <div className="flex items-center justify-between mt-4 px-2">
                   <div
-                    className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                    className={`${TABLE_STYLES.text.small} ${TABLE_STYLES.colors.secondaryText}`}
                   >
                     แสดง {startIndex + 1} - {""}
                     {Math.min(endIndex, filteredEmployees.length)} จาก {""}
@@ -651,19 +707,19 @@ export default function EmployeeManagementPage() {
                     onChange={setCurrentPage}
                   />
                   <div
-                    className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapLarge}`}
+                    className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}
                   >
                     <div
-                      className={`flex items-center ${PORTER_TABLE_STYLES.spacing.gapMedium}`}
+                      className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
                     >
                       <label
-                        className={`${PORTER_TABLE_STYLES.text.small} ${PORTER_TABLE_STYLES.colors.secondaryText}`}
+                        className={`${TABLE_STYLES.text.small} ${TABLE_STYLES.colors.secondaryText}`}
                         htmlFor="rows-per-page"
                       >
                         แสดงต่อหน้า:
                       </label>
                       <select
-                        className={`px-2 py-1 ${PORTER_TABLE_STYLES.text.small} border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent`}
+                        className={TABLE_STYLES.pagination.selectClass}
                         id="rows-per-page"
                         value={rowsPerPage}
                         onChange={(e) => {

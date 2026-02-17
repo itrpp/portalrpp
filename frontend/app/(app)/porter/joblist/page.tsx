@@ -32,6 +32,7 @@ import {
   CheckCircleIcon,
   CalendarIcon,
 } from "@/components/ui/icons";
+import { CARD_STYLES } from "@/lib/cardStyles";
 import { getApiGatewayBaseUrl } from "@/lib/env";
 import {
   JobListTab,
@@ -839,7 +840,7 @@ export default function JobListClient() {
       </div>
 
       <div className="mt-8">
-        <Card className="border-2 border-default-200">
+        <Card className={CARD_STYLES.highlight}>
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center space-x-2">

@@ -16,6 +16,7 @@ import {
   ServerIcon,
 } from "@/components/ui/icons";
 import { siteConfig } from "@/config/site";
+import { LOADING_MESSAGES } from "@/lib/constants";
 import { formatDateTimeThai } from "@/lib/utils";
 
 function HomeContent() {
@@ -117,7 +118,7 @@ function HomeContent() {
               >
                 {isClient && currentTime
                   ? formatDateTimeThai(currentTime)
-                  : "กำลังโหลด..."}
+                  : LOADING_MESSAGES.page}
               </span>
             </div>
           </div>

@@ -17,6 +17,7 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
 } from "@/components/ui/icons";
+import { LOADING_MESSAGES } from "@/lib/constants";
 import { generateBreadcrumbs } from "@/lib/breadcrumbs";
 import { TopbarProps } from "@/types";
 
@@ -95,16 +96,12 @@ export default function Topbar({
               <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2">
                 <Avatar
                   isBordered
-                  color={
-                    (session.user as any).role === "admin"
-                      ? "success"
-                      : "primary"
-                  }
+                  color={session.user.role === "admin" ? "success" : "primary"}
                   fallback={<UserIcon className="w-4 h-4 text-default-400" />}
                   name={
                     session.user.image
                       ? undefined
-                      : (session.user as any).role === "admin"
+                      : session.user.role === "admin"
                         ? "A"
                         : "U"
                   }
@@ -116,7 +113,7 @@ export default function Topbar({
                     {session.user.name || session.user.email || "ผู้ใช้"}
                   </p>
                   <p className="text-xs text-foreground-400">
-                    {(session.user as any).role === "admin"
+                    {session.user.role === "admin"
                       ? "ผู้ดูแลระบบ"
                       : "ผู้ใช้งาน"}
                   </p>
@@ -133,7 +130,7 @@ export default function Topbar({
                 {isNavigating && pathname === "/profile" ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin">⏳</span>
-                    กำลังโหลด...
+                    {LOADING_MESSAGES.page}
                   </span>
                 ) : (
                   "โปรไฟล์"

@@ -23,6 +23,8 @@ import {
 import DepartmentSubSubModal from "./components/DepartmentSubSubModal";
 
 import { usePagination } from "@/hooks/usePagination";
+import { CARD_STYLES } from "@/lib/cardStyles";
+import { TABLE_STYLES } from "@/lib/tableStyles";
 import {
   BuildingOfficeIcon,
   PlusIcon,
@@ -277,7 +279,7 @@ export default function DepartmentSubSubManagementPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <BuildingOfficeIcon className="w-8 h-8 text-primary" />
@@ -287,36 +289,42 @@ export default function DepartmentSubSubManagementPage() {
             จัดการข้อมูลหน่วยงานสำหรับระบบ
           </p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto flex-1 justify-end">
-          <Autocomplete
-            className="w-full md:max-w-md"
-            defaultItems={departmentSubs}
-            label="กรองตามกลุ่มงาน"
-            placeholder="ทั้งหมด"
-            selectedKey={selectedDepartmentSubId}
-            size="sm"
-            variant="bordered"
-            onSelectionChange={(key) =>
-              setSelectedDepartmentSubId(key as string)
-            }
-          >
-            {(sub) => (
-              <AutocompleteItem key={sub.id}>{sub.name}</AutocompleteItem>
-            )}
-          </Autocomplete>
-          <Button
-            color="primary"
-            isDisabled={isLoading || isSaving}
-            startContent={<PlusIcon className="w-5 h-5" />}
-            onPress={handleAddDepartmentSubSub}
-          >
-            เพิ่มหน่วยงาน
-          </Button>
-        </div>
+        <Button
+          color="primary"
+          isDisabled={isLoading || isSaving}
+          startContent={<PlusIcon className="w-5 h-5" />}
+          onPress={handleAddDepartmentSubSub}
+        >
+          เพิ่มหน่วยงาน
+        </Button>
       </div>
 
+      {/* Filters */}
+      <Card className={CARD_STYLES.default}>
+        <CardBody>
+          <div className="flex flex-col md:flex-row gap-4">
+            <Autocomplete
+              className="w-full md:max-w-md"
+              defaultItems={departmentSubs}
+              label="กรองตามกลุ่มงาน"
+              placeholder="ทั้งหมด"
+              selectedKey={selectedDepartmentSubId}
+              size="sm"
+              variant="bordered"
+              onSelectionChange={(key) =>
+                setSelectedDepartmentSubId(key as string)
+              }
+            >
+              {(sub) => (
+                <AutocompleteItem key={sub.id}>{sub.name}</AutocompleteItem>
+              )}
+            </Autocomplete>
+          </div>
+        </CardBody>
+      </Card>
+
       {/* Table */}
-      <Card className="shadow-lg border border-default-200">
+      <Card className={CARD_STYLES.default}>
         <CardHeader className="pb-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
@@ -330,7 +338,7 @@ export default function DepartmentSubSubManagementPage() {
         <CardBody className="pt-4">
           {isLoading ? (
             <div className="text-center py-8 text-default-500">
-              <p>กำลังโหลดข้อมูล...</p>
+              <p>{TABLE_STYLES.loading.content}</p>
             </div>
           ) : (
             <>
@@ -338,7 +346,10 @@ export default function DepartmentSubSubManagementPage() {
                 removeWrapper
                 aria-label="รายการหน่วยงาน"
                 classNames={{
-                  wrapper: "min-h-[400px]",
+                  wrapper: TABLE_STYLES.wrapper,
+                  th: TABLE_STYLES.th,
+                  td: TABLE_STYLES.td,
+                  tr: TABLE_STYLES.tr,
                 }}
               >
                 <TableHeader columns={columns}>
@@ -353,10 +364,16 @@ export default function DepartmentSubSubManagementPage() {
                   {(item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <span className="font-mono text-sm">{item.id}</span>
+                        <span
+                          className={`font-mono ${TABLE_STYLES.text.small}`}
+                        >
+                          {item.id}
+                        </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-foreground">{item.name}</span>
+                        <span className={TABLE_STYLES.colors.cellText}>
+                          {item.name}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -368,19 +385,23 @@ export default function DepartmentSubSubManagementPage() {
                         </Chip>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div
+                          className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
+                        >
                           <Button
                             isIconOnly
+                            aria-label="แก้ไขหน่วยงาน"
                             color="primary"
                             isDisabled={isDeleting === item.id || isSaving}
                             size="sm"
                             variant="light"
                             onPress={() => handleEditDepartmentSubSub(item)}
                           >
-                            <PencilIcon className="w-4 h-4" />
+                            <PencilIcon aria-hidden className="w-4 h-4" />
                           </Button>
                           <Button
                             isIconOnly
+                            aria-label="ลบหน่วยงาน"
                             color="danger"
                             isDisabled={isDeleting === item.id}
                             isLoading={isDeleting === item.id}
@@ -390,7 +411,7 @@ export default function DepartmentSubSubManagementPage() {
                               handleDeleteDepartmentSubSub(item.id)
                             }
                           >
-                            <TrashIcon className="w-4 h-4" />
+                            <TrashIcon aria-hidden className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -400,9 +421,9 @@ export default function DepartmentSubSubManagementPage() {
               </Table>
 
               {/* Pagination */}
-              {departmentSubSubs.length > 0 && (
-                <div className="flex items-center justify-between mt-4 px-2">
-                  <div className="text-sm text-default-600">
+              {filteredDepartmentSubSubs.length > 0 && (
+                <div className={TABLE_STYLES.pagination.containerClass}>
+                  <div className={TABLE_STYLES.pagination.textClass}>
                     แสดง {startIndex + 1} - {""}
                     {Math.min(
                       endIndex,
@@ -419,17 +440,21 @@ export default function DepartmentSubSubManagementPage() {
                     total={totalPages}
                     onChange={setCurrentPage}
                   />
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}
+                  >
+                    <div
+                      className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
+                    >
                       <label
-                        className="text-sm text-default-600"
-                        htmlFor="rows-per-page"
+                        className={TABLE_STYLES.pagination.labelClass}
+                        htmlFor="rows-per-page-deptsubsub"
                       >
                         แสดงต่อหน้า:
                       </label>
                       <select
-                        className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
-                        id="rows-per-page"
+                        className={TABLE_STYLES.pagination.selectClass}
+                        id="rows-per-page-deptsubsub"
                         value={rowsPerPage}
                         onChange={(e) => {
                           setRowsPerPage(Number(e.target.value));

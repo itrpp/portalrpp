@@ -196,8 +196,3 @@ export const PORTER_DESIGN_TOKENS = {
     getStyle: getUrgencyStyle,
   },
 } as const;
-
-/**
- * Re-export PORTER_TABLE_STYLES สำหรับ backward compatibility
- */
-export { PORTER_TABLE_STYLES } from "./tableStyles";

@@ -15,6 +15,7 @@ import {
 } from "@heroui/react";
 
 import { PencilIcon, TrashIcon } from "@/components/ui/icons";
+import { TABLE_STYLES } from "@/lib/tableStyles";
 
 export type { CrudItem, CrudTableColumn, CrudTableProps } from "../types";
 
@@ -45,7 +46,7 @@ export function CrudTable<T extends CrudItem>({
     <>
       {isLoading ? (
         <div className="text-center py-8 text-default-500">
-          <p>กำลังโหลดข้อมูล...</p>
+          <p>{TABLE_STYLES.loading.content}</p>
         </div>
       ) : (
         <>
@@ -53,7 +54,10 @@ export function CrudTable<T extends CrudItem>({
             removeWrapper
             aria-label="รายการข้อมูล"
             classNames={{
-              wrapper: "min-h-[400px]",
+              wrapper: TABLE_STYLES.wrapper,
+              th: TABLE_STYLES.th,
+              td: TABLE_STYLES.td,
+              tr: TABLE_STYLES.tr,
             }}
           >
             <TableHeader columns={tableColumns}>
@@ -81,16 +85,18 @@ export function CrudTable<T extends CrudItem>({
                       <div className="flex items-center gap-2">
                         <Button
                           isIconOnly
+                          aria-label="แก้ไข"
                           color="primary"
                           isDisabled={isDeleting === item.id || isSaving}
                           size="sm"
                           variant="light"
                           onPress={() => onEdit(item)}
                         >
-                          <PencilIcon className="w-4 h-4" />
+                          <PencilIcon aria-hidden className="w-4 h-4" />
                         </Button>
                         <Button
                           isIconOnly
+                          aria-label="ลบ"
                           color="danger"
                           isDisabled={isDeleting === item.id}
                           isLoading={isDeleting === item.id}
@@ -98,7 +104,7 @@ export function CrudTable<T extends CrudItem>({
                           variant="light"
                           onPress={() => onDelete(item.id)}
                         >
-                          <TrashIcon className="w-4 h-4" />
+                          <TrashIcon aria-hidden className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>,
@@ -112,8 +118,8 @@ export function CrudTable<T extends CrudItem>({
 
           {/* Pagination */}
           {items.length > 0 && (
-            <div className="flex items-center justify-between mt-4 px-2">
-              <div className="text-sm text-default-600">
+            <div className={TABLE_STYLES.pagination.containerClass}>
+              <div className={TABLE_STYLES.pagination.textClass}>
                 แสดง {startIndex + 1} - {Math.min(endIndex, items.length)} จาก{" "}
                 {items.length} รายการ
               </div>
@@ -126,16 +132,20 @@ export function CrudTable<T extends CrudItem>({
                 total={totalPages}
                 onChange={onPageChange}
               />
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
+              <div
+                className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}
+              >
+                <div
+                  className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
+                >
                   <label
-                    className="text-sm text-default-600"
+                    className={TABLE_STYLES.pagination.labelClass}
                     htmlFor="rows-per-page"
                   >
                     แสดงต่อหน้า:
                   </label>
                   <select
-                    className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className={TABLE_STYLES.pagination.selectClass}
                     id="rows-per-page"
                     value={rowsPerPage}
                     onChange={(e) => {

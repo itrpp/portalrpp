@@ -7,6 +7,7 @@ import { SimpleCrudModal } from "../components/SimpleCrudModal";
 import { CrudTable } from "../components/CrudTable";
 import { useCrudManagement } from "../hooks/useCrudManagement";
 
+import { CARD_STYLES } from "@/lib/cardStyles";
 import { BuildingOfficeIcon, PlusIcon } from "@/components/ui/icons";
 import { Department } from "@/types/hrd";
 
@@ -91,7 +92,7 @@ export default function DepartmentManagementPage() {
       </div>
 
       {/* Table */}
-      <Card className="shadow-lg border border-default-200">
+      <Card className={CARD_STYLES.default}>
         <CardHeader className="pb-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">

@@ -17,6 +17,7 @@ import {
 } from "@heroui/react";
 
 import { PencilIcon, TrashIcon, UserIcon } from "@/components/ui/icons";
+import { TABLE_STYLES } from "@/lib/tableStyles";
 
 interface UserTableProps {
   users: UserDTO[];
@@ -58,14 +59,19 @@ export function UserTable({
       removeWrapper
       aria-label="รายชื่อผู้ใช้"
       classNames={{
-        wrapper: "min-h-[400px]",
+        wrapper: TABLE_STYLES.wrapper,
+        th: TABLE_STYLES.th,
+        td: TABLE_STYLES.td,
+        tr: TABLE_STYLES.tr,
       }}
     >
       <TableHeader columns={columns}>
         {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
       </TableHeader>
       <TableBody
-        emptyContent={isLoading ? "กำลังโหลดข้อมูล..." : "ยังไม่มีข้อมูลผู้ใช้"}
+        emptyContent={
+          isLoading ? TABLE_STYLES.loading.content : "ยังไม่มีข้อมูลผู้ใช้"
+        }
         isLoading={isLoading}
         items={users}
       >
@@ -120,13 +126,14 @@ export function UserTable({
                   <Tooltip content="แก้ไข">
                     <Button
                       isIconOnly
+                      aria-label="แก้ไขผู้ใช้"
                       color="primary"
                       isDisabled={isLoading}
                       size="sm"
                       variant="light"
                       onPress={() => onEdit(user)}
                     >
-                      <PencilIcon className="w-4 h-4" />
+                      <PencilIcon aria-hidden className="w-4 h-4" />
                     </Button>
                   </Tooltip>
                   <Tooltip
@@ -138,6 +145,11 @@ export function UserTable({
                   >
                     <Button
                       isIconOnly
+                      aria-label={
+                        user.id === currentUserId
+                          ? "ไม่สามารถลบตัวเองได้"
+                          : "ลบผู้ใช้"
+                      }
                       color="danger"
                       isDisabled={
                         isLoading ||
@@ -148,7 +160,7 @@ export function UserTable({
                       variant="light"
                       onPress={() => onDelete(user.id)}
                     >
-                      <TrashIcon className="w-4 h-4" />
+                      <TrashIcon aria-hidden className="w-4 h-4" />
                     </Button>
                   </Tooltip>
                 </div>

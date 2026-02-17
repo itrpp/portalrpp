@@ -5,6 +5,8 @@ import { Chip } from "@heroui/react";
 
 import { PORTER_DESIGN_TOKENS } from "./designTokens";
 
+import { LOADING_MESSAGES } from "@/lib/constants";
+
 interface DepartmentChipProps {
   departmentName: string | null | undefined;
   isLoading?: boolean;
@@ -28,7 +30,7 @@ export function DepartmentChip({
         size="sm"
         variant="bordered"
       >
-        กำลังโหลด...
+        {LOADING_MESSAGES.chip}
       </Chip>
     );
   }
