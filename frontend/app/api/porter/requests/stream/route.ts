@@ -1,19 +1,15 @@
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { streamPorterRequests } from "@/lib/grpcClient";
-import {
-  mapStatusToProto,
-  mapUrgencyLevelToProto,
-  convertProtoToFrontend,
-} from "@/lib/porter";
+import { getAuthSession } from '@/lib/auth';
+import { streamPorterRequests } from '@/lib/grpcClient';
+import { mapStatusToProto, mapUrgencyLevelToProto, convertProtoToFrontend } from '@/lib/porter';
 
 // Route segment config สำหรับ SSE stream
 // maxDuration 300 วินาที (5 นาที) เป็น maximum ที่ Next.js อนุญาต
 // แต่ stream จะ reconnect อัตโนมัติเมื่อ timeout
 export const maxDuration = 300; // 5 minutes (max allowed by Next.js)
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * SSE Endpoint สำหรับ real-time updates ของ Porter Requests
@@ -81,12 +77,12 @@ export async function GET(request: NextRequest) {
           };
 
           // รับข้อมูลจาก gRPC stream
-          grpcStream.on("data", (update: any) => {
+          grpcStream.on('data', (update: any) => {
             // แปลง type เป็น string (รองรับทั้ง number และ string)
             // เนื่องจาก protoLoader อาจแปลง enum เป็น string เมื่อใช้ enums: String
             let updateTypeNumber: number;
 
-            if (typeof update.type === "string") {
+            if (typeof update.type === 'string') {
               // ถ้าเป็น string ให้ map กลับเป็น number
               const typeMap: Record<string, number> = {
                 CREATED: 0,
@@ -102,17 +98,15 @@ export async function GET(request: NextRequest) {
 
             const updateTypeString =
               updateTypeNumber === 0
-                ? "CREATED"
+                ? 'CREATED'
                 : updateTypeNumber === 1
-                  ? "UPDATED"
+                  ? 'UPDATED'
                   : updateTypeNumber === 2
-                    ? "STATUS_CHANGED"
-                    : "DELETED";
+                    ? 'STATUS_CHANGED'
+                    : 'DELETED';
 
             if (!isControllerOpen()) {
-              console.warn(
-                "[Next.js API] Stream controller is closed, ignoring data",
-              );
+              console.warn('[Next.js API] Stream controller is closed, ignoring data');
 
               return;
             }
@@ -135,24 +129,16 @@ export async function GET(request: NextRequest) {
                   try {
                     streamController.enqueue(encoder.encode(sseMessage));
                   } catch (enqueueError) {
-                    console.error(
-                      "[Next.js API] Error enqueueing SSE message:",
-                      enqueueError,
-                    );
+                    console.error('[Next.js API] Error enqueueing SSE message:', enqueueError);
                   }
                 } else {
-                  console.warn(
-                    "[Next.js API] Controller closed, cannot send SSE message",
-                  );
+                  console.warn('[Next.js API] Controller closed, cannot send SSE message');
                 }
               } else {
-                console.warn(
-                  "[Next.js API] Received update without request data:",
-                  update,
-                );
+                console.warn('[Next.js API] Received update without request data:', update);
               }
             } catch (error) {
-              console.error("[Next.js API] Error processing stream data:", {
+              console.error('[Next.js API] Error processing stream data:', {
                 error: error instanceof Error ? error.message : String(error),
                 stack: error instanceof Error ? error.stack : undefined,
                 rawUpdateType: update.type,
@@ -163,12 +149,11 @@ export async function GET(request: NextRequest) {
           });
 
           // จัดการ error
-          grpcStream.on("error", (error: any) => {
+          grpcStream.on('error', (error: any) => {
             // ไม่ต้องแสดง error ถ้าเป็น CANCELLED (ปกติเมื่อ client ปิด connection)
             if (
               error.code === 1 &&
-              (error.details?.includes("Cancelled") ||
-                error.message?.includes("Cancelled"))
+              (error.details?.includes('Cancelled') || error.message?.includes('Cancelled'))
             ) {
               safeClose();
 
@@ -176,11 +161,11 @@ export async function GET(request: NextRequest) {
             }
 
             // Error อื่นๆ - log และส่ง error message
-            console.error("[Next.js API] gRPC stream error:", error);
+            console.error('[Next.js API] gRPC stream error:', error);
 
             if (isControllerOpen()) {
               try {
-                const errorMessage = `event: error\ndata: ${JSON.stringify({ error: error.message || "Stream error" })}\n\n`;
+                const errorMessage = `event: error\ndata: ${JSON.stringify({ error: error.message || 'Stream error' })}\n\n`;
                 const encoder = new TextEncoder();
 
                 streamController.enqueue(encoder.encode(errorMessage));
@@ -193,7 +178,7 @@ export async function GET(request: NextRequest) {
           });
 
           // จัดการเมื่อ stream end
-          grpcStream.on("end", () => {
+          grpcStream.on('end', () => {
             safeClose();
           });
 
@@ -209,7 +194,7 @@ export async function GET(request: NextRequest) {
             }
 
             try {
-              const keepAlive = ": keep-alive\n\n";
+              const keepAlive = ': keep-alive\n\n';
               const encoder = new TextEncoder();
 
               streamController.enqueue(encoder.encode(keepAlive));
@@ -224,7 +209,7 @@ export async function GET(request: NextRequest) {
             }
           }, 20000);
         } catch (error: any) {
-          console.error("[Next.js API] Error setting up stream:", error);
+          console.error('[Next.js API] Error setting up stream:', error);
           isStreamClosed = true;
 
           if (keepAliveInterval) {
@@ -259,25 +244,25 @@ export async function GET(request: NextRequest) {
     // ส่งกลับ response พร้อม SSE headers
     return new Response(stream, {
       headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "X-Accel-Buffering": "no",
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
       },
     });
   } catch (error: unknown) {
     // Log error for debugging
-    console.error("Error setting up SSE stream:", error);
+    console.error('Error setting up SSE stream:', error);
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: "INTERNAL_SERVER_ERROR",
-        message: "Failed to establish stream",
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to establish stream',
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       },
     );
   }

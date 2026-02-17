@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import type { UserDTO, UserUpdatePayload } from "@/types/user";
+import type { UserDTO, UserUpdatePayload } from '@/types/user';
 
-import React, { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import React, { useState, useEffect } from 'react';
+import { signIn } from 'next-auth/react';
 import {
   Modal,
   ModalContent,
@@ -19,18 +19,13 @@ import {
   Divider,
   Chip,
   addToast,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import {
-  UserIcon,
-  BriefcaseIcon,
-  BuildingOfficeIcon,
-  LockClosedIcon,
-} from "@/components/ui/icons";
+import { UserIcon, BriefcaseIcon, BuildingOfficeIcon, LockClosedIcon } from '@/components/ui/icons';
 
 const ROLE_OPTIONS = [
-  { value: "user", label: "ผู้ใช้งาน" },
-  { value: "admin", label: "ผู้ดูแลระบบ" },
+  { value: 'user', label: 'ผู้ใช้งาน' },
+  { value: 'admin', label: 'ผู้ดูแลระบบ' },
 ] as const;
 
 interface UserModalProps {
@@ -55,17 +50,15 @@ export function UserModal({
   isLoading = false,
   isCurrentUser = false,
 }: UserModalProps) {
-  const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [role, setRole] = useState<"admin" | "user">("user");
+  const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [role, setRole] = useState<'admin' | 'user'>('user');
   const [personTypeId, setPersonTypeId] = useState<string | null>(null);
   const [positionId, setPositionId] = useState<string | null>(null);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [departmentSubId, setDepartmentSubId] = useState<string | null>(null);
-  const [departmentSubSubId, setDepartmentSubSubId] = useState<string | null>(
-    null,
-  );
+  const [departmentSubSubId, setDepartmentSubSubId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isUnlinking, setIsUnlinking] = useState(false);
 
@@ -73,30 +66,25 @@ export function UserModal({
   const [personTypeOptions, setPersonTypeOptions] = useState<HrdOption[]>([]);
   const [positionOptions, setPositionOptions] = useState<HrdOption[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<HrdOption[]>([]);
-  const [departmentSubOptions, setDepartmentSubOptions] = useState<HrdOption[]>(
-    [],
-  );
-  const [departmentSubSubOptions, setDepartmentSubSubOptions] = useState<
-    HrdOption[]
-  >([]);
+  const [departmentSubOptions, setDepartmentSubOptions] = useState<HrdOption[]>([]);
+  const [departmentSubSubOptions, setDepartmentSubSubOptions] = useState<HrdOption[]>([]);
 
   // Loading states
   const [isLoadingPersonTypes, setIsLoadingPersonTypes] = useState(false);
   const [isLoadingPositions, setIsLoadingPositions] = useState(false);
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const [isLoadingDepartmentSubs, setIsLoadingDepartmentSubs] = useState(false);
-  const [isLoadingDepartmentSubSubs, setIsLoadingDepartmentSubSubs] =
-    useState(false);
+  const [isLoadingDepartmentSubSubs, setIsLoadingDepartmentSubSubs] = useState(false);
 
   // Fetch HRD data functions
   async function fetchPersonTypes() {
     try {
       setIsLoadingPersonTypes(true);
-      const response = await fetch("/api/hrd/person-types");
+      const response = await fetch('/api/hrd/person-types');
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มบุคลากรได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดกลุ่มบุคลากรได้');
       }
 
       setPersonTypeOptions(
@@ -115,11 +103,11 @@ export function UserModal({
   async function fetchPositions() {
     try {
       setIsLoadingPositions(true);
-      const response = await fetch("/api/hrd/positions");
+      const response = await fetch('/api/hrd/positions');
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดตำแหน่งได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดตำแหน่งได้');
       }
 
       setPositionOptions(
@@ -138,11 +126,11 @@ export function UserModal({
   async function fetchDepartments() {
     try {
       setIsLoadingDepartments(true);
-      const response = await fetch("/api/hrd/departments");
+      const response = await fetch('/api/hrd/departments');
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มภารกิจได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดกลุ่มภารกิจได้');
       }
 
       setDepartmentOptions(
@@ -168,14 +156,12 @@ export function UserModal({
     try {
       setIsLoadingDepartmentSubs(true);
       const response = await fetch(
-        `/api/hrd/department-subs?departmentId=${encodeURIComponent(
-          departmentId,
-        )}`,
+        `/api/hrd/department-subs?departmentId=${encodeURIComponent(departmentId)}`,
       );
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มงานได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดกลุ่มงานได้');
       }
 
       setDepartmentSubOptions(
@@ -201,14 +187,12 @@ export function UserModal({
     try {
       setIsLoadingDepartmentSubSubs(true);
       const response = await fetch(
-        `/api/hrd/department-sub-subs?departmentSubId=${encodeURIComponent(
-          departmentSubId,
-        )}`,
+        `/api/hrd/department-sub-subs?departmentSubId=${encodeURIComponent(departmentSubId)}`,
       );
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดหน่วยงานได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดหน่วยงานได้');
       }
 
       setDepartmentSubSubOptions(
@@ -226,25 +210,21 @@ export function UserModal({
 
   useEffect(() => {
     if (user) {
-      setDisplayName(user.displayName || "");
-      setPhone(user.phone || "");
-      setMobile(user.mobile || "");
-      setRole((user.role as "admin" | "user") || "user");
+      setDisplayName(user.displayName || '');
+      setPhone(user.phone || '');
+      setMobile(user.mobile || '');
+      setRole((user.role as 'admin' | 'user') || 'user');
       setPersonTypeId(user.personTypeId ? String(user.personTypeId) : null);
       setPositionId(user.positionId ? String(user.positionId) : null);
       setDepartmentId(user.departmentId ? String(user.departmentId) : null);
-      setDepartmentSubId(
-        user.departmentSubId ? String(user.departmentSubId) : null,
-      );
-      setDepartmentSubSubId(
-        user.departmentSubSubId ? String(user.departmentSubSubId) : null,
-      );
+      setDepartmentSubId(user.departmentSubId ? String(user.departmentSubId) : null);
+      setDepartmentSubSubId(user.departmentSubSubId ? String(user.departmentSubSubId) : null);
       setErrors({});
     } else {
-      setDisplayName("");
-      setPhone("");
-      setMobile("");
-      setRole("user");
+      setDisplayName('');
+      setPhone('');
+      setMobile('');
+      setRole('user');
       setPersonTypeId(null);
       setPositionId(null);
       setDepartmentId(null);
@@ -310,48 +290,48 @@ export function UserModal({
 
     // Validate displayName
     if (!displayName.trim()) {
-      newErrors.displayName = "กรุณากรอกชื่อ-นามสกุล";
+      newErrors.displayName = 'กรุณากรอกชื่อ-นามสกุล';
     } else if (displayName.trim().length < 2) {
-      newErrors.displayName = "ชื่อ-นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร";
+      newErrors.displayName = 'ชื่อ-นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร';
     } else if (displayName.trim().length > 100) {
-      newErrors.displayName = "ชื่อ-นามสกุลต้องไม่เกิน 100 ตัวอักษร";
+      newErrors.displayName = 'ชื่อ-นามสกุลต้องไม่เกิน 100 ตัวอักษร';
     }
 
     // Validate phone
     if (!phone.trim()) {
-      newErrors.phone = "กรุณากรอกโทรศัพท์ภายใน";
+      newErrors.phone = 'กรุณากรอกโทรศัพท์ภายใน';
     } else {
       const digitCount = (phone.match(/\d/g) || []).length;
 
       if (digitCount < 3) {
-        newErrors.phone = "โทรศัพท์ภายในต้องมีตัวเลขอย่างน้อย 3 หลัก";
+        newErrors.phone = 'โทรศัพท์ภายในต้องมีตัวเลขอย่างน้อย 3 หลัก';
       } else if (!/^[0-9+\-\s]{3,20}$/.test(phone)) {
-        newErrors.phone = "รูปแบบโทรศัพท์ภายในไม่ถูกต้อง";
+        newErrors.phone = 'รูปแบบโทรศัพท์ภายในไม่ถูกต้อง';
       }
     }
 
     // Validate mobile (optional)
     if (mobile.trim()) {
       if (!/^[0-9+\-\s]{3,20}$/.test(mobile)) {
-        newErrors.mobile = "รูปแบบเบอร์มือถือไม่ถูกต้อง";
+        newErrors.mobile = 'รูปแบบเบอร์มือถือไม่ถูกต้อง';
       }
     }
 
     // Validate organization fields
     if (!personTypeId) {
-      newErrors.personTypeId = "กรุณาเลือกกลุ่มบุคลากร";
+      newErrors.personTypeId = 'กรุณาเลือกกลุ่มบุคลากร';
     }
     if (!positionId) {
-      newErrors.positionId = "กรุณาเลือกตำแหน่ง";
+      newErrors.positionId = 'กรุณาเลือกตำแหน่ง';
     }
     if (!departmentId) {
-      newErrors.departmentId = "กรุณาเลือกกลุ่มภารกิจ";
+      newErrors.departmentId = 'กรุณาเลือกกลุ่มภารกิจ';
     }
     if (!departmentSubId) {
-      newErrors.departmentSubId = "กรุณาเลือกกลุ่มงาน";
+      newErrors.departmentSubId = 'กรุณาเลือกกลุ่มงาน';
     }
     if (!departmentSubSubId) {
-      newErrors.departmentSubSubId = "กรุณาเลือกหน่วยงาน";
+      newErrors.departmentSubSubId = 'กรุณาเลือกหน่วยงาน';
     }
 
     setErrors(newErrors);
@@ -373,12 +353,8 @@ export function UserModal({
         personTypeId: personTypeId ? Number.parseInt(personTypeId, 10) : null,
         positionId: positionId ? Number.parseInt(positionId, 10) : null,
         departmentId: departmentId ? Number.parseInt(departmentId, 10) : null,
-        departmentSubId: departmentSubId
-          ? Number.parseInt(departmentSubId, 10)
-          : null,
-        departmentSubSubId: departmentSubSubId
-          ? Number.parseInt(departmentSubSubId, 10)
-          : null,
+        departmentSubId: departmentSubId ? Number.parseInt(departmentSubId, 10) : null,
+        departmentSubSubId: departmentSubSubId ? Number.parseInt(departmentSubSubId, 10) : null,
       };
 
       const success = await onSave(user.id, payload);
@@ -387,13 +363,12 @@ export function UserModal({
         onClose();
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้";
+      const message = error instanceof Error ? error.message : 'ไม่สามารถบันทึกข้อมูลได้';
 
       addToast({
-        title: "เกิดข้อผิดพลาด",
+        title: 'เกิดข้อผิดพลาด',
         description: message,
-        color: "danger",
+        color: 'danger',
       });
     }
   };
@@ -410,11 +385,7 @@ export function UserModal({
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           <h2 className="text-xl font-semibold">แก้ไขข้อมูลผู้ใช้</h2>
-          {user && (
-            <p className="text-sm text-default-500 font-normal">
-              {user.email || user.id}
-            </p>
-          )}
+          {user && <p className="text-sm text-default-500 font-normal">{user.email || user.id}</p>}
         </ModalHeader>
         <ModalBody>
           {isCurrentUser && (
@@ -436,7 +407,7 @@ export function UserModal({
               onChange={(e) => {
                 setDisplayName(e.target.value);
                 if (errors.displayName) {
-                  setErrors((prev) => ({ ...prev, displayName: "" }));
+                  setErrors((prev) => ({ ...prev, displayName: '' }));
                 }
               }}
             />
@@ -453,7 +424,7 @@ export function UserModal({
               onChange={(e) => {
                 setPhone(e.target.value);
                 if (errors.phone) {
-                  setErrors((prev) => ({ ...prev, phone: "" }));
+                  setErrors((prev) => ({ ...prev, phone: '' }));
                 }
               }}
             />
@@ -469,7 +440,7 @@ export function UserModal({
               onChange={(e) => {
                 setMobile(e.target.value);
                 if (errors.mobile) {
-                  setErrors((prev) => ({ ...prev, mobile: "" }));
+                  setErrors((prev) => ({ ...prev, mobile: '' }));
                 }
               }}
             />
@@ -484,7 +455,7 @@ export function UserModal({
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0] as string;
 
-                setRole(selected as "admin" | "user");
+                setRole(selected as 'admin' | 'user');
               }}
             >
               {ROLE_OPTIONS.map((option) => (
@@ -492,7 +463,7 @@ export function UserModal({
               ))}
             </Select>
 
-            {isCurrentUser && role === "admin" && (
+            {isCurrentUser && role === 'admin' && (
               <div className="bg-warning-50 border border-warning-200 rounded-lg p-3 text-sm text-warning-800">
                 คุณกำลังแก้ไขบทบาทของตัวเองเป็น ผู้ดูแลระบบ โปรดระวัง:
                 การเปลี่ยนบทบาทอาจส่งผลต่อสิทธิ์การเข้าถึงของคุณ
@@ -519,24 +490,18 @@ export function UserModal({
                   label="กลุ่มบุคลากร"
                   placeholder="เลือกกลุ่มบุคลากร"
                   selectedKey={personTypeId ?? undefined}
-                  startContent={
-                    <UserIcon className="w-5 h-5 text-default-400" />
-                  }
+                  startContent={<UserIcon className="w-5 h-5 text-default-400" />}
                   variant="bordered"
                   onSelectionChange={(key) => {
                     const value = key != null ? String(key) : null;
 
                     setPersonTypeId(value);
                     if (errors.personTypeId) {
-                      setErrors((prev) => ({ ...prev, personTypeId: "" }));
+                      setErrors((prev) => ({ ...prev, personTypeId: '' }));
                     }
                   }}
                 >
-                  {(item) => (
-                    <AutocompleteItem key={item.key}>
-                      {item.label}
-                    </AutocompleteItem>
-                  )}
+                  {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                 </Autocomplete>
 
                 <Autocomplete
@@ -549,24 +514,18 @@ export function UserModal({
                   label="ตำแหน่ง"
                   placeholder="เลือกตำแหน่ง"
                   selectedKey={positionId ?? undefined}
-                  startContent={
-                    <BriefcaseIcon className="w-5 h-5 text-default-400" />
-                  }
+                  startContent={<BriefcaseIcon className="w-5 h-5 text-default-400" />}
                   variant="bordered"
                   onSelectionChange={(key) => {
                     const value = key != null ? String(key) : null;
 
                     setPositionId(value);
                     if (errors.positionId) {
-                      setErrors((prev) => ({ ...prev, positionId: "" }));
+                      setErrors((prev) => ({ ...prev, positionId: '' }));
                     }
                   }}
                 >
-                  {(item) => (
-                    <AutocompleteItem key={item.key}>
-                      {item.label}
-                    </AutocompleteItem>
-                  )}
+                  {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                 </Autocomplete>
 
                 <Autocomplete
@@ -579,9 +538,7 @@ export function UserModal({
                   label="กลุ่มภารกิจ"
                   placeholder="เลือกกลุ่มภารกิจ"
                   selectedKey={departmentId ?? undefined}
-                  startContent={
-                    <BuildingOfficeIcon className="w-5 h-5 text-default-400" />
-                  }
+                  startContent={<BuildingOfficeIcon className="w-5 h-5 text-default-400" />}
                   variant="bordered"
                   onSelectionChange={(key) => {
                     const value = key != null ? String(key) : null;
@@ -593,15 +550,11 @@ export function UserModal({
                     setDepartmentSubOptions([]);
                     setDepartmentSubSubOptions([]);
                     if (errors.departmentId) {
-                      setErrors((prev) => ({ ...prev, departmentId: "" }));
+                      setErrors((prev) => ({ ...prev, departmentId: '' }));
                     }
                   }}
                 >
-                  {(item) => (
-                    <AutocompleteItem key={item.key}>
-                      {item.label}
-                    </AutocompleteItem>
-                  )}
+                  {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                 </Autocomplete>
 
                 <Autocomplete
@@ -612,9 +565,7 @@ export function UserModal({
                   isInvalid={!!errors.departmentSubId}
                   isLoading={isLoadingDepartmentSubs}
                   label="กลุ่มงาน"
-                  placeholder={
-                    departmentId ? "เลือกกลุ่มงาน" : "กรุณาเลือกกลุ่มภารกิจก่อน"
-                  }
+                  placeholder={departmentId ? 'เลือกกลุ่มงาน' : 'กรุณาเลือกกลุ่มภารกิจก่อน'}
                   selectedKey={departmentSubId ?? undefined}
                   variant="bordered"
                   onSelectionChange={(key) => {
@@ -625,15 +576,11 @@ export function UserModal({
                     setDepartmentSubSubId(null);
                     setDepartmentSubSubOptions([]);
                     if (errors.departmentSubId) {
-                      setErrors((prev) => ({ ...prev, departmentSubId: "" }));
+                      setErrors((prev) => ({ ...prev, departmentSubId: '' }));
                     }
                   }}
                 >
-                  {(item) => (
-                    <AutocompleteItem key={item.key}>
-                      {item.label}
-                    </AutocompleteItem>
-                  )}
+                  {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                 </Autocomplete>
 
                 <Autocomplete
@@ -644,9 +591,7 @@ export function UserModal({
                   isInvalid={!!errors.departmentSubSubId}
                   isLoading={isLoadingDepartmentSubSubs}
                   label="หน่วยงาน"
-                  placeholder={
-                    departmentSubId ? "เลือกหน่วยงาน" : "กรุณาเลือกกลุ่มงานก่อน"
-                  }
+                  placeholder={departmentSubId ? 'เลือกหน่วยงาน' : 'กรุณาเลือกกลุ่มงานก่อน'}
                   selectedKey={departmentSubSubId ?? undefined}
                   variant="bordered"
                   onSelectionChange={(key) => {
@@ -656,16 +601,12 @@ export function UserModal({
                     if (errors.departmentSubSubId) {
                       setErrors((prev) => ({
                         ...prev,
-                        departmentSubSubId: "",
+                        departmentSubSubId: '',
                       }));
                     }
                   }}
                 >
-                  {(item) => (
-                    <AutocompleteItem key={item.key}>
-                      {item.label}
-                    </AutocompleteItem>
-                  )}
+                  {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                 </Autocomplete>
               </div>
             </div>
@@ -680,33 +621,23 @@ export function UserModal({
             </h4>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Chip
-                  color={user?.lineUserId ? "success" : "warning"}
-                  size="sm"
-                  variant="flat"
-                >
-                  {user?.lineUserId ? "เชื่อมแล้ว" : "ยังไม่เชื่อม"}
+                <Chip color={user?.lineUserId ? 'success' : 'warning'} size="sm" variant="flat">
+                  {user?.lineUserId ? 'เชื่อมแล้ว' : 'ยังไม่เชื่อม'}
                 </Chip>
                 {user?.lineUserId && (
-                  <span className="text-xs text-default-500 truncate">
-                    ID: {user.lineUserId}
-                  </span>
+                  <span className="text-xs text-default-500 truncate">ID: {user.lineUserId}</span>
                 )}
               </div>
               {user?.lineDisplayName && (
                 <div>
-                  <p className="text-xs text-default-500 mb-1">
-                    ชื่อแสดงใน LINE
-                  </p>
-                  <p className="text-sm font-medium text-foreground">
-                    {user.lineDisplayName}
-                  </p>
+                  <p className="text-xs text-default-500 mb-1">ชื่อแสดงใน LINE</p>
+                  <p className="text-sm font-medium text-foreground">{user.lineDisplayName}</p>
                 </div>
               )}
               <p className="text-sm text-default-500">
                 {user?.lineUserId
-                  ? "หากต้องการเปลี่ยนบัญชี LINE ต้องยกเลิกการเชื่อมต่อก่อนเชื่อมใหม่"
-                  : "เชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือนและอัปเดตรูปโปรไฟล์อัตโนมัติ"}
+                  ? 'หากต้องการเปลี่ยนบัญชี LINE ต้องยกเลิกการเชื่อมต่อก่อนเชื่อมใหม่'
+                  : 'เชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือนและอัปเดตรูปโปรไฟล์อัตโนมัติ'}
               </p>
               <div className="flex flex-col gap-3">
                 {!user?.lineUserId && (
@@ -716,7 +647,7 @@ export function UserModal({
                     startContent={<LockClosedIcon className="w-5 h-5" />}
                     variant="solid"
                     onPress={() => {
-                      signIn("line", { callbackUrl: "/setting/users" });
+                      signIn('line', { callbackUrl: '/setting/users' });
                     }}
                   >
                     เชื่อมบัญชี LINE
@@ -732,25 +663,19 @@ export function UserModal({
                       if (!user?.id) return;
                       setIsUnlinking(true);
                       try {
-                        const response = await fetch(
-                          `/api/users/${user.id}/line`,
-                          {
-                            method: "DELETE",
-                          },
-                        );
+                        const response = await fetch(`/api/users/${user.id}/line`, {
+                          method: 'DELETE',
+                        });
                         const payload = await response.json();
 
                         if (!response.ok || !payload?.success) {
-                          throw new Error(
-                            payload?.error ||
-                              "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
-                          );
+                          throw new Error(payload?.error || 'ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้');
                         }
 
                         addToast({
-                          title: "สำเร็จ",
-                          description: "ยกเลิกการเชื่อมต่อ LINE สำเร็จแล้ว",
-                          color: "success",
+                          title: 'สำเร็จ',
+                          description: 'ยกเลิกการเชื่อมต่อ LINE สำเร็จแล้ว',
+                          color: 'success',
                         });
 
                         // Reload user data
@@ -759,12 +684,12 @@ export function UserModal({
                         }
                       } catch (error) {
                         addToast({
-                          title: "เกิดข้อผิดพลาด",
+                          title: 'เกิดข้อผิดพลาด',
                           description:
                             error instanceof Error
                               ? error.message
-                              : "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
-                          color: "danger",
+                              : 'ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้',
+                          color: 'danger',
                         });
                       } finally {
                         setIsUnlinking(false);
@@ -779,12 +704,7 @@ export function UserModal({
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button
-            color="default"
-            isDisabled={isLoading}
-            variant="light"
-            onPress={onClose}
-          >
+          <Button color="default" isDisabled={isLoading} variant="light" onPress={onClose}>
             ยกเลิก
           </Button>
           <Button color="primary" isLoading={isLoading} onPress={handleSave}>

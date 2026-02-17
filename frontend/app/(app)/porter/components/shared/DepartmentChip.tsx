@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Chip } from "@heroui/react";
+import React from 'react';
+import { Chip } from '@heroui/react';
 
-import { PORTER_DESIGN_TOKENS } from "./designTokens";
+import { PORTER_DESIGN_TOKENS } from './designTokens';
 
-import { LOADING_MESSAGES } from "@/lib/constants";
+import { LOADING_MESSAGES } from '@/lib/constants';
 
 interface DepartmentChipProps {
   departmentName: string | null | undefined;
@@ -25,7 +25,7 @@ export function DepartmentChip({
   if (isLoading) {
     return (
       <Chip
-        className={`${PORTER_DESIGN_TOKENS.colors.muted} ${className ?? ""}`}
+        className={`${PORTER_DESIGN_TOKENS.colors.muted} ${className ?? ''}`}
         color="default"
         size="sm"
         variant="bordered"
@@ -37,7 +37,7 @@ export function DepartmentChip({
 
   return (
     <Chip className={className} color="default" size="sm" variant="bordered">
-      {departmentName || "-"}
+      {departmentName || '-'}
     </Chip>
   );
 }

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
-import { usePorterRequests } from "../../hooks/usePorterRequests";
-import { porterQueryKeys } from "../../lib/queryKeys";
+import { usePorterRequests } from '../../hooks/usePorterRequests';
+import { porterQueryKeys } from '../../lib/queryKeys';
 
-import { PorterJobItem } from "@/types/porter";
+import { PorterJobItem } from '@/types/porter';
 
 const DEFAULT_PAGE_SIZE = 5;
 const SEARCH_DEBOUNCE_MS = 500;
@@ -21,8 +21,8 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const queryClient = useQueryClient();
 
@@ -92,15 +92,7 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
     });
 
     return refetch();
-  }, [
-    queryClient,
-    userId,
-    page,
-    pageSize,
-    statusFilter,
-    debouncedSearchQuery,
-    refetch,
-  ]);
+  }, [queryClient, userId, page, pageSize, statusFilter, debouncedSearchQuery, refetch]);
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);

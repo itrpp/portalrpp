@@ -1,14 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo } from "react";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  DateRangePicker,
-  Button,
-  ButtonGroup,
-} from "@heroui/react";
+import React, { useState, useMemo } from 'react';
+import { Card, CardBody, CardHeader, DateRangePicker, Button, ButtonGroup } from '@heroui/react';
 import {
   BarChart,
   Bar,
@@ -18,11 +11,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from "recharts";
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
-import { RangeValue } from "@react-types/shared";
+} from 'recharts';
+import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
+import { RangeValue } from '@react-types/shared';
 
-import { formatDateShort } from "@/lib/utils";
+import { formatDateShort } from '@/lib/utils';
 
 interface DailyJobChartProps {
   data: Array<{
@@ -82,15 +75,15 @@ export function DailyJobChart({ data }: DailyJobChartProps) {
   // Presets สำหรับเลือกช่วงวันที่
   const datePresets = [
     {
-      label: "7 วัน",
+      label: '7 วัน',
       value: createDateRangeFromDays(7),
     },
     {
-      label: "15 วัน",
+      label: '15 วัน',
       value: createDateRangeFromDays(15),
     },
     {
-      label: "30 วัน",
+      label: '30 วัน',
       value: createDateRangeFromDays(30),
     },
   ];
@@ -144,8 +137,8 @@ export function DailyJobChart({ data }: DailyJobChartProps) {
                     key={preset.label}
                     className={
                       isPresetActive(dateRange, preset.value)
-                        ? "bg-primary text-primary-foreground font-medium"
-                        : ""
+                        ? 'bg-primary text-primary-foreground font-medium'
+                        : ''
                     }
                     onPress={() => setDateRange(preset.value)}
                   >
@@ -159,20 +152,17 @@ export function DailyJobChart({ data }: DailyJobChartProps) {
       </CardHeader>
       <CardBody className="pt-4">
         <ResponsiveContainer height={400} width="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
+          <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
             <XAxis
               angle={-45}
               dataKey="date"
               height={60}
               stroke="#888"
-              style={{ fontSize: "11px" }}
+              style={{ fontSize: '11px' }}
               textAnchor="end"
             />
-            <YAxis stroke="#888" style={{ fontSize: "12px" }} />
+            <YAxis stroke="#888" style={{ fontSize: '12px' }} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
@@ -185,79 +175,77 @@ export function DailyJobChart({ data }: DailyJobChartProps) {
                   return (
                     <div
                       style={{
-                        backgroundColor: "rgba(255, 255, 255, 0.95)",
-                        border: "1px solid #e0e0e0",
-                        borderRadius: "8px",
-                        padding: "12px",
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        padding: '12px',
                       }}
                     >
-                      <p style={{ fontWeight: "bold", marginBottom: "8px" }}>
-                        {label}
-                      </p>
+                      <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>{label}</p>
                       <div
                         style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "4px",
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
                         }}
                       >
                         <div
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
                           }}
                         >
                           <div
                             style={{
-                              width: "12px",
-                              height: "12px",
-                              backgroundColor: "#22c55e",
-                              borderRadius: "2px",
+                              width: '12px',
+                              height: '12px',
+                              backgroundColor: '#22c55e',
+                              borderRadius: '2px',
                             }}
                           />
                           <span>ปกติ: {ปกติ}</span>
                         </div>
                         <div
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
                           }}
                         >
                           <div
                             style={{
-                              width: "12px",
-                              height: "12px",
-                              backgroundColor: "#f59e0b",
-                              borderRadius: "2px",
+                              width: '12px',
+                              height: '12px',
+                              backgroundColor: '#f59e0b',
+                              borderRadius: '2px',
                             }}
                           />
                           <span>ด่วน: {ด่วน}</span>
                         </div>
                         <div
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
                           }}
                         >
                           <div
                             style={{
-                              width: "12px",
-                              height: "12px",
-                              backgroundColor: "#ef4444",
-                              borderRadius: "2px",
+                              width: '12px',
+                              height: '12px',
+                              backgroundColor: '#ef4444',
+                              borderRadius: '2px',
                             }}
                           />
                           <span>ฉุกเฉิน: {ฉุกเฉิน}</span>
                         </div>
                         <div
                           style={{
-                            marginTop: "8px",
-                            paddingTop: "8px",
-                            borderTop: "1px solid #e0e0e0",
-                            fontWeight: "bold",
+                            marginTop: '8px',
+                            paddingTop: '8px',
+                            borderTop: '1px solid #e0e0e0',
+                            fontWeight: 'bold',
                           }}
                         >
                           ยอดรวม: {ยอดรวม}

@@ -9,5 +9,3 @@ class PorterEventEmitter extends EventEmitter {}
 const porterEventEmitter = new PorterEventEmitter();
 
 export default porterEventEmitter;
-
-

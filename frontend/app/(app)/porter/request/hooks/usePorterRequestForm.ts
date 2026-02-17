@@ -1,13 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-  REQUEST_FIELD_LABELS,
-  REQUEST_REQUIRED_FIELDS,
-  createDefaultFormData,
-} from "../constants";
+import { REQUEST_FIELD_LABELS, REQUEST_REQUIRED_FIELDS, createDefaultFormData } from '../constants';
 
-import { PorterJobItem, PorterRequestFormData } from "@/types/porter";
-import { validateForm } from "@/lib/porter";
+import { PorterJobItem, PorterRequestFormData } from '@/types/porter';
+import { validateForm } from '@/lib/porter';
 
 type ValidationErrors = Record<string, string>;
 
@@ -25,21 +21,17 @@ export function usePorterRequestForm({
   const [formData, setFormData] = useState<PorterRequestFormData>(() =>
     createDefaultFormData(requesterName, requesterPhone, requesterDepartment),
   );
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
-    {},
-  );
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shouldScrollToError, setShouldScrollToError] = useState(false);
   const previousErrorsCountRef = useRef(0);
 
   const resetForm = useCallback(() => {
-    setFormData(
-      createDefaultFormData(requesterName, requesterPhone, requesterDepartment),
-    );
+    setFormData(createDefaultFormData(requesterName, requesterPhone, requesterDepartment));
     setValidationErrors({});
     setEditingRequestId(null);
-  }, [requesterName, requesterPhone]);
+  }, [requesterName, requesterPhone, requesterDepartment]);
 
   const setFormField = useCallback(
     <Field extends keyof PorterRequestFormData>(
@@ -87,9 +79,7 @@ export function usePorterRequestForm({
       return;
     }
 
-    const firstErrorKey = REQUEST_REQUIRED_FIELDS.find(
-      (field) => validationErrors[field],
-    );
+    const firstErrorKey = REQUEST_REQUIRED_FIELDS.find((field) => validationErrors[field]);
 
     if (!firstErrorKey) {
       previousErrorsCountRef.current = currentErrors.length;
@@ -99,15 +89,13 @@ export function usePorterRequestForm({
 
     // ใช้ name attribute แทน label text เพื่อความมั่นคง
     // หา input/select/textarea ที่มี name attribute ตรงกับ field
-    const inputElement = document.querySelector<HTMLElement>(
-      `[name="${firstErrorKey}"]`,
-    );
+    const inputElement = document.querySelector<HTMLElement>(`[name="${firstErrorKey}"]`);
 
     if (inputElement) {
       // Scroll to input element
       inputElement.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
+        behavior: 'smooth',
+        block: 'center',
       });
       // Focus input เพื่อให้เห็น error message ชัดเจน
       inputElement.focus();
@@ -125,7 +113,7 @@ export function usePorterRequestForm({
       return;
     }
 
-    const labels = Array.from(document.querySelectorAll("label"));
+    const labels = Array.from(document.querySelectorAll('label'));
 
     for (const labelElement of labels) {
       if (!labelElement.textContent?.includes(label)) {
@@ -133,13 +121,11 @@ export function usePorterRequestForm({
       }
 
       const target = labelElement
-        .closest("div")
-        ?.querySelector(
-          "input, select, [role='combobox'], textarea",
-        ) as HTMLElement | null;
+        .closest('div')
+        ?.querySelector("input, select, [role='combobox'], textarea") as HTMLElement | null;
 
       if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(() => target.focus(), 100);
         break;
       }
@@ -165,26 +151,26 @@ export function usePorterRequestForm({
     (request: PorterJobItem) => {
       setFormData({
         requesterDepartment: request.form.requesterDepartment ?? null,
-        requesterName: request.form.requesterName || requesterName || "",
-        requesterPhone: request.form.requesterPhone || "",
-        patientName: request.form.patientName || "",
-        patientHN: request.form.patientHN || "",
+        requesterName: request.form.requesterName || requesterName || '',
+        requesterPhone: request.form.requesterPhone || '',
+        patientName: request.form.patientName || '',
+        patientHN: request.form.patientHN || '',
         pickupLocationDetail: request.form.pickupLocationDetail || null,
         deliveryLocationDetail: request.form.deliveryLocationDetail || null,
         requestedDateTime: request.form.requestedDateTime,
-        urgencyLevel: request.form.urgencyLevel || "ปกติ",
-        vehicleType: request.form.vehicleType || "",
+        urgencyLevel: request.form.urgencyLevel || 'ปกติ',
+        vehicleType: request.form.vehicleType || '',
         equipment: request.form.equipment || [],
-        hasVehicle: request.form.hasVehicle || "",
-        returnTrip: request.form.returnTrip || "",
-        transportReason: request.form.transportReason || "",
-        equipmentOther: request.form.equipmentOther || "",
-        specialNotes: request.form.specialNotes || "",
+        hasVehicle: request.form.hasVehicle || '',
+        returnTrip: request.form.returnTrip || '',
+        transportReason: request.form.transportReason || '',
+        equipmentOther: request.form.equipmentOther || '',
+        specialNotes: request.form.specialNotes || '',
         patientCondition: request.form.patientCondition || [],
       });
       setEditingRequestId(request.id);
       setValidationErrors({});
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     [requesterName],
   );
@@ -206,9 +192,6 @@ export function usePorterRequestForm({
     resetForm,
     loadRequestForEdit,
     cancelEditing,
-    hasErrors: useMemo(
-      () => Object.keys(validationErrors).length > 0,
-      [validationErrors],
-    ),
+    hasErrors: useMemo(() => Object.keys(validationErrors).length > 0, [validationErrors]),
   };
 }

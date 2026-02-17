@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { callPorterService } from "@/lib/grpcClient";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { callPorterService } from '@/lib/grpcClient';
+import { DeviceType } from '@/generated/prisma/enums';
 
 /**
  * GET /api/auth/online-porter
@@ -14,26 +15,23 @@ export async function GET(request: NextRequest) {
   try {
     // 1) รองรับ Bearer token จาก /api/auth/login
     let userIdFromToken: string | null = null;
-    const authHeader =
-      request.headers.get("authorization") ??
-      request.headers.get("Authorization");
+    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
 
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice("Bearer ".length).trim();
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice('Bearer '.length).trim();
 
       try {
-        const jwtSecret =
-          process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "";
+        const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
 
         if (jwtSecret) {
           const decoded = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
 
-          if (decoded && typeof decoded === "object" && decoded.sub) {
+          if (decoded && typeof decoded === 'object' && decoded.sub) {
             userIdFromToken = String(decoded.sub);
           }
         }
       } catch (error) {
-        console.info("Invalid bearer token for online-porter:", error);
+        console.info('Invalid bearer token for online-porter:', error);
       }
     }
 
@@ -57,6 +55,7 @@ export async function GET(request: NextRequest) {
           gte: fifteenMinutesAgo,
         },
         logoutAt: null,
+        deviceType: DeviceType.MOBILE_APP,
       },
       include: {
         user: {
@@ -72,7 +71,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: {
-        lastActivityAt: "desc",
+        lastActivityAt: 'desc',
       },
     });
 
@@ -86,7 +85,7 @@ export async function GET(request: NextRequest) {
           const porterResponse = await callPorterService<{
             success: boolean;
             data?: Array<{ id: string }>;
-          }>("ListEmployees", { user_id: activity.user.id });
+          }>('ListEmployees', { user_id: activity.user.id });
 
           if (
             porterResponse?.success &&
@@ -103,7 +102,7 @@ export async function GET(request: NextRequest) {
         if (porterEmployee) {
           return {
             id: activity.user.id,
-            name: activity.user.displayName || activity.user.email || "ไม่ระบุ",
+            name: activity.user.displayName || activity.user.email || 'ไม่ระบุ',
             email: activity.user.email,
             department: activity.user.department,
             departmentId: activity.user.departmentId,
@@ -121,9 +120,7 @@ export async function GET(request: NextRequest) {
     );
 
     // กรองเฉพาะ user ที่มี porterEmployee (ไม่เป็น null)
-    const filteredUsers = usersWithPorter.filter(
-      (user) => user !== null,
-    ) as Array<{
+    const filteredUsers = usersWithPorter.filter((user) => user !== null) as Array<{
       id: string;
       name: string;
       email: string | null;
@@ -148,15 +145,14 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     );
   } catch (error: any) {
-    console.error("Error fetching online porter users:", error);
+    console.error('Error fetching online porter users:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
+        error: 'INTERNAL_ERROR',
         message:
-          error.message ||
-          "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้ Online ที่มี Porter Employee ID",
+          error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้ Online ที่มี Porter Employee ID',
       },
       { status: 500 },
     );

@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Chip } from "@heroui/react";
+import React from 'react';
+import { Chip } from '@heroui/react';
 
-import { getStatusLabel, getStatusColor } from "./designTokens";
+import { getStatusLabel, getStatusColor } from './designTokens';
 
-import { PorterJobItem } from "@/types/porter";
+import { PorterJobItem } from '@/types/porter';
 
 interface PorterStatusBadgeProps {
-  status: PorterJobItem["status"];
-  size?: "sm" | "md";
-  variant?: "flat" | "bordered" | "dot";
+  status: PorterJobItem['status'];
+  size?: 'sm' | 'md';
+  variant?: 'flat' | 'bordered' | 'dot';
   showStaffInfo?: boolean;
   staffName?: string | null;
   staffId?: string | null;
@@ -23,8 +23,8 @@ interface PorterStatusBadgeProps {
  */
 export function PorterStatusBadge({
   status,
-  size = "sm",
-  variant = "flat",
+  size = 'sm',
+  variant = 'flat',
   showStaffInfo = false,
   staffName,
   staffId,
@@ -37,12 +37,12 @@ export function PorterStatusBadge({
   let displayLabel = label;
 
   if (showStaffInfo) {
-    if (status === "IN_PROGRESS" && (staffName || staffId)) {
+    if (status === 'IN_PROGRESS' && (staffName || staffId)) {
       const staffInfo = staffName || (staffId ? `ID: ${staffId}` : null);
 
       displayLabel = staffInfo ? `${label} [${staffInfo}]` : label;
-    } else if (status === "CANCELLED" && (staffName || staffId)) {
-      const staffInfo = staffName || (staffId ? `ID: ${staffId}` : "");
+    } else if (status === 'CANCELLED' && (staffName || staffId)) {
+      const staffInfo = staffName || (staffId ? `ID: ${staffId}` : '');
 
       displayLabel = staffInfo ? `${label} [${staffInfo}]` : label;
     }

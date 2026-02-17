@@ -1,14 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
-import LandingFooter from "@/components/layout/LandingFooter";
+import LandingFooter from '@/components/layout/LandingFooter';
 
-export default function LandingLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-content2/20 to-content3/20">
       {/* Landing Header */}

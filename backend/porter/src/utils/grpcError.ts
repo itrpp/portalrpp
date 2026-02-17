@@ -16,7 +16,7 @@ export const handleGrpcError = <Response>(
   callback: sendUnaryData<Response>,
   error: unknown,
   fallbackMessage: string,
-  options?: GrpcErrorOptions
+  options?: GrpcErrorOptions,
 ): void => {
   if (options?.notFoundMessage && isPrismaNotFoundError(error)) {
     callback(createGrpcError(status.NOT_FOUND, options.notFoundMessage));
@@ -39,10 +39,7 @@ export const handleGrpcError = <Response>(
 
   console.error('[gRPC Handler] Unexpected error:', error);
   callback(
-    createGrpcError(
-      status.INTERNAL,
-      error instanceof Error ? error.message : fallbackMessage
-    )
+    createGrpcError(status.INTERNAL, error instanceof Error ? error.message : fallbackMessage),
   );
 };
 
@@ -83,4 +80,3 @@ export const isPrismaUniqueConstraintError = (error: unknown, fieldName: string)
 export const isPrismaForeignKeyError = (error: unknown): boolean => {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2003';
 };
-

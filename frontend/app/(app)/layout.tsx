@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React, { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import React, { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 
-import Loading from "../loading";
+import Loading from '../loading';
 
-import Sidebar from "@/components/layout/Sidebar";
-import Topbar from "@/components/layout/Topbar";
-import HomeFooter from "@/components/layout/HomeFooter";
-import ProfileOrgModal from "@/components/ui/ProfileOrgModal";
+import Sidebar from '@/components/layout/Sidebar';
+import Topbar from '@/components/layout/Topbar';
+import HomeFooter from '@/components/layout/HomeFooter';
+import ProfileOrgModal from '@/components/ui/ProfileOrgModal';
 
 type OrgStructureUser = {
   personTypeId?: number | null;
@@ -25,13 +25,7 @@ function isProfileOrgIncomplete(user: OrgStructureUser | null | undefined) {
     return true;
   }
 
-  const {
-    personTypeId,
-    positionId,
-    departmentId,
-    departmentSubId,
-    departmentSubSubId,
-  } = user;
+  const { personTypeId, positionId, departmentId, departmentSubId, departmentSubSubId } = user;
 
   return (
     personTypeId == null ||
@@ -53,11 +47,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // ตรวจสอบ authentication status
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === 'unauthenticated') {
       // ส่ง callbackUrl ไปด้วยเพื่อกลับมาหน้าเดิมหลัง login
       const callbackUrl = encodeURIComponent(
-        pathname +
-          (searchParams.toString() ? `?${searchParams.toString()}` : ""),
+        pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ''),
       );
 
       router.push(`/login?callbackUrl=${callbackUrl}`);
@@ -83,17 +76,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       timeoutId = setTimeout(checkScreenSize, 150);
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener('resize', handleResize);
       clearTimeout(timeoutId);
     };
   }, []);
 
   // บังคับให้ผู้ใช้ที่ยังไม่ได้กรอกโครงสร้างองค์กรครบ ไปหน้าโปรไฟล์
   useEffect(() => {
-    if (status !== "authenticated") {
+    if (status !== 'authenticated') {
       return;
     }
 
@@ -102,7 +95,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     // อย่าบังคับบนหน้าโปรไฟล์เอง เพื่อลดความเสี่ยง loop
-    if (pathname === "/profile") {
+    if (pathname === '/profile') {
       return;
     }
 
@@ -113,7 +106,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // อัปเดต user activity เมื่อผู้ใช้ authenticated (เก็บสถานะด้วย session/cookie, เรียกทุก 30 วินาที)
   useEffect(() => {
-    if (status !== "authenticated" || !session?.user?.id) {
+    if (status !== 'authenticated' || !session?.user?.id) {
       return;
     }
 
@@ -121,16 +114,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const updateActivity = async () => {
       try {
-        const res = await fetch("/api/auth/update-activity", {
-          method: "POST",
-          credentials: "same-origin",
+        const res = await fetch('/api/auth/update-activity', {
+          method: 'POST',
+          credentials: 'same-origin',
         });
 
         if (res.status === 401) {
           const body = await res.json().catch(() => ({}));
 
-          if (body?.error === "SESSION_EXPIRED") {
-            await signOut({ redirect: true, callbackUrl: "/login" });
+          if (body?.error === 'SESSION_EXPIRED') {
+            await signOut({ redirect: true, callbackUrl: '/login' });
           }
         }
       } catch {
@@ -151,13 +144,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // เคลียร์ session/cookie เท่านั้น — ไม่ลบ record ใน user_activity เพื่อเก็บประวัติ
     await signOut({
       redirect: true,
-      callbackUrl: "/login",
+      callbackUrl: '/login',
     });
   };
 
   const handleConfirmUpdateProfile = () => {
     setIsProfileOrgModalOpen(false);
-    router.push("/profile");
+    router.push('/profile');
   };
 
   const handleNavigate = async (href: string) => {
@@ -169,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       await router.push(href);
     } catch (error) {
-      console.error("Navigation error:", error);
+      console.error('Navigation error:', error);
     } finally {
       // Reset loading state after a short delay to allow navigation to start
       setTimeout(() => {
@@ -183,7 +176,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   // แสดง loading spinner ขณะตรวจสอบ authentication
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -194,7 +187,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   // ถ้าไม่ได้ login ให้แสดง loading (จะ redirect ไป login)
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -221,7 +214,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div
         className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-          isSidebarOpen ? "lg:ml-64" : "lg:ml-0"
+          isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         }`}
       >
         {/* Top Bar */}
@@ -236,11 +229,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         />
 
         {/* Content Area */}
-        <main
-          className="flex-1 overflow-auto bg-default-50"
-          id="main-content"
-          tabIndex={-1}
-        >
+        <main className="flex-1 overflow-auto bg-default-50" id="main-content" tabIndex={-1}>
           <Suspense fallback={<Loading />}>{children}</Suspense>
         </main>
 

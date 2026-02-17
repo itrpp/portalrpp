@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { callPorterService } from "@/lib/grpcClient";
+import { getAuthSession } from '@/lib/auth';
+import { callPorterService } from '@/lib/grpcClient';
 
 /**
  * GET /api/porter/floor-departments
@@ -16,8 +16,7 @@ export async function GET(request: NextRequest) {
     // อ่าน query parameters
     const url = new URL(request.url);
     const searchParams = url.searchParams;
-    const { building_id, department_type, page, page_size } =
-      Object.fromEntries(searchParams);
+    const { building_id, department_type, page, page_size } = Object.fromEntries(searchParams);
 
     // สร้าง request object สำหรับ gRPC
     const protoRequest: any = {};
@@ -34,10 +33,7 @@ export async function GET(request: NextRequest) {
     protoRequest.page_size = page_size ? parseInt(page_size, 10) : 1000;
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "ListFloorDepartments",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('ListFloorDepartments', protoRequest);
 
     if (response.success) {
       return NextResponse.json(
@@ -54,20 +50,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "FETCH_FAILED",
-          message: response.error_message || "ไม่สามารถดึงข้อมูลได้",
+          error: 'FETCH_FAILED',
+          message: response.error_message || 'ไม่สามารถดึงข้อมูลได้',
         },
         { status: 400 },
       );
     }
   } catch (error: any) {
-    console.error("Error fetching floor departments:", error);
+    console.error('Error fetching floor departments:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -115,10 +111,7 @@ export async function POST(request: Request) {
     }
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "CreateFloorDepartment",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('CreateFloorDepartment', protoRequest);
 
     if (response.success) {
       return NextResponse.json(
@@ -132,21 +125,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "CREATION_FAILED",
-          message:
-            response.error_message || "ไม่สามารถสร้างคลีนิก/หอผู้ป่วยได้",
+          error: 'CREATION_FAILED',
+          message: response.error_message || 'ไม่สามารถสร้างคลีนิก/หอผู้ป่วยได้',
         },
         { status: 400 },
       );
     }
   } catch (error: any) {
-    console.error("Error creating floor department:", error);
+    console.error('Error creating floor department:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างคลีนิก/หอผู้ป่วย",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการสร้างคลีนิก/หอผู้ป่วย',
       },
       { status: 500 },
     );

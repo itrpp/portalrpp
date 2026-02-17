@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+
 import dotenv from 'dotenv';
 
 const projectRoot = path.resolve(__dirname, '..', '..');
@@ -46,7 +47,5 @@ export interface AppConfig {
 export const config: AppConfig = {
   nodeEnv: env.NODE_ENV || 'development',
   port: Number.parseInt(env.PORT, 10) || 3000,
-  databaseUrl: env.DATABASE_URL
+  databaseUrl: env.DATABASE_URL,
 };
-
-

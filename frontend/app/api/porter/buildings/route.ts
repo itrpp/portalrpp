@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { callPorterService } from "@/lib/grpcClient";
+import { getAuthSession } from '@/lib/auth';
+import { callPorterService } from '@/lib/grpcClient';
 
 /**
  * GET /api/porter/buildings
@@ -27,10 +27,7 @@ export async function GET(request: NextRequest) {
     protoRequest.page_size = page_size ? parseInt(page_size, 10) : 1000;
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "ListBuildings",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('ListBuildings', protoRequest);
 
     if (response.success) {
       return NextResponse.json(
@@ -47,20 +44,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "FETCH_FAILED",
-          message: response.error_message || "ไม่สามารถดึงข้อมูลได้",
+          error: 'FETCH_FAILED',
+          message: response.error_message || 'ไม่สามารถดึงข้อมูลได้',
         },
         { status: 400 },
       );
     }
   } catch (error: any) {
-    console.error("Error fetching buildings:", error);
+    console.error('Error fetching buildings:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -104,10 +101,7 @@ export async function POST(request: Request) {
     }
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "CreateBuilding",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('CreateBuilding', protoRequest);
 
     if (response.success) {
       return NextResponse.json(
@@ -121,20 +115,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "CREATION_FAILED",
-          message: response.error_message || "ไม่สามารถสร้างอาคารได้",
+          error: 'CREATION_FAILED',
+          message: response.error_message || 'ไม่สามารถสร้างอาคารได้',
         },
         { status: 400 },
       );
     }
   } catch (error: any) {
-    console.error("Error creating building:", error);
+    console.error('Error creating building:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างอาคาร",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการสร้างอาคาร',
       },
       { status: 500 },
     );

@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { parsePositiveIntId } from "@/lib/utils";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { parsePositiveIntId } from '@/lib/utils';
 
 /**
  * GET /api/hrd/positions/[id]
  * ดึงข้อมูลตำแหน่งโดย ID
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -24,8 +21,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -48,8 +45,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลตำแหน่ง",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลตำแหน่ง',
         },
         { status: 404 },
       );
@@ -59,7 +56,7 @@ export async function GET(
       success: true,
       data: {
         id: position.HR_POSITION_ID,
-        name: position.HR_POSITION_NAME ?? "",
+        name: position.HR_POSITION_NAME ?? '',
         positionSpId: position.POSITION_SP_ID ?? undefined,
         active: true, // Default value until ACTIVE field is added to schema
         createdAt: position.created_at?.toISOString(),
@@ -67,13 +64,13 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.error("Error fetching position:", error);
+    console.error('Error fetching position:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -84,10 +81,7 @@ export async function GET(
  * PUT /api/hrd/positions/[id]
  * อัปเดตข้อมูลตำแหน่ง
  */
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -100,8 +94,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -121,8 +115,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลตำแหน่ง",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลตำแหน่ง',
         },
         { status: 404 },
       );
@@ -130,12 +124,12 @@ export async function PUT(
 
     // Validation
     if (name !== undefined) {
-      if (typeof name !== "string" || name.trim().length === 0) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
         return NextResponse.json(
           {
             success: false,
-            error: "VALIDATION_ERROR",
-            message: "กรุณากรอกชื่อตำแหน่ง",
+            error: 'VALIDATION_ERROR',
+            message: 'กรุณากรอกชื่อตำแหน่ง',
           },
           { status: 400 },
         );
@@ -157,8 +151,8 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: "DUPLICATE_NAME",
-            message: "ชื่อตำแหน่งนี้มีอยู่ในระบบแล้ว",
+            error: 'DUPLICATE_NAME',
+            message: 'ชื่อตำแหน่งนี้มีอยู่ในระบบแล้ว',
           },
           { status: 409 },
         );
@@ -194,7 +188,7 @@ export async function PUT(
       success: true,
       data: {
         id: updated.HR_POSITION_ID,
-        name: updated.HR_POSITION_NAME ?? "",
+        name: updated.HR_POSITION_NAME ?? '',
         positionSpId: updated.POSITION_SP_ID ?? undefined,
         active: active !== undefined ? active : true, // Use provided value or default to true
         createdAt: updated.created_at?.toISOString(),
@@ -202,13 +196,13 @@ export async function PUT(
       },
     });
   } catch (error: any) {
-    console.error("Error updating position:", error);
+    console.error('Error updating position:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล',
       },
       { status: 500 },
     );
@@ -219,10 +213,7 @@ export async function PUT(
  * DELETE /api/hrd/positions/[id]
  * ลบตำแหน่ง
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -235,8 +226,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -253,8 +244,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลตำแหน่ง",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลตำแหน่ง',
         },
         { status: 404 },
       );
@@ -271,7 +262,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "IN_USE",
+          error: 'IN_USE',
           message: `ไม่สามารถลบได้ เนื่องจากมีผู้ใช้ ${userCount} รายการที่ใช้ตำแหน่งนี้อยู่`,
         },
         { status: 400 },
@@ -287,16 +278,16 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "ลบตำแหน่งสำเร็จ",
+      message: 'ลบตำแหน่งสำเร็จ',
     });
   } catch (error: any) {
-    console.error("Error deleting position:", error);
+    console.error('Error deleting position:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการลบข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
       },
       { status: 500 },
     );

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Select, SelectItem } from "@heroui/react";
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Select, SelectItem } from '@heroui/react';
 
-import { usePorterBuildings } from "../hooks/usePorterBuildings";
+import { usePorterBuildings } from '../hooks/usePorterBuildings';
 
-import { FloorDepartment, RoomBed, DetailedLocation } from "@/types/porter";
+import { FloorDepartment, RoomBed, DetailedLocation } from '@/types/porter';
 
 /**
  * Props สำหรับ LocationSelector
@@ -38,13 +38,12 @@ export function LocationSelector({
   const [roomBeds, setRoomBeds] = useState<RoomBed[]>([]);
 
   // ดึง buildings จาก React Query hook
-  const { data: buildings = [], isLoading: isLoadingBuildings } =
-    usePorterBuildings();
+  const { data: buildings = [], isLoading: isLoadingBuildings } = usePorterBuildings();
 
   // Selection State
-  const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
-  const [selectedFloorId, setSelectedFloorId] = useState<string>("");
-  const [selectedRoomBed, setSelectedRoomBed] = useState<string>("");
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
+  const [selectedFloorId, setSelectedFloorId] = useState<string>('');
+  const [selectedRoomBed, setSelectedRoomBed] = useState<string>('');
 
   // Filter buildings ที่มี status = true (ต้องประกาศก่อน useMemo อื่น ๆ ที่ใช้มัน)
   const activeBuildings = useMemo(
@@ -56,7 +55,7 @@ export function LocationSelector({
   const isOtherHospital = useMemo(() => {
     const building = activeBuildings.find((b) => b.id === selectedBuildingId);
 
-    return building?.name === "โรงพยาบาลอื่น";
+    return building?.name === 'โรงพยาบาลอื่น';
   }, [activeBuildings, selectedBuildingId]);
 
   // Check if selected floor is "หอผู้ป่วย" (departmentType === 2)
@@ -71,11 +70,11 @@ export function LocationSelector({
     if (value) {
       setSelectedBuildingId(value.buildingId);
       // Only set floor if it exists (handle optional floor for Other Hospital)
-      setSelectedFloorId(value.floorDepartmentId || "");
+      setSelectedFloorId(value.floorDepartmentId || '');
     } else {
-      setSelectedBuildingId("");
-      setSelectedFloorId("");
-      setSelectedRoomBed("");
+      setSelectedBuildingId('');
+      setSelectedFloorId('');
+      setSelectedRoomBed('');
     }
   }, [value]);
 
@@ -90,15 +89,6 @@ export function LocationSelector({
     }
   }, [roomBeds, value?.roomBedName]);
 
-  // Update floors when building changes or buildings load
-  // ใช้ useMemo เพื่อ memoize selectedBuilding เพื่อป้องกัน infinite loop
-  // และใช้ JSON.stringify เพื่อเปรียบเทียบ deep equality ของ buildings
-  const buildingsKey = useMemo(
-    () =>
-      JSON.stringify(buildings.map((b) => ({ id: b.id, status: b.status }))),
-    [buildings],
-  );
-
   const selectedBuilding = useMemo(() => {
     if (!selectedBuildingId || buildings.length === 0) {
       return null;
@@ -107,7 +97,7 @@ export function LocationSelector({
     const activeBuildingsList = buildings.filter((b) => b.status === true);
 
     return activeBuildingsList.find((b) => b.id === selectedBuildingId) ?? null;
-  }, [selectedBuildingId, buildingsKey]);
+  }, [selectedBuildingId, buildings]);
 
   useEffect(() => {
     if (!selectedBuilding) {
@@ -117,9 +107,7 @@ export function LocationSelector({
     }
 
     // Filter active floors
-    const activeFloors = selectedBuilding.floors.filter(
-      (f) => f.status === true,
-    );
+    const activeFloors = selectedBuilding.floors.filter((f) => f.status === true);
 
     setFloors(activeFloors);
   }, [selectedBuilding]);
@@ -129,7 +117,7 @@ export function LocationSelector({
     return [...floors].sort((a, b) => {
       // ถ้าไม่มี floorNumber ให้อยู่ท้ายสุด
       if (!a.floorNumber && !b.floorNumber) {
-        return a.name.localeCompare(b.name, "th");
+        return a.name.localeCompare(b.name, 'th');
       }
       if (!a.floorNumber) return 1;
       if (!b.floorNumber) return -1;
@@ -211,12 +199,12 @@ export function LocationSelector({
 
       // ส่ง roomBedName เฉพาะเมื่อเป็นหอผู้ป่วย (departmentType === 2)
       if (roomBedId && floor && floor.departmentType === 2) {
-        if (roomBedId.includes("-room-")) {
-          const num = roomBedId.split("-room-")[1];
+        if (roomBedId.includes('-room-')) {
+          const num = roomBedId.split('-room-')[1];
 
           roomBedName = `ห้องพิเศษ ${num}`;
-        } else if (roomBedId.includes("-bed-")) {
-          const num = roomBedId.split("-bed-")[1];
+        } else if (roomBedId.includes('-bed-')) {
+          const num = roomBedId.split('-bed-')[1];
 
           roomBedName = `เตียง ${num}`;
         }
@@ -239,7 +227,7 @@ export function LocationSelector({
         }
 
         // Case 2: "Other Hospital" (no floor required)
-        if (building.name === "โรงพยาบาลอื่น") {
+        if (building.name === 'โรงพยาบาลอื่น') {
           const location: DetailedLocation = {
             buildingId: building.id,
             buildingName: building.name,
@@ -266,14 +254,14 @@ export function LocationSelector({
       if (!buildingId) return;
 
       setSelectedBuildingId(buildingId);
-      setSelectedFloorId("");
-      setSelectedRoomBed("");
+      setSelectedFloorId('');
+      setSelectedRoomBed('');
 
       // Check if "Other Hospital" immediately to update parent
       const activeBuildingsList = buildings.filter((b) => b.status === true);
       const building = activeBuildingsList.find((b) => b.id === buildingId);
 
-      if (building && building.name === "โรงพยาบาลอื่น") {
+      if (building && building.name === 'โรงพยาบาลอื่น') {
         const location: DetailedLocation = {
           buildingId: building.id,
           buildingName: building.name,
@@ -293,9 +281,9 @@ export function LocationSelector({
     if (!floorId) return;
 
     setSelectedFloorId(floorId);
-    setSelectedRoomBed("");
+    setSelectedRoomBed('');
 
-    updateLocation(selectedBuildingId, floorId, "");
+    updateLocation(selectedBuildingId, floorId, '');
   };
 
   const handleRoomBedChange = (keys: any) => {
@@ -310,13 +298,11 @@ export function LocationSelector({
   return (
     <div className="space-y-3">
       <div className="text-sm font-medium text-foreground">{label}</div>
-      {errorMessage && (
-        <div className="text-sm text-danger">{errorMessage}</div>
-      )}
+      {errorMessage && <div className="text-sm text-danger">{errorMessage}</div>}
 
       <div
         className={`grid gap-3 ${
-          isWard ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
+          isWard ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'
         }`}
       >
         {/* เลือกอาคาร */}
@@ -337,16 +323,10 @@ export function LocationSelector({
 
         {/* เลือกชั้น/หน่วยงาน */}
         <Select
-          isDisabled={
-            isDisabled || !selectedBuildingId || (isOtherHospital as boolean)
-          }
-          isRequired={
-            isRequired && !!selectedBuildingId && !(isOtherHospital as boolean)
-          }
+          isDisabled={isDisabled || !selectedBuildingId || (isOtherHospital as boolean)}
+          isRequired={isRequired && !!selectedBuildingId && !(isOtherHospital as boolean)}
           label="ชั้น/หน่วยงาน"
-          placeholder={
-            isOtherHospital ? "ไม่ระบุ (โรงพยาบาลอื่น)" : "เลือกชั้น/หน่วยงาน"
-          }
+          placeholder={isOtherHospital ? 'ไม่ระบุ (โรงพยาบาลอื่น)' : 'เลือกชั้น/หน่วยงาน'}
           selectedKeys={selectedFloorId ? [selectedFloorId] : []}
           variant="bordered"
           onSelectionChange={handleFloorChange}
@@ -371,9 +351,7 @@ export function LocationSelector({
             }
             isRequired={isRequired && roomBeds.length > 0}
             label="ห้อง/เตียง"
-            placeholder={
-              roomBeds.length > 0 ? "เลือกห้อง/เตียง" : "ไม่มีห้อง/เตียง"
-            }
+            placeholder={roomBeds.length > 0 ? 'เลือกห้อง/เตียง' : 'ไม่มีห้อง/เตียง'}
             selectedKeys={selectedRoomBed ? [selectedRoomBed] : []}
             variant="bordered"
             onSelectionChange={handleRoomBedChange}

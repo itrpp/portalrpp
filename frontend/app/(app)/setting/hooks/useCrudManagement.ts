@@ -1,14 +1,14 @@
-import type { CrudItem } from "../types";
+import type { CrudItem } from '../types';
 
-import { useState, useEffect, useCallback } from "react";
-import { useDisclosure } from "@heroui/react";
-import { addToast } from "@heroui/react";
+import { useState, useEffect, useCallback } from 'react';
+import { useDisclosure } from '@heroui/react';
+import { addToast } from '@heroui/react';
 
 /**
  * Generic CRUD Management Hook
  * สำหรับจัดการ state และ operations ของ CRUD pages
  */
-export type { CrudItem } from "../types";
+export type { CrudItem } from '../types';
 
 export interface UseCrudManagementOptions<T extends CrudItem> {
   apiEndpoint: string;
@@ -17,7 +17,7 @@ export interface UseCrudManagementOptions<T extends CrudItem> {
   onLoad?: (items: T[]) => void;
   onSave?: (item: T) => void;
   onDelete?: (itemId: number) => void;
-  cacheOptions?: RequestInit["cache"];
+  cacheOptions?: RequestInit['cache'];
 }
 
 export interface UseCrudManagementReturn<T extends CrudItem> {
@@ -49,7 +49,7 @@ export interface UseCrudManagementReturn<T extends CrudItem> {
   handleEdit: (item: T) => void;
   handleDelete: (itemId: number) => Promise<boolean>;
   handleSave: (
-    itemData: Omit<T, "id" | "createdAt" | "updatedAt"> & { id?: number },
+    itemData: Omit<T, 'id' | 'createdAt' | 'updatedAt'> & { id?: number },
   ) => Promise<void>;
   resetEditing: () => void;
 }
@@ -69,11 +69,7 @@ export function useCrudManagement<T extends CrudItem>({
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const [editingItem, setEditingItem] = useState<T | null>(null);
 
-  const {
-    isOpen: isModalOpen,
-    onOpen: onModalOpen,
-    onClose: onModalClose,
-  } = useDisclosure();
+  const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -98,16 +94,16 @@ export function useCrudManagement<T extends CrudItem>({
         onLoad?.(result.data);
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถโหลดข้อมูลได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: result.message || 'ไม่สามารถโหลดข้อมูลได้',
+          color: 'danger',
         });
       }
     } catch {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถโหลดข้อมูลได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถโหลดข้อมูลได้',
+        color: 'danger',
       });
     } finally {
       setIsLoading(false);
@@ -139,18 +135,14 @@ export function useCrudManagement<T extends CrudItem>({
     async (itemId: number): Promise<boolean> => {
       const item = items.find((i) => i.id === itemId);
 
-      if (
-        !confirm(
-          `คุณแน่ใจหรือไม่ว่าต้องการลบ${itemName} "${item?.name || itemId}"?`,
-        )
-      ) {
+      if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ${itemName} "${item?.name || itemId}"?`)) {
         return false;
       }
 
       try {
         setIsDeleting(itemId);
         const response = await fetch(`${apiEndpoint}/${itemId}`, {
-          method: "DELETE",
+          method: 'DELETE',
         });
         const result = await response.json();
 
@@ -159,25 +151,25 @@ export function useCrudManagement<T extends CrudItem>({
           addToast({
             title: `ลบ${itemName}สำเร็จ`,
             description: `${itemName}ถูกลบออกจากระบบแล้ว`,
-            color: "success",
+            color: 'success',
           });
           onDelete?.(itemId);
 
           return true;
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
+            title: 'เกิดข้อผิดพลาด',
             description: result.message || `ไม่สามารถลบ${itemName}ได้`,
-            color: "danger",
+            color: 'danger',
           });
 
           return false;
         }
       } catch {
         addToast({
-          title: "เกิดข้อผิดพลาด",
+          title: 'เกิดข้อผิดพลาด',
           description: `ไม่สามารถลบ${itemName}ได้`,
-          color: "danger",
+          color: 'danger',
         });
 
         return false;
@@ -191,7 +183,7 @@ export function useCrudManagement<T extends CrudItem>({
   // Handle save
   const handleSave = useCallback(
     async (
-      itemData: Omit<T, "id" | "createdAt" | "updatedAt"> & { id?: number },
+      itemData: Omit<T, 'id' | 'createdAt' | 'updatedAt'> & { id?: number },
     ): Promise<void> => {
       try {
         setIsSaving(true);
@@ -199,15 +191,14 @@ export function useCrudManagement<T extends CrudItem>({
         // ตรวจสอบชื่อซ้ำ (ยกเว้นกรณีแก้ไข)
         if (!editingItem) {
           const existing = items.find(
-            (i) =>
-              i.name.toLowerCase() === (itemData.name as string).toLowerCase(),
+            (i) => i.name.toLowerCase() === (itemData.name as string).toLowerCase(),
           );
 
           if (existing) {
             addToast({
-              title: "เกิดข้อผิดพลาด",
+              title: 'เกิดข้อผิดพลาด',
               description: `ชื่อ${itemName}นี้มีอยู่ในระบบแล้ว`,
-              color: "danger",
+              color: 'danger',
             });
             throw new Error(`ชื่อ${itemName}ซ้ำ`);
           }
@@ -216,36 +207,34 @@ export function useCrudManagement<T extends CrudItem>({
         if (editingItem) {
           // แก้ไข
           const response = await fetch(`${apiEndpoint}/${editingItem.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(itemData),
           });
           const result = await response.json();
 
           if (result.success && result.data) {
-            setItems((prev) =>
-              prev.map((i) => (i.id === editingItem.id ? result.data : i)),
-            );
+            setItems((prev) => prev.map((i) => (i.id === editingItem.id ? result.data : i)));
             addToast({
               title: `แก้ไข${itemName}สำเร็จ`,
               description: `ข้อมูล${itemName}ถูกอัปเดตแล้ว`,
-              color: "success",
+              color: 'success',
             });
             onSave?.(result.data);
             setEditingItem(null);
           } else {
             addToast({
-              title: "เกิดข้อผิดพลาด",
+              title: 'เกิดข้อผิดพลาด',
               description: result.message || `ไม่สามารถแก้ไข${itemName}ได้`,
-              color: "danger",
+              color: 'danger',
             });
             throw new Error(result.message || `ไม่สามารถแก้ไข${itemName}ได้`);
           }
         } else {
           // เพิ่มใหม่
           const response = await fetch(apiEndpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(itemData),
           });
           const result = await response.json();
@@ -255,24 +244,24 @@ export function useCrudManagement<T extends CrudItem>({
             addToast({
               title: `เพิ่ม${itemName}สำเร็จ`,
               description: `${itemName}ใหม่ถูกเพิ่มเข้าไปในระบบแล้ว`,
-              color: "success",
+              color: 'success',
             });
             onSave?.(result.data);
             setEditingItem(null);
           } else {
             addToast({
-              title: "เกิดข้อผิดพลาด",
+              title: 'เกิดข้อผิดพลาด',
               description: result.message || `ไม่สามารถเพิ่ม${itemName}ได้`,
-              color: "danger",
+              color: 'danger',
             });
             throw new Error(result.message || `ไม่สามารถเพิ่ม${itemName}ได้`);
           }
         }
       } catch (error) {
         addToast({
-          title: "เกิดข้อผิดพลาด",
+          title: 'เกิดข้อผิดพลาด',
           description: `ไม่สามารถบันทึก${itemName}ได้`,
-          color: "danger",
+          color: 'danger',
         });
         throw error;
       } finally {

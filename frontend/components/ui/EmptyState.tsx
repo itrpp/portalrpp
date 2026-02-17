@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button } from "@heroui/react";
+import React from 'react';
+import { Button } from '@heroui/react';
 
-export type EmptyStateVariant = "no-data" | "no-results" | "error";
+type EmptyStateVariant = 'no-data' | 'no-results' | 'error';
 
 export interface EmptyStateProps {
   variant?: EmptyStateVariant;
@@ -18,9 +18,9 @@ export interface EmptyStateProps {
 }
 
 const DEFAULT_MESSAGES: Record<EmptyStateVariant, string> = {
-  "no-data": "ยังไม่มีข้อมูล",
-  "no-results": "ไม่พบผลลัพธ์ที่ค้นหา",
-  error: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+  'no-data': 'ยังไม่มีข้อมูล',
+  'no-results': 'ไม่พบผลลัพธ์ที่ค้นหา',
+  error: 'เกิดข้อผิดพลาดในการโหลดข้อมูล',
 };
 
 /**
@@ -28,7 +28,7 @@ const DEFAULT_MESSAGES: Record<EmptyStateVariant, string> = {
  * ใช้ให้รูปแบบ "ยังไม่มีข้อมูล" / "ไม่พบผลลัพธ์" สอดคล้องกันทุกหน้า
  */
 export function EmptyState({
-  variant = "no-data",
+  variant = 'no-data',
   message,
   description,
   actionLabel,
@@ -41,7 +41,7 @@ export function EmptyState({
   return (
     <div
       className={`flex flex-col items-center justify-center text-center ${
-        compact ? "py-6" : "mt-8 py-12"
+        compact ? 'py-6' : 'mt-8 py-12'
       }`}
     >
       {icon && (
@@ -49,14 +49,10 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <p
-        className={`text-base text-default-500 ${description ? "mb-1" : "mb-4"}`}
-      >
+      <p className={`text-base text-default-500 ${description ? 'mb-1' : 'mb-4'}`}>
         {displayMessage}
       </p>
-      {description && (
-        <p className="text-sm text-default-400 mb-4">{description}</p>
-      )}
+      {description && <p className="text-sm text-default-400 mb-4">{description}</p>}
       {onAction && actionLabel && (
         <Button color="primary" size="md" variant="solid" onPress={onAction}>
           {actionLabel}

@@ -1,4 +1,5 @@
 import { Server } from 'http';
+
 import { logger } from '../middlewares/logger';
 
 export function setupGracefulShutdown(server: Server) {
@@ -17,5 +18,3 @@ export function setupGracefulShutdown(server: Server) {
     });
   });
 }
-
-

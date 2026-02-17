@@ -1,9 +1,9 @@
-import type { Session } from "next-auth";
+import type { Session } from 'next-auth';
 
-import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
 
-import { authOptions } from "@/app/api/auth/authOptions";
+import { authOptions } from '@/app/api/auth/authOptions';
 
 /**
  * ผลลัพธ์จากการตรวจสอบ session ใน API route
@@ -28,10 +28,7 @@ export async function getAuthSession(): Promise<AuthSessionResult> {
   if (!session?.user?.id) {
     return {
       ok: false,
-      response: NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      ),
+      response: NextResponse.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 }),
     };
   }
 

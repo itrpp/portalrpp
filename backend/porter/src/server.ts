@@ -1,6 +1,8 @@
+import path from 'path';
+
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import path from 'path';
+
 import { config } from './config/env';
 import prisma from './config/database';
 import * as porterHandlers from './handlers/porter.handler';
@@ -15,7 +17,7 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   longs: String,
   enums: String,
   defaults: true,
-  oneofs: true
+  oneofs: true,
 });
 
 const porterProto = grpc.loadPackageDefinition(packageDefinition) as unknown as {
@@ -72,7 +74,7 @@ const startServer = async () => {
       getEmployee: porterHandlers.getEmployee,
       listEmployees: porterHandlers.listEmployees,
       updateEmployee: porterHandlers.updateEmployee,
-      deleteEmployee: porterHandlers.deleteEmployee
+      deleteEmployee: porterHandlers.deleteEmployee,
     });
 
     const port = config.port || 50051;
@@ -89,7 +91,7 @@ const startServer = async () => {
         console.info(`🚀 gRPC Server is running on port ${boundPort}`);
         console.info(`📝 Environment: ${config.nodeEnv}`);
         console.info(`🌐 gRPC endpoint: 0.0.0.0:${boundPort}`);
-      }
+      },
     );
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -121,5 +123,3 @@ process.on('SIGINT', async () => {
 });
 
 startServer();
-
-

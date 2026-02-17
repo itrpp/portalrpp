@@ -1,8 +1,8 @@
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 
-import { porterQueryKeys } from "../lib/queryKeys";
+import { porterQueryKeys } from '../lib/queryKeys';
 
-import { PorterJobItem } from "@/types/porter";
+import { PorterJobItem } from '@/types/porter';
 
 interface UsePorterRequestsParams {
   userId?: string;
@@ -27,10 +27,7 @@ interface PorterRequestsResponse {
  */
 export function usePorterRequests(
   params: UsePorterRequestsParams,
-  options?: Omit<
-    UseQueryOptions<PorterRequestsResponse, Error>,
-    "queryKey" | "queryFn"
-  >,
+  options?: Omit<UseQueryOptions<PorterRequestsResponse, Error>, 'queryKey' | 'queryFn'>,
 ) {
   const { userId, page = 1, pageSize = 10, status, search } = params;
 
@@ -59,20 +56,18 @@ export function usePorterRequests(
         page_size: String(pageSize),
       });
 
-      if (status != null && status !== "") {
-        queryParams.set("status", status);
+      if (status != null && status !== '') {
+        queryParams.set('status', status);
       }
 
-      if (search && search.trim() !== "") {
-        queryParams.set("search", search.trim());
+      if (search && search.trim() !== '') {
+        queryParams.set('search', search.trim());
       }
 
-      const response = await fetch(
-        `/api/porter/requests?${queryParams.toString()}`,
-      );
+      const response = await fetch(`/api/porter/requests?${queryParams.toString()}`);
 
       if (!response.ok) {
-        throw new Error("ไม่สามารถโหลดข้อมูลรายการคำขอได้");
+        throw new Error('ไม่สามารถโหลดข้อมูลรายการคำขอได้');
       }
 
       const result = await response.json();

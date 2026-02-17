@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
-import { EmptyState, type EmptyStateProps } from "@/components/ui/EmptyState";
+import { EmptyState, type EmptyStateProps } from '@/components/ui/EmptyState';
 
 /**
  * Empty state component สำหรับ Porter module

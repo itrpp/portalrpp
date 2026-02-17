@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Button, Chip } from "@heroui/react";
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { Button, Chip } from '@heroui/react';
 
 import {
   HomeIcon,
@@ -21,11 +21,11 @@ import {
   ArrowUpTrayIcon,
   BriefcaseIcon,
   UserGroupIcon,
-} from "@/components/ui/icons";
-import { LOADING_MESSAGES } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import { SidebarProps, SidebarItem, SidebarSection } from "@/types";
-import LoadingPage from "@/components/ui/LoadingPage";
+} from '@/components/ui/icons';
+import { LOADING_MESSAGES } from '@/lib/constants';
+import { cn } from '@/lib/utils';
+import { SidebarProps, SidebarItem, SidebarSection } from '@/types';
+import LoadingPage from '@/components/ui/LoadingPage';
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const pathname = usePathname();
@@ -35,9 +35,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isNavigating, setIsNavigating] = useState(false);
   const [showLoadingPage, setShowLoadingPage] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState<string>(
-    LOADING_MESSAGES.page,
-  );
+  const [loadingMessage, setLoadingMessage] = useState<string>(LOADING_MESSAGES.page);
   const [loadingMenu, setLoadingMenu] = useState<string | null>(null);
   const [targetPathname, setTargetPathname] = useState<string | null>(null);
 
@@ -53,21 +51,21 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     };
 
     checkMobile();
-    window.addEventListener("resize", checkMobile);
+    window.addEventListener('resize', checkMobile);
 
-    return () => window.removeEventListener("resize", checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // Lock body scroll เมื่อ Sidebar เปิดบน mobile
   useEffect(() => {
     if (sidebarIsOpen && isMobile) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     }
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, [sidebarIsOpen, isMobile]);
 
@@ -76,35 +74,35 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const newExpandedItems = new Set<string>();
 
     // Auto-expand "นำเข้าไฟล์" when on import pages
-    if (pathname.startsWith("/revenue/import/")) {
-      newExpandedItems.add("นำเข้าไฟล์");
+    if (pathname.startsWith('/revenue/import/')) {
+      newExpandedItems.add('นำเข้าไฟล์');
     }
 
     // Auto-expand "ส่งออกข้อมูล" when on export pages
-    if (pathname.startsWith("/revenue/export/")) {
-      newExpandedItems.add("ส่งออกข้อมูล");
+    if (pathname.startsWith('/revenue/export/')) {
+      newExpandedItems.add('ส่งออกข้อมูล');
     }
 
     // Auto-expand "ศูนย์สั่งการ" when on job list pages
-    if (pathname.startsWith("/porter/joblist")) {
-      newExpandedItems.add("ศูนย์สั่งการ");
+    if (pathname.startsWith('/porter/joblist')) {
+      newExpandedItems.add('ศูนย์สั่งการ');
     }
 
     // Auto-expand "ศูนย์สั่งการ" และ "ตั้งค่า" when on setting pages
-    if (pathname.startsWith("/porter/setting/")) {
-      newExpandedItems.add("ศูนย์สั่งการ");
-      newExpandedItems.add("ตั้งค่า");
+    if (pathname.startsWith('/porter/setting/')) {
+      newExpandedItems.add('ศูนย์สั่งการ');
+      newExpandedItems.add('ตั้งค่า');
     }
 
     // Auto-expand "ตั้งค่าข้อมูลบุคลากร" when on HRD setting pages
     if (
-      pathname.startsWith("/setting/departments") ||
-      pathname.startsWith("/setting/department-subs") ||
-      pathname.startsWith("/setting/department-sub-subs") ||
-      pathname.startsWith("/setting/person-types") ||
-      pathname.startsWith("/setting/positions")
+      pathname.startsWith('/setting/departments') ||
+      pathname.startsWith('/setting/department-subs') ||
+      pathname.startsWith('/setting/department-sub-subs') ||
+      pathname.startsWith('/setting/person-types') ||
+      pathname.startsWith('/setting/positions')
     ) {
-      newExpandedItems.add("ตั้งค่าข้อมูลบุคลากร");
+      newExpandedItems.add('ตั้งค่าข้อมูลบุคลากร');
     }
 
     setExpandedItems(newExpandedItems);
@@ -132,7 +130,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const departmentSubSubId = session?.user?.departmentSubSubId;
     const role = session?.user?.role;
 
-    return departmentSubSubId === 170000 && role === "admin";
+    return departmentSubSubId === 170000 && role === 'admin';
   }, [session?.user?.departmentSubSubId, session?.user?.role]);
 
   // ตรวจสอบสิทธิ์การเข้าถึงเมนูศูนย์เปล - memoized
@@ -147,64 +145,64 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const departmentSubSubId = session?.user?.departmentSubSubId;
     const role = session?.user?.role;
 
-    return isSuperAdmin || (departmentSubSubId === 4007 && role === "admin");
+    return isSuperAdmin || (departmentSubSubId === 4007 && role === 'admin');
   }, [isSuperAdmin, session?.user?.departmentSubSubId, session?.user?.role]);
 
   // Memoize navigation sections เพื่อป้องกันการสร้างใหม่ทุกครั้งที่ render
   const navigationSections: SidebarSection[] = useMemo(
     () => [
       {
-        title: "ภาพรวม",
+        title: 'ภาพรวม',
         isDisabled: false,
         items: [
           {
-            name: "หน้าแรก",
-            href: "/home",
+            name: 'หน้าแรก',
+            href: '/home',
             icon: HomeIcon,
           },
         ],
       },
       {
-        title: "ศูนย์เคลื่อนย้ายผู้ป่วย",
+        title: 'ศูนย์เคลื่อนย้ายผู้ป่วย',
         isDisabled: false,
         items: [
           {
-            name: "สถิติการดำเนินการ",
-            href: "/porter/stat",
+            name: 'สถิติการดำเนินการ',
+            href: '/porter/stat',
             icon: ChartBarIcon,
           },
           {
-            name: "ขอเปลรับ - ส่งผู้ป่วย",
-            href: "/porter/request",
+            name: 'ขอเปลรับ - ส่งผู้ป่วย',
+            href: '/porter/request',
             icon: EmergencyBedIcon,
           },
           ...(canAccessPorterCenter
             ? [
                 {
-                  name: "ศูนย์สั่งการ",
-                  href: "#",
+                  name: 'ศูนย์สั่งการ',
+                  href: '#',
                   icon: BedIcon,
                   subItems: [
                     {
-                      name: "รายการคำขอ",
-                      href: "/porter/joblist",
+                      name: 'รายการคำขอ',
+                      href: '/porter/joblist',
                       icon: ClipboardListIcon,
                     },
                     ...(canAccessPorterCenterSettings
                       ? [
                           {
-                            name: "ตั้งค่า",
-                            href: "#",
+                            name: 'ตั้งค่า',
+                            href: '#',
                             icon: SettingsIcon,
                             subItems: [
                               {
-                                name: "จุดรับ - ส่ง",
-                                href: "/porter/setting/location",
+                                name: 'จุดรับ - ส่ง',
+                                href: '/porter/setting/location',
                                 icon: SettingsIcon,
                               },
                               {
-                                name: "รายชื่อเจ้าหน้าที่เปล",
-                                href: "/porter/setting/employee",
+                                name: 'รายชื่อเจ้าหน้าที่เปล',
+                                href: '/porter/setting/employee',
                                 icon: UserIcon,
                               },
                             ],
@@ -218,49 +216,49 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         ],
       },
       {
-        title: "ระบบงานจัดเก็บรายได้",
+        title: 'ระบบงานจัดเก็บรายได้',
         isDisabled: true,
         items: [
           {
-            name: "สถิติการดำเนินการ",
-            href: "#",
+            name: 'สถิติการดำเนินการ',
+            href: '#',
             icon: ChartBarIcon,
           },
           {
-            name: "นำเข้าไฟล์",
-            href: "#",
+            name: 'นำเข้าไฟล์',
+            href: '#',
             icon: ArrowDownTrayIcon,
             subItems: [
               {
-                name: "DBF",
-                href: "/revenue/import/dbf",
+                name: 'DBF',
+                href: '/revenue/import/dbf',
                 icon: DocumentTextIcon,
               },
               {
-                name: "REP",
-                href: "#",
+                name: 'REP',
+                href: '#',
                 icon: DocumentTextIcon,
               },
               {
-                name: "Statement",
-                href: "#",
+                name: 'Statement',
+                href: '#',
                 icon: DocumentTextIcon,
               },
             ],
           },
           {
-            name: "ส่งออกข้อมูล",
-            href: "#",
+            name: 'ส่งออกข้อมูล',
+            href: '#',
             icon: ArrowUpTrayIcon,
             subItems: [
               {
-                name: "ข้อมูล 16 แฟ้ม IPD",
-                href: "/revenue/export/ipd",
+                name: 'ข้อมูล 16 แฟ้ม IPD',
+                href: '/revenue/export/ipd',
                 icon: DocumentTextIcon,
               },
               {
-                name: "ข้อมูล 16 แฟ้ม OPD",
-                href: "/revenue/export/opd",
+                name: 'ข้อมูล 16 แฟ้ม OPD',
+                href: '/revenue/export/opd',
                 icon: DocumentTextIcon,
               },
             ],
@@ -269,42 +267,42 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       },
 
       {
-        title: "ผู้ดูแลระบบ",
+        title: 'ผู้ดูแลระบบ',
         isDisabled: !isSuperAdmin,
         items: [
           {
-            name: "จัดการผู้ใช้",
-            href: "/setting/users",
+            name: 'จัดการผู้ใช้',
+            href: '/setting/users',
             icon: UserIcon,
           },
           {
-            name: "ตั้งค่าข้อมูลบุคลากร",
-            href: "#",
+            name: 'ตั้งค่าข้อมูลบุคลากร',
+            href: '#',
             icon: UserGroupIcon,
             subItems: [
               {
-                name: "กลุ่มภารกิจ",
-                href: "/setting/departments",
+                name: 'กลุ่มภารกิจ',
+                href: '/setting/departments',
                 icon: BriefcaseIcon,
               },
               {
-                name: "กลุ่มงาน",
-                href: "/setting/department-subs",
+                name: 'กลุ่มงาน',
+                href: '/setting/department-subs',
                 icon: BriefcaseIcon,
               },
               {
-                name: "หน่วยงาน",
-                href: "/setting/department-sub-subs",
+                name: 'หน่วยงาน',
+                href: '/setting/department-sub-subs',
                 icon: BriefcaseIcon,
               },
               {
-                name: "กลุ่มบุคลากร",
-                href: "/setting/person-types",
+                name: 'กลุ่มบุคลากร',
+                href: '/setting/person-types',
                 icon: UserGroupIcon,
               },
               {
-                name: "ตำแหน่ง",
-                href: "/setting/positions",
+                name: 'ตำแหน่ง',
+                href: '/setting/positions',
                 icon: UserGroupIcon,
               },
             ],
@@ -318,19 +316,19 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   // Memoize isActive function
   const isActive = useCallback(
     (href: string) => {
-      if (href === "/") {
-        return pathname === "/";
+      if (href === '/') {
+        return pathname === '/';
       }
       // ตรวจสอบว่าเป็น exact match หรือเป็น sub-path ที่ถูกต้อง
       if (pathname === href) {
         return true;
       }
       // สำหรับ sub-items ที่อยู่ใน parent path
-      if (href.includes("/revenue/") && pathname.startsWith(href)) {
+      if (href.includes('/revenue/') && pathname.startsWith(href)) {
         return true;
       }
       // สำหรับ parent items ที่มี sub-items
-      if (href === "/revenue" && pathname.startsWith("/revenue/")) {
+      if (href === '/revenue' && pathname.startsWith('/revenue/')) {
         return false; // ไม่ highlight parent เมื่ออยู่ที่ sub-item
       }
 
@@ -370,9 +368,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
       setIsNavigating(true);
       setLoadingMenu(menuName || null);
-      setLoadingMessage(
-        menuName ? `กำลังโหลด ${menuName}...` : LOADING_MESSAGES.page,
-      );
+      setLoadingMessage(menuName ? `กำลังโหลด ${menuName}...` : LOADING_MESSAGES.page);
       setShowLoadingPage(true);
       setTargetPathname(href); // เก็บ target pathname เพื่อรอให้ pathname เปลี่ยนจริง
 
@@ -391,8 +387,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         setIsNavigating(false);
       } catch (error) {
         // Log error แต่ไม่แสดงให้ผู้ใช้เห็น (error handling ที่ดีกว่า)
-        if (process.env.NODE_ENV === "development") {
-          console.error("Navigation error:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Navigation error:', error);
         }
         // ถ้า navigation error ให้ซ่อน loading page ทันที
         setShowLoadingPage(false);
@@ -410,30 +406,20 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const isItemActive = isActive(item.href);
 
     return (
-      <div key={item.name} className={cn("px-2", isSubItem && "ml-4")}>
-        {item.href === "#" ? (
+      <div key={item.name} className={cn('px-2', isSubItem && 'ml-4')}>
+        {item.href === '#' ? (
           <Button
-            className={cn(
-              "sidebar-item w-full justify-start h-10 group",
-              isItemActive && "active",
-            )}
+            className={cn('sidebar-item w-full justify-start h-10 group', isItemActive && 'active')}
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
-                  <Chip
-                    className="sidebar-chip-primary"
-                    color="primary"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-primary" color="primary" size="sm" variant="flat">
                     {item.badge}
                   </Chip>
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={`w-3 h-3 transition-transform ${
-                      isExpanded ? "rotate-90" : ""
-                    }`}
+                    className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                   />
                 )}
               </div>
@@ -441,10 +427,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             startContent={
               <item.icon
                 className={cn(
-                  "w-4 h-4 transition-colors",
-                  isItemActive
-                    ? "text-white"
-                    : "text-default-600 group-hover:text-primary-500",
+                  'w-4 h-4 transition-colors',
+                  isItemActive ? 'text-white' : 'text-default-600 group-hover:text-primary-500',
                 )}
               />
             }
@@ -462,22 +446,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               <div className="flex items-center justify-between w-full">
                 <span>{item.name}</span>
                 {item.count && (
-                  <Chip
-                    className="sidebar-chip-primary"
-                    color="primary"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-primary" color="primary" size="sm" variant="flat">
                     {item.count}
                   </Chip>
                 )}
                 {item.isNew && (
-                  <Chip
-                    className="sidebar-chip-secondary"
-                    color="success"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-secondary" color="success" size="sm" variant="flat">
                     ใหม่
                   </Chip>
                 )}
@@ -490,42 +464,25 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
-                  <Chip
-                    className="sidebar-chip-primary"
-                    color="primary"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-primary" color="primary" size="sm" variant="flat">
                     {item.badge}
                   </Chip>
                 )}
               </div>
             }
-            startContent={
-              <item.icon className="w-4 h-4 transition-colors text-primary-500" />
-            }
+            startContent={<item.icon className="w-4 h-4 transition-colors text-primary-500" />}
             variant="light"
           >
             {!isCollapsed && (
               <div className="flex items-center text-primary-500 justify-between w-full">
                 <span>{item.name}</span>
                 {item.count && (
-                  <Chip
-                    className="sidebar-chip-primary"
-                    color="primary"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-primary" color="primary" size="sm" variant="flat">
                     {item.count}
                   </Chip>
                 )}
                 {item.isNew && (
-                  <Chip
-                    className="sidebar-chip-secondary"
-                    color="success"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-secondary" color="success" size="sm" variant="flat">
                     ใหม่
                   </Chip>
                 )}
@@ -538,21 +495,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             endContent={
               <div className="flex items-center gap-1">
                 {item.badge && (
-                  <Chip
-                    className="sidebar-chip-primary"
-                    color="primary"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-primary" color="primary" size="sm" variant="flat">
                     {item.badge}
                   </Chip>
                 )}
                 {hasSubItems && (
                   <ChevronRightIcon
-                    className={cn(
-                      "w-3 h-3 transition-transform",
-                      isExpanded && "rotate-90",
-                    )}
+                    className={cn('w-3 h-3 transition-transform', isExpanded && 'rotate-90')}
                   />
                 )}
               </div>
@@ -568,22 +517,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               <div className="flex items-center justify-between w-full">
                 <span>{item.name}</span>
                 {item.count && (
-                  <Chip
-                    className="sidebar-chip-primary"
-                    color="primary"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-primary" color="primary" size="sm" variant="flat">
                     {item.count}
                   </Chip>
                 )}
                 {item.isNew && (
-                  <Chip
-                    className="sidebar-chip-secondary"
-                    color="success"
-                    size="sm"
-                    variant="flat"
-                  >
+                  <Chip className="sidebar-chip-secondary" color="success" size="sm" variant="flat">
                     ใหม่
                   </Chip>
                 )}
@@ -605,24 +544,22 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   // Handle Escape key press
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && sidebarIsOpen && isMobile) {
+      if (e.key === 'Escape' && sidebarIsOpen && isMobile) {
         handleClose();
       }
     };
 
     if (sidebarIsOpen && isMobile) {
-      document.addEventListener("keydown", handleEscape);
+      document.addEventListener('keydown', handleEscape);
 
-      return () => document.removeEventListener("keydown", handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
     }
   }, [sidebarIsOpen, isMobile, handleClose]);
 
   return (
     <>
       {/* Loading Page */}
-      {showLoadingPage && (
-        <LoadingPage message={loadingMessage} showProgress={true} />
-      )}
+      {showLoadingPage && <LoadingPage message={loadingMessage} showProgress={true} />}
 
       {/* Mobile Overlay - แสดงเฉพาะบน mobile เมื่อ Sidebar เปิด */}
       {sidebarIsOpen && isMobile && (
@@ -634,7 +571,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           tabIndex={-1}
           onClick={handleClose}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
+            if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               handleClose();
             }
@@ -647,10 +584,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         aria-hidden={!sidebarIsOpen}
         aria-label="เมนูนำทางหลัก"
         className={cn(
-          "sidebar fixed inset-y-0 left-0 z-50 h-screen",
-          "transition-transform duration-300 ease-in-out",
-          isCollapsed ? "w-16" : "w-64",
-          sidebarIsOpen ? "translate-x-0" : "-translate-x-full",
+          'sidebar fixed inset-y-0 left-0 z-50 h-screen',
+          'transition-transform duration-300 ease-in-out',
+          isCollapsed ? 'w-16' : 'w-64',
+          sidebarIsOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         role="navigation"
       >
@@ -667,9 +604,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                 width={32}
               />
               {!isCollapsed && (
-                <span className="font-bold text-xl text-foreground">
-                  Portal RPP
-                </span>
+                <span className="font-bold text-xl text-foreground">Portal RPP</span>
               )}
             </div>
 
@@ -693,10 +628,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           {/* Navigation - รองรับการ scroll และ theme */}
           <div className="sidebar-navigation flex-1 overflow-y-auto">
             {navigationSections.map((section) => (
-              <div
-                key={section.title}
-                className={cn("py-2", section.isDisabled && "hidden")}
-              >
+              <div key={section.title} className={cn('py-2', section.isDisabled && 'hidden')}>
                 <div className="px-4 py-2">
                   <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider">
                     {section.title}

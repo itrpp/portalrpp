@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import type { SimpleCrudItem, SimpleCrudModalProps } from "../types";
+import type { SimpleCrudItem, SimpleCrudModalProps } from '../types';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalContent,
@@ -14,9 +14,9 @@ import {
   Switch,
   Checkbox,
   addToast,
-} from "@heroui/react";
+} from '@heroui/react';
 
-export type { SimpleCrudItem, SimpleCrudModalProps } from "../types";
+export type { SimpleCrudItem, SimpleCrudModalProps } from '../types';
 
 export function SimpleCrudModal<T extends SimpleCrudItem>({
   isOpen,
@@ -28,15 +28,13 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
   itemNameFieldLabel,
   itemNamePlaceholder,
   useCheckboxForActive = false,
-  activeFieldLabel = "สถานะใช้งาน",
+  activeFieldLabel = 'สถานะใช้งาน',
   activeFieldDescription,
   additionalFields,
 }: SimpleCrudModalProps<T>) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [active, setActive] = useState(true);
-  const [additionalValues, setAdditionalValues] = useState<
-    Record<string, unknown>
-  >({});
+  const [additionalValues, setAdditionalValues] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     if (item) {
@@ -47,14 +45,14 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
         const additional: Record<string, unknown> = {};
 
         Object.keys(item).forEach((key) => {
-          if (key !== "id" && key !== "name" && key !== "active") {
+          if (key !== 'id' && key !== 'name' && key !== 'active') {
             additional[key] = item[key];
           }
         });
         setAdditionalValues(additional);
       }
     } else {
-      setName("");
+      setName('');
       setActive(true);
       setAdditionalValues({});
     }
@@ -67,9 +65,9 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
   const handleSave = async () => {
     if (!name.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
+        title: 'ข้อมูลไม่ครบถ้วน',
         description: `กรุณากรอกชื่อ${itemName}`,
-        color: "danger",
+        color: 'danger',
       });
 
       return;
@@ -81,7 +79,7 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
         name: name.trim(),
         active,
         ...additionalValues,
-      } as unknown as Omit<T, "id" | "createdAt" | "updatedAt"> & {
+      } as unknown as Omit<T, 'id' | 'createdAt' | 'updatedAt'> & {
         id?: number;
       };
 
@@ -95,9 +93,7 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
   return (
     <Modal isOpen={isOpen} size="lg" onClose={onClose}>
       <ModalContent>
-        <ModalHeader>
-          {item ? `แก้ไข${itemName}` : `เพิ่ม${itemName}ใหม่`}
-        </ModalHeader>
+        <ModalHeader>{item ? `แก้ไข${itemName}` : `เพิ่ม${itemName}ใหม่`}</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             <Input
@@ -119,29 +115,17 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
             {useCheckboxForActive ? (
               <div className="space-y-2">
                 {activeFieldDescription && (
-                  <div className="text-sm font-medium text-foreground">
-                    {activeFieldLabel}
-                  </div>
+                  <div className="text-sm font-medium text-foreground">{activeFieldLabel}</div>
                 )}
                 {activeFieldDescription && (
-                  <div className="text-xs text-default-500">
-                    {activeFieldDescription}
-                  </div>
+                  <div className="text-xs text-default-500">{activeFieldDescription}</div>
                 )}
-                <Checkbox
-                  isDisabled={isLoading}
-                  isSelected={active}
-                  onValueChange={setActive}
-                >
+                <Checkbox isDisabled={isLoading} isSelected={active} onValueChange={setActive}>
                   ใช้งาน
                 </Checkbox>
               </div>
             ) : (
-              <Switch
-                isDisabled={isLoading}
-                isSelected={active}
-                onValueChange={setActive}
-              >
+              <Switch isDisabled={isLoading} isSelected={active} onValueChange={setActive}>
                 {activeFieldLabel}
               </Switch>
             )}
@@ -151,12 +135,7 @@ export function SimpleCrudModal<T extends SimpleCrudItem>({
           <Button isDisabled={isLoading} variant="flat" onPress={onClose}>
             ยกเลิก
           </Button>
-          <Button
-            color="primary"
-            isDisabled={isLoading}
-            isLoading={isLoading}
-            onPress={handleSave}
-          >
+          <Button color="primary" isDisabled={isLoading} isLoading={isLoading} onPress={handleSave}>
             บันทึก
           </Button>
         </ModalFooter>

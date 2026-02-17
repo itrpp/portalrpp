@@ -19,7 +19,7 @@ export interface LDAPUserData {
   department: string;
   position: string;
   memberOf: string;
-  role: "admin" | "user";
+  role: 'admin' | 'user';
 }
 
 // LDAP Search Result Interface
@@ -33,13 +33,13 @@ export interface LDAPSearchResult {
 
 // LDAP Authentication Result
 export type LDAPErrorCode =
-  | "MISSING_CREDENTIALS"
-  | "USER_NOT_FOUND"
-  | "ACCOUNT_DISABLED"
-  | "USER_NOT_AUTHORIZED"
-  | "INVALID_CREDENTIALS"
-  | "CONNECTION_ERROR"
-  | "INTERNAL_ERROR";
+  | 'MISSING_CREDENTIALS'
+  | 'USER_NOT_FOUND'
+  | 'ACCOUNT_DISABLED'
+  | 'USER_NOT_AUTHORIZED'
+  | 'INVALID_CREDENTIALS'
+  | 'CONNECTION_ERROR'
+  | 'INTERNAL_ERROR';
 
 export interface LDAPAuthResult {
   success: boolean;
@@ -60,7 +60,7 @@ export interface ExtendedUser {
   department?: string;
   position?: string;
   memberOf?: string;
-  role: "admin" | "user";
+  role: 'admin' | 'user';
   phone?: string | null;
   mobile?: string | null;
   lineDisplayName?: string | null;
@@ -78,7 +78,7 @@ export interface ExtendedToken {
   department?: string;
   position?: string;
   memberOf?: string;
-  role?: "admin" | "user";
+  role?: 'admin' | 'user';
   phone?: string | null;
   mobile?: string | null;
   lineDisplayName?: string | null;

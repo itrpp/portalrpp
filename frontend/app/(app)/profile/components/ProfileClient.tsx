@@ -1,14 +1,10 @@
-"use client";
+'use client';
 
-import type {
-  ProfileClientProps,
-  ProfileEditableFields,
-  HrdOption,
-} from "../types";
+import type { ProfileClientProps, ProfileEditableFields, HrdOption } from '../types';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import {
   Avatar,
   Button,
@@ -22,9 +18,9 @@ import {
   AutocompleteItem,
   Select,
   SelectItem,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { parseMemberOf, getProfileErrorMessage } from "@/lib/utils";
+import { parseMemberOf, getProfileErrorMessage } from '@/lib/utils';
 import {
   LockClosedIcon,
   PhoneIcon,
@@ -34,11 +30,11 @@ import {
   BriefcaseIcon,
   ShieldCheckIcon,
   UserIcon,
-} from "@/components/ui/icons";
+} from '@/components/ui/icons';
 
 const ROLE_OPTIONS = [
-  { value: "user", label: "ผู้ใช้งาน" },
-  { value: "admin", label: "ผู้ดูแลระบบ" },
+  { value: 'user', label: 'ผู้ใช้งาน' },
+  { value: 'admin', label: 'ผู้ดูแลระบบ' },
 ] as const;
 
 export default function ProfileClient({ initialProfile }: ProfileClientProps) {
@@ -46,22 +42,14 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   const { data: session, update } = useSession();
   const [profile, setProfile] = useState(initialProfile);
   const [formData, setFormData] = useState<ProfileEditableFields>({
-    displayName: initialProfile.displayName ?? "",
-    phone: initialProfile.phone ?? "",
-    mobile: initialProfile.mobile ?? "",
-    role: initialProfile.role ?? "user",
-    personTypeId: initialProfile.personTypeId
-      ? String(initialProfile.personTypeId)
-      : null,
-    positionId: initialProfile.positionId
-      ? String(initialProfile.positionId)
-      : null,
-    departmentId: initialProfile.departmentId
-      ? String(initialProfile.departmentId)
-      : null,
-    departmentSubId: initialProfile.departmentSubId
-      ? String(initialProfile.departmentSubId)
-      : null,
+    displayName: initialProfile.displayName ?? '',
+    phone: initialProfile.phone ?? '',
+    mobile: initialProfile.mobile ?? '',
+    role: initialProfile.role ?? 'user',
+    personTypeId: initialProfile.personTypeId ? String(initialProfile.personTypeId) : null,
+    positionId: initialProfile.positionId ? String(initialProfile.positionId) : null,
+    departmentId: initialProfile.departmentId ? String(initialProfile.departmentId) : null,
+    departmentSubId: initialProfile.departmentSubId ? String(initialProfile.departmentSubId) : null,
     departmentSubSubId: initialProfile.departmentSubSubId
       ? String(initialProfile.departmentSubSubId)
       : null,
@@ -69,32 +57,27 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
   const [feedback, setFeedback] = useState<{
-    type: "success" | "error";
+    type: 'success' | 'error';
     message: string;
   } | null>(null);
 
   const [personTypeOptions, setPersonTypeOptions] = useState<HrdOption[]>([]);
   const [positionOptions, setPositionOptions] = useState<HrdOption[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<HrdOption[]>([]);
-  const [departmentSubOptions, setDepartmentSubOptions] = useState<HrdOption[]>(
-    [],
-  );
-  const [departmentSubSubOptions, setDepartmentSubSubOptions] = useState<
-    HrdOption[]
-  >([]);
+  const [departmentSubOptions, setDepartmentSubOptions] = useState<HrdOption[]>([]);
+  const [departmentSubSubOptions, setDepartmentSubSubOptions] = useState<HrdOption[]>([]);
 
   const [isLoadingPersonTypes, setIsLoadingPersonTypes] = useState(false);
   const [isLoadingPositions, setIsLoadingPositions] = useState(false);
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const [isLoadingDepartmentSubs, setIsLoadingDepartmentSubs] = useState(false);
-  const [isLoadingDepartmentSubSubs, setIsLoadingDepartmentSubSubs] =
-    useState(false);
+  const [isLoadingDepartmentSubSubs, setIsLoadingDepartmentSubSubs] = useState(false);
 
   // ตรวจสอบสิทธิ์: เฉพาะ admin เท่านั้นที่สามารถแก้ไข role ได้
-  const canEditRole = session?.user?.role === "admin";
+  const canEditRole = session?.user?.role === 'admin';
 
   const handleTextInputChange =
-    (field: "displayName" | "phone" | "mobile" | "role") => (value: string) => {
+    (field: 'displayName' | 'phone' | 'mobile' | 'role') => (value: string) => {
       setFormData((prev) => ({
         ...prev,
         [field]: value,
@@ -105,11 +88,11 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   const handleOrgSelectChange =
     (
       field:
-        | "personTypeId"
-        | "positionId"
-        | "departmentId"
-        | "departmentSubId"
-        | "departmentSubSubId",
+        | 'personTypeId'
+        | 'positionId'
+        | 'departmentId'
+        | 'departmentSubId'
+        | 'departmentSubSubId',
     ) =>
     (key: string | number | null) => {
       const value = key != null ? String(key) : null;
@@ -121,12 +104,12 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
         };
 
         // จัดการ chain ของกลุ่มภารกิจ → กลุ่มงาน → หน่วยงาน
-        if (field === "departmentId") {
+        if (field === 'departmentId') {
           next.departmentSubId = null;
           next.departmentSubSubId = null;
           setDepartmentSubOptions([]);
           setDepartmentSubSubOptions([]);
-        } else if (field === "departmentSubId") {
+        } else if (field === 'departmentSubId') {
           next.departmentSubSubId = null;
           setDepartmentSubSubOptions([]);
         }
@@ -140,11 +123,11 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   async function fetchPersonTypes() {
     try {
       setIsLoadingPersonTypes(true);
-      const response = await fetch("/api/hrd/person-types");
+      const response = await fetch('/api/hrd/person-types');
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มบุคลากรได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดกลุ่มบุคลากรได้');
       }
 
       setPersonTypeOptions(
@@ -163,11 +146,11 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   async function fetchPositions() {
     try {
       setIsLoadingPositions(true);
-      const response = await fetch("/api/hrd/positions");
+      const response = await fetch('/api/hrd/positions');
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดตำแหน่งได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดตำแหน่งได้');
       }
 
       setPositionOptions(
@@ -186,11 +169,11 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   async function fetchDepartments() {
     try {
       setIsLoadingDepartments(true);
-      const response = await fetch("/api/hrd/departments");
+      const response = await fetch('/api/hrd/departments');
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มภารกิจได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดกลุ่มภารกิจได้');
       }
 
       setDepartmentOptions(
@@ -216,14 +199,12 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
     try {
       setIsLoadingDepartmentSubs(true);
       const response = await fetch(
-        `/api/hrd/department-subs?departmentId=${encodeURIComponent(
-          departmentId,
-        )}`,
+        `/api/hrd/department-subs?departmentId=${encodeURIComponent(departmentId)}`,
       );
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดกลุ่มงานได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดกลุ่มงานได้');
       }
 
       setDepartmentSubOptions(
@@ -249,14 +230,12 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
     try {
       setIsLoadingDepartmentSubSubs(true);
       const response = await fetch(
-        `/api/hrd/department-sub-subs?departmentSubId=${encodeURIComponent(
-          departmentSubId,
-        )}`,
+        `/api/hrd/department-sub-subs?departmentSubId=${encodeURIComponent(departmentSubId)}`,
       );
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "ไม่สามารถโหลดหน่วยงานได้");
+        throw new Error(payload?.error || 'ไม่สามารถโหลดหน่วยงานได้');
       }
 
       setDepartmentSubSubOptions(
@@ -306,15 +285,9 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
         phone: formData.phone,
         mobile: formData.mobile,
         role: formData.role,
-        personTypeId: formData.personTypeId
-          ? Number.parseInt(formData.personTypeId, 10)
-          : null,
-        positionId: formData.positionId
-          ? Number.parseInt(formData.positionId, 10)
-          : null,
-        departmentId: formData.departmentId
-          ? Number.parseInt(formData.departmentId, 10)
-          : null,
+        personTypeId: formData.personTypeId ? Number.parseInt(formData.personTypeId, 10) : null,
+        positionId: formData.positionId ? Number.parseInt(formData.positionId, 10) : null,
+        departmentId: formData.departmentId ? Number.parseInt(formData.departmentId, 10) : null,
         departmentSubId: formData.departmentSubId
           ? Number.parseInt(formData.departmentSubId, 10)
           : null,
@@ -323,10 +296,10 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
           : null,
       };
 
-      const response = await fetch("/api/profile", {
-        method: "PUT",
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(payloadToSubmit),
       });
@@ -335,7 +308,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       if (!response.ok || !payload?.success) {
         const errorMessage = payload?.error
           ? getProfileErrorMessage(payload.error)
-          : "ไม่สามารถบันทึกข้อมูลได้";
+          : 'ไม่สามารถบันทึกข้อมูลได้';
 
         throw new Error(errorMessage);
       }
@@ -343,22 +316,14 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       // อัปเดต state ภายในหน้าโปรไฟล์
       setProfile(payload.data);
       setFormData({
-        displayName: payload.data.displayName ?? "",
-        phone: payload.data.phone ?? "",
-        mobile: payload.data.mobile ?? "",
-        role: payload.data.role ?? "user",
-        personTypeId: payload.data.personTypeId
-          ? String(payload.data.personTypeId)
-          : null,
-        positionId: payload.data.positionId
-          ? String(payload.data.positionId)
-          : null,
-        departmentId: payload.data.departmentId
-          ? String(payload.data.departmentId)
-          : null,
-        departmentSubId: payload.data.departmentSubId
-          ? String(payload.data.departmentSubId)
-          : null,
+        displayName: payload.data.displayName ?? '',
+        phone: payload.data.phone ?? '',
+        mobile: payload.data.mobile ?? '',
+        role: payload.data.role ?? 'user',
+        personTypeId: payload.data.personTypeId ? String(payload.data.personTypeId) : null,
+        positionId: payload.data.positionId ? String(payload.data.positionId) : null,
+        departmentId: payload.data.departmentId ? String(payload.data.departmentId) : null,
+        departmentSubId: payload.data.departmentSubId ? String(payload.data.departmentSubId) : null,
         departmentSubSubId: payload.data.departmentSubSubId
           ? String(payload.data.departmentSubSubId)
           : null,
@@ -380,14 +345,13 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       router.refresh();
 
       setFeedback({
-        type: "success",
-        message: "บันทึกข้อมูลสำเร็จแล้ว",
+        type: 'success',
+        message: 'บันทึกข้อมูลสำเร็จแล้ว',
       });
     } catch (error) {
       setFeedback({
-        type: "error",
-        message:
-          error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้",
+        type: 'error',
+        message: error instanceof Error ? error.message : 'ไม่สามารถบันทึกข้อมูลได้',
       });
     } finally {
       setIsSaving(false);
@@ -395,7 +359,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   };
 
   const handleLinkLine = () => {
-    signIn("line", { callbackUrl: "/profile" });
+    signIn('line', { callbackUrl: '/profile' });
   };
 
   const handleUnlinkLine = async () => {
@@ -407,50 +371,37 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
     setFeedback(null);
 
     try {
-      const response = await fetch("/api/profile/line", {
-        method: "DELETE",
+      const response = await fetch('/api/profile/line', {
+        method: 'DELETE',
       });
       const payload = await response.json();
 
       if (!response.ok || !payload?.success) {
-        throw new Error(
-          payload?.error || "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
-        );
+        throw new Error(payload?.error || 'ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้');
       }
 
       setProfile(payload.data);
       setFormData({
-        displayName: payload.data.displayName ?? "",
-        phone: payload.data.phone ?? "",
-        mobile: payload.data.mobile ?? "",
-        role: payload.data.role ?? "user",
-        personTypeId: payload.data.personTypeId
-          ? String(payload.data.personTypeId)
-          : null,
-        positionId: payload.data.positionId
-          ? String(payload.data.positionId)
-          : null,
-        departmentId: payload.data.departmentId
-          ? String(payload.data.departmentId)
-          : null,
-        departmentSubId: payload.data.departmentSubId
-          ? String(payload.data.departmentSubId)
-          : null,
+        displayName: payload.data.displayName ?? '',
+        phone: payload.data.phone ?? '',
+        mobile: payload.data.mobile ?? '',
+        role: payload.data.role ?? 'user',
+        personTypeId: payload.data.personTypeId ? String(payload.data.personTypeId) : null,
+        positionId: payload.data.positionId ? String(payload.data.positionId) : null,
+        departmentId: payload.data.departmentId ? String(payload.data.departmentId) : null,
+        departmentSubId: payload.data.departmentSubId ? String(payload.data.departmentSubId) : null,
         departmentSubSubId: payload.data.departmentSubSubId
           ? String(payload.data.departmentSubSubId)
           : null,
       });
       setFeedback({
-        type: "success",
-        message: "ยกเลิกการเชื่อมต่อ LINE สำเร็จแล้ว",
+        type: 'success',
+        message: 'ยกเลิกการเชื่อมต่อ LINE สำเร็จแล้ว',
       });
     } catch (error) {
       setFeedback({
-        type: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้",
+        type: 'error',
+        message: error instanceof Error ? error.message : 'ไม่สามารถยกเลิกการเชื่อมต่อ LINE ได้',
       });
     } finally {
       setIsUnlinking(false);
@@ -459,33 +410,28 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
 
   const handleReset = () => {
     setFormData({
-      displayName: profile.displayName ?? "",
-      phone: profile.phone ?? "",
-      mobile: profile.mobile ?? "",
-      role: profile.role ?? "user",
+      displayName: profile.displayName ?? '',
+      phone: profile.phone ?? '',
+      mobile: profile.mobile ?? '',
+      role: profile.role ?? 'user',
       personTypeId: profile.personTypeId ? String(profile.personTypeId) : null,
       positionId: profile.positionId ? String(profile.positionId) : null,
       departmentId: profile.departmentId ? String(profile.departmentId) : null,
-      departmentSubId: profile.departmentSubId
-        ? String(profile.departmentSubId)
-        : null,
-      departmentSubSubId: profile.departmentSubSubId
-        ? String(profile.departmentSubSubId)
-        : null,
+      departmentSubId: profile.departmentSubId ? String(profile.departmentSubId) : null,
+      departmentSubSubId: profile.departmentSubSubId ? String(profile.departmentSubSubId) : null,
     });
     setFeedback(null);
   };
 
   const isLineLinked = Boolean(profile.lineUserId);
   const hasChanges =
-    formData.displayName !== (profile.displayName ?? "") ||
-    formData.phone !== (profile.phone ?? "") ||
-    formData.mobile !== (profile.mobile ?? "") ||
-    formData.role !== (profile.role ?? "user") ||
+    formData.displayName !== (profile.displayName ?? '') ||
+    formData.phone !== (profile.phone ?? '') ||
+    formData.mobile !== (profile.mobile ?? '') ||
+    formData.role !== (profile.role ?? 'user') ||
     (formData.personTypeId ?? null) !==
       (profile.personTypeId ? String(profile.personTypeId) : null) ||
-    (formData.positionId ?? null) !==
-      (profile.positionId ? String(profile.positionId) : null) ||
+    (formData.positionId ?? null) !== (profile.positionId ? String(profile.positionId) : null) ||
     (formData.departmentId ?? null) !==
       (profile.departmentId ? String(profile.departmentId) : null) ||
     (formData.departmentSubId ?? null) !==
@@ -510,15 +456,15 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-2xl font-bold text-foreground">
-                  {profile.displayName || "ไม่ระบุชื่อ"}
+                  {profile.displayName || 'ไม่ระบุชื่อ'}
                 </h2>
                 <Chip
-                  color={profile.role === "admin" ? "danger" : "default"}
+                  color={profile.role === 'admin' ? 'danger' : 'default'}
                   size="sm"
                   startContent={<ShieldCheckIcon className="w-4 h-4" />}
                   variant="flat"
                 >
-                  {profile.role === "admin" ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน"}
+                  {profile.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
                 </Chip>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-sm text-default-600">
@@ -552,12 +498,8 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
           <CardHeader className="flex items-center gap-3 pb-3">
             <ProfileIcon className="w-6 h-6 text-primary" />
             <div>
-              <h3 className="text-xl font-semibold text-foreground">
-                ข้อมูลโปรไฟล์
-              </h3>
-              <p className="text-sm text-default-500">
-                แก้ไขข้อมูลส่วนตัวของคุณ
-              </p>
+              <h3 className="text-xl font-semibold text-foreground">ข้อมูลโปรไฟล์</h3>
+              <p className="text-sm text-default-500">แก้ไขข้อมูลส่วนตัวของคุณ</p>
             </div>
           </CardHeader>
           <Divider />
@@ -574,12 +516,10 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                     isDisabled={isSaving}
                     label="ชื่อที่แสดง"
                     placeholder="กรุณากรอกชื่อที่ต้องการแสดง"
-                    startContent={
-                      <UserIcon className="w-5 h-5 text-default-400" />
-                    }
+                    startContent={<UserIcon className="w-5 h-5 text-default-400" />}
                     value={formData.displayName}
                     variant="bordered"
-                    onValueChange={handleTextInputChange("displayName")}
+                    onValueChange={handleTextInputChange('displayName')}
                   />
                   <Select
                     isRequired
@@ -587,14 +527,12 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                     label="บทบาท"
                     placeholder="เลือกบทบาท"
                     selectedKeys={[formData.role]}
-                    startContent={
-                      <ShieldCheckIcon className="w-5 h-5 text-default-400" />
-                    }
+                    startContent={<ShieldCheckIcon className="w-5 h-5 text-default-400" />}
                     variant="bordered"
                     onSelectionChange={(keys) => {
                       const selected = Array.from(keys)[0] as string;
 
-                      handleTextInputChange("role")(selected);
+                      handleTextInputChange('role')(selected);
                     }}
                   >
                     {ROLE_OPTIONS.map((option) => (
@@ -617,23 +555,19 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                     isDisabled={isSaving}
                     label="โทรศัพท์ภายใน"
                     placeholder="IP-Phone / เบอร์ 4 ตัว"
-                    startContent={
-                      <PhoneIcon className="w-5 h-5 text-default-400" />
-                    }
+                    startContent={<PhoneIcon className="w-5 h-5 text-default-400" />}
                     value={formData.phone}
                     variant="bordered"
-                    onValueChange={handleTextInputChange("phone")}
+                    onValueChange={handleTextInputChange('phone')}
                   />
                   <Input
                     isDisabled={isSaving}
                     label="มือถือ"
                     placeholder="เช่น 08x-xxx-xxxx"
-                    startContent={
-                      <PhoneIcon className="w-5 h-5 text-default-400" />
-                    }
+                    startContent={<PhoneIcon className="w-5 h-5 text-default-400" />}
                     value={formData.mobile}
                     variant="bordered"
-                    onValueChange={handleTextInputChange("mobile")}
+                    onValueChange={handleTextInputChange('mobile')}
                   />
                 </div>
               </div>
@@ -655,17 +589,11 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                       label="กลุ่มบุคลากร"
                       placeholder="เลือกกลุ่มบุคลากร"
                       selectedKey={formData.personTypeId ?? undefined}
-                      startContent={
-                        <UserIcon className="w-5 h-5 text-default-400" />
-                      }
+                      startContent={<UserIcon className="w-5 h-5 text-default-400" />}
                       variant="bordered"
-                      onSelectionChange={handleOrgSelectChange("personTypeId")}
+                      onSelectionChange={handleOrgSelectChange('personTypeId')}
                     >
-                      {(item) => (
-                        <AutocompleteItem key={item.key}>
-                          {item.label}
-                        </AutocompleteItem>
-                      )}
+                      {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                     </Autocomplete>
 
                     <Autocomplete
@@ -676,17 +604,11 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                       label="ตำแหน่ง"
                       placeholder="เลือกตำแหน่ง"
                       selectedKey={formData.positionId ?? undefined}
-                      startContent={
-                        <BriefcaseIcon className="w-5 h-5 text-default-400" />
-                      }
+                      startContent={<BriefcaseIcon className="w-5 h-5 text-default-400" />}
                       variant="bordered"
-                      onSelectionChange={handleOrgSelectChange("positionId")}
+                      onSelectionChange={handleOrgSelectChange('positionId')}
                     >
-                      {(item) => (
-                        <AutocompleteItem key={item.key}>
-                          {item.label}
-                        </AutocompleteItem>
-                      )}
+                      {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                     </Autocomplete>
 
                     <Autocomplete
@@ -697,17 +619,11 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                       label="กลุ่มภารกิจ"
                       placeholder="เลือกกลุ่มภารกิจ"
                       selectedKey={formData.departmentId ?? undefined}
-                      startContent={
-                        <BuildingOfficeIcon className="w-5 h-5 text-default-400" />
-                      }
+                      startContent={<BuildingOfficeIcon className="w-5 h-5 text-default-400" />}
                       variant="bordered"
-                      onSelectionChange={handleOrgSelectChange("departmentId")}
+                      onSelectionChange={handleOrgSelectChange('departmentId')}
                     >
-                      {(item) => (
-                        <AutocompleteItem key={item.key}>
-                          {item.label}
-                        </AutocompleteItem>
-                      )}
+                      {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                     </Autocomplete>
 
                     <Autocomplete
@@ -717,21 +633,13 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                       isLoading={isLoadingDepartmentSubs}
                       label="กลุ่มงาน"
                       placeholder={
-                        formData.departmentId
-                          ? "เลือกกลุ่มงาน"
-                          : "กรุณาเลือกกลุ่มภารกิจก่อน"
+                        formData.departmentId ? 'เลือกกลุ่มงาน' : 'กรุณาเลือกกลุ่มภารกิจก่อน'
                       }
                       selectedKey={formData.departmentSubId ?? undefined}
                       variant="bordered"
-                      onSelectionChange={handleOrgSelectChange(
-                        "departmentSubId",
-                      )}
+                      onSelectionChange={handleOrgSelectChange('departmentSubId')}
                     >
-                      {(item) => (
-                        <AutocompleteItem key={item.key}>
-                          {item.label}
-                        </AutocompleteItem>
-                      )}
+                      {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                     </Autocomplete>
 
                     <Autocomplete
@@ -741,21 +649,13 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                       isLoading={isLoadingDepartmentSubSubs}
                       label="หน่วยงาน"
                       placeholder={
-                        formData.departmentSubId
-                          ? "เลือกหน่วยงาน"
-                          : "กรุณาเลือกกลุ่มงานก่อน"
+                        formData.departmentSubId ? 'เลือกหน่วยงาน' : 'กรุณาเลือกกลุ่มงานก่อน'
                       }
                       selectedKey={formData.departmentSubSubId ?? undefined}
                       variant="bordered"
-                      onSelectionChange={handleOrgSelectChange(
-                        "departmentSubSubId",
-                      )}
+                      onSelectionChange={handleOrgSelectChange('departmentSubSubId')}
                     >
-                      {(item) => (
-                        <AutocompleteItem key={item.key}>
-                          {item.label}
-                        </AutocompleteItem>
-                      )}
+                      {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
                     </Autocomplete>
                   </div>
                 </div>
@@ -764,9 +664,9 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
               {feedback && (
                 <div
                   className={`rounded-xl border px-4 py-3 text-sm ${
-                    feedback.type === "success"
-                      ? "border-success-200 bg-success-50 text-success-700 dark:border-success-400/40 dark:bg-success-900/20 dark:text-success-300"
-                      : "border-danger-200 bg-danger-50 text-danger-700 dark:border-danger-400/40 dark:bg-danger-900/20 dark:text-danger-300"
+                    feedback.type === 'success'
+                      ? 'border-success-200 bg-success-50 text-success-700 dark:border-success-400/40 dark:bg-success-900/20 dark:text-success-300'
+                      : 'border-danger-200 bg-danger-50 text-danger-700 dark:border-danger-400/40 dark:bg-danger-900/20 dark:text-danger-300'
                   }`}
                 >
                   {feedback.message}
@@ -788,7 +688,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                   isLoading={isSaving}
                   type="submit"
                 >
-                  {isSaving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+                  {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
                 </Button>
               </div>
             </form>
@@ -800,40 +700,30 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
           <CardHeader className="flex items-center gap-3 pb-3">
             <LockClosedIcon className="w-6 h-6 text-primary" />
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
-                การเชื่อมต่อ LINE
-              </h3>
+              <h3 className="text-lg font-semibold text-foreground">การเชื่อมต่อ LINE</h3>
               <p className="text-sm text-default-500">สถานะบัญชี LINE</p>
             </div>
           </CardHeader>
           <Divider />
           <CardBody className="pt-6 space-y-4">
             <div className="flex items-center gap-3">
-              <Chip
-                color={isLineLinked ? "success" : "warning"}
-                size="sm"
-                variant="flat"
-              >
-                {isLineLinked ? "เชื่อมแล้ว" : "ยังไม่เชื่อม"}
+              <Chip color={isLineLinked ? 'success' : 'warning'} size="sm" variant="flat">
+                {isLineLinked ? 'เชื่อมแล้ว' : 'ยังไม่เชื่อม'}
               </Chip>
               {profile.lineUserId && (
-                <span className="text-xs text-default-500 truncate">
-                  ID: {profile.lineUserId}
-                </span>
+                <span className="text-xs text-default-500 truncate">ID: {profile.lineUserId}</span>
               )}
             </div>
             {profile.lineDisplayName && (
               <div>
                 <p className="text-xs text-default-500 mb-1">ชื่อแสดงใน LINE</p>
-                <p className="text-sm font-medium text-foreground">
-                  {profile.lineDisplayName}
-                </p>
+                <p className="text-sm font-medium text-foreground">{profile.lineDisplayName}</p>
               </div>
             )}
             <p className="text-sm text-default-500">
               {isLineLinked
-                ? "หากต้องการเปลี่ยนบัญชี LINE ต้องยกเลิกการเชื่อมต่อก่อนเชื่อมใหม่"
-                : "เชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือนและอัปเดตรูปโปรไฟล์อัตโนมัติ"}
+                ? 'หากต้องการเปลี่ยนบัญชี LINE ต้องยกเลิกการเชื่อมต่อก่อนเชื่อมใหม่'
+                : 'เชื่อมต่อบัญชี LINE เพื่อรับการแจ้งเตือนและอัปเดตรูปโปรไฟล์อัตโนมัติ'}
             </p>
             <Divider />
             <div className="flex flex-col gap-3">
@@ -866,9 +756,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       <Card className="border border-default-200 dark:border-default-600 shadow-lg">
         <CardHeader className="pb-3">
           <div>
-            <h3 className="text-lg font-semibold text-foreground">
-              ข้อมูลจากระบบ LDAP
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground">ข้อมูลจากระบบ LDAP</h3>
             <p className="text-sm text-default-500">
               ข้อมูลที่อัปเดตจากระบบ LDAP (ไม่สามารถแก้ไขได้)
             </p>
@@ -880,18 +768,16 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
             <InfoItem
               icon={<EnvelopeIcon className="w-5 h-5" />}
               label="อีเมล (LDAP)"
-              value={profile.email || "ไม่ระบุ"}
+              value={profile.email || 'ไม่ระบุ'}
             />
             <InfoItem
               icon={<UserIcon className="w-5 h-5" />}
               label="LDAP Display Name"
-              value={profile.ldapDisplayName || "-"}
+              value={profile.ldapDisplayName || '-'}
             />
             {profile.memberOf && (
               <div className="md:col-span-2">
-                <p className="text-xs uppercase tracking-wide text-default-500 mb-3">
-                  memberOf
-                </p>
+                <p className="text-xs uppercase tracking-wide text-default-500 mb-3">memberOf</p>
                 <div className="flex flex-wrap gap-2">
                   {parseMemberOf(profile.memberOf).map((group, index) => (
                     <Chip
@@ -928,9 +814,7 @@ function InfoItem({
     <div className="flex items-start gap-3">
       {icon && <div className="text-default-400 mt-0.5">{icon}</div>}
       <div className="flex-1">
-        <p className="text-xs uppercase tracking-wide text-default-500 mb-1">
-          {label}
-        </p>
+        <p className="text-xs uppercase tracking-wide text-default-500 mb-1">{label}</p>
         <p className="text-sm font-semibold text-foreground">{value}</p>
       </div>
     </div>

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { callPorterService } from "@/lib/grpcClient";
-import { prisma } from "@/lib/prisma";
+import { getAuthSession } from '@/lib/auth';
+import { callPorterService } from '@/lib/grpcClient';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/porter/employees
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       protoRequest.position_id = position_id;
     }
     if (status !== undefined && status !== null) {
-      protoRequest.status = status === "true" || status === "1";
+      protoRequest.status = status === 'true' || status === '1';
     }
     if (page) {
       protoRequest.page = parseInt(page, 10);
@@ -38,10 +38,7 @@ export async function GET(request: NextRequest) {
     protoRequest.page_size = page_size ? parseInt(page_size, 10) : 1000;
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "ListEmployees",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('ListEmployees', protoRequest);
 
     if (response.success) {
       // ดึงข้อมูล employment types และ positions จาก hrd tables
@@ -62,13 +59,10 @@ export async function GET(request: NextRequest) {
 
       // สร้าง map สำหรับ lookup
       const personTypeMap = new Map(
-        personTypes.map((pt) => [
-          pt.HR_PERSON_TYPE_ID,
-          pt.HR_PERSON_TYPE_NAME ?? "",
-        ]),
+        personTypes.map((pt) => [pt.HR_PERSON_TYPE_ID, pt.HR_PERSON_TYPE_NAME ?? '']),
       );
       const positionMap = new Map(
-        positions.map((p) => [p.HR_POSITION_ID, p.HR_POSITION_NAME ?? ""]),
+        positions.map((p) => [p.HR_POSITION_ID, p.HR_POSITION_NAME ?? '']),
       );
 
       // แปลงข้อมูลจาก Proto format เป็น Frontend format และ populate names
@@ -83,9 +77,9 @@ export async function GET(request: NextRequest) {
           lastName: item.last_name,
           nickname: item.nickname || undefined,
           profileImage: item.profile_image || undefined,
-          employmentType: personTypeMap.get(employmentTypeId) || "",
+          employmentType: personTypeMap.get(employmentTypeId) || '',
           employmentTypeId: item.employment_type_id,
-          position: positionMap.get(positionId) || "",
+          position: positionMap.get(positionId) || '',
           positionId: item.position_id,
           status: item.status,
           userId: item.user_id || undefined,
@@ -108,8 +102,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "FETCH_FAILED",
-          message: response.error_message || "ไม่สามารถดึงข้อมูลได้",
+          error: 'FETCH_FAILED',
+          message: response.error_message || 'ไม่สามารถดึงข้อมูลได้',
         },
         { status: 400 },
       );
@@ -118,8 +112,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -148,9 +142,9 @@ export async function POST(request: Request) {
       nickname: requestData.nickname || undefined,
       // ส่ง empty string ถ้า profileImage เป็น null เพื่อลบรูปภาพ (gRPC ไม่รองรับ null)
       profile_image:
-        requestData.profileImage && requestData.profileImage.trim() !== ""
+        requestData.profileImage && requestData.profileImage.trim() !== ''
           ? requestData.profileImage
-          : "",
+          : '',
       employment_type_id: String(requestData.employmentTypeId),
       position_id: String(requestData.positionId),
       status: requestData.status ?? true,
@@ -158,10 +152,7 @@ export async function POST(request: Request) {
     };
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "CreateEmployee",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('CreateEmployee', protoRequest);
 
     if (response.success) {
       // ดึงข้อมูล employment type และ position จาก hrd tables
@@ -187,9 +178,9 @@ export async function POST(request: Request) {
         lastName: response.data.last_name,
         nickname: response.data.nickname || undefined,
         profileImage: response.data.profile_image || undefined,
-        employmentType: personType?.HR_PERSON_TYPE_NAME || "",
+        employmentType: personType?.HR_PERSON_TYPE_NAME || '',
         employmentTypeId: response.data.employment_type_id,
-        position: position?.HR_POSITION_NAME || "",
+        position: position?.HR_POSITION_NAME || '',
         positionId: response.data.position_id,
         status: response.data.status,
         userId: response.data.user_id || undefined,
@@ -208,8 +199,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "CREATION_FAILED",
-          message: response.error_message || "ไม่สามารถสร้างเจ้าหน้าที่ได้",
+          error: 'CREATION_FAILED',
+          message: response.error_message || 'ไม่สามารถสร้างเจ้าหน้าที่ได้',
         },
         { status: 400 },
       );
@@ -221,8 +212,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DUPLICATE_CITIZEN_ID",
-          message: error.message || "เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว",
+          error: 'DUPLICATE_CITIZEN_ID',
+          message: error.message || 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว',
         },
         { status: 409 },
       );
@@ -231,8 +222,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างเจ้าหน้าที่",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการสร้างเจ้าหน้าที่',
       },
       { status: 500 },
     );

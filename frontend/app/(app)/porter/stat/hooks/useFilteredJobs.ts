@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import { FilterState } from "../components/StatFilter";
+import { FilterState } from '../components/StatFilter';
 
-import { PorterJobItem } from "@/types/porter";
-import { getDateRangeFromFilter, getISODatePart } from "@/lib/utils";
+import { PorterJobItem } from '@/types/porter';
+import { getDateRangeFromFilter, getISODatePart } from '@/lib/utils';
 
 /**
  * Hook สำหรับ filter jobs ตาม filterState และ cache ผลลัพธ์
@@ -35,10 +35,7 @@ export function useFilteredJobs(
       // ใช้ string comparison แทน Date object (เร็วกว่า)
       const jobDateStr = getISODatePart(job.createdAt);
 
-      if (
-        jobDateStr >= dateRange.startDate &&
-        jobDateStr <= dateRange.endDate
-      ) {
+      if (jobDateStr >= dateRange.startDate && jobDateStr <= dateRange.endDate) {
         filtered.push(job);
       }
     }

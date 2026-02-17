@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
-import JobDetailDrawer from "./JobDetailDrawer";
+import JobDetailDrawer from './JobDetailDrawer';
 
-import { PorterJobItem, PorterRequestFormData } from "@/types/porter";
+import { PorterJobItem, PorterRequestFormData } from '@/types/porter';
 
 interface EditableJobDetailDrawerProps {
   isOpen: boolean;

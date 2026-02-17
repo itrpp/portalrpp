@@ -10,7 +10,13 @@ export type HasVehicle = (typeof HAS_VEHICLE_VALUES)[number];
 export const RETURN_TRIP_VALUES = ['ONE_WAY', 'ROUND_TRIP'] as const;
 export type ReturnTrip = (typeof RETURN_TRIP_VALUES)[number];
 
-export const PORTER_STATUSES = ['WAITING_CENTER', 'WAITING_ACCEPT', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
+export const PORTER_STATUSES = [
+  'WAITING_CENTER',
+  'WAITING_ACCEPT',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
 export type PorterStatus = (typeof PORTER_STATUSES)[number];
 
 /** Statuses ที่นับเป็น "รอ" ใน stat (รวมกลุ่ม wait) */
@@ -26,7 +32,7 @@ export const EQUIPMENT_VALUES = [
   'IV_PUMP',
   'VENTILATOR',
   'MONITOR',
-  'SUCTION'
+  'SUCTION',
 ] as const;
 export type Equipment = (typeof EQUIPMENT_VALUES)[number];
 
@@ -388,5 +394,3 @@ export interface HealthCheckResult {
   message: string;
   timestamp: string;
 }
-
-

@@ -1,12 +1,8 @@
-import type {
-  UserDTO,
-  UserListQueryParams,
-  UserUpdatePayload,
-} from "@/types/user";
+import type { UserDTO, UserListQueryParams, UserUpdatePayload } from '@/types/user';
 
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
-import { getUserList, getUserById, updateUser, deleteUser } from "@/lib/users";
+import { getUserList, getUserById, updateUser, deleteUser } from '@/lib/users';
 
 interface UseUsersOptions {
   onError?: (errorMessage: string) => void;
@@ -40,14 +36,9 @@ export function useUsers(options: UseUsersOptions = {}) {
         setTotal(response.total);
         setPage(response.page);
         setPageSize(response.pageSize);
-        setTotalPages(
-          response.totalPages || Math.ceil(response.total / response.pageSize),
-        );
+        setTotalPages(response.totalPages || Math.ceil(response.total / response.pageSize));
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "ไม่สามารถโหลดรายการผู้ใช้ได้";
+        const message = error instanceof Error ? error.message : 'ไม่สามารถโหลดรายการผู้ใช้ได้';
 
         options.onError?.(message);
       } finally {
@@ -67,10 +58,7 @@ export function useUsers(options: UseUsersOptions = {}) {
 
         return user;
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "ไม่สามารถดึงข้อมูลผู้ใช้ได้";
+        const message = error instanceof Error ? error.message : 'ไม่สามารถดึงข้อมูลผู้ใช้ได้';
 
         options.onError?.(message);
 
@@ -89,18 +77,13 @@ export function useUsers(options: UseUsersOptions = {}) {
         const updatedUser = await updateUser(userId, payload);
 
         // อัปเดต user ใน list
-        setUsers((prevUsers) =>
-          prevUsers.map((user) => (user.id === userId ? updatedUser : user)),
-        );
+        setUsers((prevUsers) => prevUsers.map((user) => (user.id === userId ? updatedUser : user)));
 
-        options.onSuccess?.("อัปเดตข้อมูลผู้ใช้สำเร็จ");
+        options.onSuccess?.('อัปเดตข้อมูลผู้ใช้สำเร็จ');
 
         return true;
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้";
+        const message = error instanceof Error ? error.message : 'ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้';
 
         options.onError?.(message);
 
@@ -122,12 +105,11 @@ export function useUsers(options: UseUsersOptions = {}) {
         setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
         setTotal((prevTotal) => prevTotal - 1);
 
-        options.onSuccess?.("ลบผู้ใช้สำเร็จ");
+        options.onSuccess?.('ลบผู้ใช้สำเร็จ');
 
         return true;
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "ไม่สามารถลบผู้ใช้ได้";
+        const message = error instanceof Error ? error.message : 'ไม่สามารถลบผู้ใช้ได้';
 
         options.onError?.(message);
 

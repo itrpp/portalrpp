@@ -10,140 +10,140 @@ import {
   ArrowUpTrayIcon,
   UserGroupIcon,
   BriefcaseIcon,
-} from "@/components/ui/icons";
-import { BreadcrumbItemType, RouteConfig } from "@/types";
+} from '@/components/ui/icons';
+import { BreadcrumbItemType, RouteConfig } from '@/types';
 
 // Mapping ของ routes ทั้งหมดพร้อมชื่อภาษาไทยและ icon
 const routeMap: Record<string, RouteConfig> = {
-  "/home": {
-    name: "หน้าแรก",
-    href: "/home",
+  '/home': {
+    name: 'หน้าแรก',
+    href: '/home',
     icon: HomeIcon,
   },
-  "/profile": {
-    name: "โปรไฟล์",
-    href: "/profile",
+  '/profile': {
+    name: 'โปรไฟล์',
+    href: '/profile',
     icon: UserIcon,
   },
-  "/porter/stat": {
-    name: "สถิติการดำเนินการ",
-    href: "/porter/stat",
+  '/porter/stat': {
+    name: 'สถิติการดำเนินการ',
+    href: '/porter/stat',
     icon: ChartBarIcon,
-    parent: "/porter",
+    parent: '/porter',
   },
-  "/porter/request": {
-    name: "ขอเปล",
-    href: "/porter/request",
+  '/porter/request': {
+    name: 'ขอเปล',
+    href: '/porter/request',
     icon: EmergencyBedIcon,
-    parent: "/porter",
+    parent: '/porter',
   },
-  "/porter/joblist": {
-    name: "รายการคำขอ",
-    href: "/porter/joblist",
+  '/porter/joblist': {
+    name: 'รายการคำขอ',
+    href: '/porter/joblist',
     icon: ClipboardListIcon,
-    parent: "/porter",
+    parent: '/porter',
   },
-  "/porter/setting/location": {
-    name: "จุดรับ - ส่ง",
-    href: "/porter/setting/location",
+  '/porter/setting/location': {
+    name: 'จุดรับ - ส่ง',
+    href: '/porter/setting/location',
     icon: SettingsIcon,
-    parent: "/porter/setting",
+    parent: '/porter/setting',
   },
-  "/porter/setting/employee": {
-    name: "รายชื่อเจ้าหน้าที่เปล",
-    href: "/porter/setting/employee",
+  '/porter/setting/employee': {
+    name: 'รายชื่อเจ้าหน้าที่เปล',
+    href: '/porter/setting/employee',
     icon: UserIcon,
-    parent: "/porter/setting",
+    parent: '/porter/setting',
   },
-  "/revenue/import/dbf": {
-    name: "DBF",
-    href: "/revenue/import/dbf",
+  '/revenue/import/dbf': {
+    name: 'DBF',
+    href: '/revenue/import/dbf',
     icon: DocumentTextIcon,
-    parent: "/revenue/import",
+    parent: '/revenue/import',
   },
-  "/revenue/export/ipd": {
-    name: "ข้อมูล 16 แฟ้ม IPD",
-    href: "/revenue/export/ipd",
+  '/revenue/export/ipd': {
+    name: 'ข้อมูล 16 แฟ้ม IPD',
+    href: '/revenue/export/ipd',
     icon: DocumentTextIcon,
-    parent: "/revenue/export",
+    parent: '/revenue/export',
   },
-  "/revenue/export/opd": {
-    name: "ข้อมูล 16 แฟ้ม OPD",
-    href: "/revenue/export/opd",
+  '/revenue/export/opd': {
+    name: 'ข้อมูล 16 แฟ้ม OPD',
+    href: '/revenue/export/opd',
     icon: DocumentTextIcon,
-    parent: "/revenue/export",
+    parent: '/revenue/export',
   },
-  "/setting/users": {
-    name: "จัดการผู้ใช้",
-    href: "/setting/users",
+  '/setting/users': {
+    name: 'จัดการผู้ใช้',
+    href: '/setting/users',
     icon: UserIcon,
   },
-  "/setting/departments": {
-    name: "กลุ่มภารกิจ",
-    href: "/setting/departments",
+  '/setting/departments': {
+    name: 'กลุ่มภารกิจ',
+    href: '/setting/departments',
     icon: BriefcaseIcon,
-    parent: "/setting",
+    parent: '/setting',
   },
-  "/setting/department-subs": {
-    name: "กลุ่มงาน",
-    href: "/setting/department-subs",
+  '/setting/department-subs': {
+    name: 'กลุ่มงาน',
+    href: '/setting/department-subs',
     icon: BriefcaseIcon,
-    parent: "/setting",
+    parent: '/setting',
   },
-  "/setting/department-sub-subs": {
-    name: "หน่วยงาน",
-    href: "/setting/department-sub-subs",
+  '/setting/department-sub-subs': {
+    name: 'หน่วยงาน',
+    href: '/setting/department-sub-subs',
     icon: BriefcaseIcon,
-    parent: "/setting",
+    parent: '/setting',
   },
-  "/setting/person-types": {
-    name: "กลุ่มบุคลากร",
-    href: "/setting/person-types",
+  '/setting/person-types': {
+    name: 'กลุ่มบุคลากร',
+    href: '/setting/person-types',
     icon: UserGroupIcon,
-    parent: "/setting",
+    parent: '/setting',
   },
-  "/setting/positions": {
-    name: "ตำแหน่ง",
-    href: "/setting/positions",
+  '/setting/positions': {
+    name: 'ตำแหน่ง',
+    href: '/setting/positions',
     icon: UserGroupIcon,
-    parent: "/setting",
+    parent: '/setting',
   },
 };
 
 // Parent routes ที่ไม่มีหน้าเอง แต่เป็น parent ของ routes อื่น
 // ใช้ href="#" สำหรับ routes ที่ไม่มี path จริงใน Sidebar
 const parentRouteMap: Record<string, RouteConfig> = {
-  "/porter": {
-    name: "ศูนย์เคลื่อนย้ายผู้ป่วย",
-    href: "#",
+  '/porter': {
+    name: 'ศูนย์เคลื่อนย้ายผู้ป่วย',
+    href: '#',
     icon: EmergencyBedIcon,
   },
-  "/porter/setting": {
-    name: "ตั้งค่า",
-    href: "#",
+  '/porter/setting': {
+    name: 'ตั้งค่า',
+    href: '#',
     icon: SettingsIcon,
-    parent: "/porter",
+    parent: '/porter',
   },
-  "/revenue": {
-    name: "ระบบงานจัดเก็บรายได้",
-    href: "#",
+  '/revenue': {
+    name: 'ระบบงานจัดเก็บรายได้',
+    href: '#',
     icon: ChartBarIcon,
   },
-  "/revenue/import": {
-    name: "นำเข้าไฟล์",
-    href: "#",
+  '/revenue/import': {
+    name: 'นำเข้าไฟล์',
+    href: '#',
     icon: ArrowDownTrayIcon,
-    parent: "/revenue",
+    parent: '/revenue',
   },
-  "/revenue/export": {
-    name: "ส่งออกข้อมูล",
-    href: "#",
+  '/revenue/export': {
+    name: 'ส่งออกข้อมูล',
+    href: '#',
     icon: ArrowUpTrayIcon,
-    parent: "/revenue",
+    parent: '/revenue',
   },
-  "/setting": {
-    name: "ตั้งค่าข้อมูลบุคลากร",
-    href: "#",
+  '/setting': {
+    name: 'ตั้งค่าข้อมูลบุคลากร',
+    href: '#',
     icon: UserGroupIcon,
   },
 };
@@ -158,13 +158,13 @@ export function generateBreadcrumbs(pathname: string): BreadcrumbItemType[] {
 
   // เพิ่มหน้าแรกเสมอ
   breadcrumbs.push({
-    name: "หน้าแรก",
-    href: "/home",
+    name: 'หน้าแรก',
+    href: '/home',
     icon: HomeIcon,
   });
 
   // ถ้าเป็นหน้าแรกแล้ว ให้ return แค่หน้าแรก
-  if (pathname === "/home" || pathname === "/") {
+  if (pathname === '/home' || pathname === '/') {
     return breadcrumbs;
   }
 
@@ -180,9 +180,7 @@ export function generateBreadcrumbs(pathname: string): BreadcrumbItemType[] {
       currentRoute = parentRoute;
     } else {
       // ถ้ายังไม่เจอ ให้ลองหา route ที่ pathname เริ่มต้นด้วย
-      const matchingRoute = Object.keys(routeMap).find((route) =>
-        pathname.startsWith(route),
-      );
+      const matchingRoute = Object.keys(routeMap).find((route) => pathname.startsWith(route));
 
       if (matchingRoute) {
         currentRoute = routeMap[matchingRoute];
@@ -199,8 +197,7 @@ export function generateBreadcrumbs(pathname: string): BreadcrumbItemType[] {
   const buildBreadcrumbPath = (route: RouteConfig): void => {
     if (route.parent) {
       // หา parent route
-      const parentRoute =
-        routeMap[route.parent] || parentRouteMap[route.parent];
+      const parentRoute = routeMap[route.parent] || parentRouteMap[route.parent];
 
       if (parentRoute) {
         buildBreadcrumbPath(parentRoute);

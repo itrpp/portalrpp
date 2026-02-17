@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -9,18 +9,18 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
-  const departmentSubIdParam = searchParams.get("departmentSubId");
-  const idsParam = searchParams.get("ids"); // สำหรับดึงแบบ batch
-  const query = searchParams.get("q")?.trim() ?? "";
+  const departmentSubIdParam = searchParams.get('departmentSubId');
+  const idsParam = searchParams.get('ids'); // สำหรับดึงแบบ batch
+  const query = searchParams.get('q')?.trim() ?? '';
 
   const where: any = {
-    ACTIVE: "True",
+    ACTIVE: 'True',
   };
 
   // ถ้ามี ids parameter ให้ดึงแบบ batch (สำหรับลด N+1 queries)
   if (idsParam) {
     const ids = idsParam
-      .split(",")
+      .split(',')
       .map((id) => Number.parseInt(id.trim(), 10))
       .filter((id) => !Number.isNaN(id) && id > 0);
 
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     orderBy: idsParam
       ? undefined // ไม่ต้อง sort เมื่อดึงแบบ batch
       : {
-          HR_DEPARTMENT_SUB_SUB_NAME: "asc",
+          HR_DEPARTMENT_SUB_SUB_NAME: 'asc',
         },
   });
 
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
   const departmentSubs = await prisma.hrd_department_sub.findMany({
     where: {
       HR_DEPARTMENT_SUB_ID: {
-        in: departmentSubIds.map((id) => Number.parseInt(id || "0", 10)),
+        in: departmentSubIds.map((id) => Number.parseInt(id || '0', 10)),
       },
     },
     select: {
@@ -86,22 +86,19 @@ export async function GET(request: Request) {
   });
 
   const departmentSubMap = new Map(
-    departmentSubs.map((d) => [
-      d.HR_DEPARTMENT_SUB_ID,
-      d.HR_DEPARTMENT_SUB_NAME ?? "",
-    ]),
+    departmentSubs.map((d) => [d.HR_DEPARTMENT_SUB_ID, d.HR_DEPARTMENT_SUB_NAME ?? '']),
   );
 
   return NextResponse.json({
     success: true,
     data: items.map((item) => ({
       id: item.HR_DEPARTMENT_SUB_SUB_ID,
-      name: item.HR_DEPARTMENT_SUB_SUB_NAME ?? "",
-      departmentSubId: Number.parseInt(item.HR_DEPARTMENT_SUB_ID || "0", 10),
+      name: item.HR_DEPARTMENT_SUB_SUB_NAME ?? '',
+      departmentSubId: Number.parseInt(item.HR_DEPARTMENT_SUB_ID || '0', 10),
       departmentSubName: departmentSubMap.get(
-        Number.parseInt(item.HR_DEPARTMENT_SUB_ID || "0", 10),
+        Number.parseInt(item.HR_DEPARTMENT_SUB_ID || '0', 10),
       ),
-      active: item.ACTIVE === "True",
+      active: item.ACTIVE === 'True',
       createdAt: item.created_at?.toISOString(),
       updatedAt: item.updated_at?.toISOString(),
     })),
@@ -122,23 +119,23 @@ export async function POST(request: Request) {
     const { name, departmentSubId, active } = requestData;
 
     // Validation
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณากรอกชื่อหน่วยงาน",
+          error: 'VALIDATION_ERROR',
+          message: 'กรุณากรอกชื่อหน่วยงาน',
         },
         { status: 400 },
       );
     }
 
-    if (!departmentSubId || typeof departmentSubId !== "number") {
+    if (!departmentSubId || typeof departmentSubId !== 'number') {
       return NextResponse.json(
         {
           success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณาเลือกกลุ่มงาน",
+          error: 'VALIDATION_ERROR',
+          message: 'กรุณาเลือกกลุ่มงาน',
         },
         { status: 400 },
       );
@@ -155,8 +152,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DEPARTMENT_SUB_NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มงาน",
+          error: 'DEPARTMENT_SUB_NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มงาน',
         },
         { status: 404 },
       );
@@ -176,8 +173,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DUPLICATE_NAME",
-          message: "ชื่อหน่วยงานนี้มีอยู่ในกลุ่มงานนี้แล้ว",
+          error: 'DUPLICATE_NAME',
+          message: 'ชื่อหน่วยงานนี้มีอยู่ในกลุ่มงานนี้แล้ว',
         },
         { status: 409 },
       );
@@ -188,7 +185,7 @@ export async function POST(request: Request) {
       data: {
         HR_DEPARTMENT_SUB_SUB_NAME: name.trim(),
         HR_DEPARTMENT_SUB_ID: String(departmentSubId),
-        ACTIVE: active !== undefined ? (active ? "True" : "False") : "True",
+        ACTIVE: active !== undefined ? (active ? 'True' : 'False') : 'True',
       },
       select: {
         HR_DEPARTMENT_SUB_SUB_ID: true,
@@ -205,13 +202,10 @@ export async function POST(request: Request) {
         success: true,
         data: {
           id: newDepartmentSubSub.HR_DEPARTMENT_SUB_SUB_ID,
-          name: newDepartmentSubSub.HR_DEPARTMENT_SUB_SUB_NAME ?? "",
-          departmentSubId: Number.parseInt(
-            newDepartmentSubSub.HR_DEPARTMENT_SUB_ID || "0",
-            10,
-          ),
-          departmentSubName: departmentSub.HR_DEPARTMENT_SUB_NAME ?? "",
-          active: newDepartmentSubSub.ACTIVE === "True",
+          name: newDepartmentSubSub.HR_DEPARTMENT_SUB_SUB_NAME ?? '',
+          departmentSubId: Number.parseInt(newDepartmentSubSub.HR_DEPARTMENT_SUB_ID || '0', 10),
+          departmentSubName: departmentSub.HR_DEPARTMENT_SUB_NAME ?? '',
+          active: newDepartmentSubSub.ACTIVE === 'True',
           createdAt: newDepartmentSubSub.created_at?.toISOString(),
           updatedAt: newDepartmentSubSub.updated_at?.toISOString(),
         },
@@ -219,13 +213,13 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error: any) {
-    console.error("Error creating department sub sub:", error);
+    console.error('Error creating department sub sub:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างหน่วยงาน",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการสร้างหน่วยงาน',
       },
       { status: 500 },
     );

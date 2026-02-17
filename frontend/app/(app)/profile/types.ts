@@ -1,4 +1,4 @@
-import type { ProfileDTO } from "@/types/profile";
+import type { ProfileDTO } from '@/types/profile';
 
 /**
  * ฟิลด์ที่แก้ไขได้ในฟอร์มโปรไฟล์

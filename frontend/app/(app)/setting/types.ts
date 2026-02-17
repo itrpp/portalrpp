@@ -1,4 +1,4 @@
-import type React from "react";
+import type React from 'react';
 
 /**
  * รายการ CRUD ทั่วไป (id, name, active)
@@ -57,9 +57,7 @@ export interface SimpleCrudItem {
 export interface SimpleCrudModalProps<T extends SimpleCrudItem> {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (
-    item: Omit<T, "id" | "createdAt" | "updatedAt"> & { id?: number },
-  ) => Promise<void>;
+  onSave: (item: Omit<T, 'id' | 'createdAt' | 'updatedAt'> & { id?: number }) => Promise<void>;
   item?: T | null;
   isLoading?: boolean;
   itemName: string;

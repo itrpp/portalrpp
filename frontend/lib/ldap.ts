@@ -1,13 +1,8 @@
-import type {
-  LDAPConfig,
-  LDAPUserData,
-  LDAPAuthResult,
-  LDAPSearchResult,
-} from "@/types/ldap";
+import type { LDAPConfig, LDAPUserData, LDAPAuthResult, LDAPSearchResult } from '@/types/ldap';
 
-import { Client, EqualityFilter } from "ldapts";
+import { Client, EqualityFilter } from 'ldapts';
 
-import { validateEnvironment } from "./env";
+import { validateEnvironment } from './env';
 
 /**
  * LDAP Service Class สำหรับจัดการการเชื่อมต่อและ authentication
@@ -45,7 +40,7 @@ export class LDAPService {
       try {
         await this.client.unbind();
       } catch (error) {
-        console.warn("LDAP unbind warning:", error);
+        console.warn('LDAP unbind warning:', error);
       }
       this.client = null;
     }
@@ -57,31 +52,31 @@ export class LDAPService {
   private isConnectionError(error: unknown): boolean {
     if (!error) return false;
 
-    const messageRaw = (error as Error)?.message || "";
-    const nameRaw = (error as Error)?.name || "";
+    const messageRaw = (error as Error)?.message || '';
+    const nameRaw = (error as Error)?.name || '';
     const message = messageRaw.toString();
     const name = nameRaw.toString();
     const lower = `${name} ${message}`.toLowerCase();
 
     // ครอบคลุมกรณี timeout, DNS, refuse, reset, unreachable และข้อผิดพลาดของ ldapts ที่เกี่ยวกับ network
     const networkKeywords = [
-      "econnrefused",
-      "etimedout",
-      "econnreset",
-      "ehostunreach",
-      "enetunreach",
-      "enotfound",
-      "eai_again",
-      "server down",
-      "code 81", // LDAP serverDown
-      "protocol error",
-      "ldaperror: 81",
-      "socket",
-      "timeout",
-      "timed out",
-      "connect",
-      "network",
-      "client network socket disconnected",
+      'econnrefused',
+      'etimedout',
+      'econnreset',
+      'ehostunreach',
+      'enetunreach',
+      'enotfound',
+      'eai_again',
+      'server down',
+      'code 81', // LDAP serverDown
+      'protocol error',
+      'ldaperror: 81',
+      'socket',
+      'timeout',
+      'timed out',
+      'connect',
+      'network',
+      'client network socket disconnected',
     ];
 
     return networkKeywords.some((k) => lower.includes(k));
@@ -98,14 +93,11 @@ export class LDAPService {
       await client.bind(this.config.bindDN, this.config.bindPassword);
 
       // สร้าง search filter
-      const searchFilter = this.config.searchFilter.replace(
-        /{{username}}/g,
-        username,
-      );
+      const searchFilter = this.config.searchFilter.replace(/{{username}}/g, username);
 
       // ค้นหาผู้ใช้
       const { searchEntries } = await client.search(this.config.baseDN, {
-        scope: "sub",
+        scope: 'sub',
         filter: searchFilter,
       });
 
@@ -122,26 +114,24 @@ export class LDAPService {
           .map(([type, values]) => {
             const toGuidString = (buf: Buffer): string => {
               // Active Directory GUID จัดเก็บแบบ little-endian ใน 3 กลุ่มแรก
-              const h = (i: number) => buf[i]!.toString(16).padStart(2, "0");
+              const h = (i: number) => buf[i]!.toString(16).padStart(2, '0');
 
               return `${h(3)}${h(2)}${h(1)}${h(0)}-${h(5)}${h(4)}-${h(7)}${h(6)}-${h(8)}${h(9)}-${h(10)}${h(11)}${h(12)}${h(13)}${h(14)}${h(15)}`;
             };
 
             const convertValue = (val: unknown): string => {
-              if (type === "objectGUID") {
-                const buf = Buffer.isBuffer(val)
-                  ? (val as Buffer)
-                  : Buffer.from(val as any);
+              if (type === 'objectGUID') {
+                const buf = Buffer.isBuffer(val) ? (val as Buffer) : Buffer.from(val as any);
 
                 if (buf.length === 16) {
                   return toGuidString(buf);
                 }
                 // หากไม่ได้ความยาว 16 ไบต์ ให้ลองตีความจากสตริง hex ที่อาจถูกส่งมา
-                const str = typeof val === "string" ? val : String(val);
-                const cleaned = str.replace(/[^0-9a-fA-F]/g, "");
+                const str = typeof val === 'string' ? val : String(val);
+                const cleaned = str.replace(/[^0-9a-fA-F]/g, '');
 
                 if (cleaned.length === 32) {
-                  const b = Buffer.from(cleaned, "hex");
+                  const b = Buffer.from(cleaned, 'hex');
 
                   return toGuidString(b);
                 }
@@ -151,10 +141,10 @@ export class LDAPService {
 
               if (Buffer.isBuffer(val)) {
                 // สำหรับแอตทริบิวต์อื่น แปลงเป็น utf8 ปกติ
-                return (val as Buffer).toString("utf8");
+                return (val as Buffer).toString('utf8');
               }
 
-              return typeof val === "string" ? val : String(val);
+              return typeof val === 'string' ? val : String(val);
             };
 
             const convertedValues = Array.isArray(values)
@@ -163,14 +153,14 @@ export class LDAPService {
 
             return { type, values: convertedValues };
           })
-          .filter((attr) => attr.type !== "dn"),
+          .filter((attr) => attr.type !== 'dn'),
       };
     } catch (error) {
-      console.error("LDAP search error:", error);
+      console.error('LDAP search error:', error);
 
       // ถ้าเป็น error การเชื่อมต่อ ให้โยนต่อเพื่อให้ชั้นบนจัดการเป็นข้อความที่ถูกต้อง
       if (this.isConnectionError(error)) {
-        throw new Error("LDAP_CONNECTION_ERROR");
+        throw new Error('LDAP_CONNECTION_ERROR');
       }
 
       // กรณีอื่น ๆ ให้ถือว่าไม่พบบัญชี (เช่น search ไม่อนุญาต/ไม่มีสิทธิ์)
@@ -181,10 +171,7 @@ export class LDAPService {
   /**
    * ทดสอบการ bind ด้วย user credentials
    */
-  private async testUserBind(
-    userDN: string,
-    password: string,
-  ): Promise<boolean> {
+  private async testUserBind(userDN: string, password: string): Promise<boolean> {
     const userClient = new Client({
       url: this.config.url,
       timeout: this.config.timeout,
@@ -197,7 +184,7 @@ export class LDAPService {
 
       return true;
     } catch (error) {
-      console.error("User bind test failed:", error);
+      console.error('User bind test failed:', error);
 
       return false;
     }
@@ -206,12 +193,8 @@ export class LDAPService {
   /**
    * ตรวจสอบว่า user account ถูก disable หรือไม่
    */
-  private isAccountDisabled(
-    attributes: Array<{ type: string; values: string[] }>,
-  ): boolean {
-    const userAccountControl = attributes.find(
-      (a) => a.type === "userAccountControl",
-    );
+  private isAccountDisabled(attributes: Array<{ type: string; values: string[] }>): boolean {
+    const userAccountControl = attributes.find((a) => a.type === 'userAccountControl');
 
     if (!userAccountControl || !userAccountControl.values[0]) {
       return false; // ถ้าไม่มี userAccountControl ให้ผ่าน
@@ -234,17 +217,14 @@ export class LDAPService {
   /**
    * แปลง LDAP search result เป็น user data
    */
-  private parseUserData(
-    searchResult: LDAPSearchResult,
-    _username: string,
-  ): LDAPUserData {
+  private parseUserData(searchResult: LDAPSearchResult, _username: string): LDAPUserData {
     const { attributes } = searchResult;
 
     // Helper function สำหรับดึงค่า attribute
     const getAttribute = (attrName: string): string => {
       const attr = attributes.find((a) => a.type === attrName);
 
-      return attr?.values[0] || "";
+      return attr?.values[0] || '';
     };
 
     // Helper function สำหรับดึงค่าทั้งหมดของ attribute
@@ -255,8 +235,8 @@ export class LDAPService {
     };
 
     // ดึงข้อมูล groups
-    const memberOfValues = getAttributeValues("memberOf");
-    const groupsString = memberOfValues.join(";");
+    const memberOfValues = getAttributeValues('memberOf');
+    const groupsString = memberOfValues.join(';');
 
     // ตรวจสอบว่าเป็น admin หรือไม่
     const isAdmin = memberOfValues.some((dn: string) => {
@@ -267,13 +247,13 @@ export class LDAPService {
     });
 
     return {
-      id: getAttribute("objectGUID"),
-      displayName: getAttribute("cn"),
-      email: getAttribute("userPrincipalName"),
-      department: getFirstOU(getAttribute("distinguishedName")) || "",
-      position: getAttribute("title") || getAttribute("description") || "",
+      id: getAttribute('objectGUID'),
+      displayName: getAttribute('cn'),
+      email: getAttribute('userPrincipalName'),
+      department: getFirstOU(getAttribute('distinguishedName')) || '',
+      position: getAttribute('title') || getAttribute('description') || '',
       memberOf: groupsString,
-      role: isAdmin ? "admin" : "user",
+      role: isAdmin ? 'admin' : 'user',
     };
   }
   // ... (skip unchanged parts)
@@ -284,10 +264,10 @@ export class LDAPService {
    */
   private guidToRawHex(guid: string): string {
     // Remove all non-hex characters
-    const hex = guid.replace(/[^0-9a-fA-F]/g, "");
+    const hex = guid.replace(/[^0-9a-fA-F]/g, '');
 
     if (hex.length !== 32) {
-      throw new Error("Invalid GUID format");
+      throw new Error('Invalid GUID format');
     }
 
     const parts = [
@@ -299,9 +279,9 @@ export class LDAPService {
     ];
 
     // Little-endian parts
-    const p1 = parts[0].match(/../g)!.reverse().join("");
-    const p2 = parts[1].match(/../g)!.reverse().join("");
-    const p3 = parts[2].match(/../g)!.reverse().join("");
+    const p1 = parts[0].match(/../g)!.reverse().join('');
+    const p2 = parts[1].match(/../g)!.reverse().join('');
+    const p3 = parts[2].match(/../g)!.reverse().join('');
 
     // Big-endian parts
     const p4 = parts[3];
@@ -323,20 +303,20 @@ export class LDAPService {
 
       const rawHex = this.guidToRawHex(ldapId);
       const filter = new EqualityFilter({
-        attribute: "objectGUID",
-        value: Buffer.from(rawHex, "hex"),
+        attribute: 'objectGUID',
+        value: Buffer.from(rawHex, 'hex'),
       });
 
       const { searchEntries } = await client.search(this.config.baseDN, {
-        scope: "sub",
+        scope: 'sub',
         filter: filter,
-        attributes: ["userAccountControl"],
+        attributes: ['userAccountControl'],
       });
 
       if (searchEntries.length === 0) {
         return {
           success: false,
-          errorCode: "USER_NOT_FOUND",
+          errorCode: 'USER_NOT_FOUND',
         };
       }
 
@@ -346,16 +326,14 @@ export class LDAPService {
 
         return {
           type,
-          values: vals.map((v) =>
-            Buffer.isBuffer(v) ? v.toString() : String(v),
-          ),
+          values: vals.map((v) => (Buffer.isBuffer(v) ? v.toString() : String(v))),
         };
       });
 
       if (this.isAccountDisabled(attributes)) {
         return {
           success: false,
-          errorCode: "ACCOUNT_DISABLED",
+          errorCode: 'ACCOUNT_DISABLED',
         };
       }
 
@@ -363,18 +341,18 @@ export class LDAPService {
         success: true,
       };
     } catch (error) {
-      console.error("LDAP check status error:", error);
+      console.error('LDAP check status error:', error);
 
       if (this.isConnectionError(error)) {
         return {
           success: false,
-          errorCode: "CONNECTION_ERROR",
+          errorCode: 'CONNECTION_ERROR',
         };
       }
 
       return {
         success: false,
-        errorCode: "INTERNAL_ERROR",
+        errorCode: 'INTERNAL_ERROR',
       };
     } finally {
       await this.closeClient();
@@ -384,17 +362,14 @@ export class LDAPService {
   /**
    * Authenticate ผู้ใช้ผ่าน LDAP
    */
-  async authenticate(
-    username: string,
-    password: string,
-  ): Promise<LDAPAuthResult> {
+  async authenticate(username: string, password: string): Promise<LDAPAuthResult> {
     try {
       // ตรวจสอบ input parameters
       if (!username || !password) {
         return {
           success: false,
           // แสดงเฉพาะรหัสข้อผิดพลาด เพื่อให้ชั้นบน map ข้อความสำหรับผู้ใช้
-          errorCode: "MISSING_CREDENTIALS",
+          errorCode: 'MISSING_CREDENTIALS',
         };
       }
 
@@ -404,7 +379,7 @@ export class LDAPService {
       if (!searchResult) {
         return {
           success: false,
-          errorCode: "USER_NOT_FOUND",
+          errorCode: 'USER_NOT_FOUND',
         };
       }
 
@@ -412,7 +387,7 @@ export class LDAPService {
       if (this.isAccountDisabled(searchResult.attributes)) {
         return {
           success: false,
-          errorCode: "ACCOUNT_DISABLED",
+          errorCode: 'ACCOUNT_DISABLED',
         };
       }
 
@@ -420,7 +395,7 @@ export class LDAPService {
       if (!this.isUserInRppUserOU(searchResult.objectName)) {
         return {
           success: false,
-          errorCode: "USER_NOT_AUTHORIZED",
+          errorCode: 'USER_NOT_AUTHORIZED',
         };
       }
 
@@ -447,7 +422,7 @@ export class LDAPService {
       if (!bindSuccess) {
         return {
           success: false,
-          errorCode: "INVALID_CREDENTIALS",
+          errorCode: 'INVALID_CREDENTIALS',
         };
       }
 
@@ -459,23 +434,22 @@ export class LDAPService {
         user: userData,
       };
     } catch (error) {
-      console.error("LDAP authentication error:", error);
+      console.error('LDAP authentication error:', error);
 
       // แยกกรณีเชื่อมต่อ LDAP ไม่ได้ ให้แจ้งผู้ใช้ด้วยข้อความที่ถูกต้อง
       if (
         error instanceof Error &&
-        (error.message === "LDAP_CONNECTION_ERROR" ||
-          this.isConnectionError(error))
+        (error.message === 'LDAP_CONNECTION_ERROR' || this.isConnectionError(error))
       ) {
         return {
           success: false,
-          errorCode: "CONNECTION_ERROR",
+          errorCode: 'CONNECTION_ERROR',
         };
       }
 
       return {
         success: false,
-        errorCode: "INTERNAL_ERROR",
+        errorCode: 'INTERNAL_ERROR',
       };
     } finally {
       // ปิดการเชื่อมต่อ
@@ -506,25 +480,23 @@ export function createLDAPService(): LDAPService {
       bindPassword: required.LDAP_BIND_PASSWORD,
       searchFilter:
         optional.LDAP_SEARCH_FILTER ||
-        "(|(sAMAccountName={{username}})(userPrincipalName={{username}}))",
-      timeout: parseInt(optional.LDAP_TIMEOUT || "5000"),
-      connectTimeout: parseInt(optional.LDAP_CONNECT_TIMEOUT || "10000"),
-      idleTimeout: parseInt(optional.LDAP_IDLE_TIMEOUT || "30000"),
-      reconnect: optional.LDAP_RECONNECT === "true",
+        '(|(sAMAccountName={{username}})(userPrincipalName={{username}}))',
+      timeout: parseInt(optional.LDAP_TIMEOUT || '5000'),
+      connectTimeout: parseInt(optional.LDAP_CONNECT_TIMEOUT || '10000'),
+      idleTimeout: parseInt(optional.LDAP_IDLE_TIMEOUT || '30000'),
+      reconnect: optional.LDAP_RECONNECT === 'true',
     };
 
     return new LDAPService(config);
   } catch (error) {
-    console.error("Failed to create LDAP service:", error);
-    throw new Error(
-      "ไม่สามารถเริ่มต้น LDAP service ได้ กรุณาตรวจสอบ environment variables",
-    );
+    console.error('Failed to create LDAP service:', error);
+    throw new Error('ไม่สามารถเริ่มต้น LDAP service ได้ กรุณาตรวจสอบ environment variables');
   }
 }
 
 function getFirstOU(dn: string): string | null {
-  const parts = dn.split(",").map((s) => s.trim());
-  const firstOU = parts.find((p) => p.toUpperCase().startsWith("OU="));
+  const parts = dn.split(',').map((s) => s.trim());
+  const firstOU = parts.find((p) => p.toUpperCase().startsWith('OU='));
 
   return firstOU ? firstOU.slice(3) : null; // ตัด "OU=" ออก
 }

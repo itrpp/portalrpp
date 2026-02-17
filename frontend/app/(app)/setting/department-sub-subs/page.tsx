@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Button,
   Card,
@@ -18,28 +18,20 @@ import {
   Chip,
   Autocomplete,
   AutocompleteItem,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import DepartmentSubSubModal from "./components/DepartmentSubSubModal";
+import DepartmentSubSubModal from './components/DepartmentSubSubModal';
 
-import { usePagination } from "@/hooks/usePagination";
-import { CARD_STYLES } from "@/lib/cardStyles";
-import { TABLE_STYLES } from "@/lib/tableStyles";
-import {
-  BuildingOfficeIcon,
-  PlusIcon,
-  TrashIcon,
-  PencilIcon,
-} from "@/components/ui/icons";
-import { DepartmentSubSub, DepartmentSub } from "@/types/hrd";
+import { usePagination } from '@/hooks/usePagination';
+import { CARD_STYLES } from '@/lib/cardStyles';
+import { TABLE_STYLES } from '@/lib/tableStyles';
+import { BuildingOfficeIcon, PlusIcon, TrashIcon, PencilIcon } from '@/components/ui/icons';
+import { DepartmentSubSub, DepartmentSub } from '@/types/hrd';
 
 export default function DepartmentSubSubManagementPage() {
-  const [departmentSubSubs, setDepartmentSubSubs] = useState<
-    DepartmentSubSub[]
-  >([]);
+  const [departmentSubSubs, setDepartmentSubSubs] = useState<DepartmentSubSub[]>([]);
   const [departmentSubs, setDepartmentSubs] = useState<DepartmentSub[]>([]);
-  const [selectedDepartmentSubId, setSelectedDepartmentSubId] =
-    useState<string>("");
+  const [selectedDepartmentSubId, setSelectedDepartmentSubId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
@@ -50,12 +42,11 @@ export default function DepartmentSubSubManagementPage() {
     onOpen: onDepartmentSubSubModalOpen,
     onClose: onDepartmentSubSubModalClose,
   } = useDisclosure();
-  const [editingDepartmentSubSub, setEditingDepartmentSubSub] =
-    useState<DepartmentSubSub | null>(null);
+  const [editingDepartmentSubSub, setEditingDepartmentSubSub] = useState<DepartmentSubSub | null>(
+    null,
+  );
   const filteredDepartmentSubSubs = departmentSubSubs.filter((subSub) =>
-    selectedDepartmentSubId
-      ? subSub.departmentSubId === Number(selectedDepartmentSubId)
-      : true,
+    selectedDepartmentSubId ? subSub.departmentSubId === Number(selectedDepartmentSubId) : true,
   );
 
   const {
@@ -76,7 +67,7 @@ export default function DepartmentSubSubManagementPage() {
         setIsLoading(true);
 
         // โหลดหน่วยงาน
-        const subSubsResponse = await fetch("/api/hrd/department-sub-subs");
+        const subSubsResponse = await fetch('/api/hrd/department-sub-subs');
         const subSubsResult = await subSubsResponse.json();
 
         if (subSubsResult.success && subSubsResult.data) {
@@ -84,7 +75,7 @@ export default function DepartmentSubSubManagementPage() {
         }
 
         // โหลดกลุ่มงาน
-        const subsResponse = await fetch("/api/hrd/department-subs");
+        const subsResponse = await fetch('/api/hrd/department-subs');
         const subsResult = await subsResponse.json();
 
         if (subsResult.success && subsResult.data) {
@@ -92,9 +83,9 @@ export default function DepartmentSubSubManagementPage() {
         }
       } catch {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดข้อมูลได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดข้อมูลได้',
+          color: 'danger',
         });
       } finally {
         setIsLoading(false);
@@ -116,49 +107,38 @@ export default function DepartmentSubSubManagementPage() {
   };
 
   const handleDeleteDepartmentSubSub = async (departmentSubSubId: number) => {
-    const departmentSubSub = departmentSubSubs.find(
-      (d) => d.id === departmentSubSubId,
-    );
+    const departmentSubSub = departmentSubSubs.find((d) => d.id === departmentSubSubId);
 
-    if (
-      !confirm(
-        `คุณแน่ใจหรือไม่ว่าต้องการลบหน่วยงาน "${departmentSubSub?.name}"?`,
-      )
-    ) {
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบหน่วยงาน "${departmentSubSub?.name}"?`)) {
       return;
     }
 
     try {
       setIsDeleting(departmentSubSubId);
-      const response = await fetch(
-        `/api/hrd/department-sub-subs/${departmentSubSubId}`,
-        {
-          method: "DELETE",
-        },
-      );
+      const response = await fetch(`/api/hrd/department-sub-subs/${departmentSubSubId}`, {
+        method: 'DELETE',
+      });
       const result = await response.json();
 
       if (result.success) {
-        setDepartmentSubSubs((prev) =>
-          prev.filter((d) => d.id !== departmentSubSubId),
-        );
+        setDepartmentSubSubs((prev) => prev.filter((d) => d.id !== departmentSubSubId));
         addToast({
-          title: "ลบหน่วยงานสำเร็จ",
-          description: "หน่วยงานถูกลบออกจากระบบแล้ว",
-          color: "success",
+          title: 'ลบหน่วยงานสำเร็จ',
+          description: 'หน่วยงานถูกลบออกจากระบบแล้ว',
+          color: 'success',
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถลบหน่วยงานได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: result.message || 'ไม่สามารถลบหน่วยงานได้',
+          color: 'danger',
         });
       }
     } catch {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถลบหน่วยงานได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถลบหน่วยงานได้',
+        color: 'danger',
       });
     } finally {
       setIsDeleting(null);
@@ -166,10 +146,9 @@ export default function DepartmentSubSubManagementPage() {
   };
 
   const handleSaveDepartmentSubSub = async (
-    departmentSubSubData: Omit<
-      DepartmentSubSub,
-      "id" | "createdAt" | "updatedAt"
-    > & { id?: number },
+    departmentSubSubData: Omit<DepartmentSubSub, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: number;
+    },
   ) => {
     try {
       setIsSaving(true);
@@ -184,54 +163,49 @@ export default function DepartmentSubSubManagementPage() {
 
         if (existing) {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: "ชื่อหน่วยงานนี้มีอยู่ในกลุ่มงานนี้แล้ว",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: 'ชื่อหน่วยงานนี้มีอยู่ในกลุ่มงานนี้แล้ว',
+            color: 'danger',
           });
-          throw new Error("ชื่อหน่วยงานซ้ำ");
+          throw new Error('ชื่อหน่วยงานซ้ำ');
         }
       }
 
       if (editingDepartmentSubSub) {
         // แก้ไขหน่วยงาน
-        const response = await fetch(
-          `/api/hrd/department-sub-subs/${editingDepartmentSubSub.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: departmentSubSubData.name,
-              departmentSubId: departmentSubSubData.departmentSubId,
-              active: departmentSubSubData.active,
-            }),
-          },
-        );
+        const response = await fetch(`/api/hrd/department-sub-subs/${editingDepartmentSubSub.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: departmentSubSubData.name,
+            departmentSubId: departmentSubSubData.departmentSubId,
+            active: departmentSubSubData.active,
+          }),
+        });
         const result = await response.json();
 
         if (result.success && result.data) {
           setDepartmentSubSubs((prev) =>
-            prev.map((d) =>
-              d.id === editingDepartmentSubSub.id ? result.data : d,
-            ),
+            prev.map((d) => (d.id === editingDepartmentSubSub.id ? result.data : d)),
           );
           addToast({
-            title: "แก้ไขหน่วยงานสำเร็จ",
-            description: "ข้อมูลหน่วยงานถูกอัปเดตแล้ว",
-            color: "success",
+            title: 'แก้ไขหน่วยงานสำเร็จ',
+            description: 'ข้อมูลหน่วยงานถูกอัปเดตแล้ว',
+            color: 'success',
           });
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถแก้ไขหน่วยงานได้",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถแก้ไขหน่วยงานได้',
+            color: 'danger',
           });
-          throw new Error(result.message || "ไม่สามารถแก้ไขหน่วยงานได้");
+          throw new Error(result.message || 'ไม่สามารถแก้ไขหน่วยงานได้');
         }
       } else {
         // เพิ่มหน่วยงานใหม่
-        const response = await fetch("/api/hrd/department-sub-subs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/hrd/department-sub-subs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: departmentSubSubData.name,
             departmentSubId: departmentSubSubData.departmentSubId,
@@ -243,25 +217,25 @@ export default function DepartmentSubSubManagementPage() {
         if (result.success && result.data) {
           setDepartmentSubSubs((prev) => [...prev, result.data]);
           addToast({
-            title: "เพิ่มหน่วยงานสำเร็จ",
-            description: "หน่วยงานใหม่ถูกเพิ่มเข้าไปในระบบแล้ว",
-            color: "success",
+            title: 'เพิ่มหน่วยงานสำเร็จ',
+            description: 'หน่วยงานใหม่ถูกเพิ่มเข้าไปในระบบแล้ว',
+            color: 'success',
           });
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถเพิ่มหน่วยงานได้",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถเพิ่มหน่วยงานได้',
+            color: 'danger',
           });
-          throw new Error(result.message || "ไม่สามารถเพิ่มหน่วยงานได้");
+          throw new Error(result.message || 'ไม่สามารถเพิ่มหน่วยงานได้');
         }
       }
       setEditingDepartmentSubSub(null);
     } catch (error) {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกหน่วยงานได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกหน่วยงานได้',
+        color: 'danger',
       });
       throw error;
     } finally {
@@ -270,10 +244,10 @@ export default function DepartmentSubSubManagementPage() {
   };
 
   const columns = [
-    { key: "id", label: "ID" },
-    { key: "name", label: "ชื่อหน่วยงาน" },
-    { key: "active", label: "สถานะ" },
-    { key: "actions", label: "การจัดการ" },
+    { key: 'id', label: 'ID' },
+    { key: 'name', label: 'ชื่อหน่วยงาน' },
+    { key: 'active', label: 'สถานะ' },
+    { key: 'actions', label: 'การจัดการ' },
   ];
 
   return (
@@ -285,9 +259,7 @@ export default function DepartmentSubSubManagementPage() {
             <BuildingOfficeIcon className="w-8 h-8 text-primary" />
             จัดการหน่วยงาน
           </h1>
-          <p className="text-default-600 mt-2">
-            จัดการข้อมูลหน่วยงานสำหรับระบบ
-          </p>
+          <p className="text-default-600 mt-2">จัดการข้อมูลหน่วยงานสำหรับระบบ</p>
         </div>
         <Button
           color="primary"
@@ -311,13 +283,9 @@ export default function DepartmentSubSubManagementPage() {
               selectedKey={selectedDepartmentSubId}
               size="sm"
               variant="bordered"
-              onSelectionChange={(key) =>
-                setSelectedDepartmentSubId(key as string)
-              }
+              onSelectionChange={(key) => setSelectedDepartmentSubId(key as string)}
             >
-              {(sub) => (
-                <AutocompleteItem key={sub.id}>{sub.name}</AutocompleteItem>
-              )}
+              {(sub) => <AutocompleteItem key={sub.id}>{sub.name}</AutocompleteItem>}
             </Autocomplete>
           </div>
         </CardBody>
@@ -329,9 +297,7 @@ export default function DepartmentSubSubManagementPage() {
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <BuildingOfficeIcon className="w-6 h-6 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">
-                รายการหน่วยงาน
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground">รายการหน่วยงาน</h2>
             </div>
           </div>
         </CardHeader>
@@ -353,41 +319,24 @@ export default function DepartmentSubSubManagementPage() {
                 }}
               >
                 <TableHeader columns={columns}>
-                  {(column) => (
-                    <TableColumn key={column.key}>{column.label}</TableColumn>
-                  )}
+                  {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
                 </TableHeader>
-                <TableBody
-                  emptyContent="ยังไม่มีข้อมูลหน่วยงาน"
-                  items={currentDepartmentSubSubs}
-                >
+                <TableBody emptyContent="ยังไม่มีข้อมูลหน่วยงาน" items={currentDepartmentSubSubs}>
                   {(item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <span
-                          className={`font-mono ${TABLE_STYLES.text.small}`}
-                        >
-                          {item.id}
-                        </span>
+                        <span className={`font-mono ${TABLE_STYLES.text.small}`}>{item.id}</span>
                       </TableCell>
                       <TableCell>
-                        <span className={TABLE_STYLES.colors.cellText}>
-                          {item.name}
-                        </span>
+                        <span className={TABLE_STYLES.colors.cellText}>{item.name}</span>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          color={item.active ? "success" : "default"}
-                          size="sm"
-                          variant="flat"
-                        >
-                          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                        <Chip color={item.active ? 'success' : 'default'} size="sm" variant="flat">
+                          {item.active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                         </Chip>
                       </TableCell>
                       <TableCell>
-                        <div
-                          className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
-                        >
+                        <div className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}>
                           <Button
                             isIconOnly
                             aria-label="แก้ไขหน่วยงาน"
@@ -407,9 +356,7 @@ export default function DepartmentSubSubManagementPage() {
                             isLoading={isDeleting === item.id}
                             size="sm"
                             variant="light"
-                            onPress={() =>
-                              handleDeleteDepartmentSubSub(item.id)
-                            }
+                            onPress={() => handleDeleteDepartmentSubSub(item.id)}
                           >
                             <TrashIcon aria-hidden className="w-4 h-4" />
                           </Button>
@@ -424,11 +371,8 @@ export default function DepartmentSubSubManagementPage() {
               {filteredDepartmentSubSubs.length > 0 && (
                 <div className={TABLE_STYLES.pagination.containerClass}>
                   <div className={TABLE_STYLES.pagination.textClass}>
-                    แสดง {startIndex + 1} - {""}
-                    {Math.min(
-                      endIndex,
-                      filteredDepartmentSubSubs.length,
-                    )} จาก {""}
+                    แสดง {startIndex + 1} - {''}
+                    {Math.min(endIndex, filteredDepartmentSubSubs.length)} จาก {''}
                     {filteredDepartmentSubSubs.length} รายการ
                   </div>
                   <Pagination
@@ -440,12 +384,8 @@ export default function DepartmentSubSubManagementPage() {
                     total={totalPages}
                     onChange={setCurrentPage}
                   />
-                  <div
-                    className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}
-                  >
-                    <div
-                      className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
-                    >
+                  <div className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}>
+                    <div className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}>
                       <label
                         className={TABLE_STYLES.pagination.labelClass}
                         htmlFor="rows-per-page-deptsubsub"

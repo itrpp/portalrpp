@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import type { CrudItem, CrudTableProps } from "../types";
+import type { CrudItem, CrudTableProps } from '../types';
 
-import React from "react";
+import React from 'react';
 import {
   Table,
   TableHeader,
@@ -12,12 +12,12 @@ import {
   TableCell,
   Pagination,
   Button,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { PencilIcon, TrashIcon } from "@/components/ui/icons";
-import { TABLE_STYLES } from "@/lib/tableStyles";
+import { PencilIcon, TrashIcon } from '@/components/ui/icons';
+import { TABLE_STYLES } from '@/lib/tableStyles';
 
-export type { CrudItem, CrudTableColumn, CrudTableProps } from "../types";
+export type { CrudItem, CrudTableColumn, CrudTableProps } from '../types';
 
 export function CrudTable<T extends CrudItem>({
   items,
@@ -34,13 +34,11 @@ export function CrudTable<T extends CrudItem>({
   onDelete,
   onPageChange,
   onRowsPerPageChange,
-  emptyContent = "ยังไม่มีข้อมูล",
+  emptyContent = 'ยังไม่มีข้อมูล',
   showActions = true,
 }: CrudTableProps<T>) {
   // Add actions column if showActions is true
-  const tableColumns = showActions
-    ? [...columns, { key: "actions", label: "การจัดการ" }]
-    : columns;
+  const tableColumns = showActions ? [...columns, { key: 'actions', label: 'การจัดการ' }] : columns;
 
   return (
     <>
@@ -61,9 +59,7 @@ export function CrudTable<T extends CrudItem>({
             }}
           >
             <TableHeader columns={tableColumns}>
-              {(column) => (
-                <TableColumn key={column.key}>{column.label}</TableColumn>
-              )}
+              {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
             </TableHeader>
             <TableBody emptyContent={emptyContent} items={items}>
               {(item) => {
@@ -72,9 +68,7 @@ export function CrudTable<T extends CrudItem>({
                     {column.render ? (
                       column.render(item)
                     ) : (
-                      <span className="text-foreground">
-                        {String(item[column.key] ?? "")}
-                      </span>
+                      <span className="text-foreground">{String(item[column.key] ?? '')}</span>
                     )}
                   </TableCell>
                 ));
@@ -120,8 +114,7 @@ export function CrudTable<T extends CrudItem>({
           {items.length > 0 && (
             <div className={TABLE_STYLES.pagination.containerClass}>
               <div className={TABLE_STYLES.pagination.textClass}>
-                แสดง {startIndex + 1} - {Math.min(endIndex, items.length)} จาก{" "}
-                {items.length} รายการ
+                แสดง {startIndex + 1} - {Math.min(endIndex, items.length)} จาก {items.length} รายการ
               </div>
               <Pagination
                 showControls
@@ -132,16 +125,9 @@ export function CrudTable<T extends CrudItem>({
                 total={totalPages}
                 onChange={onPageChange}
               />
-              <div
-                className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}
-              >
-                <div
-                  className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}
-                >
-                  <label
-                    className={TABLE_STYLES.pagination.labelClass}
-                    htmlFor="rows-per-page"
-                  >
+              <div className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}>
+                <div className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}>
+                  <label className={TABLE_STYLES.pagination.labelClass} htmlFor="rows-per-page">
                     แสดงต่อหน้า:
                   </label>
                   <select

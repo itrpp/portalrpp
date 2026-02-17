@@ -10,10 +10,14 @@ import {
   type PorterStatus,
   type ReturnTrip,
   type UrgencyLevel,
-  type VehicleType
+  type VehicleType,
 } from '../types/porter';
 
-const validateValue = <T extends string>(value: string | undefined | null, validValues: readonly T[], fallback: T): T => {
+const validateValue = <T extends string>(
+  value: string | undefined | null,
+  validValues: readonly T[],
+  fallback: T,
+): T => {
   if (typeof value === 'string' && validValues.includes(value as T)) {
     return value as T;
   }
@@ -75,7 +79,7 @@ export const mapStatusToPrisma = (protoStatus?: string | number | null): PorterS
       1: 'WAITING_ACCEPT',
       2: 'IN_PROGRESS',
       3: 'COMPLETED',
-      4: 'CANCELLED'
+      4: 'CANCELLED',
     };
     return map[protoStatus] ?? 'WAITING_CENTER';
   }
@@ -88,13 +92,17 @@ export const mapStatusToProto = (prismaStatus?: string | null): PorterStatus => 
   return validateValue(prismaStatus ?? undefined, PORTER_STATUSES, 'WAITING_CENTER');
 };
 
-export const mapEquipmentToPrisma = (protoEquipmentArray?: Array<string | number> | null): Equipment[] => {
+export const mapEquipmentToPrisma = (
+  protoEquipmentArray?: Array<string | number> | null,
+): Equipment[] => {
   if (!Array.isArray(protoEquipmentArray) || protoEquipmentArray.length === 0) {
     return [];
   }
 
   if (typeof protoEquipmentArray[0] === 'string') {
-    return (protoEquipmentArray as string[]).filter((eq) => EQUIPMENT_VALUES.includes(eq as Equipment)) as Equipment[];
+    return (protoEquipmentArray as string[]).filter((eq) =>
+      EQUIPMENT_VALUES.includes(eq as Equipment),
+    ) as Equipment[];
   }
 
   const map: Record<number, Equipment | null> = {
@@ -103,7 +111,7 @@ export const mapEquipmentToPrisma = (protoEquipmentArray?: Array<string | number
     2: 'ICD_BOX',
     3: 'CLOTH_TIED',
     4: 'OTHER',
-    5: 'SUCTION'
+    5: 'SUCTION',
   };
 
   return (protoEquipmentArray as number[])
@@ -126,7 +134,7 @@ export const mapEquipmentToProto = (prismaEquipment?: string | Equipment[] | nul
     equipmentArray = [];
   }
 
-  return (equipmentArray as string[]).filter((eq) => EQUIPMENT_VALUES.includes(eq as Equipment)) as Equipment[];
+  return (equipmentArray as string[]).filter((eq) =>
+    EQUIPMENT_VALUES.includes(eq as Equipment),
+  ) as Equipment[];
 };
-
-

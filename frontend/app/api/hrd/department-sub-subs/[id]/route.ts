@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { parsePositiveIntId } from "@/lib/utils";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { parsePositiveIntId } from '@/lib/utils';
 
 /**
  * GET /api/hrd/department-sub-subs/[id]
  * ดึงข้อมูลหน่วยงานโดย ID
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -24,8 +21,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -49,8 +46,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลหน่วยงาน",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลหน่วยงาน',
         },
         { status: 404 },
       );
@@ -60,10 +57,7 @@ export async function GET(
     const departmentSub = departmentSubSub.HR_DEPARTMENT_SUB_ID
       ? await prisma.hrd_department_sub.findUnique({
           where: {
-            HR_DEPARTMENT_SUB_ID: Number.parseInt(
-              departmentSubSub.HR_DEPARTMENT_SUB_ID,
-              10,
-            ),
+            HR_DEPARTMENT_SUB_ID: Number.parseInt(departmentSubSub.HR_DEPARTMENT_SUB_ID, 10),
           },
           select: {
             HR_DEPARTMENT_SUB_NAME: true,
@@ -75,25 +69,22 @@ export async function GET(
       success: true,
       data: {
         id: departmentSubSub.HR_DEPARTMENT_SUB_SUB_ID,
-        name: departmentSubSub.HR_DEPARTMENT_SUB_SUB_NAME ?? "",
-        departmentSubId: Number.parseInt(
-          departmentSubSub.HR_DEPARTMENT_SUB_ID || "0",
-          10,
-        ),
-        departmentSubName: departmentSub?.HR_DEPARTMENT_SUB_NAME ?? "",
-        active: departmentSubSub.ACTIVE === "True",
+        name: departmentSubSub.HR_DEPARTMENT_SUB_SUB_NAME ?? '',
+        departmentSubId: Number.parseInt(departmentSubSub.HR_DEPARTMENT_SUB_ID || '0', 10),
+        departmentSubName: departmentSub?.HR_DEPARTMENT_SUB_NAME ?? '',
+        active: departmentSubSub.ACTIVE === 'True',
         createdAt: departmentSubSub.created_at?.toISOString(),
         updatedAt: departmentSubSub.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error fetching department sub sub:", error);
+    console.error('Error fetching department sub sub:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -104,10 +95,7 @@ export async function GET(
  * PUT /api/hrd/department-sub-subs/[id]
  * อัปเดตข้อมูลหน่วยงาน
  */
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -120,8 +108,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -141,8 +129,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลหน่วยงาน",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลหน่วยงาน',
         },
         { status: 404 },
       );
@@ -150,12 +138,12 @@ export async function PUT(
 
     // Validation
     if (name !== undefined) {
-      if (typeof name !== "string" || name.trim().length === 0) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
         return NextResponse.json(
           {
             success: false,
-            error: "VALIDATION_ERROR",
-            message: "กรุณากรอกชื่อหน่วยงาน",
+            error: 'VALIDATION_ERROR',
+            message: 'กรุณากรอกชื่อหน่วยงาน',
           },
           { status: 400 },
         );
@@ -163,12 +151,12 @@ export async function PUT(
     }
 
     if (departmentSubId !== undefined) {
-      if (typeof departmentSubId !== "number") {
+      if (typeof departmentSubId !== 'number') {
         return NextResponse.json(
           {
             success: false,
-            error: "VALIDATION_ERROR",
-            message: "กรุณาเลือกกลุ่มงาน",
+            error: 'VALIDATION_ERROR',
+            message: 'กรุณาเลือกกลุ่มงาน',
           },
           { status: 400 },
         );
@@ -185,8 +173,8 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: "DEPARTMENT_SUB_NOT_FOUND",
-            message: "ไม่พบข้อมูลกลุ่มงาน",
+            error: 'DEPARTMENT_SUB_NOT_FOUND',
+            message: 'ไม่พบข้อมูลกลุ่มงาน',
           },
           { status: 404 },
         );
@@ -198,7 +186,7 @@ export async function PUT(
       const finalDepartmentSubId =
         departmentSubId !== undefined
           ? departmentSubId
-          : Number.parseInt(existing.HR_DEPARTMENT_SUB_ID || "0", 10);
+          : Number.parseInt(existing.HR_DEPARTMENT_SUB_ID || '0', 10);
 
       const duplicate = await prisma.hrd_department_sub_sub.findFirst({
         where: {
@@ -216,8 +204,8 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: "DUPLICATE_NAME",
-            message: "ชื่อหน่วยงานนี้มีอยู่ในกลุ่มงานนี้แล้ว",
+            error: 'DUPLICATE_NAME',
+            message: 'ชื่อหน่วยงานนี้มีอยู่ในกลุ่มงานนี้แล้ว',
           },
           { status: 409 },
         );
@@ -234,7 +222,7 @@ export async function PUT(
       updateData.HR_DEPARTMENT_SUB_ID = String(departmentSubId);
     }
     if (active !== undefined) {
-      updateData.ACTIVE = active ? "True" : "False";
+      updateData.ACTIVE = active ? 'True' : 'False';
     }
 
     const updated = await prisma.hrd_department_sub_sub.update({
@@ -253,10 +241,7 @@ export async function PUT(
     });
 
     // ดึงชื่อ department_sub
-    const finalDepartmentSubId = Number.parseInt(
-      updated.HR_DEPARTMENT_SUB_ID || "0",
-      10,
-    );
+    const finalDepartmentSubId = Number.parseInt(updated.HR_DEPARTMENT_SUB_ID || '0', 10);
     const departmentSub = await prisma.hrd_department_sub.findUnique({
       where: {
         HR_DEPARTMENT_SUB_ID: finalDepartmentSubId,
@@ -270,22 +255,22 @@ export async function PUT(
       success: true,
       data: {
         id: updated.HR_DEPARTMENT_SUB_SUB_ID,
-        name: updated.HR_DEPARTMENT_SUB_SUB_NAME ?? "",
+        name: updated.HR_DEPARTMENT_SUB_SUB_NAME ?? '',
         departmentSubId: finalDepartmentSubId,
-        departmentSubName: departmentSub?.HR_DEPARTMENT_SUB_NAME ?? "",
-        active: updated.ACTIVE === "True",
+        departmentSubName: departmentSub?.HR_DEPARTMENT_SUB_NAME ?? '',
+        active: updated.ACTIVE === 'True',
         createdAt: updated.created_at?.toISOString(),
         updatedAt: updated.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error updating department sub sub:", error);
+    console.error('Error updating department sub sub:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล',
       },
       { status: 500 },
     );
@@ -296,10 +281,7 @@ export async function PUT(
  * DELETE /api/hrd/department-sub-subs/[id]
  * ลบหน่วยงาน
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -312,8 +294,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -330,8 +312,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลหน่วยงาน",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลหน่วยงาน',
         },
         { status: 404 },
       );
@@ -348,7 +330,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "IN_USE",
+          error: 'IN_USE',
           message: `ไม่สามารถลบได้ เนื่องจากมีผู้ใช้ ${userCount} รายการที่ใช้หน่วยงานนี้อยู่`,
         },
         { status: 400 },
@@ -364,16 +346,16 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "ลบหน่วยงานสำเร็จ",
+      message: 'ลบหน่วยงานสำเร็จ',
     });
   } catch (error: any) {
-    console.error("Error deleting department sub sub:", error);
+    console.error('Error deleting department sub sub:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการลบข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
       },
       { status: 500 },
     );

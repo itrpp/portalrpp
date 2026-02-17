@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -9,11 +9,11 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
-  const departmentIdParam = searchParams.get("departmentId");
-  const query = searchParams.get("q")?.trim() ?? "";
+  const departmentIdParam = searchParams.get('departmentId');
+  const query = searchParams.get('q')?.trim() ?? '';
 
   const where: any = {
-    ACTIVE: "True",
+    ACTIVE: 'True',
   };
 
   // ถ้ามี departmentId ให้ filter
@@ -42,18 +42,16 @@ export async function GET(request: Request) {
       updated_at: true,
     },
     orderBy: {
-      HR_DEPARTMENT_SUB_NAME: "asc",
+      HR_DEPARTMENT_SUB_NAME: 'asc',
     },
   });
 
   // ดึงชื่อ department สำหรับแสดงผล
-  const departmentIds = [
-    ...new Set(items.map((item) => item.HR_DEPARTMENT_ID).filter(Boolean)),
-  ];
+  const departmentIds = [...new Set(items.map((item) => item.HR_DEPARTMENT_ID).filter(Boolean))];
   const departments = await prisma.hrd_department.findMany({
     where: {
       HR_DEPARTMENT_ID: {
-        in: departmentIds.map((id) => Number.parseInt(id || "0", 10)),
+        in: departmentIds.map((id) => Number.parseInt(id || '0', 10)),
       },
     },
     select: {
@@ -63,19 +61,17 @@ export async function GET(request: Request) {
   });
 
   const departmentMap = new Map(
-    departments.map((d) => [d.HR_DEPARTMENT_ID, d.HR_DEPARTMENT_NAME ?? ""]),
+    departments.map((d) => [d.HR_DEPARTMENT_ID, d.HR_DEPARTMENT_NAME ?? '']),
   );
 
   return NextResponse.json({
     success: true,
     data: items.map((item) => ({
       id: item.HR_DEPARTMENT_SUB_ID,
-      name: item.HR_DEPARTMENT_SUB_NAME ?? "",
-      departmentId: Number.parseInt(item.HR_DEPARTMENT_ID || "0", 10),
-      departmentName: departmentMap.get(
-        Number.parseInt(item.HR_DEPARTMENT_ID || "0", 10),
-      ),
-      active: item.ACTIVE === "True",
+      name: item.HR_DEPARTMENT_SUB_NAME ?? '',
+      departmentId: Number.parseInt(item.HR_DEPARTMENT_ID || '0', 10),
+      departmentName: departmentMap.get(Number.parseInt(item.HR_DEPARTMENT_ID || '0', 10)),
+      active: item.ACTIVE === 'True',
       createdAt: item.created_at?.toISOString(),
       updatedAt: item.updated_at?.toISOString(),
     })),
@@ -96,23 +92,23 @@ export async function POST(request: Request) {
     const { name, departmentId, active } = requestData;
 
     // Validation
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณากรอกชื่อกลุ่มงาน",
+          error: 'VALIDATION_ERROR',
+          message: 'กรุณากรอกชื่อกลุ่มงาน',
         },
         { status: 400 },
       );
     }
 
-    if (!departmentId || typeof departmentId !== "number") {
+    if (!departmentId || typeof departmentId !== 'number') {
       return NextResponse.json(
         {
           success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณาเลือกกลุ่มภารกิจ",
+          error: 'VALIDATION_ERROR',
+          message: 'กรุณาเลือกกลุ่มภารกิจ',
         },
         { status: 400 },
       );
@@ -129,8 +125,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DEPARTMENT_NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มภารกิจ",
+          error: 'DEPARTMENT_NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มภารกิจ',
         },
         { status: 404 },
       );
@@ -150,8 +146,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DUPLICATE_NAME",
-          message: "ชื่อกลุ่มงานนี้มีอยู่ในกลุ่มภารกิจนี้แล้ว",
+          error: 'DUPLICATE_NAME',
+          message: 'ชื่อกลุ่มงานนี้มีอยู่ในกลุ่มภารกิจนี้แล้ว',
         },
         { status: 409 },
       );
@@ -162,7 +158,7 @@ export async function POST(request: Request) {
       data: {
         HR_DEPARTMENT_SUB_NAME: name.trim(),
         HR_DEPARTMENT_ID: String(departmentId),
-        ACTIVE: active !== undefined ? (active ? "True" : "False") : "True",
+        ACTIVE: active !== undefined ? (active ? 'True' : 'False') : 'True',
       },
       select: {
         HR_DEPARTMENT_SUB_ID: true,
@@ -179,13 +175,10 @@ export async function POST(request: Request) {
         success: true,
         data: {
           id: newDepartmentSub.HR_DEPARTMENT_SUB_ID,
-          name: newDepartmentSub.HR_DEPARTMENT_SUB_NAME ?? "",
-          departmentId: Number.parseInt(
-            newDepartmentSub.HR_DEPARTMENT_ID || "0",
-            10,
-          ),
-          departmentName: department.HR_DEPARTMENT_NAME ?? "",
-          active: newDepartmentSub.ACTIVE === "True",
+          name: newDepartmentSub.HR_DEPARTMENT_SUB_NAME ?? '',
+          departmentId: Number.parseInt(newDepartmentSub.HR_DEPARTMENT_ID || '0', 10),
+          departmentName: department.HR_DEPARTMENT_NAME ?? '',
+          active: newDepartmentSub.ACTIVE === 'True',
           createdAt: newDepartmentSub.created_at?.toISOString(),
           updatedAt: newDepartmentSub.updated_at?.toISOString(),
         },
@@ -193,13 +186,13 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error: any) {
-    console.error("Error creating department sub:", error);
+    console.error('Error creating department sub:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างกลุ่มงาน",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการสร้างกลุ่มงาน',
       },
       { status: 500 },
     );

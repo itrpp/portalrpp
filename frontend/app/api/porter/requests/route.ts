@@ -1,17 +1,17 @@
-import type { ListPorterRequestsParams } from "@/types/porter";
+import type { ListPorterRequestsParams } from '@/types/porter';
 
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { callPorterService } from "@/lib/grpcClient";
-import { listPorterRequestsWithEnrichment } from "@/lib/porterRequests";
+import { getAuthSession } from '@/lib/auth';
+import { callPorterService } from '@/lib/grpcClient';
+import { listPorterRequestsWithEnrichment } from '@/lib/porterRequests';
 import {
   mapUrgencyLevelToProto,
   mapVehicleTypeToProto,
   mapHasVehicleToProto,
   mapReturnTripToProto,
   mapEquipmentToProto,
-} from "@/lib/porter";
+} from '@/lib/porter';
 
 /**
  * GET /api/porter/requests
@@ -57,8 +57,8 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "PORTER_SERVICE_UNAVAILABLE",
-          message: "บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้",
+          error: 'PORTER_SERVICE_UNAVAILABLE',
+          message: 'บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้',
         },
         { status: 503 },
       );
@@ -67,8 +67,8 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: err.message ?? "ไม่พบข้อมูลที่ต้องการ",
+          error: 'NOT_FOUND',
+          message: err.message ?? 'ไม่พบข้อมูลที่ต้องการ',
         },
         { status: 404 },
       );
@@ -77,8 +77,8 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ARGUMENT",
-          message: err.message ?? "ข้อมูลไม่ถูกต้อง",
+          error: 'INVALID_ARGUMENT',
+          message: err.message ?? 'ข้อมูลไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -87,8 +87,8 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_SERVER_ERROR",
-        message: err.message ?? "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์",
+        error: 'INTERNAL_SERVER_ERROR',
+        message: err.message ?? 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์',
       },
       { status: 500 },
     );
@@ -107,8 +107,7 @@ export async function POST(request: Request) {
 
     const requestData = (await request.json()) as Record<string, unknown>;
     const requesterDepartment =
-      (auth.session.user as { departmentSubSubId?: number })
-        ?.departmentSubSubId ??
+      (auth.session.user as { departmentSubSubId?: number })?.departmentSubSubId ??
       (requestData.requesterDepartment as number | undefined) ??
       null;
 
@@ -122,35 +121,27 @@ export async function POST(request: Request) {
       patient_condition:
         Array.isArray(requestData.patientCondition) &&
         (requestData.patientCondition as unknown[]).length > 0
-          ? (requestData.patientCondition as string[]).join(", ")
+          ? (requestData.patientCondition as string[]).join(', ')
           : null,
       pickup_building_id:
-        (requestData.pickupLocationDetail as { buildingId?: string })
-          ?.buildingId ?? null,
+        (requestData.pickupLocationDetail as { buildingId?: string })?.buildingId ?? null,
       pickup_floor_department_id:
-        (requestData.pickupLocationDetail as { floorDepartmentId?: string })
-          ?.floorDepartmentId ?? "",
+        (requestData.pickupLocationDetail as { floorDepartmentId?: string })?.floorDepartmentId ??
+        '',
       pickup_room_bed_name:
-        (requestData.pickupLocationDetail as { roomBedName?: string })
-          ?.roomBedName ?? null,
+        (requestData.pickupLocationDetail as { roomBedName?: string })?.roomBedName ?? null,
       delivery_building_id:
-        (requestData.deliveryLocationDetail as { buildingId?: string })
-          ?.buildingId ?? null,
+        (requestData.deliveryLocationDetail as { buildingId?: string })?.buildingId ?? null,
       delivery_floor_department_id:
-        (requestData.deliveryLocationDetail as { floorDepartmentId?: string })
-          ?.floorDepartmentId ?? "",
+        (requestData.deliveryLocationDetail as { floorDepartmentId?: string })?.floorDepartmentId ??
+        '',
       delivery_room_bed_name:
-        (requestData.deliveryLocationDetail as { roomBedName?: string })
-          ?.roomBedName ?? null,
+        (requestData.deliveryLocationDetail as { roomBedName?: string })?.roomBedName ?? null,
       requested_date_time: requestData.requestedDateTime,
-      urgency_level: mapUrgencyLevelToProto(
-        String(requestData.urgencyLevel ?? ""),
-      ),
-      vehicle_type: mapVehicleTypeToProto(
-        String(requestData.vehicleType ?? ""),
-      ),
-      has_vehicle: mapHasVehicleToProto(String(requestData.hasVehicle ?? "")),
-      return_trip: mapReturnTripToProto(String(requestData.returnTrip ?? "")),
+      urgency_level: mapUrgencyLevelToProto(String(requestData.urgencyLevel ?? '')),
+      vehicle_type: mapVehicleTypeToProto(String(requestData.vehicleType ?? '')),
+      has_vehicle: mapHasVehicleToProto(String(requestData.hasVehicle ?? '')),
+      return_trip: mapReturnTripToProto(String(requestData.returnTrip ?? '')),
       transport_reason: requestData.transportReason,
       equipment: mapEquipmentToProto((requestData.equipment as string[]) ?? []),
       equipment_other: (requestData.equipmentOther as string) ?? null,
@@ -161,20 +152,17 @@ export async function POST(request: Request) {
       success: boolean;
       data?: unknown;
       error_message?: string;
-    }>("CreatePorterRequest", protoRequest);
+    }>('CreatePorterRequest', protoRequest);
 
     if (response.success) {
-      return NextResponse.json(
-        { success: true, data: response.data },
-        { status: 200 },
-      );
+      return NextResponse.json({ success: true, data: response.data }, { status: 200 });
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: "CREATION_FAILED",
-        message: response.error_message ?? "ไม่สามารถสร้างคำขอได้",
+        error: 'CREATION_FAILED',
+        message: response.error_message ?? 'ไม่สามารถสร้างคำขอได้',
       },
       { status: 400 },
     );
@@ -185,8 +173,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "PORTER_SERVICE_UNAVAILABLE",
-          message: "บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้",
+          error: 'PORTER_SERVICE_UNAVAILABLE',
+          message: 'บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้',
         },
         { status: 503 },
       );
@@ -195,8 +183,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: err.message ?? "ไม่พบข้อมูลที่ต้องการ",
+          error: 'NOT_FOUND',
+          message: err.message ?? 'ไม่พบข้อมูลที่ต้องการ',
         },
         { status: 404 },
       );
@@ -205,8 +193,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ARGUMENT",
-          message: err.message ?? "ข้อมูลไม่ถูกต้อง",
+          error: 'INVALID_ARGUMENT',
+          message: err.message ?? 'ข้อมูลไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -215,8 +203,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_SERVER_ERROR",
-        message: err.message ?? "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์",
+        error: 'INTERNAL_SERVER_ERROR',
+        message: err.message ?? 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์',
       },
       { status: 500 },
     );

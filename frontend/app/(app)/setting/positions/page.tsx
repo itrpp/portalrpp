@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button, Card, CardBody, CardHeader, Chip, Input } from "@heroui/react";
+import React from 'react';
+import { Button, Card, CardBody, CardHeader, Chip, Input } from '@heroui/react';
 
-import { SimpleCrudModal } from "../components/SimpleCrudModal";
-import { CrudTable } from "../components/CrudTable";
-import { useCrudManagement } from "../hooks/useCrudManagement";
+import { SimpleCrudModal } from '../components/SimpleCrudModal';
+import { CrudTable } from '../components/CrudTable';
+import { useCrudManagement } from '../hooks/useCrudManagement';
 
-import { CARD_STYLES } from "@/lib/cardStyles";
-import { UserGroupIcon, PlusIcon } from "@/components/ui/icons";
-import { Position } from "@/types/hrd";
+import { CARD_STYLES } from '@/lib/cardStyles';
+import { UserGroupIcon, PlusIcon } from '@/components/ui/icons';
+import { Position } from '@/types/hrd';
 
 export default function PositionManagementPage() {
   const {
@@ -32,36 +32,28 @@ export default function PositionManagementPage() {
     handleDelete,
     handleSave,
   } = useCrudManagement<Position>({
-    apiEndpoint: "/api/hrd/positions",
-    itemName: "ตำแหน่ง",
-    itemNamePlural: "ตำแหน่ง",
+    apiEndpoint: '/api/hrd/positions',
+    itemName: 'ตำแหน่ง',
+    itemNamePlural: 'ตำแหน่ง',
   });
 
   const columns = [
     {
-      key: "id",
-      label: "ID",
-      render: (item: Position) => (
-        <span className="font-mono text-sm">{item.id}</span>
-      ),
+      key: 'id',
+      label: 'ID',
+      render: (item: Position) => <span className="font-mono text-sm">{item.id}</span>,
     },
     {
-      key: "name",
-      label: "ชื่อตำแหน่ง",
-      render: (item: Position) => (
-        <span className="text-foreground">{item.name}</span>
-      ),
+      key: 'name',
+      label: 'ชื่อตำแหน่ง',
+      render: (item: Position) => <span className="text-foreground">{item.name}</span>,
     },
     {
-      key: "active",
-      label: "สถานะ",
+      key: 'active',
+      label: 'สถานะ',
       render: (item: Position) => (
-        <Chip
-          color={item.active ? "success" : "default"}
-          size="sm"
-          variant="flat"
-        >
-          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+        <Chip color={item.active ? 'success' : 'default'} size="sm" variant="flat">
+          {item.active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
         </Chip>
       ),
     },
@@ -94,9 +86,7 @@ export default function PositionManagementPage() {
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <UserGroupIcon className="w-6 h-6 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">
-                รายการตำแหน่ง
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground">รายการตำแหน่ง</h2>
             </div>
           </div>
         </CardHeader>
@@ -123,33 +113,25 @@ export default function PositionManagementPage() {
 
       {/* Modal */}
       <SimpleCrudModal
-        additionalFields={({
-          item,
-          isLoading: isFieldLoading,
-          values,
-          setValue,
-        }) => (
+        additionalFields={({ item, isLoading: isFieldLoading, values, setValue }) => (
           <>
             {!item && (
               <Input
                 isRequired
                 classNames={{
                   input:
-                    "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                    '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
                 }}
                 isDisabled={isFieldLoading}
                 label="ID ตำแหน่ง"
                 placeholder="เช่น 1"
                 type="number"
-                value={String(values.id || "")}
+                value={String(values.id || '')}
                 variant="bordered"
                 onChange={(e) => {
                   const idValue = e.target.value;
 
-                  setValue(
-                    "id",
-                    idValue ? Number.parseInt(idValue, 10) : undefined,
-                  );
+                  setValue('id', idValue ? Number.parseInt(idValue, 10) : undefined);
                 }}
               />
             )}
@@ -157,11 +139,9 @@ export default function PositionManagementPage() {
               isDisabled={isFieldLoading}
               label="Position SP ID"
               placeholder="เช่น SP001 (ไม่บังคับ)"
-              value={String(values.positionSpId || "")}
+              value={String(values.positionSpId || '')}
               variant="bordered"
-              onChange={(e) =>
-                setValue("positionSpId", e.target.value || undefined)
-              }
+              onChange={(e) => setValue('positionSpId', e.target.value || undefined)}
             />
           </>
         )}

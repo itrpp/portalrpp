@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
-import { LOADING_MESSAGES } from "../../lib/constants";
+import { LOADING_MESSAGES } from '../../lib/constants';
 
-import { Logo } from "@/components/icons";
+import { Logo } from '@/components/icons';
 
 interface LoadingPageProps {
   message?: string;
@@ -79,9 +79,7 @@ export function LoadingPage({
         {/* Message */}
         <div className="mb-6">
           <p className="text-lg font-medium text-foreground">{message}</p>
-          <p className="text-sm text-default-500 mt-2">
-            {LOADING_MESSAGES.pleaseWait}
-          </p>
+          <p className="text-sm text-default-500 mt-2">{LOADING_MESSAGES.pleaseWait}</p>
         </div>
 
         {/* Progress Bar */}
@@ -93,9 +91,7 @@ export function LoadingPage({
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-default-500 mt-2 tabular-nums">
-              {Math.round(progress)}%
-            </p>
+            <p className="text-xs text-default-500 mt-2 tabular-nums">{Math.round(progress)}%</p>
           </div>
         )}
 
@@ -104,17 +100,17 @@ export function LoadingPage({
           <div
             aria-hidden="true"
             className="h-2 w-2 rounded-full bg-primary animate-bounce"
-            style={{ animationDelay: "0ms" }}
+            style={{ animationDelay: '0ms' }}
           />
           <div
             aria-hidden="true"
             className="h-2 w-2 rounded-full bg-primary/60 animate-bounce"
-            style={{ animationDelay: "150ms" }}
+            style={{ animationDelay: '150ms' }}
           />
           <div
             aria-hidden="true"
             className="h-2 w-2 rounded-full bg-primary/40 animate-bounce"
-            style={{ animationDelay: "300ms" }}
+            style={{ animationDelay: '300ms' }}
           />
         </div>
       </div>

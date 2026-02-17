@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
+import React, { useMemo } from 'react';
 import {
   Chip,
   Pagination,
@@ -10,40 +10,36 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { useDepartmentsMap } from "../hooks/useDepartmentsMap";
+import { useDepartmentsMap } from '../hooks/useDepartmentsMap';
 
-import {
-  buildMetaChipData,
-  getUrgencyStyle,
-  renderStatusChip,
-} from "./helpers/jobPresentation";
-import { DepartmentChip } from "./shared/DepartmentChip";
-import { PorterUrgencyChip } from "./shared/PorterUrgencyChip";
-import { PorterEmptyState } from "./shared/PorterEmptyState";
-import { PorterLoadingSkeleton } from "./shared/PorterLoadingSkeleton";
+import { buildMetaChipData, getUrgencyStyle, renderStatusChip } from './helpers/jobPresentation';
+import { DepartmentChip } from './shared/DepartmentChip';
+import { PorterUrgencyChip } from './shared/PorterUrgencyChip';
+import { PorterEmptyState } from './shared/PorterEmptyState';
+import { PorterLoadingSkeleton } from './shared/PorterLoadingSkeleton';
 
-import { formatLocationString } from "@/lib/porter";
-import { JobTableProps, PorterJobItem } from "@/types/porter";
-import { formatThaiDateTimeShort } from "@/lib/utils";
+import { formatLocationString } from '@/lib/porter';
+import { JobTableProps, PorterJobItem } from '@/types/porter';
+import { formatThaiDateTimeShort } from '@/lib/utils';
 
 /** สไตล์ตารางเฉพาะของ JobTable (ไม่ใช้ shared tableStyles กับ module อื่น) */
 const JOB_TABLE_STYLES = {
-  wrapper: "min-h-[222px]",
-  td: "py-4 px-4 align-top text-sm",
-  tr: "data-[hover=true]:bg-default-100/50 border-b border-default-100",
-  loading: { rowClassName: "bg-default-50/50" },
+  wrapper: 'min-h-[222px]',
+  td: 'py-4 px-4 align-top text-sm',
+  tr: 'data-[hover=true]:bg-default-100/50 border-b border-default-100',
+  loading: { rowClassName: 'bg-default-50/50' },
   spacing: {
-    cellPadding: "py-4 px-4",
-    gapMedium: "gap-2",
-    gapLarge: "gap-4",
+    cellPadding: 'py-4 px-4',
+    gapMedium: 'gap-2',
+    gapLarge: 'gap-4',
   },
-  text: { base: "text-base", small: "text-sm" },
-  colors: { headerText: "text-default-700", secondaryText: "text-default-500" },
+  text: { base: 'text-base', small: 'text-sm' },
+  colors: { headerText: 'text-default-700', secondaryText: 'text-default-500' },
   pagination: {
     selectClass:
-      "px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent",
+      'px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent',
   },
 } as const;
 
@@ -56,9 +52,7 @@ function DepartmentNameChip({
   departmentsMap: Record<number, string> | undefined;
 }) {
   const departmentName =
-    departmentSubSubId && departmentsMap
-      ? (departmentsMap[departmentSubSubId] ?? null)
-      : null;
+    departmentSubSubId && departmentsMap ? (departmentsMap[departmentSubSubId] ?? null) : null;
 
   return <DepartmentChip departmentName={departmentName} />;
 }
@@ -98,13 +92,13 @@ export default function JobTable({
   paginationId,
   selectedKeys,
   isLoading = false,
-  emptyContent = "ไม่มีรายการคำขอในหมวดนี้",
+  emptyContent = 'ไม่มีรายการคำขอในหมวดนี้',
   loadingContent,
   onPageChange,
   onRowsPerPageChange,
   onSelectionChange,
 }: JobTableProps) {
-  const columns = useMemo(() => [{ key: "job", label: "รายการ" }], []);
+  const columns = useMemo(() => [{ key: 'job', label: 'รายการ' }], []);
 
   // รวบรวม department IDs ทั้งหมดจาก items เพื่อลด N+1 queries
   const departmentIds = useMemo(() => {
@@ -129,7 +123,7 @@ export default function JobTable({
         aria-label="รายการคำขอ"
         classNames={{
           wrapper: JOB_TABLE_STYLES.wrapper,
-          thead: "hidden",
+          thead: 'hidden',
           td: JOB_TABLE_STYLES.td,
           tr: JOB_TABLE_STYLES.tr,
         }}
@@ -137,7 +131,7 @@ export default function JobTable({
         selectionMode="single"
         onSelectionChange={onSelectionChange}
       >
-        <TableHeader columns={columns} style={{ display: "none" }}>
+        <TableHeader columns={columns} style={{ display: 'none' }}>
           {(column) => (
             <TableColumn key={column.key} hideHeader>
               {column.label}
@@ -146,7 +140,7 @@ export default function JobTable({
         </TableHeader>
         <TableBody
           emptyContent={
-            typeof emptyContent === "string" ? (
+            typeof emptyContent === 'string' ? (
               <PorterEmptyState message={emptyContent} variant="no-data" />
             ) : (
               emptyContent
@@ -154,41 +148,31 @@ export default function JobTable({
           }
           isLoading={isLoading}
           items={items}
-          loadingContent={
-            loadingContent || (
-              <PorterLoadingSkeleton rows={5} variant="table-row" />
-            )
-          }
+          loadingContent={loadingContent || <PorterLoadingSkeleton rows={5} variant="table-row" />}
         >
           {(item) => (
             <TableRow className={JOB_TABLE_STYLES.loading.rowClassName}>
               <TableCell>
                 <div
-                  className={`w-full rounded-md border ${getUrgencyStyle(item.form.urgencyLevel).containerClass} ${JOB_TABLE_STYLES.spacing.cellPadding.replace("py-4", "py-3")}`}
+                  className={`w-full rounded-md border ${getUrgencyStyle(item.form.urgencyLevel).containerClass} ${JOB_TABLE_STYLES.spacing.cellPadding.replace('py-4', 'py-3')}`}
                 >
                   <div
                     className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapMedium} ${JOB_TABLE_STYLES.text.base}`}
                   >
                     <Chip color="success" size="sm" variant="dot">
-                      {formatThaiDateTimeShort(
-                        new Date(item.form.requestedDateTime),
-                      )}
+                      {formatThaiDateTimeShort(new Date(item.form.requestedDateTime))}
                     </Chip>
-                    {item.form.urgencyLevel !== "ปกติ" && (
+                    {item.form.urgencyLevel !== 'ปกติ' && (
                       <PorterUrgencyChip
                         size="sm"
                         urgencyLevel={item.form.urgencyLevel}
                         variant="flat"
                       />
                     )}
-                    <span
-                      className={`${JOB_TABLE_STYLES.colors.headerText} font-medium`}
-                    >
+                    <span className={`${JOB_TABLE_STYLES.colors.headerText} font-medium`}>
                       {`รับผู้ป่วยจาก ${formatLocationString(item.form.pickupLocationDetail)}`}
                     </span>
-                    <span
-                      className={`${JOB_TABLE_STYLES.colors.headerText} font-medium`}
-                    >
+                    <span className={`${JOB_TABLE_STYLES.colors.headerText} font-medium`}>
                       ➜ {formatLocationString(item.form.deliveryLocationDetail)}
                     </span>
 
@@ -216,8 +200,8 @@ export default function JobTable({
           <div
             className={`${JOB_TABLE_STYLES.text.small} ${JOB_TABLE_STYLES.colors.secondaryText} tabular-nums`}
           >
-            แสดง {startIndex + 1} - {""}
-            {Math.min(endIndex, sortedJobs.length)} จาก {""}
+            แสดง {startIndex + 1} - {''}
+            {Math.min(endIndex, sortedJobs.length)} จาก {''}
             {sortedJobs.length} รายการ
           </div>
           <Pagination
@@ -229,12 +213,8 @@ export default function JobTable({
             total={totalPages}
             onChange={onPageChange}
           />
-          <div
-            className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapLarge}`}
-          >
-            <div
-              className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapMedium}`}
-            >
+          <div className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapLarge}`}>
+            <div className={`flex items-center ${JOB_TABLE_STYLES.spacing.gapMedium}`}>
               <label
                 className={`${JOB_TABLE_STYLES.text.small} ${JOB_TABLE_STYLES.colors.secondaryText}`}
                 htmlFor={paginationId}

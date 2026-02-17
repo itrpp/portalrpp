@@ -1,5 +1,6 @@
-import dotenv from 'dotenv';
 import path from 'path';
+
+import dotenv from 'dotenv';
 import { z } from 'zod';
 
 // โหลด .env ก่อน แล้วตามด้วย .env.local (ค่าใน .env.local override ได้)
@@ -28,12 +29,12 @@ const EnvSchema = z.object({
     .default(DEV_JWT_SECRET_DEFAULT),
   EPHIS_API_BASE_URL: z.string().url().optional(),
   EPHIS_API_USER: z.string().optional(),
-  EPHIS_API_PASSWORD: z.string().optional()
+  EPHIS_API_PASSWORD: z.string().optional(),
 });
 
 type Env = z.infer<typeof EnvSchema>;
 
-export type AppConfig = {
+type AppConfig = {
   nodeEnv: Env['NODE_ENV'];
   port: number;
   trustProxy: string | undefined;
@@ -58,11 +59,7 @@ const parsed = EnvSchema.parse(process.env);
 if (parsed.NODE_ENV === 'production') {
   const secret = parsed.JWT_SECRET;
 
-  if (
-    !secret ||
-    secret.length < 32 ||
-    secret === DEV_JWT_SECRET_DEFAULT
-  ) {
+  if (!secret || secret.length < 32 || secret === DEV_JWT_SECRET_DEFAULT) {
     throw new Error(
       'In production, JWT_SECRET must be set in environment and be at least 32 characters. Do not use the default value.',
     );
@@ -70,7 +67,9 @@ if (parsed.NODE_ENV === 'production') {
 }
 
 const allowOrigins = parsed.ALLOW_ORIGINS
-  ? parsed.ALLOW_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  ? parsed.ALLOW_ORIGINS.split(',')
+      .map((o) => o.trim())
+      .filter(Boolean)
   : '*';
 
 export const config: AppConfig = {
@@ -78,27 +77,24 @@ export const config: AppConfig = {
   port: parsed.PORT,
   trustProxy: parsed.TRUST_PROXY,
   cors: {
-    allowOrigins
+    allowOrigins,
   },
   rateLimit: {
     windowMs: parsed.RATE_LIMIT_WINDOW_MS,
-    max: parsed.RATE_LIMIT_MAX
+    max: parsed.RATE_LIMIT_MAX,
   },
   services: {
-    revenue: parsed.REVENUE_SERVICE_URL
-      ? { baseUrl: parsed.REVENUE_SERVICE_URL }
-      : undefined,
-    ephis: parsed.EPHIS_API_BASE_URL && parsed.EPHIS_API_USER && parsed.EPHIS_API_PASSWORD
-      ? {
-          baseUrl: parsed.EPHIS_API_BASE_URL,
-          user: parsed.EPHIS_API_USER,
-          password: parsed.EPHIS_API_PASSWORD
-        }
-      : undefined
+    revenue: parsed.REVENUE_SERVICE_URL ? { baseUrl: parsed.REVENUE_SERVICE_URL } : undefined,
+    ephis:
+      parsed.EPHIS_API_BASE_URL && parsed.EPHIS_API_USER && parsed.EPHIS_API_PASSWORD
+        ? {
+            baseUrl: parsed.EPHIS_API_BASE_URL,
+            user: parsed.EPHIS_API_USER,
+            password: parsed.EPHIS_API_PASSWORD,
+          }
+        : undefined,
   },
   jwt: {
-    secret: parsed.JWT_SECRET
-  }
+    secret: parsed.JWT_SECRET,
+  },
 };
-
-

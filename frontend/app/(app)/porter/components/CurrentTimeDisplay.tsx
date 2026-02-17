@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { startTransition } from "react";
+import React, { useEffect, useState } from 'react';
+import { startTransition } from 'react';
 
 /**
  * Component สำหรับแสดงเวลาปัจจุบัน
@@ -25,10 +25,10 @@ export function CurrentTimeDisplay() {
 
   return (
     <span className="tabular-nums">
-      {currentDateTime.toLocaleTimeString("th-TH", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
+      {currentDateTime.toLocaleTimeString('th-TH', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
       })}
     </span>
   );

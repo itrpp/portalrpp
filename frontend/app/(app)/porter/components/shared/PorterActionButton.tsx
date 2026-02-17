@@ -1,11 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button, ButtonProps } from "@heroui/react";
+import React from 'react';
+import { Button, ButtonProps } from '@heroui/react';
 
-interface PorterActionButtonProps
-  extends Omit<ButtonProps, "color" | "variant"> {
-  actionType?: "primary" | "danger" | "secondary";
+interface PorterActionButtonProps extends Omit<ButtonProps, 'color' | 'variant'> {
+  actionType?: 'primary' | 'danger' | 'secondary';
   ariaLabel: string; // Required สำหรับ accessibility
 }
 
@@ -14,22 +13,22 @@ interface PorterActionButtonProps
  * ใช้ design tokens และบังคับให้มี aria-label
  */
 export function PorterActionButton({
-  actionType = "secondary",
+  actionType = 'secondary',
   ariaLabel,
   children,
   className,
   ...props
 }: PorterActionButtonProps) {
   const colorMap = {
-    primary: "primary",
-    danger: "danger",
-    secondary: "default",
+    primary: 'primary',
+    danger: 'danger',
+    secondary: 'default',
   } as const;
 
   const variantMap = {
-    primary: "solid",
-    danger: "solid",
-    secondary: "light",
+    primary: 'solid',
+    danger: 'solid',
+    secondary: 'light',
   } as const;
 
   return (
@@ -49,11 +48,11 @@ export function PorterActionButton({
  * Component สำหรับ icon-only button ที่มีรูปแบบสอดคล้องกัน
  */
 export function PorterIconButton({
-  actionType = "secondary",
+  actionType = 'secondary',
   ariaLabel,
   icon,
   ...props
-}: Omit<PorterActionButtonProps, "children"> & {
+}: Omit<PorterActionButtonProps, 'children'> & {
   icon: React.ReactNode;
 }) {
   return (

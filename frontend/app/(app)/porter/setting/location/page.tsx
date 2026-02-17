@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import NextImage from "next/image";
+import React, { useState, useEffect, useRef } from 'react';
+import NextImage from 'next/image';
 import {
   Button,
   Card,
@@ -22,7 +22,7 @@ import {
   SelectItem,
   ScrollShadow,
   Checkbox,
-} from "@heroui/react";
+} from '@heroui/react';
 
 import {
   BuildingOfficeIcon,
@@ -30,17 +30,17 @@ import {
   PlusIcon,
   TrashIcon,
   PencilIcon,
-} from "@/components/ui/icons";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { CARD_STYLES } from "@/lib/cardStyles";
-import { LOADING_MESSAGES } from "@/lib/constants";
-import { Building, FloorDepartment } from "@/types/porter";
+} from '@/components/ui/icons';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { CARD_STYLES } from '@/lib/cardStyles';
+import { LOADING_MESSAGES } from '@/lib/constants';
+import { Building, FloorDepartment } from '@/types/porter';
 import {
   convertBuildingFromProto,
   getDepartmentTypeName,
   DEPARTMENT_TYPES,
   ROOM_TYPES,
-} from "@/lib/porter";
+} from '@/lib/porter';
 
 /**
  * Modal สำหรับเพิ่ม/แก้ไขอาคาร
@@ -49,7 +49,7 @@ interface BuildingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (
-    building: Omit<Building, "floors" | "floorPlans"> & {
+    building: Omit<Building, 'floors' | 'floorPlans'> & {
       floors?: FloorDepartment[];
       floorPlans?: Array<{
         id?: string;
@@ -69,29 +69,24 @@ function BuildingModal({
   building,
   isLoading = false,
 }: BuildingModalProps) {
-  const [name, setName] = useState("");
-  const [floorCount, setFloorCount] = useState<string>("");
+  const [name, setName] = useState('');
+  const [floorCount, setFloorCount] = useState<string>('');
   const [status, setStatus] = useState<boolean>(true);
   // เก็บ floor plans เป็น Record เพื่อความสะดวกในการจัดการ (key: floorNumber, value: { id?, imageData })
-  const [floorPlans, setFloorPlans] = useState<
-    Record<number, { id?: string; imageData: string }>
-  >({});
-  const [floorPlanPreviews, setFloorPlanPreviews] = useState<
-    Record<number, string>
-  >({});
+  const [floorPlans, setFloorPlans] = useState<Record<number, { id?: string; imageData: string }>>(
+    {},
+  );
+  const [floorPlanPreviews, setFloorPlanPreviews] = useState<Record<number, string>>({});
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
   useEffect(() => {
     if (building) {
       setName(building.name);
-      setFloorCount(building.floorCount?.toString() || "");
+      setFloorCount(building.floorCount?.toString() || '');
       setStatus(building.status !== undefined ? building.status : true);
 
       // แปลง floorPlans array เป็น Record
-      const floorPlansRecord: Record<
-        number,
-        { id?: string; imageData: string }
-      > = {};
+      const floorPlansRecord: Record<number, { id?: string; imageData: string }> = {};
       const previewsRecord: Record<number, string> = {};
 
       if (building.floorPlans && Array.isArray(building.floorPlans)) {
@@ -106,8 +101,8 @@ function BuildingModal({
       setFloorPlans(floorPlansRecord);
       setFloorPlanPreviews(previewsRecord);
     } else {
-      setName("");
-      setFloorCount("");
+      setName('');
+      setFloorCount('');
       setStatus(true);
       setFloorPlans({});
       setFloorPlanPreviews({});
@@ -123,11 +118,11 @@ function BuildingModal({
     if (!file) return;
 
     // ตรวจสอบประเภทไฟล์
-    if (!file.type.startsWith("image/")) {
+    if (!file.type.startsWith('image/')) {
       addToast({
-        title: "ประเภทไฟล์ไม่ถูกต้อง",
-        description: "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
-        color: "danger",
+        title: 'ประเภทไฟล์ไม่ถูกต้อง',
+        description: 'กรุณาเลือกไฟล์รูปภาพเท่านั้น',
+        color: 'danger',
       });
 
       return;
@@ -138,9 +133,9 @@ function BuildingModal({
 
     if (file.size > maxSize) {
       addToast({
-        title: "ไฟล์ใหญ่เกินไป",
-        description: "กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 5MB",
-        color: "danger",
+        title: 'ไฟล์ใหญ่เกินไป',
+        description: 'กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 5MB',
+        color: 'danger',
       });
 
       return;
@@ -150,12 +145,12 @@ function BuildingModal({
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      const img = document.createElement("img");
+      const img = document.createElement('img');
       const base64String = e.target?.result as string;
 
       img.onload = () => {
         // สร้าง canvas เพื่อ resize รูปภาพ
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         const maxWidth = 2000; // ขนาดสูงสุดสำหรับ floor plan
         const maxHeight = 2000;
         let width = img.width;
@@ -178,13 +173,13 @@ function BuildingModal({
         canvas.height = height;
 
         // วาดรูปภาพใหม่ที่ resize แล้ว
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext('2d');
 
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
 
           // แปลงเป็น base64 (ใช้ quality 0.85 เพื่อลดขนาด)
-          const resizedBase64 = canvas.toDataURL("image/jpeg", 0.85);
+          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
 
           setFloorPlans((prev) => ({
             ...prev,
@@ -215,9 +210,9 @@ function BuildingModal({
 
       img.onerror = () => {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดรูปภาพได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดรูปภาพได้',
+          color: 'danger',
         });
       };
 
@@ -226,9 +221,9 @@ function BuildingModal({
 
     reader.onerror = () => {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถอ่านไฟล์รูปภาพได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถอ่านไฟล์รูปภาพได้',
+        color: 'danger',
       });
     };
 
@@ -252,16 +247,16 @@ function BuildingModal({
     });
 
     if (fileInputRefs.current[floorNumber]) {
-      fileInputRefs.current[floorNumber]!.value = "";
+      fileInputRefs.current[floorNumber]!.value = '';
     }
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกชื่ออาคาร",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณากรอกชื่ออาคาร',
+        color: 'danger',
       });
 
       return;
@@ -284,7 +279,7 @@ function BuildingModal({
           : undefined;
 
       await onSave({
-        id: building?.id || "", // จะถูกสร้างอัตโนมัติใน handleSaveBuilding
+        id: building?.id || '', // จะถูกสร้างอัตโนมัติใน handleSaveBuilding
         name: name.trim(),
         floorCount: floorCountNum > 0 ? floorCountNum : undefined,
         floorPlans: floorPlansArray,
@@ -302,7 +297,7 @@ function BuildingModal({
   return (
     <Modal isOpen={isOpen} scrollBehavior="inside" size="2xl" onClose={onClose}>
       <ModalContent>
-        <ModalHeader>{building ? "แก้ไขอาคาร" : "เพิ่มอาคารใหม่"}</ModalHeader>
+        <ModalHeader>{building ? 'แก้ไขอาคาร' : 'เพิ่มอาคารใหม่'}</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             <Input
@@ -317,7 +312,7 @@ function BuildingModal({
             <Input
               classNames={{
                 input:
-                  "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                  '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
               }}
               isDisabled={isLoading}
               label="จำนวนชั้น"
@@ -338,92 +333,77 @@ function BuildingModal({
                 </div>
                 <ScrollShadow className="max-h-[400px]">
                   <div className="space-y-3">
-                    {Array.from(
-                      { length: parseInt(floorCount, 10) },
-                      (_, i) => {
-                        const floorNum = i + 1;
-                        const preview = floorPlanPreviews[floorNum];
+                    {Array.from({ length: parseInt(floorCount, 10) }, (_, i) => {
+                      const floorNum = i + 1;
+                      const preview = floorPlanPreviews[floorNum];
 
-                        return (
-                          <div
-                            key={floorNum}
-                            className="p-3 border border-default-200 rounded-lg space-y-2"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-foreground">
-                                ชั้น {floorNum}
-                              </span>
-                              {preview && (
-                                <Button
-                                  isIconOnly
-                                  color="danger"
-                                  size="sm"
-                                  variant="light"
-                                  onPress={() =>
-                                    handleRemoveFloorPlan(floorNum)
-                                  }
-                                >
-                                  <TrashIcon className="w-4 h-4" />
-                                </Button>
-                              )}
-                            </div>
-                            {preview ? (
-                              <div className="relative w-full aspect-video">
-                                <NextImage
-                                  fill
-                                  alt={`Floor plan ชั้น ${floorNum}`}
-                                  className="rounded-lg border border-default-200 object-contain"
-                                  sizes="(max-width: 768px) 100vw, 50vw"
-                                  src={preview}
-                                />
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  ref={(el) => {
-                                    fileInputRefs.current[floorNum] = el;
-                                  }}
-                                  accept="image/*"
-                                  className="hidden"
-                                  disabled={isLoading}
-                                  type="file"
-                                  onChange={(e) =>
-                                    handleFloorPlanUpload(floorNum, e)
-                                  }
-                                />
-                                <Button
-                                  color="default"
-                                  isDisabled={isLoading}
-                                  size="sm"
-                                  variant="bordered"
-                                  onPress={() =>
-                                    fileInputRefs.current[floorNum]?.click()
-                                  }
-                                >
-                                  อัปโหลดรูป Floor Plan
-                                </Button>
-                              </div>
+                      return (
+                        <div
+                          key={floorNum}
+                          className="p-3 border border-default-200 rounded-lg space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">
+                              ชั้น {floorNum}
+                            </span>
+                            {preview && (
+                              <Button
+                                isIconOnly
+                                color="danger"
+                                size="sm"
+                                variant="light"
+                                onPress={() => handleRemoveFloorPlan(floorNum)}
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </Button>
                             )}
                           </div>
-                        );
-                      },
-                    )}
+                          {preview ? (
+                            <div className="relative w-full aspect-video">
+                              <NextImage
+                                fill
+                                alt={`Floor plan ชั้น ${floorNum}`}
+                                className="rounded-lg border border-default-200 object-contain"
+                                sizes="(max-width: 768px) 100vw, 50vw"
+                                src={preview}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <input
+                                ref={(el) => {
+                                  fileInputRefs.current[floorNum] = el;
+                                }}
+                                accept="image/*"
+                                className="hidden"
+                                disabled={isLoading}
+                                type="file"
+                                onChange={(e) => handleFloorPlanUpload(floorNum, e)}
+                              />
+                              <Button
+                                color="default"
+                                isDisabled={isLoading}
+                                size="sm"
+                                variant="bordered"
+                                onPress={() => fileInputRefs.current[floorNum]?.click()}
+                              >
+                                อัปโหลดรูป Floor Plan
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </ScrollShadow>
               </div>
             )}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                สถานะการใช้งาน
-              </div>
+              <div className="text-sm font-medium text-foreground">สถานะการใช้งาน</div>
               <div className="text-xs text-default-500">
                 เปิดใช้งานเมื่อต้องการให้อาคารนี้สามารถเลือกใช้ได้
               </div>
-              <Checkbox
-                isDisabled={isLoading}
-                isSelected={status}
-                onValueChange={setStatus}
-              >
+              <Checkbox isDisabled={isLoading} isSelected={status} onValueChange={setStatus}>
                 ใช้งาน
               </Checkbox>
             </div>
@@ -464,12 +444,12 @@ function FloorDepartmentModal({
   building,
   isLoading = false,
 }: FloorDepartmentModalProps) {
-  const [name, setName] = useState("");
-  const [floorNumber, setFloorNumber] = useState<string>("");
+  const [name, setName] = useState('');
+  const [floorNumber, setFloorNumber] = useState<string>('');
   const [departmentTypeId, setDepartmentTypeId] = useState<number>(1); // 1 = "คลินิก"
   const [roomTypeId, setRoomTypeId] = useState<number>(1); // 1 = "ห้องรวม"
-  const [roomCount, setRoomCount] = useState<string>("");
-  const [bedCount, setBedCount] = useState<string>("");
+  const [roomCount, setRoomCount] = useState<string>('');
+  const [bedCount, setBedCount] = useState<string>('');
   const [status, setStatus] = useState<boolean>(true);
 
   // สร้างรายการชั้นจากจำนวนชั้นของอาคาร
@@ -483,19 +463,19 @@ function FloorDepartmentModal({
   useEffect(() => {
     if (floor) {
       setName(floor.name);
-      setFloorNumber(floor.floorNumber?.toString() || "");
+      setFloorNumber(floor.floorNumber?.toString() || '');
       setDepartmentTypeId(floor.departmentType || 1);
       setRoomTypeId(floor.roomType || 1);
-      setRoomCount(floor.roomCount?.toString() || "");
-      setBedCount(floor.bedCount?.toString() || "");
+      setRoomCount(floor.roomCount?.toString() || '');
+      setBedCount(floor.bedCount?.toString() || '');
       setStatus(floor.status !== undefined ? floor.status : true);
     } else {
-      setName("");
-      setFloorNumber("");
+      setName('');
+      setFloorNumber('');
       setDepartmentTypeId(1);
       setRoomTypeId(1);
-      setRoomCount("");
-      setBedCount("");
+      setRoomCount('');
+      setBedCount('');
       setStatus(true);
     }
   }, [floor, isOpen]);
@@ -503,9 +483,9 @@ function FloorDepartmentModal({
   const handleSave = async () => {
     if (!name.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกชื่อคลีนิก/หอผู้ป่วย",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณากรอกชื่อคลีนิก/หอผู้ป่วย',
+        color: 'danger',
       });
 
       return;
@@ -516,9 +496,9 @@ function FloorDepartmentModal({
       // 2 = "หอผู้ป่วย"
       if (!roomTypeId) {
         addToast({
-          title: "ข้อมูลไม่ครบถ้วน",
-          description: "กรุณาเลือกประเภทห้องพัก",
-          color: "danger",
+          title: 'ข้อมูลไม่ครบถ้วน',
+          description: 'กรุณาเลือกประเภทห้องพัก',
+          color: 'danger',
         });
 
         return;
@@ -531,9 +511,9 @@ function FloorDepartmentModal({
 
         if (!bedCount || isNaN(bedCountNum) || bedCountNum <= 0) {
           addToast({
-            title: "ข้อมูลไม่ครบถ้วน",
-            description: "กรุณาระบุจำนวนเตียงห้องรวม",
-            color: "danger",
+            title: 'ข้อมูลไม่ครบถ้วน',
+            description: 'กรุณาระบุจำนวนเตียงห้องรวม',
+            color: 'danger',
           });
 
           return;
@@ -546,9 +526,9 @@ function FloorDepartmentModal({
 
         if (!roomCount || isNaN(roomCountNum) || roomCountNum <= 0) {
           addToast({
-            title: "ข้อมูลไม่ครบถ้วน",
-            description: "กรุณาระบุจำนวนห้องพิเศษ",
-            color: "danger",
+            title: 'ข้อมูลไม่ครบถ้วน',
+            description: 'กรุณาระบุจำนวนห้องพิเศษ',
+            color: 'danger',
           });
 
           return;
@@ -557,7 +537,7 @@ function FloorDepartmentModal({
     }
 
     const floorData: FloorDepartment = {
-      id: floor?.id || "", // จะถูกสร้างอัตโนมัติใน handleSaveFloor
+      id: floor?.id || '', // จะถูกสร้างอัตโนมัติใน handleSaveFloor
       name: name.trim(),
       floorNumber: floorNumber ? parseInt(floorNumber, 10) : undefined,
       departmentType: departmentTypeId,
@@ -587,9 +567,7 @@ function FloorDepartmentModal({
   return (
     <Modal isOpen={isOpen} size="lg" onClose={onClose}>
       <ModalContent>
-        <ModalHeader>
-          {floor ? "แก้ไขคลีนิก/หอผู้ป่วย" : "เพิ่มคลีนิก/หอผู้ป่วยใหม่"}
-        </ModalHeader>
+        <ModalHeader>{floor ? 'แก้ไขคลีนิก/หอผู้ป่วย' : 'เพิ่มคลีนิก/หอผู้ป่วยใหม่'}</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             {building?.floorCount && building.floorCount > 1 && (
@@ -604,7 +582,7 @@ function FloorDepartmentModal({
                 onSelectionChange={(keys) => {
                   const selected = Array.from(keys)[0] as string;
 
-                  setFloorNumber(selected || "");
+                  setFloorNumber(selected || '');
                 }}
               >
                 {floorOptions.map((floor) => (
@@ -641,8 +619,8 @@ function FloorDepartmentModal({
                   if (id === 1) {
                     // 1 = "คลินิก"
                     setRoomTypeId(1);
-                    setRoomCount("");
-                    setBedCount("");
+                    setRoomCount('');
+                    setBedCount('');
                   }
                 }}
               >
@@ -674,10 +652,10 @@ function FloorDepartmentModal({
                       // Reset จำนวนเมื่อเปลี่ยนประเภทห้องพัก
                       if (id === 1) {
                         // 1 = "ห้องรวม" - ต้องลบจำนวนห้องพิเศษออก
-                        setRoomCount("");
+                        setRoomCount('');
                       } else if (id === 2) {
                         // 2 = "ห้องพิเศษ" - ต้องลบจำนวนเตียงห้องรวมออก
-                        setBedCount("");
+                        setBedCount('');
                       }
                       // id === 3 = "ห้องรวมและห้องพิเศษ" - ไม่ต้อง reset อะไร
                     }}
@@ -696,7 +674,7 @@ function FloorDepartmentModal({
                     isRequired
                     classNames={{
                       input:
-                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                        '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
                     }}
                     isDisabled={isLoading}
                     label="จำนวนเตียงห้องรวม"
@@ -715,7 +693,7 @@ function FloorDepartmentModal({
                     isRequired
                     classNames={{
                       input:
-                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                        '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
                     }}
                     isDisabled={isLoading}
                     label="จำนวนห้องพิเศษ"
@@ -730,17 +708,11 @@ function FloorDepartmentModal({
               </>
             )}
             <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                สถานะการใช้งาน
-              </div>
+              <div className="text-sm font-medium text-foreground">สถานะการใช้งาน</div>
               <div className="text-xs text-default-500">
                 เปิดใช้งานเมื่อต้องการให้คลีนิก/หอผู้ป่วยนี้สามารถเลือกใช้ได้
               </div>
-              <Checkbox
-                isDisabled={isLoading}
-                isSelected={status}
-                onValueChange={setStatus}
-              >
+              <Checkbox isDisabled={isLoading} isSelected={status} onValueChange={setStatus}>
                 ใช้งาน
               </Checkbox>
             </div>
@@ -750,12 +722,7 @@ function FloorDepartmentModal({
           <Button isDisabled={isLoading} variant="flat" onPress={onClose}>
             ยกเลิก
           </Button>
-          <Button
-            color="primary"
-            isDisabled={isLoading}
-            isLoading={isLoading}
-            onPress={handleSave}
-          >
+          <Button color="primary" isDisabled={isLoading} isLoading={isLoading} onPress={handleSave}>
             บันทึก
           </Button>
         </ModalFooter>
@@ -768,44 +735,36 @@ export default function LocationSettingsPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingBuilding, setIsSavingBuilding] = useState(false);
-  const [isDeletingBuilding, setIsDeletingBuilding] = useState<string | null>(
-    null,
-  );
+  const [isDeletingBuilding, setIsDeletingBuilding] = useState<string | null>(null);
   const [isSavingFloor, setIsSavingFloor] = useState(false);
   const [isDeletingFloor, setIsDeletingFloor] = useState<string | null>(null);
-  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(
-    null,
-  );
-  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(
-    null,
-  );
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
 
   // Fetch buildings from API
   useEffect(() => {
     const fetchBuildings = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/porter/buildings");
+        const response = await fetch('/api/porter/buildings');
         const result = await response.json();
 
         if (result.success && result.data) {
-          const convertedBuildings = result.data.map((b: any) =>
-            convertBuildingFromProto(b),
-          );
+          const convertedBuildings = result.data.map((b: any) => convertBuildingFromProto(b));
 
           setBuildings(convertedBuildings);
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถดึงข้อมูลได้",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถดึงข้อมูลได้',
+            color: 'danger',
           });
         }
       } catch {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดึงข้อมูลอาคารได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถดึงข้อมูลอาคารได้',
+          color: 'danger',
         });
       } finally {
         setIsLoading(false);
@@ -828,9 +787,7 @@ export default function LocationSettingsPage() {
   } = useDisclosure();
 
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
-  const [editingFloor, setEditingFloor] = useState<FloorDepartment | null>(
-    null,
-  );
+  const [editingFloor, setEditingFloor] = useState<FloorDepartment | null>(null);
 
   // จัดการอาคาร
   const handleAddBuilding = () => {
@@ -855,10 +812,9 @@ export default function LocationSettingsPage() {
         setEditingBuilding(building);
         onBuildingModalOpen();
         addToast({
-          title: "คำเตือน",
-          description:
-            "ไม่สามารถดึงข้อมูล floor plans ได้ ใช้ข้อมูลจากรายการแทน",
-          color: "warning",
+          title: 'คำเตือน',
+          description: 'ไม่สามารถดึงข้อมูล floor plans ได้ ใช้ข้อมูลจากรายการแทน',
+          color: 'warning',
         });
       }
     } catch {
@@ -866,9 +822,9 @@ export default function LocationSettingsPage() {
       setEditingBuilding(building);
       onBuildingModalOpen();
       addToast({
-        title: "คำเตือน",
-        description: "ไม่สามารถดึงข้อมูล floor plans ได้ ใช้ข้อมูลจากรายการแทน",
-        color: "warning",
+        title: 'คำเตือน',
+        description: 'ไม่สามารถดึงข้อมูล floor plans ได้ ใช้ข้อมูลจากรายการแทน',
+        color: 'warning',
       });
     }
   };
@@ -876,7 +832,7 @@ export default function LocationSettingsPage() {
   const handleDeleteBuilding = async (buildingId: string) => {
     if (
       !confirm(
-        "คุณแน่ใจหรือไม่ว่าต้องการลบอาคารนี้? การลบจะทำให้ข้อมูลคลีนิก/หอผู้ป่วยและห้อง/เตียงทั้งหมดถูกลบด้วย",
+        'คุณแน่ใจหรือไม่ว่าต้องการลบอาคารนี้? การลบจะทำให้ข้อมูลคลีนิก/หอผู้ป่วยและห้อง/เตียงทั้งหมดถูกลบด้วย',
       )
     ) {
       return;
@@ -885,7 +841,7 @@ export default function LocationSettingsPage() {
     try {
       setIsDeletingBuilding(buildingId);
       const response = await fetch(`/api/porter/buildings/${buildingId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
       const result = await response.json();
 
@@ -896,22 +852,22 @@ export default function LocationSettingsPage() {
           setSelectedBuilding(null);
         }
         addToast({
-          title: "ลบอาคารสำเร็จ",
-          description: "อาคารถูกลบออกจากระบบแล้ว",
-          color: "success",
+          title: 'ลบอาคารสำเร็จ',
+          description: 'อาคารถูกลบออกจากระบบแล้ว',
+          color: 'success',
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถลบอาคารได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: result.message || 'ไม่สามารถลบอาคารได้',
+          color: 'danger',
         });
       }
     } catch {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถลบอาคารได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถลบอาคารได้',
+        color: 'danger',
       });
     } finally {
       setIsDeletingBuilding(null);
@@ -919,7 +875,7 @@ export default function LocationSettingsPage() {
   };
 
   const handleSaveBuilding = async (
-    buildingData: Omit<Building, "floors" | "floorPlans"> & {
+    buildingData: Omit<Building, 'floors' | 'floorPlans'> & {
       floors?: FloorDepartment[];
       floorPlans?: Array<{
         id?: string;
@@ -932,44 +888,39 @@ export default function LocationSettingsPage() {
       setIsSavingBuilding(true);
       if (editingBuilding) {
         // แก้ไขอาคาร
-        const response = await fetch(
-          `/api/porter/buildings/${editingBuilding.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: buildingData.name,
-              floorCount: buildingData.floorCount,
-              floorPlans: buildingData.floorPlans,
-              status: buildingData.status,
-            }),
-          },
-        );
+        const response = await fetch(`/api/porter/buildings/${editingBuilding.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: buildingData.name,
+            floorCount: buildingData.floorCount,
+            floorPlans: buildingData.floorPlans,
+            status: buildingData.status,
+          }),
+        });
         const result = await response.json();
 
         if (result.success && result.data) {
           const updatedBuilding = convertBuildingFromProto(result.data);
 
           setBuildings((prev) =>
-            prev.map((b) =>
-              b.id === editingBuilding.id ? updatedBuilding : b,
-            ),
+            prev.map((b) => (b.id === editingBuilding.id ? updatedBuilding : b)),
           );
           if (selectedBuildingId === editingBuilding.id) {
             setSelectedBuilding(updatedBuilding);
           }
           addToast({
-            title: "แก้ไขอาคารสำเร็จ",
-            description: "ข้อมูลอาคารถูกอัปเดตแล้ว",
-            color: "success",
+            title: 'แก้ไขอาคารสำเร็จ',
+            description: 'ข้อมูลอาคารถูกอัปเดตแล้ว',
+            color: 'success',
           });
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถแก้ไขอาคารได้",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถแก้ไขอาคารได้',
+            color: 'danger',
           });
-          throw new Error(result.message || "ไม่สามารถแก้ไขอาคารได้");
+          throw new Error(result.message || 'ไม่สามารถแก้ไขอาคารได้');
         }
       } else {
         // เพิ่มอาคารใหม่ (ไม่ต้องระบุ id - ให้ backend สร้าง cuid อัตโนมัติ)
@@ -985,9 +936,9 @@ export default function LocationSettingsPage() {
           requestBody.status = buildingData.status;
         }
 
-        const response = await fetch("/api/porter/buildings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/porter/buildings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
         });
         const result = await response.json();
@@ -997,25 +948,25 @@ export default function LocationSettingsPage() {
 
           setBuildings((prev) => [...prev, newBuilding]);
           addToast({
-            title: "เพิ่มอาคารสำเร็จ",
-            description: "อาคารใหม่ถูกเพิ่มเข้าไปในระบบแล้ว",
-            color: "success",
+            title: 'เพิ่มอาคารสำเร็จ',
+            description: 'อาคารใหม่ถูกเพิ่มเข้าไปในระบบแล้ว',
+            color: 'success',
           });
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถเพิ่มอาคารได้",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถเพิ่มอาคารได้',
+            color: 'danger',
           });
-          throw new Error(result.message || "ไม่สามารถเพิ่มอาคารได้");
+          throw new Error(result.message || 'ไม่สามารถเพิ่มอาคารได้');
         }
       }
       setEditingBuilding(null);
     } catch (error) {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกอาคารได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกอาคารได้',
+        color: 'danger',
       });
       throw error; // Re-throw เพื่อให้ modal ไม่ปิด
     } finally {
@@ -1063,7 +1014,7 @@ export default function LocationSettingsPage() {
   const handleDeleteFloor = async (buildingId: string, floorId: string) => {
     if (
       !confirm(
-        "คุณแน่ใจหรือไม่ว่าต้องการลบคลีนิก/หอผู้ป่วยนี้? การลบจะทำให้ข้อมูลห้อง/เตียงทั้งหมดถูกลบด้วย",
+        'คุณแน่ใจหรือไม่ว่าต้องการลบคลีนิก/หอผู้ป่วยนี้? การลบจะทำให้ข้อมูลห้อง/เตียงทั้งหมดถูกลบด้วย',
       )
     ) {
       return;
@@ -1072,13 +1023,13 @@ export default function LocationSettingsPage() {
     try {
       setIsDeletingFloor(floorId);
       const response = await fetch(`/api/porter/floor-departments/${floorId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
       const result = await response.json();
 
       if (result.success) {
         // Refresh buildings to get updated data
-        const buildingsResponse = await fetch("/api/porter/buildings");
+        const buildingsResponse = await fetch('/api/porter/buildings');
         const buildingsResult = await buildingsResponse.json();
 
         if (buildingsResult.success && buildingsResult.data) {
@@ -1088,30 +1039,28 @@ export default function LocationSettingsPage() {
 
           setBuildings(convertedBuildings);
           if (selectedBuildingId === buildingId) {
-            const updatedBuilding = convertedBuildings.find(
-              (b: Building) => b.id === buildingId,
-            );
+            const updatedBuilding = convertedBuildings.find((b: Building) => b.id === buildingId);
 
             setSelectedBuilding(updatedBuilding || null);
           }
         }
         addToast({
-          title: "ลบคลีนิก/หอผู้ป่วยสำเร็จ",
-          description: "คลีนิก/หอผู้ป่วยถูกลบออกจากระบบแล้ว",
-          color: "success",
+          title: 'ลบคลีนิก/หอผู้ป่วยสำเร็จ',
+          description: 'คลีนิก/หอผู้ป่วยถูกลบออกจากระบบแล้ว',
+          color: 'success',
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถลบคลีนิก/หอผู้ป่วยได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: result.message || 'ไม่สามารถลบคลีนิก/หอผู้ป่วยได้',
+          color: 'danger',
         });
       }
     } catch {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถลบคลีนิก/หอผู้ป่วยได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถลบคลีนิก/หอผู้ป่วยได้',
+        color: 'danger',
       });
     } finally {
       setIsDeletingFloor(null);
@@ -1150,19 +1099,16 @@ export default function LocationSettingsPage() {
           requestBody.bedCount = null;
         }
 
-        const response = await fetch(
-          `/api/porter/floor-departments/${editingFloor.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-          },
-        );
+        const response = await fetch(`/api/porter/floor-departments/${editingFloor.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
         const result = await response.json();
 
         if (result.success) {
           // Refresh buildings to get updated data
-          const buildingsResponse = await fetch("/api/porter/buildings");
+          const buildingsResponse = await fetch('/api/porter/buildings');
           const buildingsResult = await buildingsResponse.json();
 
           if (buildingsResult.success && buildingsResult.data) {
@@ -1183,19 +1129,17 @@ export default function LocationSettingsPage() {
             }
           }
           addToast({
-            title: "แก้ไขคลีนิก/หอผู้ป่วยสำเร็จ",
-            description: "ข้อมูลคลีนิก/หอผู้ป่วยถูกอัปเดตแล้ว",
-            color: "success",
+            title: 'แก้ไขคลีนิก/หอผู้ป่วยสำเร็จ',
+            description: 'ข้อมูลคลีนิก/หอผู้ป่วยถูกอัปเดตแล้ว',
+            color: 'success',
           });
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถแก้ไขคลีนิก/หอผู้ป่วยได้",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถแก้ไขคลีนิก/หอผู้ป่วยได้',
+            color: 'danger',
           });
-          throw new Error(
-            result.message || "ไม่สามารถแก้ไขคลีนิก/หอผู้ป่วยได้",
-          );
+          throw new Error(result.message || 'ไม่สามารถแก้ไขคลีนิก/หอผู้ป่วยได้');
         }
       } else {
         // เพิ่มคลีนิก/หอผู้ป่วยใหม่
@@ -1221,16 +1165,16 @@ export default function LocationSettingsPage() {
 
         // ไม่ต้องระบุ id - ให้ backend สร้าง cuid อัตโนมัติ
 
-        const response = await fetch("/api/porter/floor-departments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/porter/floor-departments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
         });
         const result = await response.json();
 
         if (result.success) {
           // Refresh buildings to get updated data
-          const buildingsResponse = await fetch("/api/porter/buildings");
+          const buildingsResponse = await fetch('/api/porter/buildings');
           const buildingsResult = await buildingsResponse.json();
 
           if (buildingsResult.success && buildingsResult.data) {
@@ -1251,28 +1195,26 @@ export default function LocationSettingsPage() {
             }
           }
           addToast({
-            title: "เพิ่มคลีนิก/หอผู้ป่วยสำเร็จ",
-            description: "คลีนิก/หอผู้ป่วยใหม่ถูกเพิ่มเข้าไปในระบบแล้ว",
-            color: "success",
+            title: 'เพิ่มคลีนิก/หอผู้ป่วยสำเร็จ',
+            description: 'คลีนิก/หอผู้ป่วยใหม่ถูกเพิ่มเข้าไปในระบบแล้ว',
+            color: 'success',
           });
         } else {
           addToast({
-            title: "เกิดข้อผิดพลาด",
-            description: result.message || "ไม่สามารถเพิ่มคลีนิก/หอผู้ป่วยได้",
-            color: "danger",
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถเพิ่มคลีนิก/หอผู้ป่วยได้',
+            color: 'danger',
           });
-          throw new Error(
-            result.message || "ไม่สามารถเพิ่มคลีนิก/หอผู้ป่วยได้",
-          );
+          throw new Error(result.message || 'ไม่สามารถเพิ่มคลีนิก/หอผู้ป่วยได้');
         }
       }
       // ไม่ต้อง setSelectedBuilding(null) เพื่อให้ Column 2 ยังแสดงข้อมูล
       setEditingFloor(null);
     } catch (error) {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกคลีนิก/หอผู้ป่วยได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกคลีนิก/หอผู้ป่วยได้',
+        color: 'danger',
       });
       throw error; // Re-throw เพื่อให้ modal ไม่ปิด
     } finally {
@@ -1311,9 +1253,7 @@ export default function LocationSettingsPage() {
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
                 <BuildingOfficeIcon className="w-6 h-6 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">
-                  รายการอาคาร
-                </h2>
+                <h2 className="text-lg font-semibold text-foreground">รายการอาคาร</h2>
               </div>
             </div>
           </CardHeader>
@@ -1330,14 +1270,14 @@ export default function LocationSettingsPage() {
                       key={building.id}
                       className={`cursor-pointer transition-all border rounded-lg ${
                         selectedBuildingId === building.id
-                          ? "border-primary bg-primary-50 dark:bg-primary-900/20"
-                          : "border-default-200 hover:border-primary-300"
+                          ? 'border-primary bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-default-200 hover:border-primary-300'
                       }`}
                       role="button"
                       tabIndex={0}
                       onClick={() => handleSelectBuilding(building)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
+                        if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           handleSelectBuilding(building);
                         }
@@ -1350,25 +1290,25 @@ export default function LocationSettingsPage() {
                               <BuildingOfficeIcon
                                 className={`w-5 h-5 ${
                                   selectedBuildingId === building.id
-                                    ? "text-primary"
-                                    : "text-default-500"
+                                    ? 'text-primary'
+                                    : 'text-default-500'
                                 }`}
                               />
                               <span
                                 className={`font-medium ${
                                   selectedBuildingId === building.id
-                                    ? "text-primary"
-                                    : "text-foreground"
+                                    ? 'text-primary'
+                                    : 'text-foreground'
                                 }`}
                               >
                                 {building.name}
                               </span>
                               <Chip
-                                color={building.status ? "success" : "default"}
+                                color={building.status ? 'success' : 'default'}
                                 size="sm"
                                 variant="flat"
                               >
-                                {building.status ? "ใช้งาน" : "ไม่ใช้งาน"}
+                                {building.status ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                               </Chip>
                             </div>
                           </div>
@@ -1376,10 +1316,7 @@ export default function LocationSettingsPage() {
                             <Button
                               isIconOnly
                               color="primary"
-                              isDisabled={
-                                isDeletingBuilding === building.id ||
-                                isSavingBuilding
-                              }
+                              isDisabled={isDeletingBuilding === building.id || isSavingBuilding}
                               size="sm"
                               variant="light"
                               onPress={() => handleEditBuilding(building)}
@@ -1406,9 +1343,7 @@ export default function LocationSettingsPage() {
                     <EmptyState
                       compact
                       description='คลิกปุ่ม "เพิ่มอาคาร" เพื่อเพิ่มข้อมูล'
-                      icon={
-                        <BuildingOfficeIcon className="w-12 h-12 opacity-50" />
-                      }
+                      icon={<BuildingOfficeIcon className="w-12 h-12 opacity-50" />}
                       message="ยังไม่มีข้อมูลอาคาร"
                       variant="no-data"
                     />
@@ -1426,7 +1361,7 @@ export default function LocationSettingsPage() {
               <div className="flex items-center gap-2">
                 <MapPinIcon className="w-6 h-6 text-primary" />
                 <h2 className="text-lg font-semibold text-foreground">
-                  {selectedBuilding ? `รายการ คลีนิก/หอผู้ป่วย` : "เลือกอาคาร"}
+                  {selectedBuilding ? `รายการ คลีนิก/หอผู้ป่วย` : 'เลือกอาคาร'}
                 </h2>
                 {selectedBuilding && (
                   <Chip color="secondary" size="sm" variant="flat">
@@ -1440,7 +1375,7 @@ export default function LocationSettingsPage() {
                       }
 
                       return total;
-                    }, 0)}{" "}
+                    }, 0)}{' '}
                     เตียง
                   </Chip>
                 )}
@@ -1490,23 +1425,18 @@ export default function LocationSettingsPage() {
                                 {floor.name}
                               </span>
                               <Chip
-                                color={
-                                  floor.departmentType === 2
-                                    ? "primary"
-                                    : "secondary"
-                                }
+                                color={floor.departmentType === 2 ? 'primary' : 'secondary'}
                                 size="sm"
                                 variant="flat"
                               >
-                                {getDepartmentTypeName(floor.departmentType) ||
-                                  "คลินิก"}
+                                {getDepartmentTypeName(floor.departmentType) || 'คลินิก'}
                               </Chip>
                               <Chip
-                                color={floor.status ? "success" : "default"}
+                                color={floor.status ? 'success' : 'default'}
                                 size="sm"
                                 variant="flat"
                               >
-                                {floor.status ? "ใช้งาน" : "ไม่ใช้งาน"}
+                                {floor.status ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                               </Chip>
                               {floor.departmentType === 2 && (
                                 // 2 = "หอผู้ป่วย"
@@ -1517,7 +1447,7 @@ export default function LocationSettingsPage() {
                                       ? `ห้องรวม ${floor.bedCount} เตียง`
                                       : floor.roomCount
                                         ? `${floor.roomCount} ห้องพิเศษ`
-                                        : ""}
+                                        : ''}
                                 </span>
                               )}
                             </div>
@@ -1527,14 +1457,10 @@ export default function LocationSettingsPage() {
                           <Button
                             isIconOnly
                             color="primary"
-                            isDisabled={
-                              isDeletingFloor === floor.id || isSavingFloor
-                            }
+                            isDisabled={isDeletingFloor === floor.id || isSavingFloor}
                             size="sm"
                             variant="light"
-                            onPress={() =>
-                              handleEditFloor(selectedBuilding, floor)
-                            }
+                            onPress={() => handleEditFloor(selectedBuilding, floor)}
                           >
                             <PencilIcon className="w-4 h-4" />
                           </Button>
@@ -1545,9 +1471,7 @@ export default function LocationSettingsPage() {
                             isLoading={isDeletingFloor === floor.id}
                             size="sm"
                             variant="light"
-                            onPress={() =>
-                              handleDeleteFloor(selectedBuilding.id, floor.id)
-                            }
+                            onPress={() => handleDeleteFloor(selectedBuilding.id, floor.id)}
                           >
                             <TrashIcon className="w-4 h-4" />
                           </Button>
@@ -1569,9 +1493,7 @@ export default function LocationSettingsPage() {
               <div className="text-center py-12 text-default-500">
                 <BuildingOfficeIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">กรุณาเลือกอาคาร</p>
-                <p className="text-sm">
-                  เลือกอาคารจากคอลัมน์ซ้ายเพื่อดูรายการคลีนิก/หอผู้ป่วย
-                </p>
+                <p className="text-sm">เลือกอาคารจากคอลัมน์ซ้ายเพื่อดูรายการคลีนิก/หอผู้ป่วย</p>
               </div>
             )}
           </CardBody>
@@ -1592,7 +1514,7 @@ export default function LocationSettingsPage() {
 
       <FloorDepartmentModal
         building={selectedBuilding}
-        buildingId={selectedBuilding?.id || ""}
+        buildingId={selectedBuilding?.id || ''}
         floor={editingFloor}
         isLoading={isSavingFloor}
         isOpen={isFloorModalOpen}

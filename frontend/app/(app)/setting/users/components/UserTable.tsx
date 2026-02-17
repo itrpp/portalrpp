@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import type { UserDTO } from "@/types/user";
+import type { UserDTO } from '@/types/user';
 
-import React from "react";
+import React from 'react';
 import {
   Avatar,
   Button,
@@ -14,10 +14,10 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { PencilIcon, TrashIcon, UserIcon } from "@/components/ui/icons";
-import { TABLE_STYLES } from "@/lib/tableStyles";
+import { PencilIcon, TrashIcon, UserIcon } from '@/components/ui/icons';
+import { TABLE_STYLES } from '@/lib/tableStyles';
 
 interface UserTableProps {
   users: UserDTO[];
@@ -37,21 +37,21 @@ export function UserTable({
   currentUserId,
 }: UserTableProps) {
   const columns = [
-    { key: "avatar", label: "" },
-    { key: "name", label: "ชื่อ" },
-    { key: "departmentSub", label: "กลุ่มงาน" },
-    { key: "departmentSubSub", label: "หน่วยงาน" },
-    { key: "phone", label: "โทรศัพท์ภายใน" },
-    { key: "role", label: "บทบาท" },
-    { key: "actions", label: "การจัดการ" },
+    { key: 'avatar', label: '' },
+    { key: 'name', label: 'ชื่อ' },
+    { key: 'departmentSub', label: 'กลุ่มงาน' },
+    { key: 'departmentSubSub', label: 'หน่วยงาน' },
+    { key: 'phone', label: 'โทรศัพท์ภายใน' },
+    { key: 'role', label: 'บทบาท' },
+    { key: 'actions', label: 'การจัดการ' },
   ];
 
   const getRoleColor = (role: string) => {
-    return role === "admin" ? "danger" : "default";
+    return role === 'admin' ? 'danger' : 'default';
   };
 
   const getRoleLabel = (role: string) => {
-    return role === "admin" ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน";
+    return role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน';
   };
 
   return (
@@ -69,16 +69,13 @@ export function UserTable({
         {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
       </TableHeader>
       <TableBody
-        emptyContent={
-          isLoading ? TABLE_STYLES.loading.content : "ยังไม่มีข้อมูลผู้ใช้"
-        }
+        emptyContent={isLoading ? TABLE_STYLES.loading.content : 'ยังไม่มีข้อมูลผู้ใช้'}
         isLoading={isLoading}
         items={users}
       >
         {(user) => {
           // ใช้ displayName ถ้าไม่มีให้ใช้ ldapDisplayName
-          const displayName =
-            user.displayName || user.ldapDisplayName || "ไม่ระบุ";
+          const displayName = user.displayName || user.ldapDisplayName || 'ไม่ระบุ';
 
           return (
             <TableRow key={user.id}>
@@ -93,32 +90,20 @@ export function UserTable({
                 />
               </TableCell>
               <TableCell>
-                <span className="text-foreground font-medium">
-                  {displayName}
-                </span>
+                <span className="text-foreground font-medium">{displayName}</span>
               </TableCell>
               <TableCell>
-                <span className="text-foreground">
-                  {user.departmentSubName || "ไม่ระบุ"}
-                </span>
+                <span className="text-foreground">{user.departmentSubName || 'ไม่ระบุ'}</span>
               </TableCell>
               <TableCell>
-                <span className="text-foreground">
-                  {user.departmentSubSubName || "ไม่ระบุ"}
-                </span>
+                <span className="text-foreground">{user.departmentSubSubName || 'ไม่ระบุ'}</span>
               </TableCell>
               <TableCell>
-                <span className="text-foreground">
-                  {user.phone || "ไม่ระบุ"}
-                </span>
+                <span className="text-foreground">{user.phone || 'ไม่ระบุ'}</span>
               </TableCell>
               <TableCell>
-                <Chip
-                  color={getRoleColor(user.role || "user")}
-                  size="sm"
-                  variant="flat"
-                >
-                  {getRoleLabel(user.role || "user")}
+                <Chip color={getRoleColor(user.role || 'user')} size="sm" variant="flat">
+                  {getRoleLabel(user.role || 'user')}
                 </Chip>
               </TableCell>
               <TableCell>
@@ -137,25 +122,13 @@ export function UserTable({
                     </Button>
                   </Tooltip>
                   <Tooltip
-                    content={
-                      user.id === currentUserId
-                        ? "ไม่สามารถลบตัวเองได้"
-                        : "ลบผู้ใช้"
-                    }
+                    content={user.id === currentUserId ? 'ไม่สามารถลบตัวเองได้' : 'ลบผู้ใช้'}
                   >
                     <Button
                       isIconOnly
-                      aria-label={
-                        user.id === currentUserId
-                          ? "ไม่สามารถลบตัวเองได้"
-                          : "ลบผู้ใช้"
-                      }
+                      aria-label={user.id === currentUserId ? 'ไม่สามารถลบตัวเองได้' : 'ลบผู้ใช้'}
                       color="danger"
-                      isDisabled={
-                        isLoading ||
-                        isDeleting === user.id ||
-                        user.id === currentUserId
-                      }
+                      isDisabled={isLoading || isDeleting === user.id || user.id === currentUserId}
                       size="sm"
                       variant="light"
                       onPress={() => onDelete(user.id)}

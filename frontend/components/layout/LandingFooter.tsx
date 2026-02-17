@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import Image from "next/image";
+import Link from 'next/link';
+import Image from 'next/image';
 
 import {
   BuildingOfficeIcon,
@@ -9,65 +9,65 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   GlobeAltIcon,
-} from "@/components/ui/icons";
+} from '@/components/ui/icons';
 
 export default function LandingFooter() {
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
     {
-      name: "หน้าแรก",
-      href: "#",
+      name: 'หน้าแรก',
+      href: '#',
     },
     {
-      name: "แดชบอร์ด",
-      href: "#",
+      name: 'แดชบอร์ด',
+      href: '#',
     },
     {
-      name: "เกี่ยวกับเรา",
-      href: "#",
+      name: 'เกี่ยวกับเรา',
+      href: '#',
     },
     {
-      name: "ติดต่อเรา",
-      href: "#",
+      name: 'ติดต่อเรา',
+      href: '#',
     },
   ];
 
   const supportLinks = [
     {
-      name: "คู่มือการใช้งาน",
-      href: "#",
+      name: 'คู่มือการใช้งาน',
+      href: '#',
     },
     {
-      name: "คำถามที่พบบ่อย",
-      href: "#",
+      name: 'คำถามที่พบบ่อย',
+      href: '#',
     },
     {
-      name: "นโยบายความเป็นส่วนตัว",
-      href: "#",
+      name: 'นโยบายความเป็นส่วนตัว',
+      href: '#',
     },
     {
-      name: "เงื่อนไขการใช้งาน",
-      href: "#",
+      name: 'เงื่อนไขการใช้งาน',
+      href: '#',
     },
   ];
 
   const contactInfo = [
     {
       icon: BuildingOfficeIcon,
-      text: "โรงพยาบาลราชพิพัฒน์",
+      text: 'โรงพยาบาลราชพิพัฒน์',
     },
     {
       icon: MapPinIcon,
-      text: "เลขที่ 18 ถนนพุทธมณฑลสาย 3 ซอย 10 แขวงบางไผ่ เขตบางแค กทม. 10160",
+      text: 'เลขที่ 18 ถนนพุทธมณฑลสาย 3 ซอย 10 แขวงบางไผ่ เขตบางแค กทม. 10160',
     },
     {
       icon: PhoneIcon,
-      text: "02 102 4222, 02 421 2222",
+      text: '02 102 4222, 02 421 2222',
     },
     {
       icon: EnvelopeIcon,
-      text: "saraban.msd.rpphosp@bangkok.go.th",
+      text: 'saraban.msd.rpphosp@bangkok.go.th',
     },
   ];
 
@@ -86,9 +86,7 @@ export default function LandingFooter() {
                 src="/images/logo.png"
                 width={32}
               />
-              <span className="font-bold text-xl text-foreground">
-                Portal RPP
-              </span>
+              <span className="font-bold text-xl text-foreground">Portal RPP</span>
             </div>
             <p className="text-sm text-foreground max-w-xs">
               ระบบจัดการข้อมูลและบริการออนไลน์ของโรงพยาบาลราชพิพัฒน์
@@ -119,9 +117,7 @@ export default function LandingFooter() {
 
           {/* Support Links */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">
-              การสนับสนุน
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground">การสนับสนุน</h3>
             <div className="flex flex-col space-y-2">
               {supportLinks.map((link, index) => (
                 <Link
@@ -137,15 +133,10 @@ export default function LandingFooter() {
 
           {/* Contact Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">
-              ข้อมูลติดต่อ
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground">ข้อมูลติดต่อ</h3>
             <div className="space-y-3">
               {contactInfo.map((info, index) => (
-                <div
-                  key={`contact-${index}`}
-                  className="flex items-start space-x-2"
-                >
+                <div key={`contact-${index}`} className="flex items-start space-x-2">
                   <info.icon className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
                   <span className="text-sm text-foreground">{info.text}</span>
                 </div>
@@ -162,22 +153,13 @@ export default function LandingFooter() {
             © {currentYear} โรงพยาบาลราชพิพัฒน์. สงวนลิขสิทธิ์ทั้งหมด.
           </div>
           <div className="flex space-x-6 text-sm">
-            <span
-              key="privacy"
-              className="text-foreground hover:text-primary cursor-pointer"
-            >
+            <span key="privacy" className="text-foreground hover:text-primary cursor-pointer">
               นโยบายความเป็นส่วนตัว
             </span>
-            <span
-              key="terms"
-              className="text-foreground hover:text-primary cursor-pointer"
-            >
+            <span key="terms" className="text-foreground hover:text-primary cursor-pointer">
               เงื่อนไขการใช้งาน
             </span>
-            <span
-              key="sitemap"
-              className="text-foreground hover:text-primary cursor-pointer"
-            >
+            <span key="sitemap" className="text-foreground hover:text-primary cursor-pointer">
               แผนผังเว็บไซต์
             </span>
           </div>

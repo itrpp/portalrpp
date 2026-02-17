@@ -1,9 +1,9 @@
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 
-import { porterQueryKeys } from "../lib/queryKeys";
+import { porterQueryKeys } from '../lib/queryKeys';
 
-import { Building } from "@/types/porter";
-import { convertBuildingFromProto } from "@/lib/porter";
+import { Building } from '@/types/porter';
+import { convertBuildingFromProto } from '@/lib/porter';
 
 interface BuildingsResponse {
   success: boolean;
@@ -16,21 +16,19 @@ interface BuildingsResponse {
  * ใช้ React Query สำหรับ caching และ deduplication
  */
 export function usePorterBuildings(
-  options?: Omit<UseQueryOptions<Building[], Error>, "queryKey" | "queryFn">,
+  options?: Omit<UseQueryOptions<Building[], Error>, 'queryKey' | 'queryFn'>,
 ) {
   return useQuery<Building[], Error>({
     queryKey: porterQueryKeys.buildings.list(),
     queryFn: async () => {
-      const response = await fetch("/api/porter/buildings");
+      const response = await fetch('/api/porter/buildings');
       const result = (await response.json()) as BuildingsResponse;
 
       if (!result.success || !result.data) {
-        throw new Error(result.error_message ?? "ไม่สามารถโหลดข้อมูลอาคารได้");
+        throw new Error(result.error_message ?? 'ไม่สามารถโหลดข้อมูลอาคารได้');
       }
 
-      const convertedBuildings = result.data.map((item: unknown) =>
-        convertBuildingFromProto(item),
-      );
+      const convertedBuildings = result.data.map((item: unknown) => convertBuildingFromProto(item));
 
       return convertedBuildings;
     },

@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
+
 import { createCorsMiddleware } from './middlewares/cors';
 import { httpLogger, logger } from './middlewares/logger';
 import { apiRateLimiter } from './middlewares/rateLimit';
@@ -41,5 +42,3 @@ const server = app.listen(config.port, () => {
 });
 
 setupGracefulShutdown(server);
-
-

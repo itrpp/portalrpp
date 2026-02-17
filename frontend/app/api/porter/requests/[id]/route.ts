@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { callPorterService } from "@/lib/grpcClient";
+import { getAuthSession } from '@/lib/auth';
+import { callPorterService } from '@/lib/grpcClient';
 import {
   mapUrgencyLevelToProto,
   mapVehicleTypeToProto,
@@ -9,16 +9,13 @@ import {
   mapReturnTripToProto,
   mapEquipmentToProto,
   convertProtoToFrontend,
-} from "@/lib/porter";
+} from '@/lib/porter';
 
 /**
  * PUT /api/porter/requests/[id]
  * อัปเดตข้อมูล Porter Request
  */
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -35,9 +32,8 @@ export async function PUT(
     };
 
     // หน่วยงานผู้แจ้งควรถูกอัปเดตจากโปรไฟล์ผู้ใช้งาน (departmentSubSubId)
-    const requesterDepartment = (
-      auth.session.user as { departmentSubSubId?: number }
-    )?.departmentSubSubId;
+    const requesterDepartment = (auth.session.user as { departmentSubSubId?: number })
+      ?.departmentSubSubId;
 
     if (requesterDepartment !== null && requesterDepartment !== undefined) {
       protoRequest.requester_department = requesterDepartment;
@@ -56,57 +52,48 @@ export async function PUT(
     }
     if (requestData.patientCondition !== undefined) {
       protoRequest.patient_condition =
-        Array.isArray(requestData.patientCondition) &&
-        requestData.patientCondition.length > 0
-          ? requestData.patientCondition.join(", ")
+        Array.isArray(requestData.patientCondition) && requestData.patientCondition.length > 0
+          ? requestData.patientCondition.join(', ')
           : null;
     }
 
     if (requestData.pickupLocationDetail?.buildingId !== undefined) {
-      protoRequest.pickup_building_id =
-        requestData.pickupLocationDetail?.buildingId || null;
+      protoRequest.pickup_building_id = requestData.pickupLocationDetail?.buildingId || null;
     }
     if (requestData.pickupLocationDetail?.floorDepartmentId !== undefined) {
       protoRequest.pickup_floor_department_id =
-        requestData.pickupLocationDetail?.floorDepartmentId || "";
+        requestData.pickupLocationDetail?.floorDepartmentId || '';
     } else if (requestData.pickupLocationDetail) {
       // If object exists but field is missing (undefined), it means it should be empty (e.g. cleared)
-      protoRequest.pickup_floor_department_id = "";
+      protoRequest.pickup_floor_department_id = '';
     }
 
     if (requestData.pickupLocationDetail?.roomBedName !== undefined) {
-      protoRequest.pickup_room_bed_name =
-        requestData.pickupLocationDetail?.roomBedName || null;
+      protoRequest.pickup_room_bed_name = requestData.pickupLocationDetail?.roomBedName || null;
     }
 
     if (requestData.deliveryLocationDetail?.buildingId !== undefined) {
-      protoRequest.delivery_building_id =
-        requestData.deliveryLocationDetail?.buildingId || null;
+      protoRequest.delivery_building_id = requestData.deliveryLocationDetail?.buildingId || null;
     }
     if (requestData.deliveryLocationDetail?.floorDepartmentId !== undefined) {
       protoRequest.delivery_floor_department_id =
-        requestData.deliveryLocationDetail?.floorDepartmentId || "";
+        requestData.deliveryLocationDetail?.floorDepartmentId || '';
     } else if (requestData.deliveryLocationDetail) {
       // If object exists but field is missing (undefined), it means it should be empty (e.g. cleared)
-      protoRequest.delivery_floor_department_id = "";
+      protoRequest.delivery_floor_department_id = '';
     }
 
     if (requestData.deliveryLocationDetail?.roomBedName !== undefined) {
-      protoRequest.delivery_room_bed_name =
-        requestData.deliveryLocationDetail?.roomBedName || null;
+      protoRequest.delivery_room_bed_name = requestData.deliveryLocationDetail?.roomBedName || null;
     }
     if (requestData.requestedDateTime !== undefined) {
       protoRequest.requested_date_time = requestData.requestedDateTime;
     }
     if (requestData.urgencyLevel !== undefined) {
-      protoRequest.urgency_level = mapUrgencyLevelToProto(
-        requestData.urgencyLevel,
-      );
+      protoRequest.urgency_level = mapUrgencyLevelToProto(requestData.urgencyLevel);
     }
     if (requestData.vehicleType !== undefined) {
-      protoRequest.vehicle_type = mapVehicleTypeToProto(
-        requestData.vehicleType,
-      );
+      protoRequest.vehicle_type = mapVehicleTypeToProto(requestData.vehicleType);
     }
     if (requestData.hasVehicle !== undefined) {
       protoRequest.has_vehicle = mapHasVehicleToProto(requestData.hasVehicle);
@@ -128,10 +115,7 @@ export async function PUT(
     }
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "UpdatePorterRequest",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('UpdatePorterRequest', protoRequest);
 
     if (response.success) {
       // แปลงข้อมูลจาก Proto format เป็น Frontend format
@@ -148,8 +132,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "UPDATE_FAILED",
-          message: response.error_message || "ไม่สามารถอัปเดตคำขอได้",
+          error: 'UPDATE_FAILED',
+          message: response.error_message || 'ไม่สามารถอัปเดตคำขอได้',
         },
         { status: 400 },
       );
@@ -161,8 +145,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "PORTER_SERVICE_UNAVAILABLE",
-          message: "บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้",
+          error: 'PORTER_SERVICE_UNAVAILABLE',
+          message: 'บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้',
         },
         { status: 503 },
       );
@@ -171,8 +155,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: error.message || "ไม่พบข้อมูลที่ต้องการ",
+          error: 'NOT_FOUND',
+          message: error.message || 'ไม่พบข้อมูลที่ต้องการ',
         },
         { status: 404 },
       );
@@ -181,20 +165,20 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ARGUMENT",
-          message: error.message || "ข้อมูลไม่ถูกต้อง",
+          error: 'INVALID_ARGUMENT',
+          message: error.message || 'ข้อมูลไม่ถูกต้อง',
         },
         { status: 400 },
       );
     }
 
-    console.error("Error updating porter request:", error);
+    console.error('Error updating porter request:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_SERVER_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์",
+        error: 'INTERNAL_SERVER_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์',
       },
       { status: 500 },
     );

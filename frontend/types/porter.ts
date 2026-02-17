@@ -1,5 +1,5 @@
-import type { Selection } from "@react-types/shared";
-import type React from "react";
+import type { Selection } from '@react-types/shared';
+import type React from 'react';
 
 /**
  * ========================================
@@ -11,22 +11,22 @@ import type React from "react";
 /**
  * ประเภทรถเปล
  */
-export type VehicleType = "รถนั่ง" | "รถนอน" | "รถกอล์ฟ";
+export type VehicleType = 'รถนั่ง' | 'รถนอน' | 'รถกอล์ฟ';
 
 /**
  * ระดับความเร่งด่วน
  */
-export type UrgencyLevel = "ปกติ" | "ด่วน" | "ฉุกเฉิน";
+export type UrgencyLevel = 'ปกติ' | 'ด่วน' | 'ฉุกเฉิน';
 
 /**
  * อุปกรณ์ที่ต้องการ
  */
 export type EquipmentType =
-  | "ถังออกซิเจน (ออกซิเจนCannula / mask with bag)"
-  | "เสาน้ำเกลือ"
-  | "กล่องวางขวด ICD"
-  | "ผ้าผูกตรึงร่างกาย"
-  | "อื่นๆ ระบุ";
+  | 'ถังออกซิเจน (ออกซิเจนCannula / mask with bag)'
+  | 'เสาน้ำเกลือ'
+  | 'กล่องวางขวด ICD'
+  | 'ผ้าผูกตรึงร่างกาย'
+  | 'อื่นๆ ระบุ';
 
 /**
  * ข้อมูลฟอร์มขอเปล
@@ -45,11 +45,11 @@ export interface PorterRequestFormData {
   pickupLocationDetail: DetailedLocation | null; // ข้อมูลสถานที่รับแบบละเอียด
   deliveryLocationDetail: DetailedLocation | null; // ข้อมูลสถานที่ส่งแบบละเอียด
   requestedDateTime: string;
-  urgencyLevel: UrgencyLevel | "";
-  vehicleType: VehicleType | "";
+  urgencyLevel: UrgencyLevel | '';
+  vehicleType: VehicleType | '';
   equipment: EquipmentType[];
-  hasVehicle: "มี" | "ไม่มี" | "";
-  returnTrip: "ไปส่งอย่างเดียว" | "รับกลับด้วย" | "";
+  hasVehicle: 'มี' | 'ไม่มี' | '';
+  returnTrip: 'ไปส่งอย่างเดียว' | 'รับกลับด้วย' | '';
 
   // รายละเอียดเพิ่มเติม
   transportReason: string;
@@ -62,17 +62,17 @@ export interface PorterRequestFormData {
  * สถานะงานในรายการคำขอ (สำหรับแท็บแสดงผล)
  * - ใช้สำหรับ UI tabs เท่านั้น ไม่ใช่ค่าสถานะจริงในฐานข้อมูล
  */
-export type JobListTab = "waiting" | "in-progress" | "completed" | "cancelled";
+export type JobListTab = 'waiting' | 'in-progress' | 'completed' | 'cancelled';
 
 /**
  * สถานะจริงของงาน Porter (ตรงกับฐานข้อมูล / Proto)
  */
 export type PorterJobStatus =
-  | "WAITING_CENTER"
-  | "WAITING_ACCEPT"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "CANCELLED";
+  | 'WAITING_CENTER'
+  | 'WAITING_ACCEPT'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 /**
  * รายการงานพนักงานเปล
@@ -172,14 +172,14 @@ export interface RoomBed {
  * หมายเหตุ: Constants และ functions ถูกย้ายไปที่ lib/porter.ts แล้ว
  */
 export type DepartmentTypeId = 1 | 2;
-export type DepartmentType = "คลินิก" | "หอผู้ป่วย";
+export type DepartmentType = 'คลินิก' | 'หอผู้ป่วย';
 
 /**
  * ประเภทห้องพัก (ID mapping)
  * หมายเหตุ: Constants และ functions ถูกย้ายไปที่ lib/porter.ts แล้ว
  */
 export type RoomTypeId = 1 | 2 | 3;
-export type RoomType = "ห้องรวม" | "ห้องพิเศษ" | "ห้องรวมและห้องพิเศษ";
+export type RoomType = 'ห้องรวม' | 'ห้องพิเศษ' | 'ห้องรวมและห้องพิเศษ';
 
 /**
  * ข้อมูลชั้น/หน่วยงาน

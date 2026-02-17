@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 /**
  * Utility function สำหรับรวม CSS classes
@@ -23,7 +23,7 @@ export function toBuddhistEra(year: number): number {
  * ใช้สำหรับเปรียบเทียบหรือส่ง API แทนการเขียน toISOString().split("T")[0] ซ้ำ
  */
 export function toISODateString(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return date.toISOString().split('T')[0];
 }
 
 /**
@@ -31,7 +31,7 @@ export function toISODateString(date: Date): string {
  * ใช้เมื่อ input เป็น string ไม่ใช่ Date เพื่อไม่ต้อง parse เป็น Date
  */
 export function getISODatePart(isoDateTime: string): string {
-  const idx = isoDateTime.indexOf("T");
+  const idx = isoDateTime.indexOf('T');
 
   return idx === -1 ? isoDateTime : isoDateTime.slice(0, idx);
 }
@@ -45,8 +45,8 @@ export function parseFullName(fullName: string): {
   lastName: string;
 } {
   const parts = fullName.trim().split(/\s+/);
-  const firstName = parts[0] ?? "";
-  const lastName = parts.slice(1).join(" ") ?? "";
+  const firstName = parts[0] ?? '';
+  const lastName = parts.slice(1).join(' ') ?? '';
 
   return { firstName, lastName };
 }
@@ -65,12 +65,12 @@ export function parsePositiveIntId(id: string): number | null {
   return n;
 }
 
-const TH_LOCALE = "th-TH";
+const TH_LOCALE = 'th-TH';
 const BUDDHIST_OPTIONS: Intl.DateTimeFormatOptions = {
-  calendar: "buddhist",
-  year: "numeric",
-  month: "long",
-  day: "numeric",
+  calendar: 'buddhist',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
 };
 
 /**
@@ -82,15 +82,13 @@ const BUDDHIST_OPTIONS: Intl.DateTimeFormatOptions = {
  */
 export function formatDateTimeThai(date: Date): string {
   const weekday = new Intl.DateTimeFormat(TH_LOCALE, {
-    weekday: "long",
+    weekday: 'long',
   }).format(date);
-  const datePart = new Intl.DateTimeFormat(TH_LOCALE, BUDDHIST_OPTIONS).format(
-    date,
-  );
+  const datePart = new Intl.DateTimeFormat(TH_LOCALE, BUDDHIST_OPTIONS).format(date);
   const timePart = new Intl.DateTimeFormat(TH_LOCALE, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
     hour12: false,
   }).format(date);
 
@@ -102,12 +100,10 @@ export function formatDateTimeThai(date: Date): string {
  * ใช้ Intl.DateTimeFormat ไม่มีชื่อวัน และไม่มีวินาที
  */
 export function formatThaiDateTimeShort(date: Date): string {
-  const datePart = new Intl.DateTimeFormat(TH_LOCALE, BUDDHIST_OPTIONS).format(
-    date,
-  );
+  const datePart = new Intl.DateTimeFormat(TH_LOCALE, BUDDHIST_OPTIONS).format(date);
   const timePart = new Intl.DateTimeFormat(TH_LOCALE, {
-    hour: "2-digit",
-    minute: "2-digit",
+    hour: '2-digit',
+    minute: '2-digit',
     hour12: false,
   }).format(date);
 
@@ -121,13 +117,13 @@ export function formatThaiDateTimeShort(date: Date): string {
  * @returns string ที่ถูก format แล้ว เช่น "1 ม.ค. 2567"
  */
 export function formatDateShort(date: Date | string): string {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
 
   return new Intl.DateTimeFormat(TH_LOCALE, {
-    calendar: "buddhist",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    calendar: 'buddhist',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   }).format(dateObj);
 }
 
@@ -137,20 +133,18 @@ export function formatDateShort(date: Date | string): string {
  * @param value ISO date string หรือ undefined/null
  * @returns ข้อความเช่น "15 ม.ค. 2568 14:30" หรือ "-" ถ้าไม่ถูกต้อง
  */
-export function formatDateTimeFromString(
-  value: string | undefined | null,
-): string {
-  if (value == null || String(value).trim() === "") return "-";
+export function formatDateTimeFromString(value: string | undefined | null): string {
+  if (value == null || String(value).trim() === '') return '-';
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return '-';
 
-  return date.toLocaleString("th-TH", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return date.toLocaleString('th-TH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
     hour12: false,
   });
 }
@@ -161,7 +155,7 @@ export function formatDateTimeFromString(
  * @returns ข้อความเช่น "1 ชม. 30 นาที" หรือ "45 นาที" หรือ "-" ถ้า 0
  */
 export function formatDurationMinutes(minutes: number): string {
-  if (minutes === 0) return "-";
+  if (minutes === 0) return '-';
   const hours = Math.floor(minutes / 60);
   const mins = Math.floor(minutes % 60);
 
@@ -210,10 +204,7 @@ export function getFiscalYearRange(fiscalYear: number): {
  * @param month เดือน (1-12)
  * @returns object ที่มี start และ end เป็น Date
  */
-export function getMonthRange(
-  year: number,
-  month: number,
-): { start: Date; end: Date } {
+export function getMonthRange(year: number, month: number): { start: Date; end: Date } {
   // เดือนแรกของเดือน
   const start = new Date(year, month - 1, 1);
 
@@ -232,18 +223,18 @@ export function getMonthRange(
  */
 export function formatDateRangeThai(start: Date, end: Date): string {
   const months = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
+    'มกราคม',
+    'กุมภาพันธ์',
+    'มีนาคม',
+    'เมษายน',
+    'พฤษภาคม',
+    'มิถุนายน',
+    'กรกฎาคม',
+    'สิงหาคม',
+    'กันยายน',
+    'ตุลาคม',
+    'พฤศจิกายน',
+    'ธันวาคม',
   ];
 
   const startDay = start.getDate();
@@ -263,7 +254,7 @@ export function formatDateRangeThai(start: Date, end: Date): string {
  * @returns object ที่มี startDate และ endDate เป็น string ในรูปแบบ "YYYY-MM-DD" หรือ undefined
  */
 export function getDateRangeFromFilter(filterState: {
-  mode: "date-range" | "month" | "fiscal-year";
+  mode: 'date-range' | 'month' | 'fiscal-year';
   dateRange?: {
     start?: { toString: () => string };
     end?: { toString: () => string };
@@ -276,7 +267,7 @@ export function getDateRangeFromFilter(filterState: {
     return {};
   }
 
-  if (filterState.mode === "date-range" && filterState.dateRange) {
+  if (filterState.mode === 'date-range' && filterState.dateRange) {
     const start = filterState.dateRange.start?.toString();
     const end = filterState.dateRange.end?.toString();
 
@@ -286,7 +277,7 @@ export function getDateRangeFromFilter(filterState: {
     };
   }
 
-  if (filterState.mode === "month" && filterState.month && filterState.year) {
+  if (filterState.mode === 'month' && filterState.month && filterState.year) {
     const { start, end } = getMonthRange(filterState.year, filterState.month);
 
     return {
@@ -295,7 +286,7 @@ export function getDateRangeFromFilter(filterState: {
     };
   }
 
-  if (filterState.mode === "fiscal-year" && filterState.fiscalYear) {
+  if (filterState.mode === 'fiscal-year' && filterState.fiscalYear) {
     const { start, end } = getFiscalYearRange(filterState.fiscalYear);
 
     return {
@@ -320,32 +311,32 @@ export function getDateRangeFromFilter(filterState: {
  */
 export function mapAuthErrorToMessage(code: string): string {
   switch (code) {
-    case "LINE_LDAP_REQUIRED":
-      return "กรุณาเข้าสู่ระบบด้วยบัญชีโรงพยาบาล (LDAP) อย่างน้อยหนึ่งครั้งก่อน แล้วค่อยเชื่อมบัญชี LINE";
-    case "LINE_ACCOUNT_IN_USE":
-      return "บัญชี LINE นี้ถูกผูกไว้กับผู้ใช้อื่นแล้ว กรุณาให้เจ้าของบัญชีนั้นยกเลิกก่อน";
-    case "LINE_ACCOUNT_ALREADY_LINKED":
-      return "บัญชีของคุณมีการเชื่อม LINE อยู่แล้ว กรุณายกเลิกการเชื่อมเดิมก่อน";
-    case "LINE_ACCOUNT_ID_MISSING":
-      return "ไม่พบข้อมูลผู้ใช้จาก LINE กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
-    case "OAuthAccountNotLinked":
-      return "บัญชี LINE นี้เชื่อมกับผู้ใช้อื่น หรือยังไม่ได้ยืนยันกับ LDAP";
-    case "AccessDenied":
-      return "การเข้าถึงถูกปฏิเสธ กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ";
-    case "ACCOUNT_DISABLED":
-      return "บัญชีของคุณถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
-    case "MISSING_CREDENTIALS":
-      return "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน";
-    case "USER_NOT_FOUND":
-      return "ไม่พบผู้ใช้ในระบบ กรุณาตรวจสอบชื่อผู้ใช้อีกครั้ง";
-    case "INVALID_CREDENTIALS":
-      return "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
-    case "CONNECTION_ERROR":
-      return "ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง";
-    case "INTERNAL_ERROR":
-      return "เกิดข้อผิดพลาดภายในระบบ กรุณาติดต่อผู้ดูแลระบบ";
+    case 'LINE_LDAP_REQUIRED':
+      return 'กรุณาเข้าสู่ระบบด้วยบัญชีโรงพยาบาล (LDAP) อย่างน้อยหนึ่งครั้งก่อน แล้วค่อยเชื่อมบัญชี LINE';
+    case 'LINE_ACCOUNT_IN_USE':
+      return 'บัญชี LINE นี้ถูกผูกไว้กับผู้ใช้อื่นแล้ว กรุณาให้เจ้าของบัญชีนั้นยกเลิกก่อน';
+    case 'LINE_ACCOUNT_ALREADY_LINKED':
+      return 'บัญชีของคุณมีการเชื่อม LINE อยู่แล้ว กรุณายกเลิกการเชื่อมเดิมก่อน';
+    case 'LINE_ACCOUNT_ID_MISSING':
+      return 'ไม่พบข้อมูลผู้ใช้จาก LINE กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ';
+    case 'OAuthAccountNotLinked':
+      return 'บัญชี LINE นี้เชื่อมกับผู้ใช้อื่น หรือยังไม่ได้ยืนยันกับ LDAP';
+    case 'AccessDenied':
+      return 'การเข้าถึงถูกปฏิเสธ กรุณาลองใหม่หรือแจ้งผู้ดูแลระบบ';
+    case 'ACCOUNT_DISABLED':
+      return 'บัญชีของคุณถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ';
+    case 'MISSING_CREDENTIALS':
+      return 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+    case 'USER_NOT_FOUND':
+      return 'ไม่พบผู้ใช้ในระบบ กรุณาตรวจสอบชื่อผู้ใช้อีกครั้ง';
+    case 'INVALID_CREDENTIALS':
+      return 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+    case 'CONNECTION_ERROR':
+      return 'ไม่สามารถเชื่อมต่อกับระบบได้ กรุณาลองใหม่อีกครั้ง';
+    case 'INTERNAL_ERROR':
+      return 'เกิดข้อผิดพลาดภายในระบบ กรุณาติดต่อผู้ดูแลระบบ';
     default:
-      return "";
+      return '';
   }
 }
 
@@ -363,41 +354,41 @@ export function mapAuthErrorToMessage(code: string): string {
 export function getProfileErrorMessage(errorCode: string): string {
   const errorMessages: Record<string, string> = {
     // Display Name
-    DISPLAY_NAME_REQUIRED: "กรุณากรอกชื่อที่แสดง",
-    DISPLAY_NAME_TOO_SHORT: "ชื่อที่แสดงต้องมีความยาวอย่างน้อย 2 ตัวอักษร",
-    DISPLAY_NAME_TOO_LONG: "ชื่อที่แสดงต้องมีความยาวไม่เกิน 100 ตัวอักษร",
+    DISPLAY_NAME_REQUIRED: 'กรุณากรอกชื่อที่แสดง',
+    DISPLAY_NAME_TOO_SHORT: 'ชื่อที่แสดงต้องมีความยาวอย่างน้อย 2 ตัวอักษร',
+    DISPLAY_NAME_TOO_LONG: 'ชื่อที่แสดงต้องมีความยาวไม่เกิน 100 ตัวอักษร',
 
     // Phone
-    PHONE_REQUIRED: "กรุณากรอกโทรศัพท์ภายใน",
-    PHONE_INVALID_FORMAT: "โทรศัพท์ภายในต้องมีตัวเลขอย่างน้อย 3 ตัว",
-    MOBILE_INVALID_FORMAT: "รูปแบบหมายเลขมือถือไม่ถูกต้อง",
+    PHONE_REQUIRED: 'กรุณากรอกโทรศัพท์ภายใน',
+    PHONE_INVALID_FORMAT: 'โทรศัพท์ภายในต้องมีตัวเลขอย่างน้อย 3 ตัว',
+    MOBILE_INVALID_FORMAT: 'รูปแบบหมายเลขมือถือไม่ถูกต้อง',
 
     // Organization by ID (HRD)
-    PERSON_TYPE_REQUIRED: "กรุณาเลือกกลุ่มบุคลากร",
-    PERSON_TYPE_NOT_FOUND: "ไม่พบกลุ่มบุคลากรที่เลือก",
-    POSITION_REQUIRED: "กรุณาเลือกตำแหน่ง",
-    POSITION_NOT_FOUND: "ไม่พบตำแหน่งที่เลือก",
-    DEPARTMENT_ID_REQUIRED: "กรุณาเลือกกลุ่มภารกิจ",
-    DEPARTMENT_ID_NOT_FOUND: "ไม่พบกลุ่มภารกิจที่เลือก",
-    DEPARTMENT_SUB_ID_REQUIRED: "กรุณาเลือกกลุ่มงาน",
-    DEPARTMENT_SUB_ID_NOT_FOUND: "ไม่พบกลุ่มงานที่เลือก",
-    DEPARTMENT_SUB_SUB_ID_REQUIRED: "กรุณาเลือกหน่วยงาน",
-    DEPARTMENT_SUB_SUB_ID_NOT_FOUND: "ไม่พบหน่วยงานที่เลือก",
+    PERSON_TYPE_REQUIRED: 'กรุณาเลือกกลุ่มบุคลากร',
+    PERSON_TYPE_NOT_FOUND: 'ไม่พบกลุ่มบุคลากรที่เลือก',
+    POSITION_REQUIRED: 'กรุณาเลือกตำแหน่ง',
+    POSITION_NOT_FOUND: 'ไม่พบตำแหน่งที่เลือก',
+    DEPARTMENT_ID_REQUIRED: 'กรุณาเลือกกลุ่มภารกิจ',
+    DEPARTMENT_ID_NOT_FOUND: 'ไม่พบกลุ่มภารกิจที่เลือก',
+    DEPARTMENT_SUB_ID_REQUIRED: 'กรุณาเลือกกลุ่มงาน',
+    DEPARTMENT_SUB_ID_NOT_FOUND: 'ไม่พบกลุ่มงานที่เลือก',
+    DEPARTMENT_SUB_SUB_ID_REQUIRED: 'กรุณาเลือกหน่วยงาน',
+    DEPARTMENT_SUB_SUB_ID_NOT_FOUND: 'ไม่พบหน่วยงานที่เลือก',
 
     // Role
-    ROLE_REQUIRED: "กรุณาเลือกบทบาท",
-    ROLE_INVALID: "บทบาทไม่ถูกต้อง",
+    ROLE_REQUIRED: 'กรุณาเลือกบทบาท',
+    ROLE_INVALID: 'บทบาทไม่ถูกต้อง',
 
     // General
-    INVALID_TYPE: "ประเภทข้อมูลไม่ถูกต้อง",
-    INVALID_ID_TYPE: "รูปแบบรหัสอ้างอิงไม่ถูกต้อง",
-    INVALID_REQUEST: "ข้อมูลไม่ถูกต้อง",
-    NO_MUTATIONS: "ไม่มีการเปลี่ยนแปลงข้อมูล",
-    UNAUTHORIZED: "คุณไม่มีสิทธิ์เข้าถึง",
-    NOT_FOUND: "ไม่พบข้อมูล",
+    INVALID_TYPE: 'ประเภทข้อมูลไม่ถูกต้อง',
+    INVALID_ID_TYPE: 'รูปแบบรหัสอ้างอิงไม่ถูกต้อง',
+    INVALID_REQUEST: 'ข้อมูลไม่ถูกต้อง',
+    NO_MUTATIONS: 'ไม่มีการเปลี่ยนแปลงข้อมูล',
+    UNAUTHORIZED: 'คุณไม่มีสิทธิ์เข้าถึง',
+    NOT_FOUND: 'ไม่พบข้อมูล',
   };
 
-  return errorMessages[errorCode] || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
+  return errorMessages[errorCode] || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
 }
 
 /**
@@ -426,7 +417,7 @@ export function parseMemberOf(memberOf: string): MemberOfGroup[] {
 
   // Split by semicolon and process each DN
   const groups = memberOf
-    .split(";")
+    .split(';')
     .map((dn) => dn.trim())
     .filter((dn) => dn.length > 0)
     .map((dn) => {
@@ -444,10 +435,10 @@ export function parseMemberOf(memberOf: string): MemberOfGroup[] {
       }
 
       // Fallback: if no CN found, try to extract from the beginning
-      const firstPart = dn.split(",")[0];
+      const firstPart = dn.split(',')[0];
 
       if (firstPart) {
-        const cn = firstPart.replace(/^CN=/i, "").trim();
+        const cn = firstPart.replace(/^CN=/i, '').trim();
 
         return {
           cn: cn || dn,
@@ -464,9 +455,7 @@ export function parseMemberOf(memberOf: string): MemberOfGroup[] {
     .filter((group) => group.cn.length > 0);
 
   // Remove duplicates based on full DN
-  const uniqueGroups = Array.from(
-    new Map(groups.map((group) => [group.fullDn, group])).values(),
-  );
+  const uniqueGroups = Array.from(new Map(groups.map((group) => [group.fullDn, group])).values());
 
   // Sort by CN for consistent display
   return uniqueGroups.sort((a, b) => a.cn.localeCompare(b.cn));

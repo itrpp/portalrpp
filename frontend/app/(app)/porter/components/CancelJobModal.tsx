@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 import {
   Button,
   Modal,
@@ -9,9 +9,9 @@ import {
   ModalFooter,
   ModalHeader,
   Textarea,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { XMarkIcon, InfoCircleIcon } from "@/components/ui/icons";
+import { XMarkIcon, InfoCircleIcon } from '@/components/ui/icons';
 
 interface CancelJobModalProps {
   isOpen: boolean;
@@ -41,22 +41,15 @@ export default function CancelJobModal({
         <ModalHeader>
           <div className="flex items-center gap-2">
             <XMarkIcon aria-hidden className="w-5 h-5 text-danger" />
-            <h3 className="text-lg font-semibold text-foreground">
-              ยืนยันการยกเลิกงาน
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground">ยืนยันการยกเลิกงาน</h3>
           </div>
         </ModalHeader>
         <ModalBody className="overscroll-contain">
           <div className="space-y-4">
-            <p className="text-default-600">
-              คุณแน่ใจหรือไม่ว่าต้องการยกเลิกงานนี้?
-            </p>
+            <p className="text-default-600">คุณแน่ใจหรือไม่ว่าต้องการยกเลิกงานนี้?</p>
             <div className="bg-warning-50 dark:bg-warning-900/20 p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                <InfoCircleIcon
-                  aria-hidden
-                  className="w-5 h-5 text-warning-600 mt-0.5 shrink-0"
-                />
+                <InfoCircleIcon aria-hidden className="w-5 h-5 text-warning-600 mt-0.5 shrink-0" />
                 <div className="text-sm text-warning-800 dark:text-warning-200">
                   <p className="font-medium mb-1">คำเตือน:</p>
                   <ul className="list-disc list-inside space-y-1">

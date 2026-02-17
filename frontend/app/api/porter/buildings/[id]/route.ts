@@ -1,16 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { callPorterService } from "@/lib/grpcClient";
+import { getAuthSession } from '@/lib/auth';
+import { callPorterService } from '@/lib/grpcClient';
 
 /**
  * GET /api/porter/buildings/[id]
  * ดึงข้อมูล Building โดย ID
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -19,7 +16,7 @@ export async function GET(
     const { id } = await context.params;
 
     // เรียก gRPC service
-    const response = await callPorterService<any>("GetBuilding", { id });
+    const response = await callPorterService<any>('GetBuilding', { id });
 
     if (response.success && response.data) {
       return NextResponse.json(
@@ -33,20 +30,20 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลอาคาร",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลอาคาร',
         },
         { status: 404 },
       );
     }
   } catch (error: any) {
-    console.error("Error fetching building:", error);
+    console.error('Error fetching building:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -57,10 +54,7 @@ export async function GET(
  * PUT /api/porter/buildings/[id]
  * อัปเดตข้อมูล Building
  */
-export async function PUT(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -91,10 +85,7 @@ export async function PUT(
     }
 
     // เรียก gRPC service
-    const response = await callPorterService<any>(
-      "UpdateBuilding",
-      protoRequest,
-    );
+    const response = await callPorterService<any>('UpdateBuilding', protoRequest);
 
     if (response.success) {
       return NextResponse.json(
@@ -108,20 +99,20 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "UPDATE_FAILED",
-          message: response.error_message || "ไม่สามารถอัปเดตอาคารได้",
+          error: 'UPDATE_FAILED',
+          message: response.error_message || 'ไม่สามารถอัปเดตอาคารได้',
         },
         { status: 400 },
       );
     }
   } catch (error: any) {
-    console.error("Error updating building:", error);
+    console.error('Error updating building:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการอัปเดตอาคาร",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตอาคาร',
       },
       { status: 500 },
     );
@@ -132,10 +123,7 @@ export async function PUT(
  * DELETE /api/porter/buildings/[id]
  * ลบ Building
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -144,13 +132,13 @@ export async function DELETE(
     const { id } = await context.params;
 
     // เรียก gRPC service
-    const response = await callPorterService<any>("DeleteBuilding", { id });
+    const response = await callPorterService<any>('DeleteBuilding', { id });
 
     if (response.success) {
       return NextResponse.json(
         {
           success: true,
-          message: response.message || "ลบอาคารสำเร็จ",
+          message: response.message || 'ลบอาคารสำเร็จ',
         },
         { status: 200 },
       );
@@ -158,20 +146,20 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "DELETE_FAILED",
-          message: response.error_message || "ไม่สามารถลบอาคารได้",
+          error: 'DELETE_FAILED',
+          message: response.error_message || 'ไม่สามารถลบอาคารได้',
         },
         { status: 400 },
       );
     }
   } catch (error: any) {
-    console.error("Error deleting building:", error);
+    console.error('Error deleting building:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการลบอาคาร",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการลบอาคาร',
       },
       { status: 500 },
     );

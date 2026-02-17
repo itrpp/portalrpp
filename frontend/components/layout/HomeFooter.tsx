@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 export default function HomeFooter() {
   const currentYear = new Date().getFullYear();
@@ -12,22 +12,13 @@ export default function HomeFooter() {
             © {currentYear} โรงพยาบาลราชพิพัฒน์. สงวนลิขสิทธิ์ทั้งหมด.
           </div>
           <div className="flex space-x-4 text-sm">
-            <span
-              key="privacy"
-              className="text-foreground-400 hover:text-primary cursor-pointer"
-            >
+            <span key="privacy" className="text-foreground-400 hover:text-primary cursor-pointer">
               นโยบายความเป็นส่วนตัว
             </span>
-            <span
-              key="terms"
-              className="text-foreground-400 hover:text-primary cursor-pointer"
-            >
+            <span key="terms" className="text-foreground-400 hover:text-primary cursor-pointer">
               เงื่อนไขการใช้งาน
             </span>
-            <span
-              key="sitemap"
-              className="text-foreground-400 hover:text-primary cursor-pointer"
-            >
+            <span key="sitemap" className="text-foreground-400 hover:text-primary cursor-pointer">
               แผนผังเว็บไซต์
             </span>
           </div>

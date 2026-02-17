@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
+import React from 'react';
+import { Button, Card, CardBody, CardHeader, Chip } from '@heroui/react';
 
-import { SimpleCrudModal } from "../components/SimpleCrudModal";
-import { CrudTable } from "../components/CrudTable";
-import { useCrudManagement } from "../hooks/useCrudManagement";
+import { SimpleCrudModal } from '../components/SimpleCrudModal';
+import { CrudTable } from '../components/CrudTable';
+import { useCrudManagement } from '../hooks/useCrudManagement';
 
-import { CARD_STYLES } from "@/lib/cardStyles";
-import { BuildingOfficeIcon, PlusIcon } from "@/components/ui/icons";
-import { Department } from "@/types/hrd";
+import { CARD_STYLES } from '@/lib/cardStyles';
+import { BuildingOfficeIcon, PlusIcon } from '@/components/ui/icons';
+import { Department } from '@/types/hrd';
 
 export default function DepartmentManagementPage() {
   const {
@@ -32,37 +32,29 @@ export default function DepartmentManagementPage() {
     handleDelete,
     handleSave,
   } = useCrudManagement<Department>({
-    apiEndpoint: "/api/hrd/departments",
-    itemName: "กลุ่มภารกิจ",
-    itemNamePlural: "กลุ่มภารกิจ",
-    cacheOptions: "no-store",
+    apiEndpoint: '/api/hrd/departments',
+    itemName: 'กลุ่มภารกิจ',
+    itemNamePlural: 'กลุ่มภารกิจ',
+    cacheOptions: 'no-store',
   });
 
   const columns = [
     {
-      key: "id",
-      label: "ID",
-      render: (item: Department) => (
-        <span className="font-mono text-sm">{item.id}</span>
-      ),
+      key: 'id',
+      label: 'ID',
+      render: (item: Department) => <span className="font-mono text-sm">{item.id}</span>,
     },
     {
-      key: "name",
-      label: "ชื่อกลุ่มภารกิจ",
-      render: (item: Department) => (
-        <span className="text-foreground">{item.name}</span>
-      ),
+      key: 'name',
+      label: 'ชื่อกลุ่มภารกิจ',
+      render: (item: Department) => <span className="text-foreground">{item.name}</span>,
     },
     {
-      key: "active",
-      label: "สถานะ",
+      key: 'active',
+      label: 'สถานะ',
       render: (item: Department) => (
-        <Chip
-          color={item.active ? "success" : "default"}
-          size="sm"
-          variant="flat"
-        >
-          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+        <Chip color={item.active ? 'success' : 'default'} size="sm" variant="flat">
+          {item.active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
         </Chip>
       ),
     },
@@ -77,9 +69,7 @@ export default function DepartmentManagementPage() {
             <BuildingOfficeIcon className="w-8 h-8 text-primary" />
             จัดการกลุ่มภารกิจ
           </h1>
-          <p className="text-default-600 mt-2">
-            จัดการข้อมูลกลุ่มภารกิจสำหรับระบบ
-          </p>
+          <p className="text-default-600 mt-2">จัดการข้อมูลกลุ่มภารกิจสำหรับระบบ</p>
         </div>
         <Button
           color="primary"
@@ -97,9 +87,7 @@ export default function DepartmentManagementPage() {
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <BuildingOfficeIcon className="w-6 h-6 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">
-                รายการกลุ่มภารกิจ
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground">รายการกลุ่มภารกิจ</h2>
             </div>
           </div>
         </CardHeader>

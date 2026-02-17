@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
+import React from 'react';
+import { Button, Card, CardBody, CardHeader, Chip } from '@heroui/react';
 
-import { SimpleCrudModal } from "../components/SimpleCrudModal";
-import { CrudTable } from "../components/CrudTable";
-import { useCrudManagement } from "../hooks/useCrudManagement";
+import { SimpleCrudModal } from '../components/SimpleCrudModal';
+import { CrudTable } from '../components/CrudTable';
+import { useCrudManagement } from '../hooks/useCrudManagement';
 
-import { CARD_STYLES } from "@/lib/cardStyles";
-import { UserGroupIcon, PlusIcon } from "@/components/ui/icons";
-import { PersonType } from "@/types/hrd";
+import { CARD_STYLES } from '@/lib/cardStyles';
+import { UserGroupIcon, PlusIcon } from '@/components/ui/icons';
+import { PersonType } from '@/types/hrd';
 
 export default function PersonTypeManagementPage() {
   const {
@@ -32,36 +32,28 @@ export default function PersonTypeManagementPage() {
     handleDelete,
     handleSave,
   } = useCrudManagement<PersonType>({
-    apiEndpoint: "/api/hrd/person-types",
-    itemName: "กลุ่มบุคลากร",
-    itemNamePlural: "กลุ่มบุคลากร",
+    apiEndpoint: '/api/hrd/person-types',
+    itemName: 'กลุ่มบุคลากร',
+    itemNamePlural: 'กลุ่มบุคลากร',
   });
 
   const columns = [
     {
-      key: "id",
-      label: "ID",
-      render: (item: PersonType) => (
-        <span className="font-mono text-sm">{item.id}</span>
-      ),
+      key: 'id',
+      label: 'ID',
+      render: (item: PersonType) => <span className="font-mono text-sm">{item.id}</span>,
     },
     {
-      key: "name",
-      label: "ชื่อกลุ่มบุคลากร",
-      render: (item: PersonType) => (
-        <span className="text-foreground">{item.name}</span>
-      ),
+      key: 'name',
+      label: 'ชื่อกลุ่มบุคลากร',
+      render: (item: PersonType) => <span className="text-foreground">{item.name}</span>,
     },
     {
-      key: "active",
-      label: "สถานะ",
+      key: 'active',
+      label: 'สถานะ',
       render: (item: PersonType) => (
-        <Chip
-          color={item.active ? "success" : "default"}
-          size="sm"
-          variant="flat"
-        >
-          {item.active ? "ใช้งาน" : "ไม่ใช้งาน"}
+        <Chip color={item.active ? 'success' : 'default'} size="sm" variant="flat">
+          {item.active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
         </Chip>
       ),
     },
@@ -76,9 +68,7 @@ export default function PersonTypeManagementPage() {
             <UserGroupIcon className="w-8 h-8 text-primary" />
             จัดการกลุ่มบุคลากร
           </h1>
-          <p className="text-default-600 mt-2">
-            จัดการข้อมูลกลุ่มบุคลากรสำหรับระบบ
-          </p>
+          <p className="text-default-600 mt-2">จัดการข้อมูลกลุ่มบุคลากรสำหรับระบบ</p>
         </div>
         <Button
           color="primary"
@@ -96,9 +86,7 @@ export default function PersonTypeManagementPage() {
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <UserGroupIcon className="w-6 h-6 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">
-                รายการกลุ่มบุคลากร
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground">รายการกลุ่มบุคลากร</h2>
             </div>
           </div>
         </CardHeader>

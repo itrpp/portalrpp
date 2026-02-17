@@ -3,7 +3,7 @@ import type { BleStation } from '../generated/prisma/client';
 import prisma from '../config/database';
 
 export async function createBleStation(
-  data: Prisma.BleStationUncheckedCreateInput
+  data: Prisma.BleStationUncheckedCreateInput,
 ): Promise<BleStation> {
   return prisma.bleStation.create({ data });
 }
@@ -12,9 +12,7 @@ export async function findBleStationById(id: string): Promise<BleStation | null>
   return prisma.bleStation.findUnique({ where: { id } });
 }
 
-export async function findBleStationByMacAddress(
-  macAddress: string
-): Promise<BleStation | null> {
+export async function findBleStationByMacAddress(macAddress: string): Promise<BleStation | null> {
   return prisma.bleStation.findUnique({ where: { macAddress } });
 }
 
@@ -28,19 +26,17 @@ export async function findManyBleStations(params: {
     where: params.where,
     skip: params.skip,
     take: params.take,
-    orderBy: params.orderBy
+    orderBy: params.orderBy,
   });
 }
 
-export async function countBleStations(
-  where: Prisma.BleStationWhereInput
-): Promise<number> {
+export async function countBleStations(where: Prisma.BleStationWhereInput): Promise<number> {
   return prisma.bleStation.count({ where });
 }
 
 export async function updateBleStation(
   id: string,
-  data: Prisma.BleStationUpdateInput
+  data: Prisma.BleStationUpdateInput,
 ): Promise<BleStation> {
   return prisma.bleStation.update({ where: { id }, data });
 }

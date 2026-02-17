@@ -1,15 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { Button, Card, CardBody } from "@heroui/react";
-import Link from "next/link";
+import { useEffect } from 'react';
+import { Button, Card, CardBody } from '@heroui/react';
+import Link from 'next/link';
 
-import { ErrorProps } from "@/types/error";
-import {
-  ExclamationTriangleIcon,
-  RefreshIcon,
-  HomeIcon,
-} from "@/components/ui/icons";
+import { ErrorProps } from '@/types/error';
+import { ExclamationTriangleIcon, RefreshIcon, HomeIcon } from '@/components/ui/icons';
 
 /**
  * ========================================
@@ -23,7 +19,7 @@ export default function Error({ error, reset }: ErrorProps) {
     // Log the error to an error reporting service
     // TODO: ในอนาคตควรส่ง error ไปยัง error reporting service (เช่น Sentry, LogRocket)
 
-    console.error("Error boundary caught:", error);
+    console.error('Error boundary caught:', error);
   }, [error]);
 
   return (
@@ -35,19 +31,13 @@ export default function Error({ error, reset }: ErrorProps) {
               <div className="flex justify-center mb-4">
                 <ExclamationTriangleIcon className="w-24 h-24 text-danger-500" />
               </div>
-              <h1 className="text-6xl font-bold text-danger-500 mb-4">
-                เกิดข้อผิดพลาด
-              </h1>
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                มีบางอย่างผิดพลาด
-              </h2>
+              <h1 className="text-6xl font-bold text-danger-500 mb-4">เกิดข้อผิดพลาด</h1>
+              <h2 className="text-2xl font-bold text-foreground mb-4">มีบางอย่างผิดพลาด</h2>
               <p className="text-default-600 mb-4">
                 ระบบพบข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง
               </p>
               {error.digest && (
-                <p className="text-xs text-default-500 font-mono">
-                  Error ID: {error.digest}
-                </p>
+                <p className="text-xs text-default-500 font-mono">Error ID: {error.digest}</p>
               )}
             </div>
 
@@ -76,9 +66,7 @@ export default function Error({ error, reset }: ErrorProps) {
             </div>
 
             <div className="mt-6 p-4 bg-content2 rounded-lg">
-              <p className="text-xs text-default-500">
-                หากปัญหายังคงอยู่ กรุณาติดต่อผู้ดูแลระบบ
-              </p>
+              <p className="text-xs text-default-500">หากปัญหายังคงอยู่ กรุณาติดต่อผู้ดูแลระบบ</p>
             </div>
           </CardBody>
         </Card>

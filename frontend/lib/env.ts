@@ -3,20 +3,19 @@
  * ตรวจสอบและ validate environment variables ที่จำเป็น
  */
 
-import { RequiredEnvVars, OptionalEnvVars } from "@/types";
+import { RequiredEnvVars, OptionalEnvVars } from '@/types';
 
-const DEFAULT_API_GATEWAY_URL = "http://localhost:3001";
+const DEFAULT_API_GATEWAY_URL = 'http://localhost:3001';
 
 /**
  * คืนค่า API Gateway base URL ที่ sanitize แล้ว
  * ลบเครื่องหมายคำพูด (" หรือ ') ที่อาจติดมาจาก .env และตัด / ท้ายออก
  */
 export function getApiGatewayBaseUrl(): string {
-  const raw =
-    process.env.NEXT_PUBLIC_API_GATEWAY_URL || DEFAULT_API_GATEWAY_URL;
+  const raw = process.env.NEXT_PUBLIC_API_GATEWAY_URL || DEFAULT_API_GATEWAY_URL;
   const sanitized = raw
-    .replace(/^["']|["']$/g, "")
-    .replace(/\/$/, "")
+    .replace(/^["']|["']$/g, '')
+    .replace(/\/$/, '')
     .trim();
 
   return sanitized || DEFAULT_API_GATEWAY_URL;
@@ -27,12 +26,12 @@ export function getApiGatewayBaseUrl(): string {
  */
 function validateRequiredEnvVars(): RequiredEnvVars {
   const requiredVars: (keyof RequiredEnvVars)[] = [
-    "NEXTAUTH_URL",
-    "NEXTAUTH_SECRET",
-    "LDAP_URL",
-    "LDAP_BASE_DN",
-    "LDAP_BIND_DN",
-    "LDAP_BIND_PASSWORD",
+    'NEXTAUTH_URL',
+    'NEXTAUTH_SECRET',
+    'LDAP_URL',
+    'LDAP_BASE_DN',
+    'LDAP_BIND_DN',
+    'LDAP_BIND_PASSWORD',
   ];
 
   const missingVars: string[] = [];
@@ -44,9 +43,7 @@ function validateRequiredEnvVars(): RequiredEnvVars {
   }
 
   if (missingVars.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missingVars.join(", ")}`,
-    );
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
 
   return {
@@ -83,25 +80,21 @@ function validateSecurity(): void {
   const secret = process.env.NEXTAUTH_SECRET;
 
   if (secret && secret.length < 32) {
-    throw new Error("NEXTAUTH_SECRET ต้องมีความยาวอย่างน้อย 32 ตัวอักษร");
+    throw new Error('NEXTAUTH_SECRET ต้องมีความยาวอย่างน้อย 32 ตัวอักษร');
   }
 
   // ตรวจสอบ LDAP_URL format
   const ldapUrl = process.env.LDAP_URL;
 
-  if (
-    ldapUrl &&
-    !ldapUrl.startsWith("ldap://") &&
-    !ldapUrl.startsWith("ldaps://")
-  ) {
-    throw new Error("LDAP_URL ต้องเริ่มต้นด้วย ldap:// หรือ ldaps://");
+  if (ldapUrl && !ldapUrl.startsWith('ldap://') && !ldapUrl.startsWith('ldaps://')) {
+    throw new Error('LDAP_URL ต้องเริ่มต้นด้วย ldap:// หรือ ldaps://');
   }
 
   // ตรวจสอบ LDAP_BASE_DN format
   const baseDN = process.env.LDAP_BASE_DN;
 
   if (baseDN && !baseDN.match(/^DC=/i)) {
-    throw new Error("LDAP_BASE_DN ต้องเป็นรูปแบบ DC=domain,DC=com");
+    throw new Error('LDAP_BASE_DN ต้องเป็นรูปแบบ DC=domain,DC=com');
   }
 }
 
@@ -124,7 +117,7 @@ export function validateEnvironment(): {
 
     return { required, optional };
   } catch (error) {
-    console.error("Environment validation failed:", error);
+    console.error('Environment validation failed:', error);
     throw error;
   }
 }

@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
-import { Input, Button, Divider, Card, CardBody } from "@heroui/react";
-import { addToast } from "@heroui/toast";
+import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
+import { Input, Button, Divider, Card, CardBody } from '@heroui/react';
+import { addToast } from '@heroui/toast';
 
-import { siteConfig } from "@/config/site";
-import { mapAuthErrorToMessage } from "@/lib/utils";
+import { siteConfig } from '@/config/site';
+import { mapAuthErrorToMessage } from '@/lib/utils';
 import {
   LockClosedIcon,
   UserIcon,
@@ -17,30 +17,30 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ArrowLeftIcon,
-} from "@/components/ui/icons";
+} from '@/components/ui/icons';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLineLoading, setIsLineLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState('');
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const lastAuthErrorRef = useRef<string | null>(null);
 
-  const authErrorParam = searchParams.get("error");
+  const authErrorParam = searchParams.get('error');
 
   // หลัง login สำเร็จให้ไปที่หน้า home เสมอ
-  const redirectUrl = "/home";
+  const redirectUrl = '/home';
 
   // ถ้ามี session แล้วให้ redirect ไปหน้า home
   useEffect(() => {
-    if (status === "authenticated" && session) {
+    if (status === 'authenticated' && session) {
       setShouldRedirect(true);
     }
   }, [session, status]);
@@ -73,15 +73,15 @@ export default function LoginPage() {
     lastAuthErrorRef.current = authErrorParam;
     setError(message);
     addToast({
-      title: "ไม่สามารถเชื่อม LINE",
+      title: 'ไม่สามารถเชื่อม LINE',
       description: message,
-      color: "danger",
-      severity: "danger",
-      variant: "flat",
+      color: 'danger',
+      severity: 'danger',
+      variant: 'flat',
     });
   }, [authErrorParam]);
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-content2 to-content3">
         <div className="text-center">
@@ -92,7 +92,7 @@ export default function LoginPage() {
     );
   }
 
-  if (status === "authenticated" && session) {
+  if (status === 'authenticated' && session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-content2 to-content3">
         <div className="text-center">
@@ -106,11 +106,11 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
-    setSuccessMessage("");
+    setError('');
+    setSuccessMessage('');
 
     try {
-      const result = await signIn("credentials", {
+      const result = await signIn('credentials', {
         username,
         password,
         redirect: false,
@@ -120,31 +120,29 @@ export default function LoginPage() {
         // แสดง error message ที่เฉพาะเจาะจง
         setError(result.error);
       } else if (result?.ok) {
-        setSuccessMessage("เข้าสู่ระบบสำเร็จ! กำลังเปลี่ยนหน้า...");
+        setSuccessMessage('เข้าสู่ระบบสำเร็จ! กำลังเปลี่ยนหน้า...');
         setTimeout(() => {
           setShouldRedirect(true);
         }, 1000);
       } else {
-        setError("การเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
+        setError('การเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง');
       }
     } catch {
-      setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleLineLogin = async () => {
-    setError("");
-    setSuccessMessage("");
+    setError('');
+    setSuccessMessage('');
     setIsLineLoading(true);
 
     try {
-      await signIn("line", { callbackUrl: redirectUrl });
+      await signIn('line', { callbackUrl: redirectUrl });
     } catch {
-      setError(
-        "ไม่สามารถเริ่มการเข้าสู่ระบบผ่าน LINE ได้ กรุณาลองใหม่อีกครั้ง",
-      );
+      setError('ไม่สามารถเริ่มการเข้าสู่ระบบผ่าน LINE ได้ กรุณาลองใหม่อีกครั้ง');
       setIsLineLoading(false);
     }
   };
@@ -152,7 +150,7 @@ export default function LoginPage() {
   const handleInputChange = () => {
     // ล้าง error เมื่อผู้ใช้เริ่มพิมพ์
     if (error) {
-      setError("");
+      setError('');
     }
   };
 
@@ -173,9 +171,7 @@ export default function LoginPage() {
               <h1 className="mt-6 text-2xl font-extrabold text-foreground tracking-tight">
                 เข้าสู่ระบบ
               </h1>
-              <p className="text-default-600 text-sm mt-1">
-                {siteConfig.projectName}
-              </p>
+              <p className="text-default-600 text-sm mt-1">{siteConfig.projectName}</p>
             </div>
 
             {/* LDAP Authentication Info */}
@@ -230,10 +226,8 @@ export default function LoginPage() {
                   label="Password"
                   placeholder="กรอกรหัสผ่าน Active Directory"
                   size="lg"
-                  startContent={
-                    <LockClosedIcon className="w-5 h-5 text-primary" />
-                  }
-                  type={showPassword ? "text" : "password"}
+                  startContent={<LockClosedIcon className="w-5 h-5 text-primary" />}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   variant="bordered"
                   onChange={(e) => {
@@ -268,7 +262,7 @@ export default function LoginPage() {
                   startContent={<LockClosedIcon className="w-5 h-5" />}
                   type="submit"
                 >
-                  {isLoading ? "กำลังตรวจสอบ LDAP..." : "เข้าสู่ระบบผ่าน LDAP"}
+                  {isLoading ? 'กำลังตรวจสอบ LDAP...' : 'เข้าสู่ระบบผ่าน LDAP'}
                 </Button>
 
                 <Button
@@ -281,7 +275,7 @@ export default function LoginPage() {
                   variant="flat"
                   onClick={handleLineLogin}
                 >
-                  {isLineLoading ? "กำลังเปิด LINE..." : "เข้าสู่ระบบผ่าน LINE"}
+                  {isLineLoading ? 'กำลังเปิด LINE...' : 'เข้าสู่ระบบผ่าน LINE'}
                 </Button>
               </div>
             </form>
@@ -290,7 +284,7 @@ export default function LoginPage() {
               <button
                 className="flex items-center gap-1 hover:text-primary hover:bg-content2 px-2 py-1 rounded-sm"
                 type="button"
-                onClick={() => router.push("/")}
+                onClick={() => router.push('/')}
               >
                 <ArrowLeftIcon className="w-4 h-4" />
                 กลับหน้าหลัก

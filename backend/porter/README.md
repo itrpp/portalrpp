@@ -59,15 +59,15 @@ backend/porter
 
 ## สคริปต์สำคัญ
 
-| คำสั่ง            | ความหมาย |
-|-------------------|-----------|
-| `npm run dev`      | รัน gRPC server แบบ hot reload ผ่าน tsx |
-| `npm run build`    | build TypeScript ด้วย `tsc` |
-| `npm run start`    | รันไฟล์ build จาก `dist/server.js` |
-| `npm run lint`     | ESLint ตรวจสอบมาตรฐานโค้ด |
-| `npm run typecheck`| TypeScript type check โดยไม่ build |
-| `npm run format`   | จัด format ด้วย Prettier |
-| `npm run prisma:*` | คำสั่ง Prisma (generate/migrate/studio) |
+| คำสั่ง              | ความหมาย                                |
+| ------------------- | --------------------------------------- |
+| `npm run dev`       | รัน gRPC server แบบ hot reload ผ่าน tsx |
+| `npm run build`     | build TypeScript ด้วย `tsc`             |
+| `npm run start`     | รันไฟล์ build จาก `dist/server.js`      |
+| `npm run lint`      | ESLint ตรวจสอบมาตรฐานโค้ด               |
+| `npm run typecheck` | TypeScript type check โดยไม่ build      |
+| `npm run format`    | จัด format ด้วย Prettier                |
+| `npm run prisma:*`  | คำสั่ง Prisma (generate/migrate/studio) |
 
 ## การดูแลรักษา/Best Practices
 
@@ -98,4 +98,3 @@ backend/porter
 - เพิ่ม `utils/grpcError.ts` เพื่อรวมการแมป Prisma error → gRPC status และลดโค้ดซ้ำในทุก handler
 - ปรับ handler ทั้งหมดให้ใช้ helper ใหม่ ส่งผลให้การจัดการ error/ข้อความตอบกลับมีความสม่ำเสมอ
 - จัดทำ README ฉบับนี้เพื่อสรุปขั้นตอนการใช้งานและแนวปฏิบัติสำคัญของโปรเจกต์
-

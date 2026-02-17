@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button, Card, CardBody } from "@heroui/react";
+import Link from 'next/link';
+import { Button, Card, CardBody } from '@heroui/react';
 
-import { HomeIcon, ArrowLeftIcon } from "@/components/ui/icons";
+import { HomeIcon, ArrowLeftIcon } from '@/components/ui/icons';
 
 export default function NotFound() {
   return (
@@ -13,12 +13,8 @@ export default function NotFound() {
           <CardBody className="p-8 text-center">
             <div className="mb-6">
               <h1 className="text-8xl font-bold text-primary-500 mb-4">404</h1>
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                ไม่พบหน้าเว็บ
-              </h2>
-              <p className="text-default-600">
-                หน้าที่คุณกำลังค้นหาไม่มีอยู่ในระบบ
-              </p>
+              <h2 className="text-2xl font-bold text-foreground mb-4">ไม่พบหน้าเว็บ</h2>
+              <p className="text-default-600">หน้าที่คุณกำลังค้นหาไม่มีอยู่ในระบบ</p>
             </div>
 
             <div className="space-y-4">

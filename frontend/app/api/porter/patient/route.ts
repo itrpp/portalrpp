@@ -1,10 +1,10 @@
-import type { ExtendedUser } from "@/types/ldap";
+import type { ExtendedUser } from '@/types/ldap';
 
-import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
-import { getAuthSession } from "@/lib/auth";
-import { getApiGatewayBaseUrl } from "@/lib/env";
+import { getAuthSession } from '@/lib/auth';
+import { getApiGatewayBaseUrl } from '@/lib/env';
 
 /**
  * แปลงรูปแบบ HN/AN จาก "123456/68" หรือ "123456-68" เป็น "680123456"
@@ -15,26 +15,26 @@ import { getApiGatewayBaseUrl } from "@/lib/env";
  */
 function convertHNANFormat(patientHN: string): {
   convertedValue: string;
-  type: "hn" | "an";
+  type: 'hn' | 'an';
 } {
   if (!patientHN) {
-    return { convertedValue: "", type: "hn" };
+    return { convertedValue: '', type: 'hn' };
   }
 
   const trimmed = patientHN.trim();
-  let type: "hn" | "an" = "hn";
+  let type: 'hn' | 'an' = 'hn';
   let parts: string[];
 
   // ตรวจสอบว่าเป็น HN (/) หรือ AN (-)
-  if (trimmed.includes("/")) {
-    type = "hn";
-    parts = trimmed.split("/");
-  } else if (trimmed.includes("-")) {
-    type = "an";
-    parts = trimmed.split("-");
+  if (trimmed.includes('/')) {
+    type = 'hn';
+    parts = trimmed.split('/');
+  } else if (trimmed.includes('-')) {
+    type = 'an';
+    parts = trimmed.split('-');
   } else {
     // ถ้าไม่มี separator ให้ส่งคืนค่าเดิม
-    return { convertedValue: trimmed, type: "hn" };
+    return { convertedValue: trimmed, type: 'hn' };
   }
 
   if (parts.length === 2) {
@@ -44,7 +44,7 @@ function convertHNANFormat(patientHN: string): {
 
     // เอาปีขึ้นก่อน (2 หลัก)
     // HN/AN (6 หลัก) เติม 0 หน้าให้เป็น 7 หลัก
-    const paddedCode = code.padStart(7, "0");
+    const paddedCode = code.padStart(7, '0');
 
     // รวมกันให้ได้ 9 หลัก: ปี (2 หลัก) + HN/AN ที่เติม 0 แล้ว (7 หลัก)
     return {
@@ -57,7 +57,7 @@ function convertHNANFormat(patientHN: string): {
     const value = parts[0].trim();
 
     return {
-      convertedValue: value.padStart(9, "0"),
+      convertedValue: value.padStart(9, '0'),
       type,
     };
   }
@@ -86,8 +86,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "MISSING_PARAMETER",
-          message: "patientHN is required",
+          error: 'MISSING_PARAMETER',
+          message: 'patientHN is required',
         },
         { status: 400 },
       );
@@ -97,8 +97,7 @@ export async function POST(request: Request) {
     const { convertedValue, type } = convertHNANFormat(patientHN);
 
     // สร้าง JWT สำหรับ API Gateway จากข้อมูลใน session
-    const jwtSecret =
-      process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "";
+    const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
     const signedToken = jwt.sign(
       {
         sub: user.id,
@@ -108,7 +107,7 @@ export async function POST(request: Request) {
         role: user.role,
       },
       jwtSecret,
-      { expiresIn: "15m" },
+      { expiresIn: '15m' },
     );
 
     // เรียก API Gateway endpoint
@@ -118,33 +117,30 @@ export async function POST(request: Request) {
     // ส่งเฉพาะประเภทที่ตรวจพบ (hn หรือ an) ไม่ส่งทั้งสองอย่าง
     const requestBody: { hn?: string; an?: string } = {};
 
-    if (type === "hn") {
+    if (type === 'hn') {
       requestBody.hn = convertedValue;
     } else {
       requestBody.an = convertedValue;
     }
 
     const res = await fetch(endpoint, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${signedToken}`,
       },
       body: JSON.stringify(requestBody),
-      credentials: "include",
+      credentials: 'include',
     });
 
     if (res.status === 401) {
-      return NextResponse.json(
-        { success: false, error: "UNAUTHORIZED" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
     }
 
     if (!res.ok) {
       if (res.status === 503) {
         return NextResponse.json(
-          { success: false, error: "EPHIS_SERVICE_UNAVAILABLE" },
+          { success: false, error: 'EPHIS_SERVICE_UNAVAILABLE' },
           { status: 503 },
         );
       }
@@ -154,7 +150,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: errorData.error || "PATIENT_FETCH_FAILED",
+          error: errorData.error || 'PATIENT_FETCH_FAILED',
           message: errorData.message || `HTTP ${res.status} ${res.statusText}`,
         },
         { status: res.status },
@@ -167,12 +163,9 @@ export async function POST(request: Request) {
     return NextResponse.json(data, { status: 200 });
   } catch (error: any) {
     // จัดการกรณีเครือข่ายผิดพลาดจาก fetch
-    if (
-      error?.name === "TypeError" &&
-      String(error?.message || "").includes("fetch")
-    ) {
+    if (error?.name === 'TypeError' && String(error?.message || '').includes('fetch')) {
       return NextResponse.json(
-        { success: false, error: "API_GATEWAY_UNREACHABLE" },
+        { success: false, error: 'API_GATEWAY_UNREACHABLE' },
         { status: 503 },
       );
     }
@@ -180,8 +173,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_SERVER_ERROR",
-        message: error?.message || "Internal server error",
+        error: 'INTERNAL_SERVER_ERROR',
+        message: error?.message || 'Internal server error',
       },
       { status: 500 },
     );

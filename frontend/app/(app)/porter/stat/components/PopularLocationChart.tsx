@@ -1,23 +1,15 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
-import { Card, CardBody, CardHeader } from "@heroui/react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import React, { useMemo } from 'react';
+import { Card, CardBody, CardHeader } from '@heroui/react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-import { useFilteredJobs } from "../hooks/useFilteredJobs";
+import { useFilteredJobs } from '../hooks/useFilteredJobs';
 
-import { FilterState } from "./StatFilter";
+import { FilterState } from './StatFilter';
 
-import { PorterJobItem } from "@/types/porter";
-import { formatLocationString } from "@/lib/porter";
+import { PorterJobItem } from '@/types/porter';
+import { formatLocationString } from '@/lib/porter';
 
 interface PopularLocationChartProps {
   title: string;
@@ -25,7 +17,7 @@ interface PopularLocationChartProps {
   color?: string;
   jobs?: PorterJobItem[];
   filterState?: FilterState | null;
-  locationType: "pickup" | "delivery";
+  locationType: 'pickup' | 'delivery';
 }
 
 interface CustomTooltipProps {
@@ -47,31 +39,30 @@ const CustomTooltip = ({ active, payload, totalCount }: CustomTooltipProps) => {
 
   const data = payload[0];
   const count = data.value;
-  const percent =
-    totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : "0.0";
+  const percent = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : '0.0';
   const locationFull = data.payload.locationFull;
 
   return (
     <div
       style={{
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        padding: "12px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        border: '1px solid #e0e0e0',
+        borderRadius: '8px',
+        padding: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       }}
     >
       <p
         style={{
-          margin: "0 0 8px 0",
-          fontWeight: "600",
-          color: "#333",
-          fontSize: "12px",
+          margin: '0 0 8px 0',
+          fontWeight: '600',
+          color: '#333',
+          fontSize: '12px',
         }}
       >
         {locationFull}
       </p>
-      <p style={{ margin: 0, color: "#666", fontSize: "12px" }}>
+      <p style={{ margin: 0, color: '#666', fontSize: '12px' }}>
         {count} ครั้ง ({percent}%)
       </p>
     </div>
@@ -81,7 +72,7 @@ const CustomTooltip = ({ active, payload, totalCount }: CustomTooltipProps) => {
 export function PopularLocationChart({
   title,
   data,
-  color = "#0070f3",
+  color = '#0070f3',
   jobs,
   filterState,
   locationType,
@@ -108,9 +99,7 @@ export function PopularLocationChart({
     // Single pass: คำนวณ popular locations จาก filtered jobs
     for (const job of filteredJobs) {
       const locationDetail =
-        locationType === "pickup"
-          ? job.form.pickupLocationDetail
-          : job.form.deliveryLocationDetail;
+        locationType === 'pickup' ? job.form.pickupLocationDetail : job.form.deliveryLocationDetail;
 
       // ใช้ cache สำหรับ location string
       const locationKey = JSON.stringify(locationDetail);
@@ -144,9 +133,7 @@ export function PopularLocationChart({
     () =>
       filteredData.map((item) => ({
         location:
-          item.location.length > 40
-            ? `${item.location.substring(0, 40)}...`
-            : item.location,
+          item.location.length > 40 ? `${item.location.substring(0, 40)}...` : item.location,
         locationFull: item.location,
         count: item.count,
       })),
@@ -157,10 +144,7 @@ export function PopularLocationChart({
     <Card className="shadow-md border border-default-200 hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="pb-0">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <div
-            className="w-1 h-6 rounded-full"
-            style={{ backgroundColor: color }}
-          />
+          <div className="w-1 h-6 rounded-full" style={{ backgroundColor: color }} />
           {title}
         </h3>
       </CardHeader>
@@ -172,11 +156,11 @@ export function PopularLocationChart({
             margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
           >
             <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
-            <XAxis stroke="#888" style={{ fontSize: "12px" }} type="number" />
+            <XAxis stroke="#888" style={{ fontSize: '12px' }} type="number" />
             <YAxis
               dataKey="location"
               stroke="#888"
-              style={{ fontSize: "11px" }}
+              style={{ fontSize: '11px' }}
               type="category"
               width={100}
             />
@@ -184,7 +168,7 @@ export function PopularLocationChart({
             <Bar
               dataKey="count"
               fill={color}
-              label={{ position: "right", style: { fontSize: "10px" } }}
+              label={{ position: 'right', style: { fontSize: '10px' } }}
               name="จำนวนงาน"
             />
           </BarChart>
