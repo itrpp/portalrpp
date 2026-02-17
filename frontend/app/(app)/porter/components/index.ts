@@ -23,5 +23,4 @@ export { PorterLoadingSkeleton } from "./shared/PorterLoadingSkeleton";
 // Design tokens
 export {
   PORTER_DESIGN_TOKENS,
-  PORTER_TABLE_STYLES,
 } from "./shared/designTokens";
