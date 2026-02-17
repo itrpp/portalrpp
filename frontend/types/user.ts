@@ -5,7 +5,7 @@
  * Types สำหรับระบบจัดการผู้ใช้ (User Management)
  */
 
-import type { ProfileDTO } from "@/types/profile";
+import type { ProfileDTO } from '@/types/profile';
 
 /**
  * User DTO - ข้อมูล user ที่ใช้ในระบบ
@@ -34,7 +34,7 @@ export interface UserUpdatePayload {
   displayName?: string;
   phone?: string;
   mobile?: string;
-  role?: "admin" | "user";
+  role?: 'admin' | 'user';
   personTypeId?: number | null;
   positionId?: number | null;
   departmentId?: number | null;
@@ -65,6 +65,6 @@ export interface UserListQueryParams {
   page?: number;
   pageSize?: number;
   search?: string;
-  role?: "admin" | "user";
+  role?: 'admin' | 'user';
   departmentId?: number;
 }

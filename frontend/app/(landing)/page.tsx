@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { useState, useEffect } from "react";
-import { Card, CardBody, CardHeader, Button } from "@heroui/react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import { Card, CardBody, CardHeader, Button } from '@heroui/react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 import {
   ArrowRightIcon,
@@ -14,9 +14,10 @@ import {
   ShieldCheckIcon,
   UserGroupIcon,
   ServerIcon,
-} from "@/components/ui/icons";
-import { siteConfig } from "@/config/site";
-import { formatDateTimeThai } from "@/lib/utils";
+} from '@/components/ui/icons';
+import { siteConfig } from '@/config/site';
+import { LOADING_MESSAGES } from '@/lib/constants';
+import { formatDateTimeThai } from '@/lib/utils';
 
 function HomeContent() {
   const router = useRouter();
@@ -37,7 +38,7 @@ function HomeContent() {
   }, []);
 
   const handleGoToHome = () => {
-    router.push("/home");
+    router.push('/home');
   };
 
   return (
@@ -58,15 +59,11 @@ function HomeContent() {
                 />
               </div>
             </div>
-            <h1 className="text-5xl font-bold mb-4">
-              {siteConfig.hospitalName}
-            </h1>
+            <h1 className="text-5xl font-bold mb-4">{siteConfig.hospitalName}</h1>
             <p className="text-2xl font-bold mb-6">{siteConfig.projectName}</p>
             <p className="text-lg text-default-600 mb-8 max-w-3xl mx-auto">
-              ระบบจัดการข้อมูลแบบ{" "}
-              <span className="text-primary-600 font-semibold">
-                Digital Transformation{" "}
-              </span>
+              ระบบจัดการข้อมูลแบบ{' '}
+              <span className="text-primary-600 font-semibold">Digital Transformation </span>
               สำหรับการให้บริการที่มีคุณภาพและประสิทธิภาพ
             </p>
 
@@ -94,7 +91,7 @@ function HomeContent() {
                   size="lg"
                   startContent={<UserIcon className="w-5 h-5" />}
                   variant="solid"
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push('/login')}
                 >
                   เข้าสู่ระบบ
                 </Button>
@@ -102,22 +99,10 @@ function HomeContent() {
             )}
 
             {/* Current Time */}
-            <div
-              aria-live="polite"
-              className="flex justify-center items-center mb-8"
-              role="status"
-            >
-              <ClockIcon
-                aria-hidden="true"
-                className="w-6 h-6 text-primary-500 mr-2"
-              />
-              <span
-                suppressHydrationWarning
-                className="text-lg text-default-600 font-medium"
-              >
-                {isClient && currentTime
-                  ? formatDateTimeThai(currentTime)
-                  : "กำลังโหลด..."}
+            <div aria-live="polite" className="flex justify-center items-center mb-8" role="status">
+              <ClockIcon aria-hidden="true" className="w-6 h-6 text-primary-500 mr-2" />
+              <span suppressHydrationWarning className="text-lg text-default-600 font-medium">
+                {isClient && currentTime ? formatDateTimeThai(currentTime) : LOADING_MESSAGES.page}
               </span>
             </div>
           </div>
@@ -137,12 +122,8 @@ function HomeContent() {
                 </div>
               </CardHeader>
               <CardBody className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">
-                  ระบบความปลอดภัย
-                </h3>
-                <p className="text-default-600 mb-4">
-                  ระบบยืนยันตัวตนที่ปลอดภัยด้วย JWT และ LDAP
-                </p>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">ระบบความปลอดภัย</h3>
+                <p className="text-default-600 mb-4">ระบบยืนยันตัวตนที่ปลอดภัยด้วย JWT และ LDAP</p>
                 <div className="text-xs text-primary-500 font-medium">
                   🔐 Authentication & Authorization
                 </div>
@@ -162,12 +143,8 @@ function HomeContent() {
                 </div>
               </CardHeader>
               <CardBody className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">
-                  จัดการผู้ใช้งาน
-                </h3>
-                <p className="text-default-600 mb-4">
-                  ระบบจัดการข้อมูลผู้ใช้และสิทธิ์การเข้าถึง
-                </p>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">จัดการผู้ใช้งาน</h3>
+                <p className="text-default-600 mb-4">ระบบจัดการข้อมูลผู้ใช้และสิทธิ์การเข้าถึง</p>
                 <div className="text-xs text-secondary-500 font-medium">
                   👥 User Management System
                 </div>
@@ -187,15 +164,9 @@ function HomeContent() {
                 </div>
               </CardHeader>
               <CardBody className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">
-                  ภาพรวมระบบ
-                </h3>
-                <p className="text-default-600 mb-4">
-                  แดชบอร์ดสำหรับติดตามสถิติและข้อมูล
-                </p>
-                <div className="text-xs text-warning-500 font-medium">
-                  📊 Analytics Dashboard
-                </div>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">ภาพรวมระบบ</h3>
+                <p className="text-default-600 mb-4">แดชบอร์ดสำหรับติดตามสถิติและข้อมูล</p>
+                <div className="text-xs text-warning-500 font-medium">📊 Analytics Dashboard</div>
               </CardBody>
             </Card>
 
@@ -212,15 +183,9 @@ function HomeContent() {
                 </div>
               </CardHeader>
               <CardBody className="text-center">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">
-                  ระบบภายในโรงพยาบาล
-                </h3>
-                <p className="text-default-600 mb-4">
-                  รวบรวม Service ต่างๆ ที่ใช้งานภายในรพ.
-                </p>
-                <div className="text-xs text-danger-500 font-medium">
-                  🏥 Hospital Services
-                </div>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">ระบบภายในโรงพยาบาล</h3>
+                <p className="text-default-600 mb-4">รวบรวม Service ต่างๆ ที่ใช้งานภายในรพ.</p>
+                <div className="text-xs text-danger-500 font-medium">🏥 Hospital Services</div>
               </CardBody>
             </Card>
           </div>

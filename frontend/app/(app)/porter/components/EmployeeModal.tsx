@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import type { UserDTO } from "@/types/user";
+import type { UserDTO } from '@/types/user';
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Modal,
   ModalContent,
@@ -16,11 +16,11 @@ import {
   Checkbox,
   Avatar,
   addToast,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import ImagePreviewModal from "./ImagePreviewModal";
+import ImagePreviewModal from './ImagePreviewModal';
 
-import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
+import { EmploymentType, Position, PorterEmployee } from '@/types/porter';
 
 /**
  * Props สำหรับ EmployeeModal
@@ -28,7 +28,7 @@ import { EmploymentType, Position, PorterEmployee } from "@/types/porter";
 interface EmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (employee: Omit<PorterEmployee, "id"> & { id?: string }) => void;
+  onSave: (employee: Omit<PorterEmployee, 'id'> & { id?: string }) => void;
   employee?: PorterEmployee | null;
   isLoading?: boolean;
   employmentTypes: EmploymentType[];
@@ -47,17 +47,17 @@ export default function EmployeeModal({
   employmentTypes,
   positions,
 }: EmployeeModalProps) {
-  const [citizenId, setCitizenId] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [nickname, setNickname] = useState("");
-  const [profileImage, setProfileImage] = useState<string>("");
-  const [profileImagePreview, setProfileImagePreview] = useState<string>("");
-  const [employmentTypeId, setEmploymentTypeId] = useState<string>("");
-  const [positionId, setPositionId] = useState<string>("");
+  const [citizenId, setCitizenId] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [profileImage, setProfileImage] = useState<string>('');
+  const [profileImagePreview, setProfileImagePreview] = useState<string>('');
+  const [employmentTypeId, setEmploymentTypeId] = useState<string>('');
+  const [positionId, setPositionId] = useState<string>('');
   const [status, setStatus] = useState(true);
-  const [userId, setUserId] = useState<string>("");
-  const [userSearchQuery, setUserSearchQuery] = useState<string>("");
+  const [userId, setUserId] = useState<string>('');
+  const [userSearchQuery, setUserSearchQuery] = useState<string>('');
   const [users, setUsers] = useState<UserDTO[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
@@ -73,15 +73,12 @@ export default function EmployeeModal({
         if (result.success && result.data) {
           setUsers([result.data]);
           setUserSearchQuery(
-            result.data.displayName ||
-              result.data.ldapDisplayName ||
-              result.data.email ||
-              "",
+            result.data.displayName || result.data.ldapDisplayName || result.data.email || '',
           );
         }
       }
     } catch (err) {
-      console.error("Error loading user:", err);
+      console.error('Error loading user:', err);
     }
   }, []);
 
@@ -89,9 +86,7 @@ export default function EmployeeModal({
     setIsLoadingUsers(true);
     try {
       const searchParam =
-        query && query.trim().length >= 2
-          ? `?search=${encodeURIComponent(query.trim())}`
-          : "";
+        query && query.trim().length >= 2 ? `?search=${encodeURIComponent(query.trim())}` : '';
       const response = await fetch(`/api/users/search${searchParam}`);
 
       if (response.ok) {
@@ -106,7 +101,7 @@ export default function EmployeeModal({
         setUsers([]);
       }
     } catch (err) {
-      console.error("Error loading users:", err);
+      console.error('Error loading users:', err);
       setUsers([]);
     } finally {
       setIsLoadingUsers(false);
@@ -118,37 +113,35 @@ export default function EmployeeModal({
       setCitizenId(employee.citizenId);
       setFirstName(employee.firstName);
       setLastName(employee.lastName);
-      setNickname(employee.nickname || "");
-      setProfileImage(employee.profileImage || "");
-      setProfileImagePreview(employee.profileImage || "");
-      setEmploymentTypeId(String(employee.employmentTypeId ?? ""));
-      setPositionId(String(employee.positionId ?? ""));
+      setNickname(employee.nickname || '');
+      setProfileImage(employee.profileImage || '');
+      setProfileImagePreview(employee.profileImage || '');
+      setEmploymentTypeId(String(employee.employmentTypeId ?? ''));
+      setPositionId(String(employee.positionId ?? ''));
       setStatus(employee.status);
-      setUserId(employee.userId || "");
+      setUserId(employee.userId || '');
       if (employee.userId) {
         loadUserById(employee.userId);
       } else {
-        setUserSearchQuery("");
+        setUserSearchQuery('');
         setUsers([]);
       }
     } else {
-      setCitizenId("");
-      setFirstName("");
-      setLastName("");
-      setNickname("");
-      setProfileImage("");
-      setProfileImagePreview("");
+      setCitizenId('');
+      setFirstName('');
+      setLastName('');
+      setNickname('');
+      setProfileImage('');
+      setProfileImagePreview('');
       // ตั้งค่า default จากรายการแรก (hrd APIs ไม่มี status field)
       const defaultEmploymentType = employmentTypes[0];
       const defaultPosition = positions[0];
 
-      setEmploymentTypeId(
-        defaultEmploymentType ? String(defaultEmploymentType.id) : "",
-      );
-      setPositionId(defaultPosition ? String(defaultPosition.id) : "");
+      setEmploymentTypeId(defaultEmploymentType ? String(defaultEmploymentType.id) : '');
+      setPositionId(defaultPosition ? String(defaultPosition.id) : '');
       setStatus(true);
-      setUserId("");
-      setUserSearchQuery("");
+      setUserId('');
+      setUserSearchQuery('');
       setUsers([]);
     }
   }, [employee, isOpen, employmentTypes, positions, loadUserById]);
@@ -177,11 +170,11 @@ export default function EmployeeModal({
     if (!file) return;
 
     // ตรวจสอบประเภทไฟล์
-    if (!file.type.startsWith("image/")) {
+    if (!file.type.startsWith('image/')) {
       addToast({
-        title: "ประเภทไฟล์ไม่ถูกต้อง",
-        description: "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
-        color: "danger",
+        title: 'ประเภทไฟล์ไม่ถูกต้อง',
+        description: 'กรุณาเลือกไฟล์รูปภาพเท่านั้น',
+        color: 'danger',
       });
 
       return;
@@ -192,9 +185,9 @@ export default function EmployeeModal({
 
     if (file.size > maxSize) {
       addToast({
-        title: "ไฟล์ใหญ่เกินไป",
-        description: "กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 10MB",
-        color: "danger",
+        title: 'ไฟล์ใหญ่เกินไป',
+        description: 'กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 10MB',
+        color: 'danger',
       });
 
       return;
@@ -209,7 +202,7 @@ export default function EmployeeModal({
 
       img.onload = () => {
         // สร้าง canvas เพื่อ resize รูปภาพ
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         const maxWidth = 800; // ขนาดสูงสุดสำหรับ profile image
         const maxHeight = 800;
         let width = img.width;
@@ -232,13 +225,13 @@ export default function EmployeeModal({
         canvas.height = height;
 
         // วาดรูปภาพใหม่ที่ resize แล้ว
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext('2d');
 
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
 
           // แปลงเป็น base64 (ใช้ quality 0.85 เพื่อลดขนาด)
-          const resizedBase64 = canvas.toDataURL("image/jpeg", 0.85);
+          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
 
           setProfileImage(resizedBase64);
           setProfileImagePreview(resizedBase64);
@@ -251,9 +244,9 @@ export default function EmployeeModal({
 
       img.onerror = () => {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดรูปภาพได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดรูปภาพได้',
+          color: 'danger',
         });
       };
 
@@ -262,9 +255,9 @@ export default function EmployeeModal({
 
     reader.onerror = () => {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถอ่านไฟล์รูปภาพได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถอ่านไฟล์รูปภาพได้',
+        color: 'danger',
       });
     };
 
@@ -272,11 +265,11 @@ export default function EmployeeModal({
   };
 
   const handleRemoveImage = () => {
-    setProfileImage("");
-    setProfileImagePreview("");
+    setProfileImage('');
+    setProfileImagePreview('');
 
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -290,9 +283,9 @@ export default function EmployeeModal({
     // Validate citizenId (ต้องเป็น 13 หลัก)
     if (!citizenId.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกเลขบัตรประชาชน",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณากรอกเลขบัตรประชาชน',
+        color: 'danger',
       });
 
       return;
@@ -300,9 +293,9 @@ export default function EmployeeModal({
 
     if (!/^\d{13}$/.test(citizenId.trim())) {
       addToast({
-        title: "ข้อมูลไม่ถูกต้อง",
-        description: "เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก",
-        color: "danger",
+        title: 'ข้อมูลไม่ถูกต้อง',
+        description: 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก',
+        color: 'danger',
       });
 
       return;
@@ -310,9 +303,9 @@ export default function EmployeeModal({
 
     if (!firstName.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกชื่อ",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณากรอกชื่อ',
+        color: 'danger',
       });
 
       return;
@@ -320,9 +313,9 @@ export default function EmployeeModal({
 
     if (!lastName.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกนามสกุล",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณากรอกนามสกุล',
+        color: 'danger',
       });
 
       return;
@@ -330,9 +323,9 @@ export default function EmployeeModal({
 
     if (!employmentTypeId) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาเลือกประเภทการจ้าง",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณาเลือกประเภทการจ้าง',
+        color: 'danger',
       });
 
       return;
@@ -340,9 +333,9 @@ export default function EmployeeModal({
 
     if (!positionId) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาเลือกตำแหน่ง",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณาเลือกตำแหน่ง',
+        color: 'danger',
       });
 
       return;
@@ -357,12 +350,10 @@ export default function EmployeeModal({
         nickname: nickname.trim() || undefined,
         // ส่ง null ถ้าไม่มีรูปภาพ (empty string) เพื่อให้ backend ลบออกจาก database
         profileImage:
-          profileImage && profileImage.trim() !== ""
-            ? profileImage
-            : (null as string | null),
-        employmentType: "", // จะถูก populate จาก backend
+          profileImage && profileImage.trim() !== '' ? profileImage : (null as string | null),
+        employmentType: '', // จะถูก populate จาก backend
         employmentTypeId,
-        position: "", // จะถูก populate จาก backend
+        position: '', // จะถูก populate จาก backend
         positionId,
         status,
         // ส่งค่าว่าง ("") เมื่อผู้ใช้ลบการเลือก user เพื่อให้ backend เคลียร์การผูก user ออกจากเจ้าหน้าที่
@@ -378,15 +369,11 @@ export default function EmployeeModal({
     <>
       <Modal isOpen={isOpen} size="lg" onClose={onClose}>
         <ModalContent>
-          <ModalHeader>
-            {employee ? "แก้ไขเจ้าหน้าที่เปล" : "เพิ่มเจ้าหน้าที่เปลใหม่"}
-          </ModalHeader>
+          <ModalHeader>{employee ? 'แก้ไขเจ้าหน้าที่เปล' : 'เพิ่มเจ้าหน้าที่เปลใหม่'}</ModalHeader>
           <ModalBody>
             <div className="space-y-4">
               <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground">
-                  รูปภาพโปรไฟล์
-                </div>
+                <div className="text-sm font-medium text-foreground">รูปภาพโปรไฟล์</div>
                 <div className="flex items-center gap-4">
                   {profileImagePreview ? (
                     <div className="relative">
@@ -396,7 +383,7 @@ export default function EmployeeModal({
                         tabIndex={0}
                         onClick={handleImageClick}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
+                          if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             handleImageClick();
                           }
@@ -440,20 +427,16 @@ export default function EmployeeModal({
                       variant="bordered"
                       onPress={() => fileInputRef.current?.click()}
                     >
-                      {profileImagePreview ? "เปลี่ยนรูปภาพ" : "อัปโหลดรูปภาพ"}
+                      {profileImagePreview ? 'เปลี่ยนรูปภาพ' : 'อัปโหลดรูปภาพ'}
                     </Button>
-                    <p className="text-xs text-default-500">
-                      รองรับไฟล์รูปภาพขนาดไม่เกิน 10MB
-                    </p>
+                    <p className="text-xs text-default-500">รองรับไฟล์รูปภาพขนาดไม่เกิน 10MB</p>
                   </div>
                 </div>
               </div>
               <Input
                 isRequired
                 description={
-                  employee
-                    ? "ไม่สามารถแก้ไขเลขบัตรประชาชนได้"
-                    : "กรุณากรอกเลขบัตรประชาชน 13 หลัก"
+                  employee ? 'ไม่สามารถแก้ไขเลขบัตรประชาชนได้' : 'กรุณากรอกเลขบัตรประชาชน 13 หลัก'
                 }
                 isDisabled={isLoading || !!employee}
                 label="เลขบัตรประชาชน"
@@ -462,7 +445,7 @@ export default function EmployeeModal({
                 value={citizenId}
                 variant="bordered"
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "");
+                  const value = e.target.value.replace(/\D/g, '');
 
                   setCitizenId(value);
                 }}
@@ -511,11 +494,7 @@ export default function EmployeeModal({
                   }
                 }}
               >
-                {(item) => (
-                  <AutocompleteItem key={item.key}>
-                    {item.label}
-                  </AutocompleteItem>
-                )}
+                {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
               </Autocomplete>
               <Autocomplete
                 isRequired
@@ -534,11 +513,7 @@ export default function EmployeeModal({
                   }
                 }}
               >
-                {(item) => (
-                  <AutocompleteItem key={item.key}>
-                    {item.label}
-                  </AutocompleteItem>
-                )}
+                {(item) => <AutocompleteItem key={item.key}>{item.label}</AutocompleteItem>}
               </Autocomplete>
               <Autocomplete
                 defaultItems={users.map((u) => ({
@@ -564,36 +539,27 @@ export default function EmployeeModal({
                         selectedUser.displayName ||
                           selectedUser.ldapDisplayName ||
                           selectedUser.email ||
-                          "",
+                          '',
                       );
                     }
                   } else {
-                    setUserId("");
-                    setUserSearchQuery("");
+                    setUserId('');
+                    setUserSearchQuery('');
                   }
                 }}
               >
                 {(item) => (
-                  <AutocompleteItem
-                    key={item.key}
-                    description={item.description}
-                  >
+                  <AutocompleteItem key={item.key} description={item.description}>
                     {item.label}
                   </AutocompleteItem>
                 )}
               </Autocomplete>
               <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground">
-                  สถานะการใช้งาน
-                </div>
+                <div className="text-sm font-medium text-foreground">สถานะการใช้งาน</div>
                 <div className="text-xs text-default-500">
                   เปิดใช้งานเมื่อต้องการให้เจ้าหน้าที่คนนี้สามารถรับงานได้
                 </div>
-                <Checkbox
-                  isDisabled={isLoading}
-                  isSelected={status}
-                  onValueChange={setStatus}
-                >
+                <Checkbox isDisabled={isLoading} isSelected={status} onValueChange={setStatus}>
                   ใช้งาน
                 </Checkbox>
               </div>

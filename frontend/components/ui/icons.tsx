@@ -1,6 +1,6 @@
-import { Icon as IconifyIcon } from "@iconify/react";
+import { Icon as IconifyIcon } from '@iconify/react';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface IconProps {
   /** ขนาดของ icon (default: 24) */
@@ -12,7 +12,7 @@ interface IconProps {
   /** การหมุน icon (degrees) */
   rotate?: number;
   /** การพลิก icon */
-  flip?: "horizontal" | "vertical" | "both";
+  flip?: 'horizontal' | 'vertical' | 'both';
   /** Props อื่นๆ ที่จะส่งต่อให้ IconifyIcon */
   [key: string]: any;
 }
@@ -20,7 +20,7 @@ interface IconProps {
 // Navigation Icons
 export const HomeIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -33,7 +33,7 @@ export const HomeIcon = (props: IconProps) => (
 
 export const DashboardIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -46,7 +46,7 @@ export const DashboardIcon = (props: IconProps) => (
 
 export const SettingsIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -59,7 +59,7 @@ export const SettingsIcon = (props: IconProps) => (
 
 export const ProfileIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -72,7 +72,7 @@ export const ProfileIcon = (props: IconProps) => (
 
 export const GlobeAltIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -85,7 +85,7 @@ export const GlobeAltIcon = (props: IconProps) => (
 
 export const UserIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -99,7 +99,7 @@ export const UserIcon = (props: IconProps) => (
 // Auth Icons
 export const LoginIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -112,7 +112,7 @@ export const LoginIcon = (props: IconProps) => (
 
 export const LogoutIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -126,7 +126,7 @@ export const LogoutIcon = (props: IconProps) => (
 // Arrow Icons
 export const ArrowRightIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -139,7 +139,7 @@ export const ArrowRightIcon = (props: IconProps) => (
 
 export const ArrowDownTrayIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -152,7 +152,7 @@ export const ArrowDownTrayIcon = (props: IconProps) => (
 
 export const ArrowUpTrayIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -165,7 +165,7 @@ export const ArrowUpTrayIcon = (props: IconProps) => (
 
 export const PlusIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -178,7 +178,7 @@ export const PlusIcon = (props: IconProps) => (
 
 export const ChevronRightIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -192,7 +192,7 @@ export const ChevronRightIcon = (props: IconProps) => (
 // Landing Page Icons
 export const ShieldCheckIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -205,7 +205,7 @@ export const ShieldCheckIcon = (props: IconProps) => (
 
 export const UserGroupIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -218,7 +218,7 @@ export const UserGroupIcon = (props: IconProps) => (
 
 export const ChartBarIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -231,7 +231,7 @@ export const ChartBarIcon = (props: IconProps) => (
 
 export const ClockIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -244,7 +244,7 @@ export const ClockIcon = (props: IconProps) => (
 
 export const ServerIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -257,37 +257,11 @@ export const ServerIcon = (props: IconProps) => (
 
 export const DocumentTextIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
     icon="tabler:file-text"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
-export const FileTextIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:file-text"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
-export const Squares2X2Icon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:apps"
     rotate={props.rotate}
     width={props.size || 24}
     {...props}
@@ -296,7 +270,7 @@ export const Squares2X2Icon = (props: IconProps) => (
 
 export const Bars3Icon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -309,7 +283,7 @@ export const Bars3Icon = (props: IconProps) => (
 
 export const XMarkIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -323,7 +297,7 @@ export const XMarkIcon = (props: IconProps) => (
 // Contact Icons
 export const BuildingOfficeIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -336,7 +310,7 @@ export const BuildingOfficeIcon = (props: IconProps) => (
 
 export const PhoneIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -349,7 +323,7 @@ export const PhoneIcon = (props: IconProps) => (
 
 export const EnvelopeIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -362,7 +336,7 @@ export const EnvelopeIcon = (props: IconProps) => (
 
 export const MapPinIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -376,7 +350,7 @@ export const MapPinIcon = (props: IconProps) => (
 // Login Page Icons
 export const LockClosedIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -389,7 +363,7 @@ export const LockClosedIcon = (props: IconProps) => (
 
 export const ArrowLeftIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -402,7 +376,7 @@ export const ArrowLeftIcon = (props: IconProps) => (
 
 export const EyeIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -415,7 +389,7 @@ export const EyeIcon = (props: IconProps) => (
 
 export const EyeSlashIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -428,7 +402,7 @@ export const EyeSlashIcon = (props: IconProps) => (
 
 export const TrashIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -441,7 +415,7 @@ export const TrashIcon = (props: IconProps) => (
 
 export const RefreshIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -454,7 +428,7 @@ export const RefreshIcon = (props: IconProps) => (
 
 export const ExclamationTriangleIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -465,9 +439,48 @@ export const ExclamationTriangleIcon = (props: IconProps) => (
   />
 );
 
+export const BoltIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn('inline-block', props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:bolt"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const MinusIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn('inline-block', props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:minus"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
+export const TruckIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn('inline-block', props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:truck"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
 export const CheckCircleIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -480,7 +493,7 @@ export const CheckCircleIcon = (props: IconProps) => (
 
 export const AlertCircleIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -493,7 +506,7 @@ export const AlertCircleIcon = (props: IconProps) => (
 
 export const UploadIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -504,35 +517,9 @@ export const UploadIcon = (props: IconProps) => (
   />
 );
 
-export const CogIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:settings"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
-export const DocumentCheckIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:file-check"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
 export const ArrowRightOnRectangleIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -545,7 +532,7 @@ export const ArrowRightOnRectangleIcon = (props: IconProps) => (
 
 export const ClipboardListIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -558,7 +545,7 @@ export const ClipboardListIcon = (props: IconProps) => (
 
 export const EmergencyBedIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -571,7 +558,7 @@ export const EmergencyBedIcon = (props: IconProps) => (
 
 export const BedIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -582,48 +569,9 @@ export const BedIcon = (props: IconProps) => (
   />
 );
 
-export const PlayIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:player-play"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
-export const HandStopIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:hand-stop"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
-export const CheckIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:check"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
 export const AmbulanceIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -636,7 +584,7 @@ export const AmbulanceIcon = (props: IconProps) => (
 
 export const StretcherIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -649,7 +597,7 @@ export const StretcherIcon = (props: IconProps) => (
 
 export const CalendarIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -660,35 +608,9 @@ export const CalendarIcon = (props: IconProps) => (
   />
 );
 
-export const AlertCircleFillIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:alert-circle-filled"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
-export const GenderIcon = (props: IconProps) => (
-  <IconifyIcon
-    className={cn("inline-block", props.className)}
-    color={props.color}
-    flip={props.flip}
-    height={props.size || 24}
-    icon="tabler:gender-male"
-    rotate={props.rotate}
-    width={props.size || 24}
-    {...props}
-  />
-);
-
 export const InfoCircleIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -701,7 +623,7 @@ export const InfoCircleIcon = (props: IconProps) => (
 
 export const CarIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -714,7 +636,7 @@ export const CarIcon = (props: IconProps) => (
 
 export const MedicalBagIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -727,7 +649,7 @@ export const MedicalBagIcon = (props: IconProps) => (
 
 export const ToolsIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -740,7 +662,7 @@ export const ToolsIcon = (props: IconProps) => (
 
 export const BriefcaseIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -753,7 +675,7 @@ export const BriefcaseIcon = (props: IconProps) => (
 
 export const PencilIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -766,7 +688,7 @@ export const PencilIcon = (props: IconProps) => (
 
 export const MagnifyingGlassIcon = (props: IconProps) => (
   <IconifyIcon
-    className={cn("inline-block", props.className)}
+    className={cn('inline-block', props.className)}
     color={props.color}
     flip={props.flip}
     height={props.size || 24}
@@ -778,51 +700,3 @@ export const MagnifyingGlassIcon = (props: IconProps) => (
 );
 
 // Backward compatibility - ยังคง export Icons object สำหรับการใช้งานแบบเดิม
-export const Icons = {
-  home: HomeIcon,
-  dashboard: DashboardIcon,
-  settings: SettingsIcon,
-  profile: ProfileIcon,
-  globeAlt: GlobeAltIcon,
-  user: UserIcon,
-  login: LoginIcon,
-  logout: LogoutIcon,
-  arrowRight: ArrowRightIcon,
-  arrowDownTray: ArrowDownTrayIcon,
-  arrowUpTray: ArrowUpTrayIcon,
-  chevronRight: ChevronRightIcon,
-  shieldCheck: ShieldCheckIcon,
-  userGroup: UserGroupIcon,
-  chartBar: ChartBarIcon,
-  clock: ClockIcon,
-  server: ServerIcon,
-  documentText: DocumentTextIcon,
-  fileText: FileTextIcon,
-  squares2X2: Squares2X2Icon,
-  bars3: Bars3Icon,
-  xMark: XMarkIcon,
-  buildingOffice: BuildingOfficeIcon,
-  phone: PhoneIcon,
-  envelope: EnvelopeIcon,
-  mapPin: MapPinIcon,
-  lockClosed: LockClosedIcon,
-  arrowLeft: ArrowLeftIcon,
-  eye: EyeIcon,
-  eyeSlash: EyeSlashIcon,
-  trash: TrashIcon,
-  refresh: RefreshIcon,
-  exclamationTriangle: ExclamationTriangleIcon,
-  checkCircle: CheckCircleIcon,
-  alertCircle: AlertCircleIcon,
-  upload: UploadIcon,
-  cog: CogIcon,
-  documentCheck: DocumentCheckIcon,
-  plus: PlusIcon,
-  arrowRightOnRectangle: ArrowRightOnRectangleIcon,
-  clipboardList: ClipboardListIcon,
-  emergencyBed: EmergencyBedIcon,
-  bed: BedIcon,
-  play: PlayIcon,
-  handStop: HandStopIcon,
-  check: CheckIcon,
-};

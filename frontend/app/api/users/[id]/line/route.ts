@@ -1,31 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getUserProfile } from "@/lib/profile";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { getUserProfile } from '@/lib/profile';
 
-const LINE_PROVIDER_ID = "line";
+const LINE_PROVIDER_ID = 'line';
 
 /**
  * DELETE /api/users/[id]/line
  * ยกเลิกการเชื่อมต่อ LINE ของ user อื่น
  * ต้องเป็น admin เท่านั้น
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
     if (!auth.ok) return auth.response;
 
     // ตรวจสอบสิทธิ์ admin
-    if ((auth.session.user as { role?: string }).role !== "admin") {
-      return NextResponse.json(
-        { success: false, error: "FORBIDDEN" },
-        { status: 403 },
-      );
+    if ((auth.session.user as { role?: string }).role !== 'admin') {
+      return NextResponse.json({ success: false, error: 'FORBIDDEN' }, { status: 403 });
     }
 
     const { id } = await context.params;
@@ -44,18 +38,15 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลผู้ใช้",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลผู้ใช้',
         },
         { status: 404 },
       );
     }
 
     if (!user.lineUserId) {
-      return NextResponse.json(
-        { success: false, error: "LINE_NOT_LINKED" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: 'LINE_NOT_LINKED' }, { status: 400 });
     }
 
     try {
@@ -75,10 +66,10 @@ export async function DELETE(
         }),
       ]);
     } catch (error) {
-      console.error("Failed to disconnect LINE:", error);
+      console.error('Failed to disconnect LINE:', error);
 
       return NextResponse.json(
-        { success: false, error: "LINE_DISCONNECT_FAILED" },
+        { success: false, error: 'LINE_DISCONNECT_FAILED' },
         { status: 500 },
       );
     }
@@ -90,13 +81,13 @@ export async function DELETE(
       data: profile,
     });
   } catch (error: any) {
-    console.error("Error disconnecting LINE:", error);
+    console.error('Error disconnecting LINE:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการยกเลิกการเชื่อมต่อ LINE",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการยกเลิกการเชื่อมต่อ LINE',
       },
       { status: 500 },
     );

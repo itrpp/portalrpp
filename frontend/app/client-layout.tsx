@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
+import { Suspense } from 'react';
 
-import Loading from "./loading";
+import Loading from './loading';
 
-import { ClientLayoutProps } from "@/types/layout";
+import { ClientLayoutProps } from '@/types/layout';
 
 /**
  * ========================================

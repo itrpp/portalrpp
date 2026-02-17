@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get("q")?.trim() ?? "";
+  const query = searchParams.get('q')?.trim() ?? '';
 
   const where =
     query.length > 0
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       updated_at: true,
     },
     orderBy: {
-      HR_POSITION_NAME: "asc",
+      HR_POSITION_NAME: 'asc',
     },
   });
 
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     success: true,
     data: items.map((item) => ({
       id: item.HR_POSITION_ID,
-      name: item.HR_POSITION_NAME ?? "",
+      name: item.HR_POSITION_NAME ?? '',
       positionSpId: item.POSITION_SP_ID ?? undefined,
       active: true, // Default value until ACTIVE field is added to schema
       createdAt: item.created_at?.toISOString(),
@@ -61,24 +61,24 @@ export async function POST(request: Request) {
     const { name, positionSpId, id, active } = requestData;
 
     // Validation
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณากรอกชื่อตำแหน่ง",
+          error: 'VALIDATION_ERROR',
+          message: 'กรุณากรอกชื่อตำแหน่ง',
         },
         { status: 400 },
       );
     }
 
     // ตรวจสอบ ID (required เพราะไม่ใช่ autoincrement)
-    if (!id || typeof id !== "number") {
+    if (!id || typeof id !== 'number') {
       return NextResponse.json(
         {
           success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณาระบุ ID ตำแหน่ง",
+          error: 'VALIDATION_ERROR',
+          message: 'กรุณาระบุ ID ตำแหน่ง',
         },
         { status: 400 },
       );
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DUPLICATE_ID",
-          message: "ID ตำแหน่งนี้มีอยู่ในระบบแล้ว",
+          error: 'DUPLICATE_ID',
+          message: 'ID ตำแหน่งนี้มีอยู่ในระบบแล้ว',
         },
         { status: 409 },
       );
@@ -115,8 +115,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DUPLICATE_NAME",
-          message: "ชื่อตำแหน่งนี้มีอยู่ในระบบแล้ว",
+          error: 'DUPLICATE_NAME',
+          message: 'ชื่อตำแหน่งนี้มีอยู่ในระบบแล้ว',
         },
         { status: 409 },
       );
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
         success: true,
         data: {
           id: newPosition.HR_POSITION_ID,
-          name: newPosition.HR_POSITION_NAME ?? "",
+          name: newPosition.HR_POSITION_NAME ?? '',
           positionSpId: newPosition.POSITION_SP_ID ?? undefined,
           active: active !== undefined ? active : true, // Default to true if not provided
           createdAt: newPosition.created_at?.toISOString(),
@@ -153,13 +153,13 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error: any) {
-    console.error("Error creating position:", error);
+    console.error('Error creating position:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างตำแหน่ง",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการสร้างตำแหน่ง',
       },
       { status: 500 },
     );

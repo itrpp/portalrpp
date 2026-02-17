@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo } from "react";
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import React, { useState, useMemo } from 'react';
+import { Card, CardBody, CardHeader } from '@heroui/react';
 import {
   BarChart,
   Bar,
@@ -11,22 +11,22 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-} from "recharts";
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
-import { RangeValue } from "@react-types/shared";
+} from 'recharts';
+import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
+import { RangeValue } from '@react-types/shared';
 
-import { calculateEmployeePerformance } from "../utils/employeePerformance";
+import { calculateEmployeePerformance } from '../utils/employeePerformance';
 
-import { FilterState } from "./StatFilter";
+import { FilterState } from './StatFilter';
 
-import { PorterJobItem } from "@/types/porter";
+import { PorterJobItem } from '@/types/porter';
 import {
   getDateRangeFromFilter,
   formatDateRangeThai,
   formatDurationMinutes,
   getFiscalYearRange,
   getMonthRange,
-} from "@/lib/utils";
+} from '@/lib/utils';
 
 interface EmployeePerformanceChartProps {
   jobs: PorterJobItem[];
@@ -35,10 +35,7 @@ interface EmployeePerformanceChartProps {
 
 type DateRange = RangeValue<CalendarDate> | null;
 
-export function EmployeePerformanceChart({
-  jobs,
-  filterState,
-}: EmployeePerformanceChartProps) {
+export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerformanceChartProps) {
   // คำนวณวันที่เริ่มต้นและสิ้นสุดสำหรับ default (30 วันย้อนหลัง)
   const getDefaultDateRange = (): RangeValue<CalendarDate> => {
     const todayDate = today(getLocalTimeZone());
@@ -89,21 +86,21 @@ export function EmployeePerformanceChart({
 
   // สีสำหรับแต่ละ bar (ไล่เฉดสี) - ใช้สีซ้ำถ้ามีพนักงานมากกว่า 10 คน
   const colors = [
-    "#0088FE",
-    "#00C49F",
-    "#FFBB28",
-    "#FF8042",
-    "#8884d8",
-    "#82ca9d",
-    "#ffc658",
-    "#ff7c7c",
-    "#8dd1e1",
-    "#d084d0",
-    "#a4de6c",
-    "#ffb347",
-    "#87ceeb",
-    "#dda0dd",
-    "#f0e68c",
+    '#0088FE',
+    '#00C49F',
+    '#FFBB28',
+    '#FF8042',
+    '#8884d8',
+    '#82ca9d',
+    '#ffc658',
+    '#ff7c7c',
+    '#8dd1e1',
+    '#d084d0',
+    '#a4de6c',
+    '#ffb347',
+    '#87ceeb',
+    '#dda0dd',
+    '#f0e68c',
   ];
 
   // แปลง filter state เป็น string สำหรับแสดงช่วงเวลา
@@ -116,19 +113,15 @@ export function EmployeePerformanceChart({
           dateRange.start.month - 1,
           dateRange.start.day,
         );
-        const endDate = new Date(
-          dateRange.end.year,
-          dateRange.end.month - 1,
-          dateRange.end.day,
-        );
+        const endDate = new Date(dateRange.end.year, dateRange.end.month - 1, dateRange.end.day);
 
         return formatDateRangeThai(startDate, endDate);
       }
 
-      return "";
+      return '';
     }
 
-    if (filterState.mode === "date-range" && filterState.dateRange) {
+    if (filterState.mode === 'date-range' && filterState.dateRange) {
       const { start, end } = filterState.dateRange;
 
       if (start && end) {
@@ -139,19 +132,19 @@ export function EmployeePerformanceChart({
       }
     }
 
-    if (filterState.mode === "month" && filterState.month && filterState.year) {
+    if (filterState.mode === 'month' && filterState.month && filterState.year) {
       const { start, end } = getMonthRange(filterState.year, filterState.month);
 
       return formatDateRangeThai(start, end);
     }
 
-    if (filterState.mode === "fiscal-year" && filterState.fiscalYear) {
+    if (filterState.mode === 'fiscal-year' && filterState.fiscalYear) {
       const { start, end } = getFiscalYearRange(filterState.fiscalYear);
 
       return formatDateRangeThai(start, end);
     }
 
-    return "";
+    return '';
   }, [filterState, dateRange]);
 
   return (
@@ -193,19 +186,19 @@ export function EmployeePerformanceChart({
                   <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
                   <XAxis
                     label={{
-                      value: "จำนวนงาน",
-                      position: "insideBottom",
+                      value: 'จำนวนงาน',
+                      position: 'insideBottom',
                       offset: -5,
-                      style: { textAnchor: "middle", fontSize: "12px" },
+                      style: { textAnchor: 'middle', fontSize: '12px' },
                     }}
                     stroke="#888"
-                    style={{ fontSize: "12px" }}
+                    style={{ fontSize: '12px' }}
                     type="number"
                   />
                   <YAxis
                     dataKey="name"
                     stroke="#888"
-                    style={{ fontSize: "11px" }}
+                    style={{ fontSize: '11px' }}
                     type="category"
                     width={120}
                   />
@@ -217,31 +210,27 @@ export function EmployeePerformanceChart({
                         return (
                           <div
                             style={{
-                              backgroundColor: "rgba(255, 255, 255, 0.95)",
-                              border: "1px solid #e0e0e0",
-                              borderRadius: "8px",
-                              padding: "12px",
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '8px',
+                              padding: '12px',
                             }}
                           >
                             <p
                               style={{
-                                fontWeight: "bold",
-                                fontSize: "12px",
-                                marginBottom: "8px",
+                                fontWeight: 'bold',
+                                fontSize: '12px',
+                                marginBottom: '8px',
                               }}
                             >
                               {data.fullName}
                             </p>
                             <div>
-                              <span
-                                style={{ fontWeight: "600", fontSize: "12px" }}
-                              >
-                                จำนวนงานที่ได้รับมอบหมาย:{" "}
+                              <span style={{ fontWeight: '600', fontSize: '12px' }}>
+                                จำนวนงานที่ได้รับมอบหมาย:{' '}
                               </span>
-                              <span
-                                style={{ fontWeight: "600", fontSize: "12px" }}
-                              >
-                                {data.assignedJobCount.toLocaleString("th-TH")}
+                              <span style={{ fontWeight: '600', fontSize: '12px' }}>
+                                {data.assignedJobCount.toLocaleString('th-TH')}
                               </span>
                             </div>
                           </div>
@@ -253,15 +242,12 @@ export function EmployeePerformanceChart({
                   />
                   <Bar
                     dataKey="assignedJobCount"
-                    label={{ position: "right", style: { fontSize: "10px" } }}
+                    label={{ position: 'right', style: { fontSize: '10px' } }}
                     name="จำนวนงานที่ได้รับมอบหมาย"
                     radius={[0, 4, 4, 0]}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-count-${index}`}
-                        fill={colors[index % colors.length]}
-                      />
+                      <Cell key={`cell-count-${index}`} fill={colors[index % colors.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -270,9 +256,7 @@ export function EmployeePerformanceChart({
 
             {/* Chart ด้านล่าง: แสดงเวลาเฉลี่ย */}
             <div>
-              <h4 className="text-sm font-medium text-default-700 mb-2">
-                เวลาเฉลี่ยในการทำงาน
-              </h4>
+              <h4 className="text-sm font-medium text-default-700 mb-2">เวลาเฉลี่ยในการทำงาน</h4>
               <ResponsiveContainer height={400} width="100%">
                 <BarChart
                   data={chartData}
@@ -283,19 +267,19 @@ export function EmployeePerformanceChart({
                   <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
                   <XAxis
                     label={{
-                      value: "เวลาเฉลี่ย (นาที)",
-                      position: "insideBottom",
+                      value: 'เวลาเฉลี่ย (นาที)',
+                      position: 'insideBottom',
                       offset: -5,
-                      style: { textAnchor: "middle", fontSize: "12px" },
+                      style: { textAnchor: 'middle', fontSize: '12px' },
                     }}
                     stroke="#888"
-                    style={{ fontSize: "12px" }}
+                    style={{ fontSize: '12px' }}
                     type="number"
                   />
                   <YAxis
                     dataKey="name"
                     stroke="#888"
-                    style={{ fontSize: "11px" }}
+                    style={{ fontSize: '11px' }}
                     type="category"
                     width={120}
                   />
@@ -307,30 +291,26 @@ export function EmployeePerformanceChart({
                         return (
                           <div
                             style={{
-                              backgroundColor: "rgba(255, 255, 255, 0.95)",
-                              border: "1px solid #e0e0e0",
-                              borderRadius: "8px",
-                              padding: "12px",
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '8px',
+                              padding: '12px',
                             }}
                           >
                             <p
                               style={{
-                                fontWeight: "bold",
-                                fontSize: "12px",
-                                marginBottom: "8px",
+                                fontWeight: 'bold',
+                                fontSize: '12px',
+                                marginBottom: '8px',
                               }}
                             >
                               {data.fullName}
                             </p>
                             <div>
-                              <span
-                                style={{ fontWeight: "600", fontSize: "12px" }}
-                              >
-                                ระยะเวลาเฉลี่ย:{" "}
+                              <span style={{ fontWeight: '600', fontSize: '12px' }}>
+                                ระยะเวลาเฉลี่ย:{' '}
                               </span>
-                              <span
-                                style={{ fontWeight: "600", fontSize: "12px" }}
-                              >
+                              <span style={{ fontWeight: '600', fontSize: '12px' }}>
                                 {formatDurationMinutes(data.averageDuration)}
                               </span>
                             </div>
@@ -343,15 +323,12 @@ export function EmployeePerformanceChart({
                   />
                   <Bar
                     dataKey="averageDuration"
-                    label={{ position: "right", style: { fontSize: "10px" } }}
+                    label={{ position: 'right', style: { fontSize: '10px' } }}
                     name="เวลาเฉลี่ย"
                     radius={[0, 4, 4, 0]}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-duration-${index}`}
-                        fill={colors[index % colors.length]}
-                      />
+                      <Cell key={`cell-duration-${index}`} fill={colors[index % colors.length]} />
                     ))}
                   </Bar>
                 </BarChart>

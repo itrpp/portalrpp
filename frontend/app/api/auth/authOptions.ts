@@ -1,24 +1,20 @@
 // NextAuthOptions type is not exported from next-auth in this version
-import type {
-  ExtendedUser,
-  ExtendedToken,
-  ExtendedSession,
-  LDAPErrorCode,
-} from "@/types/ldap";
+import type { ExtendedUser, ExtendedToken, ExtendedSession, LDAPErrorCode } from '@/types/ldap';
 
-import CredentialsProvider from "next-auth/providers/credentials";
-import LineProvider from "next-auth/providers/line";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { decode } from "next-auth/jwt";
-import { cookies } from "next/headers";
+import CredentialsProvider from 'next-auth/providers/credentials';
+import LineProvider from 'next-auth/providers/line';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import { decode } from 'next-auth/jwt';
+import { cookies } from 'next/headers';
 
-import { createLDAPService } from "@/lib/ldap";
-import { prisma } from "@/lib/prisma";
-import { callPorterService } from "@/lib/grpcClient";
-import { upsertUserActivityOnLogin } from "@/lib/userActivity";
+import { createLDAPService } from '@/lib/ldap';
+import { prisma } from '@/lib/prisma';
+import { callPorterService } from '@/lib/grpcClient';
+import { upsertUserActivityOnLogin } from '@/lib/userActivity';
+import { DeviceType } from '@/generated/prisma/enums';
 
-const LINE_PROVIDER_ID = "line";
-const LINE_LOGIN_GUARD_CODE = "LINE_LDAP_REQUIRED";
+const LINE_PROVIDER_ID = 'line';
+const LINE_LOGIN_GUARD_CODE = 'LINE_LDAP_REQUIRED';
 
 /** ต้องตั้ง NEXTAUTH_SECRET ใน env เสมอ (ความยาวอย่างน้อย 32 ตัว) */
 function getNextAuthSecret(): string {
@@ -26,7 +22,7 @@ function getNextAuthSecret(): string {
 
   if (!secret || secret.length < 32) {
     throw new Error(
-      "NEXTAUTH_SECRET is required and must be at least 32 characters. Set it in environment variables.",
+      'NEXTAUTH_SECRET is required and must be at least 32 characters. Set it in environment variables.',
     );
   }
 
@@ -41,9 +37,7 @@ type MinimalUserRecord = {
   displayName: string | null;
 };
 
-async function findUserById(
-  userId?: string,
-): Promise<MinimalUserRecord | null> {
+async function findUserById(userId?: string): Promise<MinimalUserRecord | null> {
   if (!userId) {
     return null;
   }
@@ -93,8 +87,8 @@ async function findUserByLineAccount(
 async function getSessionUser(): Promise<MinimalUserRecord | null> {
   const cookieStore = await cookies();
   const sessionToken =
-    cookieStore.get("__Secure-next-auth.session-token")?.value ||
-    cookieStore.get("next-auth.session-token")?.value;
+    cookieStore.get('__Secure-next-auth.session-token')?.value ||
+    cookieStore.get('next-auth.session-token')?.value;
 
   const secret = getNextAuthSecret();
 
@@ -134,18 +128,15 @@ async function assertLineOwnership({
   });
 
   if (existing) {
-    throw new Error("LINE_ACCOUNT_IN_USE");
+    throw new Error('LINE_ACCOUNT_IN_USE');
   }
 }
 
 function extractLineProfileInfo(account: any, profile: any) {
-  const lineUserId =
-    account?.providerAccountId ?? profile?.userId ?? profile?.sub ?? null;
+  const lineUserId = account?.providerAccountId ?? profile?.userId ?? profile?.sub ?? null;
   const lineDisplayName = profile?.displayName ?? profile?.name ?? null;
   const pictureFromProfile =
-    typeof profile?.picture === "string"
-      ? profile.picture
-      : (profile?.picture?.url ?? null);
+    typeof profile?.picture === 'string' ? profile.picture : (profile?.picture?.url ?? null);
   const lineAvatar =
     profile?.pictureUrl ??
     pictureFromProfile ??
@@ -160,10 +151,7 @@ function extractLineProfileInfo(account: any, profile: any) {
 /**
  * LDAP Authentication Function - ใช้ LDAPService ใหม่
  */
-async function authenticateLDAP(
-  username: string,
-  password: string,
-): Promise<ExtendedUser | null> {
+async function authenticateLDAP(username: string, password: string): Promise<ExtendedUser | null> {
   const ldapService = createLDAPService();
 
   try {
@@ -179,9 +167,6 @@ async function authenticateLDAP(
     }
 
     return null;
-  } catch (error) {
-    // Re-throw error เพื่อให้ NextAuth จัดการต่อ
-    throw error;
   } finally {
     await ldapService.disconnect();
   }
@@ -190,52 +175,49 @@ async function authenticateLDAP(
 // เตรียม providers โดยเปิด LINE แบบมีเงื่อนไขตาม env
 const providers: any[] = [
   CredentialsProvider({
-    id: "credentials",
-    name: "RPP Hospital Login",
+    id: 'credentials',
+    name: 'RPP Hospital Login',
     credentials: {
-      username: { label: "Username", type: "text" },
-      password: { label: "Password", type: "password" },
+      username: { label: 'Username', type: 'text' },
+      password: { label: 'Password', type: 'password' },
     },
     async authorize(credentials): Promise<ExtendedUser | null> {
       if (!credentials?.username || !credentials?.password) {
         // ข้อความสำหรับผู้ใช้ (UI) เมื่อข้อมูลไม่ครบ
-        throw new Error("กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน");
+        throw new Error('กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน');
       }
 
       try {
         // ใช้ LDAP Authentication เท่านั้น
-        const user = await authenticateLDAP(
-          credentials.username,
-          credentials.password,
-        );
+        const user = await authenticateLDAP(credentials.username, credentials.password);
 
         if (!user) {
           // ใช้ generic error message เพื่อความปลอดภัย
-          throw new Error("การเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
+          throw new Error('การเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง');
         }
 
         return user;
       } catch (error) {
-        console.error("Authentication error:", error);
+        console.error('Authentication error:', error);
 
         // แปลง error code -> ข้อความภาษาไทยสำหรับผู้ใช้
         const mapErrorCodeToMessage = (code: LDAPErrorCode): string => {
           switch (code) {
-            case "MISSING_CREDENTIALS":
-              return "กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน";
-            case "USER_NOT_FOUND":
-              return "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
-            case "ACCOUNT_DISABLED":
-              return "บัญชีผู้ใช้นี้ถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
-            case "USER_NOT_AUTHORIZED":
-              return "ผู้ใช้ไม่อยู่ในกลุ่มที่ได้รับอนุญาต กรุณาติดต่อผู้ดูแลระบบ";
-            case "INVALID_CREDENTIALS":
-              return "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
-            case "CONNECTION_ERROR":
-              return "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ AD ได้ กรุณาติดต่อผู้ดูแลระบบ";
-            case "INTERNAL_ERROR":
+            case 'MISSING_CREDENTIALS':
+              return 'กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน';
+            case 'USER_NOT_FOUND':
+              return 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
+            case 'ACCOUNT_DISABLED':
+              return 'บัญชีผู้ใช้นี้ถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ';
+            case 'USER_NOT_AUTHORIZED':
+              return 'ผู้ใช้ไม่อยู่ในกลุ่มที่ได้รับอนุญาต กรุณาติดต่อผู้ดูแลระบบ';
+            case 'INVALID_CREDENTIALS':
+              return 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
+            case 'CONNECTION_ERROR':
+              return 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ AD ได้ กรุณาติดต่อผู้ดูแลระบบ';
+            case 'INTERNAL_ERROR':
             default:
-              return "เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง";
+              return 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง';
           }
         };
 
@@ -247,7 +229,7 @@ const providers: any[] = [
           throw new Error(message);
         }
 
-        throw new Error("เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง");
+        throw new Error('เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง');
       }
     },
   }),
@@ -262,21 +244,13 @@ export const authOptions: any = {
   adapter: PrismaAdapter(prisma as any),
   providers,
   session: {
-    strategy: "jwt", // ใช้ JWT strategy เพื่อรองรับ LDAP authentication
+    strategy: 'jwt', // ใช้ JWT strategy เพื่อรองรับ LDAP authentication
     maxAge: 1 * 60 * 60, // 1 hours
   },
   callbacks: {
-    async signIn({
-      user,
-      account,
-      profile: _profile,
-    }: {
-      user: any;
-      account: any;
-      profile: any;
-    }) {
+    async signIn({ user, account, profile: _profile }: { user: any; account: any; profile: any }) {
       // สำหรับ LDAP users: กำหนด provider_type และ upsert ผู้ใช้ลงฐานข้อมูล
-      if (account?.provider === "credentials") {
+      if (account?.provider === 'credentials') {
         // upsert โดยอิงจาก email เป็นหลัก (และเก็บ ldapId หากมี)
         const email = user.email as string | undefined;
         const ldapId = user.id as string | undefined;
@@ -284,7 +258,7 @@ export const authOptions: any = {
         const department = (user.department ?? null) as string | null;
         const position = (user.position ?? null) as string | null;
         const memberOf = (user.memberOf ?? null) as string | null;
-        const role = (user.role ?? "user") as "admin" | "user";
+        const role = (user.role ?? 'user') as 'admin' | 'user';
 
         // หากไม่มีอีเมล ให้ fallback ใช้ ldapId เพื่อป้องกัน unique constraint
         const whereEmail = email ?? `ldap-${ldapId}`;
@@ -326,23 +300,23 @@ export const authOptions: any = {
         }
 
         const ldapService = createLDAPService();
-        const check = await ldapService.checkAccountStatusByLdapId(
-          linkedUser.ldapId!,
-        );
+        const check = await ldapService.checkAccountStatusByLdapId(linkedUser.ldapId!);
 
         if (!check.success) {
           throw new Error(check.errorCode);
         }
 
-        const { lineUserId, lineDisplayName, lineAvatar } =
-          extractLineProfileInfo(account, _profile);
+        const { lineUserId, lineDisplayName, lineAvatar } = extractLineProfileInfo(
+          account,
+          _profile,
+        );
 
         if (!lineUserId) {
-          throw new Error("LINE_ACCOUNT_ID_MISSING");
+          throw new Error('LINE_ACCOUNT_ID_MISSING');
         }
 
         if (linkedUser.lineUserId && linkedUser.lineUserId !== lineUserId) {
-          throw new Error("LINE_ACCOUNT_ALREADY_LINKED");
+          throw new Error('LINE_ACCOUNT_ALREADY_LINKED');
         }
 
         await assertLineOwnership({
@@ -423,7 +397,7 @@ export const authOptions: any = {
       token.department = dbUser.department ?? undefined;
       token.position = dbUser.position ?? undefined;
       token.memberOf = dbUser.memberOf ?? undefined;
-      token.role = (dbUser.role as "admin" | "user") ?? token.role;
+      token.role = (dbUser.role as 'admin' | 'user') ?? token.role;
       token.phone = dbUser.phone ?? null;
       token.mobile = dbUser.mobile ?? null;
       token.lineDisplayName = dbUser.lineDisplayName ?? null;
@@ -442,7 +416,7 @@ export const authOptions: any = {
         const porterResponse = await callPorterService<{
           success: boolean;
           data?: Array<{ id: string }>;
-        }>("ListEmployees", { user_id: dbUser.id });
+        }>('ListEmployees', { user_id: dbUser.id });
 
         if (
           porterResponse?.success &&
@@ -459,13 +433,7 @@ export const authOptions: any = {
 
       return token;
     },
-    async session({
-      session,
-      token,
-    }: {
-      session: any;
-      token: any;
-    }): Promise<ExtendedSession> {
+    async session({ session, token }: { session: any; token: any }): Promise<ExtendedSession> {
       // สำหรับ JWT session (LDAP และ LINE users)
       if (token) {
         session.user.name = token.displayName ?? undefined;
@@ -473,7 +441,7 @@ export const authOptions: any = {
         session.user.department = (token.department as string) ?? null;
         session.user.position = (token.position as string) ?? null;
         session.user.memberOf = (token.memberOf as string) ?? null;
-        session.user.role = token.role as "admin" | "user";
+        session.user.role = token.role as 'admin' | 'user';
         session.user.phone = token.phone ?? null;
         session.user.mobile = token.mobile ?? null;
         session.user.lineDisplayName = token.lineDisplayName ?? null;
@@ -500,10 +468,10 @@ export const authOptions: any = {
           return;
         }
 
-        // อัปเดตหรือสร้าง record ใน user_activity
-        await upsertUserActivityOnLogin(user.id);
+        // อัปเดตหรือสร้าง record ใน user_activity (Web-App)
+        await upsertUserActivityOnLogin(user.id, new Date(), DeviceType.WEB_APP);
       } catch (e) {
-        console.error("Failed to update user_activity on signIn:", e);
+        console.error('Failed to update user_activity on signIn:', e);
       }
     },
 
@@ -513,21 +481,15 @@ export const authOptions: any = {
     },
 
     // อัปเดต providerType ใน DB หลังจากเชื่อมบัญชี OAuth/LINE สำเร็จ
-    async linkAccount({
-      user,
-      account,
-      profile,
-    }: {
-      user: any;
-      account: any;
-      profile?: any;
-    }) {
+    async linkAccount({ user, account, profile }: { user: any; account: any; profile?: any }) {
       try {
         const data: any = {};
 
         if (account?.provider === LINE_PROVIDER_ID) {
-          const { lineUserId, lineDisplayName, lineAvatar } =
-            extractLineProfileInfo(account, profile);
+          const { lineUserId, lineDisplayName, lineAvatar } = extractLineProfileInfo(
+            account,
+            profile,
+          );
 
           if (lineUserId) {
             await assertLineOwnership({
@@ -551,13 +513,13 @@ export const authOptions: any = {
           data,
         });
       } catch (e) {
-        console.warn("Failed to update providerType on linkAccount:", e);
+        console.warn('Failed to update providerType on linkAccount:', e);
       }
     },
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: '/login',
+    error: '/login',
   },
   secret: getNextAuthSecret(),
 };

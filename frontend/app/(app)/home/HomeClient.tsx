@@ -1,18 +1,15 @@
-"use client";
+'use client';
 
-import type { ExtendedUser } from "@/types/ldap";
-import type { OnlineUsersResponse } from "@/types";
+import type { ExtendedUser } from '@/types/ldap';
+import type { OnlineUsersResponse } from '@/types';
 
-import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { Card, CardBody, CardHeader } from '@heroui/react';
 
-import {
-  UserGroupIcon,
-  ChartBarIcon,
-  ShieldCheckIcon,
-} from "@/components/ui/icons";
-import { siteConfig } from "@/config/site";
+import { UserGroupIcon, ChartBarIcon, ShieldCheckIcon } from '@/components/ui/icons';
+import { siteConfig } from '@/config/site';
+import { LOADING_MESSAGES } from '@/lib/constants';
 
 export default function HomeClient() {
   const { data: session } = useSession();
@@ -23,14 +20,14 @@ export default function HomeClient() {
   const fetchOnlineUsers = async () => {
     try {
       setIsLoadingOnlineUsers(true);
-      const response = await fetch("/api/auth/online-users");
+      const response = await fetch('/api/auth/online-users');
       const data: OnlineUsersResponse = await response.json();
 
       if (data.success) {
         setOnlineUsersCount(data.count);
       }
     } catch (error) {
-      console.error("Failed to fetch online users:", error);
+      console.error('Failed to fetch online users:', error);
     } finally {
       setIsLoadingOnlineUsers(false);
     }
@@ -56,12 +53,8 @@ export default function HomeClient() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            {siteConfig.hospitalName}
-          </h1>
-          <p className="text-default-600 mt-2">
-            ยินดีต้อนรับสู่ระบบจัดการข้อมูล RPP Portal
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">{siteConfig.hospitalName}</h1>
+          <p className="text-default-600 mt-2">ยินดีต้อนรับสู่ระบบจัดการข้อมูล RPP Portal</p>
         </div>
       </div>
 
@@ -76,11 +69,9 @@ export default function HomeClient() {
             </div>
           </CardHeader>
           <CardBody className="text-center">
-            <h3 className="text-xl font-semibold text-foreground mb-1">
-              ข้อมูลผู้ใช้
-            </h3>
+            <h3 className="text-xl font-semibold text-foreground mb-1">ข้อมูลผู้ใช้</h3>
             <p className="text-default-600 mb-4">
-              {session?.user?.name || session?.user?.email || "ไม่ระบุ"}
+              {session?.user?.name || session?.user?.email || 'ไม่ระบุ'}
             </p>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -90,11 +81,11 @@ export default function HomeClient() {
               <div className="flex justify-between">
                 <span className="text-default-600">บทบาท</span>
                 <span className="font-medium">
-                  {(session?.user as ExtendedUser)?.role === "admin"
-                    ? "ผู้ดูแลระบบ"
-                    : (session?.user as ExtendedUser)?.role === "user"
-                      ? "ผู้ใช้งาน"
-                      : "ไม่ระบุ"}
+                  {(session?.user as ExtendedUser)?.role === 'admin'
+                    ? 'ผู้ดูแลระบบ'
+                    : (session?.user as ExtendedUser)?.role === 'user'
+                      ? 'ผู้ใช้งาน'
+                      : 'ไม่ระบุ'}
                 </span>
               </div>
             </div>
@@ -111,20 +102,16 @@ export default function HomeClient() {
             </div>
           </CardHeader>
           <CardBody className="text-center">
-            <h3 className="text-xl font-semibold text-foreground mb-1">
-              สถิติระบบ
-            </h3>
+            <h3 className="text-xl font-semibold text-foreground mb-1">สถิติระบบ</h3>
             <p className="text-default-600 mb-4">ข้อมูลการใช้งาน</p>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-default-600">ผู้ใช้ Online</span>
                 <span className="font-medium">
                   {isLoadingOnlineUsers ? (
-                    <span className="text-default-400">กำลังโหลด...</span>
+                    <span className="text-default-400">{LOADING_MESSAGES.page}</span>
                   ) : onlineUsersCount !== null ? (
-                    <span className="text-primary-600 font-semibold">
-                      {onlineUsersCount} คน
-                    </span>
+                    <span className="text-primary-600 font-semibold">{onlineUsersCount} คน</span>
                   ) : (
                     <span className="text-default-400">-</span>
                   )}
@@ -148,9 +135,7 @@ export default function HomeClient() {
             </div>
           </CardHeader>
           <CardBody className="text-center">
-            <h3 className="text-xl font-semibold text-foreground mb-1">
-              การตั้งค่า
-            </h3>
+            <h3 className="text-xl font-semibold text-foreground mb-1">การตั้งค่า</h3>
             <p className="text-default-600 mb-4">จัดการระบบ</p>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -169,28 +154,24 @@ export default function HomeClient() {
       <div className="mt-8">
         <Card className="rounded-lg shadow-xl border border-default-200 dark:border-default-700 hover:shadow-2xl transition-all duration-300">
           <CardHeader>
-            <h2 className="text-xl font-semibold text-foreground">
-              ข้อมูลระบบ
-            </h2>
+            <h2 className="text-xl font-semibold text-foreground">ข้อมูลระบบ</h2>
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h3 className="font-medium text-foreground mb-2">
-                  ข้อมูลผู้ใช้
-                </h3>
+                <h3 className="font-medium text-foreground mb-2">ข้อมูลผู้ใช้</h3>
                 <div className="space-y-1 text-sm text-default-600">
-                  <p>UserID: {session?.user?.id || "ไม่ระบุ"}</p>
-                  <p>ชื่อ: {session?.user?.name || "ไม่ระบุ"}</p>
-                  <p>อีเมล: {session?.user?.email || "ไม่ระบุ"}</p>
-                  <p>แผนก: {session?.user?.department || "ไม่ระบุ"}</p>
+                  <p>UserID: {session?.user?.id || 'ไม่ระบุ'}</p>
+                  <p>ชื่อ: {session?.user?.name || 'ไม่ระบุ'}</p>
+                  <p>อีเมล: {session?.user?.email || 'ไม่ระบุ'}</p>
+                  <p>แผนก: {session?.user?.department || 'ไม่ระบุ'}</p>
                   <p>
-                    บทบาท:{" "}
-                    {(session?.user as ExtendedUser)?.role === "admin"
-                      ? "ผู้ดูแลระบบ"
-                      : (session?.user as ExtendedUser)?.role === "user"
-                        ? "ผู้ใช้งาน"
-                        : "ไม่ระบุ"}
+                    บทบาท:{' '}
+                    {(session?.user as ExtendedUser)?.role === 'admin'
+                      ? 'ผู้ดูแลระบบ'
+                      : (session?.user as ExtendedUser)?.role === 'user'
+                        ? 'ผู้ใช้งาน'
+                        : 'ไม่ระบุ'}
                   </p>
                 </div>
               </div>
@@ -204,8 +185,7 @@ export default function HomeClient() {
                     การเชื่อมต่อ: <span className="text-success-600">ปกติ</span>
                   </p>
                   <p>
-                    สิทธิ์การเข้าถึง:{" "}
-                    <span className="text-success-600">อนุญาต</span>
+                    สิทธิ์การเข้าถึง: <span className="text-success-600">อนุญาต</span>
                   </p>
                 </div>
               </div>

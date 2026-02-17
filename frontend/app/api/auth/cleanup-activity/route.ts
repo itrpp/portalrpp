@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 /**
  * DELETE /api/auth/cleanup-activity
@@ -13,26 +13,23 @@ export async function DELETE(request: NextRequest) {
   try {
     // 1) รองรับ Bearer token (เช่น มาจาก /api/auth/login)
     let userId: string | null = null;
-    const authHeader =
-      request.headers.get("authorization") ??
-      request.headers.get("Authorization");
+    const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
 
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice("Bearer ".length).trim();
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice('Bearer '.length).trim();
 
       try {
-        const jwtSecret =
-          process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "";
+        const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
 
         if (jwtSecret) {
           const decoded = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
 
-          if (decoded && typeof decoded === "object" && decoded.sub) {
+          if (decoded && typeof decoded === 'object' && decoded.sub) {
             userId = String(decoded.sub);
           }
         }
       } catch (error) {
-        console.info("Invalid bearer token for cleanup-activity:", error);
+        console.info('Invalid bearer token for cleanup-activity:', error);
       }
     }
 
@@ -63,18 +60,18 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "User activity cleaned up successfully",
+        message: 'User activity cleaned up successfully',
       },
       { status: 200 },
     );
   } catch (error: any) {
-    console.error("Error cleaning up user activity:", error);
+    console.error('Error cleaning up user activity:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการลบข้อมูล activity",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล activity',
       },
       { status: 500 },
     );

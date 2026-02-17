@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/prisma';
+import { DeviceType } from '@/generated/prisma/enums';
 
 /**
  * อัปเดต lastActivityAt ของผู้ใช้ใน user_activity table
@@ -21,7 +22,7 @@ export async function updateUserActivity(userId: string): Promise<void> {
   } catch (error) {
     // ไม่ throw error เพื่อไม่ให้กระทบการทำงานของระบบหลัก
     // ถ้าไม่มี record ใน user_activity ก็ไม่เป็นไร (อาจจะยังไม่ได้ login)
-    console.info("Failed to update user activity:", error);
+    console.info('Failed to update user activity:', error);
   }
 }
 
@@ -31,9 +32,7 @@ export async function updateUserActivity(userId: string): Promise<void> {
  *
  * @param userId - ID ของผู้ใช้ที่ต้องการอัปเดต
  */
-export async function updateUserActivitySafe(
-  userId: string | undefined,
-): Promise<void> {
+export async function updateUserActivitySafe(userId: string | undefined): Promise<void> {
   if (!userId) {
     return;
   }
@@ -44,10 +43,15 @@ export async function updateUserActivitySafe(
 /**
  * upsert user_activity เมื่อผู้ใช้ login สำเร็จ
  * ใช้ร่วมกันทั้งใน NextAuth signIn event และ /api/auth/login
+ *
+ * @param userId - ID ของผู้ใช้ที่ต้องการบันทึก activity
+ * @param date - วันที่และเวลาที่ login (default: ตอนนี้)
+ * @param deviceType - ประเภทของอุปกรณ์ที่ใช้ login (MOBILE_APP หรือ WEB_APP)
  */
 export async function upsertUserActivityOnLogin(
   userId: string,
   date: Date = new Date(),
+  deviceType?: DeviceType,
 ): Promise<void> {
   if (!userId) {
     return;
@@ -71,10 +75,11 @@ export async function upsertUserActivityOnLogin(
         userId,
         loginAt: date,
         lastActivityAt: date,
+        deviceType,
       },
     });
   } catch (error) {
     // ไม่ให้ error นี้ทำให้ flow การ login ล้มเหลว
-    console.info("Failed to upsert user_activity on login:", error);
+    console.info('Failed to upsert user_activity on login:', error);
   }
 }

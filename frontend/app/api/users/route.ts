@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { profileSelect } from "@/lib/profile";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { profileSelect } from '@/lib/profile';
 
 /**
  * GET /api/users
@@ -16,21 +16,18 @@ export async function GET(request: NextRequest) {
     if (!auth.ok) return auth.response;
 
     // ตรวจสอบสิทธิ์ admin
-    if ((auth.session.user as { role?: string }).role !== "admin") {
-      return NextResponse.json(
-        { success: false, error: "FORBIDDEN" },
-        { status: 403 },
-      );
+    if ((auth.session.user as { role?: string }).role !== 'admin') {
+      return NextResponse.json({ success: false, error: 'FORBIDDEN' }, { status: 403 });
     }
 
     // อ่าน query parameters
     const url = new URL(request.url);
     const searchParams = url.searchParams;
-    const page = Number.parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = Number.parseInt(searchParams.get("pageSize") || "10", 10);
-    const search = searchParams.get("search") || "";
-    const role = searchParams.get("role") as "admin" | "user" | null;
-    const departmentId = searchParams.get("departmentId");
+    const page = Number.parseInt(searchParams.get('page') || '1', 10);
+    const pageSize = Number.parseInt(searchParams.get('pageSize') || '10', 10);
+    const search = searchParams.get('search') || '';
+    const role = searchParams.get('role') as 'admin' | 'user' | null;
+    const departmentId = searchParams.get('departmentId');
 
     // สร้าง where clause สำหรับ Prisma
     const where: any = {};
@@ -38,10 +35,7 @@ export async function GET(request: NextRequest) {
     // Search filter (email หรือ displayName)
     // MySQL ไม่รองรับ mode: "insensitive" ใช้ contains แทน
     if (search) {
-      where.OR = [
-        { email: { contains: search } },
-        { displayName: { contains: search } },
-      ];
+      where.OR = [{ email: { contains: search } }, { displayName: { contains: search } }];
     }
 
     // Role filter
@@ -69,7 +63,7 @@ export async function GET(request: NextRequest) {
         select: profileSelect,
         skip,
         take,
-        orderBy: { displayName: "asc" },
+        orderBy: { displayName: 'asc' },
       }),
       prisma.user.count({ where }),
     ]);
@@ -113,15 +107,12 @@ export async function GET(request: NextRequest) {
 
     // สร้าง map สำหรับ lookup
     const departmentSubMap = new Map(
-      departmentSubs.map((d) => [
-        d.HR_DEPARTMENT_SUB_ID,
-        d.HR_DEPARTMENT_SUB_NAME ?? "",
-      ]),
+      departmentSubs.map((d) => [d.HR_DEPARTMENT_SUB_ID, d.HR_DEPARTMENT_SUB_NAME ?? '']),
     );
     const departmentSubSubMap = new Map(
       departmentSubSubs.map((d) => [
         d.HR_DEPARTMENT_SUB_SUB_ID,
-        d.HR_DEPARTMENT_SUB_SUB_NAME ?? "",
+        d.HR_DEPARTMENT_SUB_SUB_NAME ?? '',
       ]),
     );
 
@@ -133,8 +124,7 @@ export async function GET(request: NextRequest) {
           ? departmentSubMap.get(user.departmentSubId) || null
           : null,
       departmentSubSubName:
-        user.departmentSubSubId !== null &&
-        user.departmentSubSubId !== undefined
+        user.departmentSubSubId !== null && user.departmentSubSubId !== undefined
           ? departmentSubSubMap.get(user.departmentSubSubId) || null
           : null,
     }));
@@ -153,13 +143,13 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     );
   } catch (error: any) {
-    console.error("Error fetching users:", error);
+    console.error('Error fetching users:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้',
       },
       { status: 500 },
     );

@@ -5,4 +5,4 @@
  * Export providers components
  */
 
-export { Providers } from "./Providers";
+export { Providers } from './Providers';

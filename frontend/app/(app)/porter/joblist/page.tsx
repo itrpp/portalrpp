@@ -1,6 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
+import type { CalendarDate } from '@internationalized/date';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   Button,
   Card,
@@ -11,31 +14,60 @@ import {
   Tab,
   DatePicker,
   addToast,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { JobTable, JobDetailDrawer } from "../components";
+import {
+  JobTable,
+  EditableJobDetailDrawer,
+  PorterLoadingSkeleton,
+  PorterEmptyState,
+} from '../components';
+import { CurrentTimeDisplay } from '../components/CurrentTimeDisplay';
 
-import { usePagination } from "@/hooks/usePagination";
+import { usePagination } from '@/hooks/usePagination';
 import {
   ClockIcon,
   ClipboardListIcon,
   XMarkIcon,
   CheckCircleIcon,
   CalendarIcon,
-} from "@/components/ui/icons";
-import { getApiGatewayBaseUrl } from "@/lib/env";
-import { formatDateTimeThai } from "@/lib/utils";
-import {
-  JobListTab,
-  PorterJobItem,
-  PorterRequestFormData,
-  UrgencyLevel,
-} from "@/types/porter";
-import { sortJobs, playNotificationSound, playSirenSound } from "@/lib/porter";
+} from '@/components/ui/icons';
+import { CARD_STYLES } from '@/lib/cardStyles';
+import { getApiGatewayBaseUrl } from '@/lib/env';
+import { JobListTab, PorterJobItem, PorterRequestFormData, UrgencyLevel } from '@/types/porter';
+import { sortJobs, playNotificationSound, playSirenSound } from '@/lib/porter';
+
+const JOBLIST_TAB_KEYS: JobListTab[] = ['waiting', 'in-progress', 'completed', 'cancelled'];
+
+function isValidJobListTab(value: string | null): value is JobListTab {
+  return value !== null && JOBLIST_TAB_KEYS.includes(value as JobListTab);
+}
 
 export default function JobListClient() {
-  const [selectedTab, setSelectedTab] = useState<JobListTab>("waiting");
-  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabFromUrl = searchParams.get('tab');
+  const initialTab = isValidJobListTab(tabFromUrl) ? tabFromUrl : 'waiting';
+
+  const [selectedTab, setSelectedTab] = useState<JobListTab>(initialTab);
+
+  // Sync tab จาก URL เมื่อเปิดหน้าจาก deep link (client-side nav)
+  useEffect(() => {
+    if (isValidJobListTab(tabFromUrl) && tabFromUrl !== selectedTab) {
+      setSelectedTab(tabFromUrl);
+    }
+  }, [tabFromUrl, selectedTab]);
+
+  const handleTabChange = (key: React.Key) => {
+    const tab = key as JobListTab;
+
+    setSelectedTab(tab);
+    const next = new URLSearchParams(searchParams.toString());
+
+    next.set('tab', tab);
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+  };
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -44,41 +76,20 @@ export default function JobListClient() {
   const [error, setError] = useState<string | null>(null);
 
   // Date range filters สำหรับ completed และ cancelled tabs
-  // ใช้ any เพื่อลดปัญหา type conflict ระหว่าง instance ของ @internationalized/date
-  const [completedStartDate, setCompletedStartDate] = useState<any>(null);
-  const [completedEndDate, setCompletedEndDate] = useState<any>(null);
-  const [cancelledStartDate, setCancelledStartDate] = useState<any>(null);
-  const [cancelledEndDate, setCancelledEndDate] = useState<any>(null);
+  const [completedStartDate, setCompletedStartDate] = useState<CalendarDate | null>(null);
+  const [completedEndDate, setCompletedEndDate] = useState<CalendarDate | null>(null);
+  const [cancelledStartDate, setCancelledStartDate] = useState<CalendarDate | null>(null);
+  const [cancelledEndDate, setCancelledEndDate] = useState<CalendarDate | null>(null);
 
-  // แปลงค่าจาก DatePicker (เช่น CalendarDate) เป็น Date (เฉพาะส่วนวันที่)
-  const toDateOnly = (value: any): Date | null => {
-    if (!value) {
-      return null;
-    }
+  /** แปลงค่าจาก DatePicker (CalendarDate) เป็น Date เฉพาะส่วนวันที่ */
+  function toDateOnly(value: CalendarDate | null): Date | null {
+    if (!value) return null;
 
-    const v = value as { year: number; month: number; day: number };
+    return new Date(value.year, value.month - 1, value.day);
+  }
 
-    if (
-      typeof v.year !== "number" ||
-      typeof v.month !== "number" ||
-      typeof v.day !== "number"
-    ) {
-      return null;
-    }
-
-    return new Date(v.year, v.month - 1, v.day);
-  };
-
-  // อัพเดทเวลาแบบ real-time ทุกวินาที
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
+  // เวลาปัจจุบันถูกแสดงโดย CurrentTimeDisplay component แทน
+  // เพื่อไม่ให้ re-render ทั้งหน้าเมื่อเวลาอัปเดต
 
   // ดึงข้อมูลรายการคำขอจาก API
   const fetchPorterRequests = async (status?: JobListTab) => {
@@ -89,22 +100,18 @@ export default function JobListClient() {
       const queryParams = new URLSearchParams();
 
       if (status) {
-        queryParams.append("status", status);
+        queryParams.append('status', status);
       }
 
       // ดึงข้อมูลจำนวนมากเพื่อรองรับการ filter ใน frontend
-      queryParams.append("page_size", "1000");
+      queryParams.append('page_size', '1000');
 
-      const response = await fetch(
-        `/api/porter/requests?${queryParams.toString()}`,
-      );
+      const response = await fetch(`/api/porter/requests?${queryParams.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json();
 
-        throw new Error(
-          errorData.message || "ไม่สามารถโหลดข้อมูลรายการคำขอได้",
-        );
+        throw new Error(errorData.message || 'ไม่สามารถโหลดข้อมูลรายการคำขอได้');
       }
 
       const result = await response.json();
@@ -112,17 +119,16 @@ export default function JobListClient() {
       if (result.success && result.data) {
         setJobList(result.data as PorterJobItem[]);
       } else {
-        throw new Error("รูปแบบข้อมูลไม่ถูกต้อง");
+        throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
 
       setError(errorMessage);
       addToast({
-        title: "เกิดข้อผิดพลาด",
+        title: 'เกิดข้อผิดพลาด',
         description: errorMessage,
-        color: "danger",
+        color: 'danger',
       });
     } finally {
       setIsLoading(false);
@@ -156,8 +162,7 @@ export default function JobListClient() {
         // ใช้ fetch แทน EventSource เพื่อรองรับ authentication
         // ตัวเลือก: เชื่อมต่อโดยตรงกับ API Gateway (ไม่ผ่าน Next.js API route)
         // สำหรับทดสอบ: ตั้งค่า USE_DIRECT_CONNECTION=true ใน .env.local
-        const useDirectConnection =
-          process.env.NEXT_PUBLIC_USE_DIRECT_SSE === "true";
+        const useDirectConnection = process.env.NEXT_PUBLIC_USE_DIRECT_SSE === 'true';
         const apiGatewayUrl = getApiGatewayBaseUrl();
 
         let streamUrl: string;
@@ -170,22 +175,18 @@ export default function JobListClient() {
           // Note: ใน client-side เราไม่สามารถใช้ getServerSession ได้
           // ดังนั้นเราจะใช้วิธีอื่น เช่น ส่ง token ผ่าน API endpoint เพื่อสร้าง token
           try {
-            const tokenResponse = await fetch("/api/porter/requests/token");
+            const tokenResponse = await fetch('/api/porter/requests/token');
             const tokenData = await tokenResponse.json();
 
             if (!tokenData.token) {
-              throw new Error("Failed to get stream token");
+              throw new Error('Failed to get stream token');
             }
 
             streamUrl = `${apiGatewayUrl}/api-gateway/porter/requests/stream?${params.toString()}`;
             headers = {
               Authorization: `Bearer ${tokenData.token}`,
             };
-          } catch (error) {
-            console.error(
-              "[SSE] Failed to get token, falling back to Next.js API route:",
-              error,
-            );
+          } catch {
             streamUrl = `/api/porter/requests/stream?${params.toString()}`;
           }
         } else {
@@ -207,10 +208,10 @@ export default function JobListClient() {
         const decoder = new TextDecoder();
 
         if (!reader) {
-          throw new Error("No reader available");
+          throw new Error('No reader available');
         }
 
-        let buffer = "";
+        let buffer = '';
 
         // อ่านข้อมูลจาก stream
         while (isMounted) {
@@ -226,9 +227,9 @@ export default function JobListClient() {
           buffer += chunk;
 
           // ประมวลผล SSE messages
-          const lines = buffer.split("\n");
+          const lines = buffer.split('\n');
 
-          buffer = lines.pop() || ""; // เก็บส่วนที่เหลือไว้สำหรับรอบถัดไป
+          buffer = lines.pop() || ''; // เก็บส่วนที่เหลือไว้สำหรับรอบถัดไป
 
           for (const line of lines) {
             // Skip empty lines
@@ -236,11 +237,11 @@ export default function JobListClient() {
               continue;
             }
 
-            if (line.startsWith(": ")) {
+            if (line.startsWith(': ')) {
               continue;
             }
 
-            if (line.startsWith("data: ")) {
+            if (line.startsWith('data: ')) {
               try {
                 const jsonData = line.slice(6); // ตัด "data: " ออก
 
@@ -251,12 +252,10 @@ export default function JobListClient() {
                     const { type, data } = updateData;
 
                     // อัพเดท jobList ตาม type
-                    if (type === "CREATED") {
+                    if (type === 'CREATED') {
                       setJobList((prevList) => {
                         // ตรวจสอบว่ามีอยู่แล้วหรือไม่ (ป้องกัน duplicate)
-                        const exists = prevList.some(
-                          (job) => job.id === data.id,
-                        );
+                        const exists = prevList.some((job) => job.id === data.id);
 
                         if (exists) {
                           return prevList;
@@ -266,51 +265,40 @@ export default function JobListClient() {
                       });
 
                       // แสดง toast notification และเล่นเสียงตาม UrgencyLevel
-                      const urgencyLevel = data.form
-                        ?.urgencyLevel as UrgencyLevel;
+                      const urgencyLevel = data.form?.urgencyLevel as UrgencyLevel;
 
-                      if (urgencyLevel === "ฉุกเฉิน") {
+                      if (urgencyLevel === 'ฉุกเฉิน') {
                         // UrgencyLevel ฉุกเฉิน - เล่นเสียงไซเรน
                         playSirenSound();
                         addToast({
-                          title: "มีคำขอใหม่ - ฉุกเฉิน",
-                          description: `คำขอฉุกเฉินจาก ${data.form?.requesterName || "ไม่ระบุ"} (HN: ${data.form?.patientHN || "ไม่ระบุ"})`,
-                          color: "danger",
+                          title: 'มีคำขอใหม่ - ฉุกเฉิน',
+                          description: `คำขอฉุกเฉินจาก ${data.form?.requesterName || 'ไม่ระบุ'} (HN: ${data.form?.patientHN || 'ไม่ระบุ'})`,
+                          color: 'danger',
                         });
-                      } else if (
-                        urgencyLevel === "ด่วน" ||
-                        urgencyLevel === "ปกติ"
-                      ) {
+                      } else if (urgencyLevel === 'ด่วน' || urgencyLevel === 'ปกติ') {
                         // UrgencyLevel ปกติ, ด่วน - เล่นเสียงแจ้งเตือน
                         playNotificationSound();
 
-                        const urgencyText =
-                          urgencyLevel === "ด่วน" ? "ด่วน" : "ปกติ";
+                        const urgencyText = urgencyLevel === 'ด่วน' ? 'ด่วน' : 'ปกติ';
 
                         addToast({
                           title: `มีคำขอใหม่ - ${urgencyText}`,
-                          description: `คำขอ${urgencyText}จาก ${data.form?.requesterName || "ไม่ระบุ"} (HN: ${data.form?.patientHN || "ไม่ระบุ"})`,
-                          color:
-                            urgencyLevel === "ด่วน" ? "warning" : "success",
+                          description: `คำขอ${urgencyText}จาก ${data.form?.requesterName || 'ไม่ระบุ'} (HN: ${data.form?.patientHN || 'ไม่ระบุ'})`,
+                          color: urgencyLevel === 'ด่วน' ? 'warning' : 'success',
                         });
                       } else {
                         // กรณีไม่มี UrgencyLevel หรือไม่ทราบค่า
                         playNotificationSound();
                         addToast({
-                          title: "มีคำขอใหม่",
-                          description: `คำขอจาก ${data.form?.requesterName || "ไม่ระบุ"} ได้รับการเพิ่มแล้ว`,
-                          color: "success",
+                          title: 'มีคำขอใหม่',
+                          description: `คำขอจาก ${data.form?.requesterName || 'ไม่ระบุ'} ได้รับการเพิ่มแล้ว`,
+                          color: 'success',
                         });
                       }
-                    } else if (
-                      type === "UPDATED" ||
-                      type === "STATUS_CHANGED"
-                    ) {
+                    } else if (type === 'UPDATED' || type === 'STATUS_CHANGED') {
                       // อัพเดทคำขอที่มีอยู่
                       setJobList((prevList) =>
-                        prevList.map((job) =>
-                          job.id === data.id ? data : job,
-                        ),
+                        prevList.map((job) => (job.id === data.id ? data : job)),
                       );
 
                       // อัพเดท selectedJob ถ้ายังเลือกอยู่
@@ -319,53 +307,45 @@ export default function JobListClient() {
                       }
 
                       // แสดง toast notification สำหรับ status change
-                      if (type === "STATUS_CHANGED") {
-                        const urgencyLevel = data.form
-                          ?.urgencyLevel as UrgencyLevel;
+                      if (type === 'STATUS_CHANGED') {
+                        const urgencyLevel = data.form?.urgencyLevel as UrgencyLevel;
                         const statusText =
-                          data.status === "WAITING_CENTER"
-                            ? "รอศูนย์เปลรับงาน"
-                            : data.status === "WAITING_ACCEPT"
-                              ? "รอผู้ปฏิบัติรับงาน"
-                              : data.status === "IN_PROGRESS"
-                                ? "กำลังดำเนินการ"
-                                : data.status === "COMPLETED"
-                                  ? "เสร็จสิ้น"
-                                  : "ยกเลิก";
+                          data.status === 'WAITING_CENTER'
+                            ? 'รอศูนย์เปลรับงาน'
+                            : data.status === 'WAITING_ACCEPT'
+                              ? 'รอผู้ปฏิบัติรับงาน'
+                              : data.status === 'IN_PROGRESS'
+                                ? 'กำลังดำเนินการ'
+                                : data.status === 'COMPLETED'
+                                  ? 'เสร็จสิ้น'
+                                  : 'ยกเลิก';
 
-                        if (urgencyLevel === "ฉุกเฉิน") {
+                        if (urgencyLevel === 'ฉุกเฉิน') {
                           addToast({
-                            title: "สถานะเปลี่ยน - ฉุกเฉิน",
-                            description: `สถานะของคำขอฉุกเฉิน (HN: ${data.form?.patientHN || "ไม่ระบุ"}) เปลี่ยนเป็น ${statusText}`,
-                            color: "danger",
+                            title: 'สถานะเปลี่ยน - ฉุกเฉิน',
+                            description: `สถานะของคำขอฉุกเฉิน (HN: ${data.form?.patientHN || 'ไม่ระบุ'}) เปลี่ยนเป็น ${statusText}`,
+                            color: 'danger',
                           });
-                        } else if (
-                          urgencyLevel === "ด่วน" ||
-                          urgencyLevel === "ปกติ"
-                        ) {
-                          const urgencyText =
-                            urgencyLevel === "ด่วน" ? "ด่วน" : "ปกติ";
+                        } else if (urgencyLevel === 'ด่วน' || urgencyLevel === 'ปกติ') {
+                          const urgencyText = urgencyLevel === 'ด่วน' ? 'ด่วน' : 'ปกติ';
 
                           addToast({
                             title: `สถานะเปลี่ยน - ${urgencyText}`,
-                            description: `สถานะของคำขอ${urgencyText} (HN: ${data.form?.patientHN || "ไม่ระบุ"}) เปลี่ยนเป็น ${statusText}`,
-                            color:
-                              urgencyLevel === "ด่วน" ? "warning" : "primary",
+                            description: `สถานะของคำขอ${urgencyText} (HN: ${data.form?.patientHN || 'ไม่ระบุ'}) เปลี่ยนเป็น ${statusText}`,
+                            color: urgencyLevel === 'ด่วน' ? 'warning' : 'primary',
                           });
                         } else {
                           // กรณีไม่มี UrgencyLevel หรือไม่ทราบค่า
                           addToast({
-                            title: "สถานะเปลี่ยน",
-                            description: `สถานะของคำขอ ${data.form?.patientHN || "ไม่ระบุ"} เปลี่ยนเป็น ${statusText}`,
-                            color: "primary",
+                            title: 'สถานะเปลี่ยน',
+                            description: `สถานะของคำขอ ${data.form?.patientHN || 'ไม่ระบุ'} เปลี่ยนเป็น ${statusText}`,
+                            color: 'primary',
                           });
                         }
                       }
-                    } else if (type === "DELETED") {
+                    } else if (type === 'DELETED') {
                       // ลบคำขอ
-                      setJobList((prevList) =>
-                        prevList.filter((job) => job.id !== data.id),
-                      );
+                      setJobList((prevList) => prevList.filter((job) => job.id !== data.id));
 
                       // ปิด drawer ถ้าคำขอที่ลบคือคำขอที่เลือกอยู่
                       if (selectedJob?.id === data.id) {
@@ -373,22 +353,11 @@ export default function JobListClient() {
                         setSelectedJob(null);
                         setSelectedKeys(new Set());
                       }
-                    } else {
-                      console.warn("[SSE] Unknown update type:", type);
                     }
-                  } else {
-                    console.warn("[SSE] Missing type or data in update:", {
-                      hasType: !!updateData.type,
-                      hasData: !!updateData.data,
-                      updateData,
-                    });
                   }
                 }
-              } catch (error) {
-                console.error("[SSE] Error parsing SSE message:", {
-                  error: error instanceof Error ? error.message : String(error),
-                  line: line.substring(0, 200), // จำกัดความยาวของ line
-                });
+              } catch {
+                // Skip malformed SSE message
               }
             }
           }
@@ -401,14 +370,10 @@ export default function JobListClient() {
             }
           }, 3000);
         }
-      } catch (error: any) {
-        // ไม่แสดง error ถ้าเป็น abort (user ปิด connection)
-        if (error.name === "AbortError") {
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
-
-        console.error("[SSE] Connection error:", error);
-
         // Reconnect หลัง 3 วินาที (หรือเมื่อ stream timeout)
         if (isMounted) {
           reconnectTimeout = setTimeout(() => {
@@ -436,14 +401,11 @@ export default function JobListClient() {
   }, [selectedJob]);
 
   // Helper สำหรับ map status จริง → กลุ่มของแท็บ
-  const isWaitingStatus = (status: string | undefined | null) =>
-    status === "WAITING_CENTER";
+  const isWaitingStatus = (status: string | undefined | null) => status === 'WAITING_CENTER';
   const isInProgressStatus = (status: string | undefined | null) =>
-    status === "IN_PROGRESS" || status === "WAITING_ACCEPT";
-  const isCompletedStatus = (status: string | undefined | null) =>
-    status === "COMPLETED";
-  const isCancelledStatus = (status: string | undefined | null) =>
-    status === "CANCELLED";
+    status === 'IN_PROGRESS' || status === 'WAITING_ACCEPT';
+  const isCompletedStatus = (status: string | undefined | null) => status === 'COMPLETED';
+  const isCancelledStatus = (status: string | undefined | null) => status === 'CANCELLED';
 
   // คำนวณจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
   const waitingCount = useMemo(
@@ -466,16 +428,16 @@ export default function JobListClient() {
   // กรองข้อมูลตามแท็บที่เลือกและ date range (ถ้ามี)
   const filteredJobs = useMemo(() => {
     let filtered = jobList.filter((job) => {
-      if (selectedTab === "waiting") {
+      if (selectedTab === 'waiting') {
         return isWaitingStatus(job.status);
       }
-      if (selectedTab === "in-progress") {
+      if (selectedTab === 'in-progress') {
         return isInProgressStatus(job.status);
       }
-      if (selectedTab === "completed") {
+      if (selectedTab === 'completed') {
         return isCompletedStatus(job.status);
       }
-      if (selectedTab === "cancelled") {
+      if (selectedTab === 'cancelled') {
         return isCancelledStatus(job.status);
       }
 
@@ -483,7 +445,7 @@ export default function JobListClient() {
     });
 
     // Filter ตาม date range สำหรับ completed tab
-    if (selectedTab === "completed") {
+    if (selectedTab === 'completed') {
       if (completedStartDate || completedEndDate) {
         filtered = filtered.filter((job) => {
           if (!job.completedAt) {
@@ -521,7 +483,7 @@ export default function JobListClient() {
     }
 
     // Filter ตาม date range สำหรับ cancelled tab
-    if (selectedTab === "cancelled") {
+    if (selectedTab === 'cancelled') {
       if (cancelledStartDate || cancelledEndDate) {
         filtered = filtered.filter((job) => {
           if (!job.cancelledAt) {
@@ -619,7 +581,7 @@ export default function JobListClient() {
 
   // Handler สำหรับการเลือก row
   const handleSelectionChange = (keys: any) => {
-    if (keys === "all") {
+    if (keys === 'all') {
       setSelectedKeys(new Set());
       setSelectedJob(null);
       setIsDrawerOpen(false);
@@ -654,17 +616,13 @@ export default function JobListClient() {
   };
 
   // Handler สำหรับมอบหมายงาน (เลือกผู้ปฏิบัติ) → สถานะ WAITING_ACCEPT
-  const handleAssignJob = async (
-    jobId: string,
-    staffId: string,
-    staffName: string,
-  ) => {
+  const handleAssignJob = async (jobId: string, staffId: string, staffName: string) => {
     try {
       const response = await fetch(`/api/porter/requests/${jobId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: "WAITING_ACCEPT",
+          status: 'WAITING_ACCEPT',
           assignedToId: staffId,
         }),
       });
@@ -672,31 +630,29 @@ export default function JobListClient() {
       const result = await response.json();
 
       if (result.success && result.data) {
-        setJobList((prevList) =>
-          prevList.map((job) => (job.id === jobId ? result.data : job)),
-        );
+        setJobList((prevList) => prevList.map((job) => (job.id === jobId ? result.data : job)));
 
         if (selectedJob?.id === jobId) {
           setSelectedJob(result.data);
         }
 
         addToast({
-          title: "มอบหมายสำเร็จ",
+          title: 'มอบหมายสำเร็จ',
           description: `มอบหมายให้ ${staffName} แล้ว รอผู้ปฏิบัติรับงาน`,
-          color: "success",
+          color: 'success',
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถมอบหมายงานได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: result.message || 'ไม่สามารถมอบหมายงานได้',
+          color: 'danger',
         });
       }
     } catch {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถมอบหมายงานได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถมอบหมายงานได้',
+        color: 'danger',
       });
     }
   };
@@ -706,10 +662,10 @@ export default function JobListClient() {
     try {
       // เรียก API เพื่ออัปเดตสถานะเป็น cancelled
       const response = await fetch(`/api/porter/requests/${jobId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: "CANCELLED",
+          status: 'CANCELLED',
           cancelledReason: cancelledReason || undefined,
         }),
       });
@@ -718,9 +674,7 @@ export default function JobListClient() {
 
       if (result.success && result.data) {
         // อัปเดต jobList ด้วยข้อมูลที่ได้จาก API
-        setJobList((prevList) =>
-          prevList.map((job) => (job.id === jobId ? result.data : job)),
-        );
+        setJobList((prevList) => prevList.map((job) => (job.id === jobId ? result.data : job)));
 
         // อัปเดต selectedJob ถ้ายังเลือกอยู่
         if (selectedJob?.id === jobId) {
@@ -728,22 +682,22 @@ export default function JobListClient() {
         }
 
         addToast({
-          title: "ยกเลิกงานสำเร็จ",
-          description: "ยกเลิกงานสำเร็จ",
-          color: "success",
+          title: 'ยกเลิกงานสำเร็จ',
+          description: 'ยกเลิกงานสำเร็จ',
+          color: 'success',
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถยกเลิกงานได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: result.message || 'ไม่สามารถยกเลิกงานได้',
+          color: 'danger',
         });
       }
     } catch {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถยกเลิกงานได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถยกเลิกงานได้',
+        color: 'danger',
       });
     }
   };
@@ -753,10 +707,10 @@ export default function JobListClient() {
     try {
       // เรียก API เพื่ออัปเดตสถานะเป็น completed
       const response = await fetch(`/api/porter/requests/${jobId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: "COMPLETED",
+          status: 'COMPLETED',
         }),
       });
 
@@ -764,9 +718,7 @@ export default function JobListClient() {
 
       if (result.success && result.data) {
         // อัปเดต jobList ด้วยข้อมูลที่ได้จาก API
-        setJobList((prevList) =>
-          prevList.map((job) => (job.id === jobId ? result.data : job)),
-        );
+        setJobList((prevList) => prevList.map((job) => (job.id === jobId ? result.data : job)));
 
         // อัปเดต selectedJob ถ้ายังเลือกอยู่
         if (selectedJob?.id === jobId) {
@@ -774,35 +726,30 @@ export default function JobListClient() {
         }
 
         addToast({
-          title: "ทำเสร็จสิ้นงานสำเร็จ",
-          description: "ทำเสร็จสิ้นงานสำเร็จ",
-          color: "success",
+          title: 'ทำเสร็จสิ้นงานสำเร็จ',
+          description: 'ทำเสร็จสิ้นงานสำเร็จ',
+          color: 'success',
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.message || "ไม่สามารถทำเสร็จสิ้นงานได้",
-          color: "danger",
+          title: 'เกิดข้อผิดพลาด',
+          description: result.message || 'ไม่สามารถทำเสร็จสิ้นงานได้',
+          color: 'danger',
         });
       }
     } catch {
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถทำเสร็จสิ้นงานได้",
-        color: "danger",
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถทำเสร็จสิ้นงานได้',
+        color: 'danger',
       });
     }
   };
 
   // Handler สำหรับอัปเดตข้อมูลงาน
-  const handleUpdateJob = (
-    jobId: string,
-    updatedForm: PorterRequestFormData,
-  ) => {
+  const handleUpdateJob = (jobId: string, updatedForm: PorterRequestFormData) => {
     setJobList((prevList) =>
-      prevList.map((job) =>
-        job.id === jobId ? { ...job, form: updatedForm } : job,
-      ),
+      prevList.map((job) => (job.id === jobId ? { ...job, form: updatedForm } : job)),
     );
     // อัปเดต selectedJob ถ้ายังเลือกอยู่
     if (selectedJob?.id === jobId) {
@@ -817,35 +764,32 @@ export default function JobListClient() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            รายการคำขอรับพนักงานเปล
-          </h1>
+          <h1 className="text-3xl font-bold text-foreground">รายการคำขอรับพนักงานเปล</h1>
         </div>
         <div className="flex items-center space-x-2 text-default-600">
-          <ClockIcon className="w-5 h-5" />
+          <ClockIcon aria-hidden className="w-5 h-5" />
           <div className="text-sm">
             <div className="font-medium">
-              {formatDateTimeThai(currentDateTime)}
+              <CurrentTimeDisplay />
             </div>
           </div>
         </div>
       </div>
 
       <div className="mt-8">
-        <Card className="border-2 border-default-200">
+        <Card className={CARD_STYLES.highlight}>
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center space-x-2">
-                <ClipboardListIcon className="w-6 h-6" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  รายการคำขอ
-                </h2>
+                <ClipboardListIcon aria-hidden className="w-6 h-6" />
+                <h2 className="text-xl font-semibold text-foreground">รายการคำขอ</h2>
               </div>
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-default-600">
                   คำขอทั้งหมด {filteredJobs.length} รายการ
                 </div>
                 <Button
+                  aria-label="รีเฟรชข้อมูล"
                   color="primary"
                   isLoading={isLoading}
                   size="sm"
@@ -860,42 +804,38 @@ export default function JobListClient() {
           </CardHeader>
           <CardBody>
             {/* แสดง Loading หรือ Error */}
-            {isLoading && (
-              <div className="flex justify-center items-center py-8">
-                <div className="text-default-600">กำลังโหลดข้อมูล...</div>
-              </div>
-            )}
+            {isLoading && <PorterLoadingSkeleton rows={5} variant="table-row" />}
             {error && !isLoading && (
-              <div className="flex justify-center items-center py-8">
-                <div className="text-danger">{error}</div>
-              </div>
+              <PorterEmptyState
+                icon={<XMarkIcon className="w-12 h-12 text-danger" />}
+                message={error}
+                variant="error"
+              />
             )}
             {/* Tab Navigation - HeroUI Tabs */}
             {!isLoading && !error && (
               <Tabs
                 aria-label="รายการคำขอ"
                 classNames={{
-                  tabList: "w-full",
-                  tab: "data-[selected=true]:bg-primary-500 data-[selected=true]:text-white data-[selected=true]:hover:bg-primary/80",
+                  tabList: 'w-full',
+                  tab: 'data-[selected=true]:bg-primary-500 data-[selected=true]:text-white data-[selected=true]:hover:bg-primary/80',
                 }}
                 color="primary"
                 selectedKey={selectedTab}
                 size="lg"
                 variant="bordered"
-                onSelectionChange={(key) => setSelectedTab(key as JobListTab)}
+                onSelectionChange={handleTabChange}
               >
                 <Tab
                   key="waiting"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <ClipboardListIcon className="w-4 h-4" />
+                      <ClipboardListIcon aria-hidden className="w-4 h-4" />
                       <span>รอศูนย์เปลรับงาน</span>
                       <Chip
                         color="danger"
                         size="sm"
-                        variant={
-                          selectedTab === "waiting" ? "solid" : "bordered"
-                        }
+                        variant={selectedTab === 'waiting' ? 'solid' : 'bordered'}
                       >
                         {waitingCount}
                       </Chip>
@@ -905,6 +845,7 @@ export default function JobListClient() {
                   <JobTable
                     currentPage={currentPage}
                     endIndex={endIndex}
+                    isLoading={isLoading}
                     items={paginatedJobs}
                     paginationId="rows-per-page"
                     rowsPerPage={rowsPerPage}
@@ -921,14 +862,12 @@ export default function JobListClient() {
                   key="in-progress"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <ClockIcon className="w-4 h-4" />
+                      <ClockIcon aria-hidden className="w-4 h-4" />
                       <span>กำลังดำเนินการ</span>
                       <Chip
                         color="warning"
                         size="sm"
-                        variant={
-                          selectedTab === "in-progress" ? "solid" : "bordered"
-                        }
+                        variant={selectedTab === 'in-progress' ? 'solid' : 'bordered'}
                       >
                         {inProgressCount}
                       </Chip>
@@ -938,9 +877,11 @@ export default function JobListClient() {
                   <JobTable
                     currentPage={currentPage}
                     endIndex={endIndex}
+                    isLoading={isLoading}
                     items={paginatedJobs}
                     paginationId="rows-per-page-2"
                     rowsPerPage={rowsPerPage}
+                    selectedKeys={selectedKeys}
                     sortedJobs={sortedJobs}
                     startIndex={startIndex}
                     totalPages={totalPages}
@@ -953,14 +894,12 @@ export default function JobListClient() {
                   key="completed"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <CheckCircleIcon className="w-4 h-4" />
+                      <CheckCircleIcon aria-hidden className="w-4 h-4" />
                       <span>เสร็จสิ้น</span>
                       <Chip
                         color="success"
                         size="sm"
-                        variant={
-                          selectedTab === "completed" ? "solid" : "bordered"
-                        }
+                        variant={selectedTab === 'completed' ? 'solid' : 'bordered'}
                       >
                         {completedCount}
                       </Chip>
@@ -976,9 +915,7 @@ export default function JobListClient() {
                             <DatePicker
                               label="วันที่เริ่มต้น"
                               maxValue={completedEndDate || undefined}
-                              selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
-                              }
+                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
                               value={completedStartDate}
                               variant="bordered"
                               onChange={(date) => {
@@ -997,9 +934,7 @@ export default function JobListClient() {
                             <DatePicker
                               label="วันที่สิ้นสุด"
                               minValue={completedStartDate || undefined}
-                              selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
-                              }
+                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
                               value={completedEndDate}
                               variant="bordered"
                               onChange={(date) => setCompletedEndDate(date)}
@@ -1021,6 +956,7 @@ export default function JobListClient() {
                     <JobTable
                       currentPage={currentPage}
                       endIndex={endIndex}
+                      isLoading={isLoading}
                       items={paginatedJobs}
                       paginationId="rows-per-page-3"
                       rowsPerPage={rowsPerPage}
@@ -1037,14 +973,12 @@ export default function JobListClient() {
                   key="cancelled"
                   title={
                     <div className="flex items-center justify-center space-x-2">
-                      <XMarkIcon className="w-4 h-4" />
+                      <XMarkIcon aria-hidden className="w-4 h-4" />
                       <span>ยกเลิก</span>
                       <Chip
                         color="danger"
                         size="sm"
-                        variant={
-                          selectedTab === "cancelled" ? "solid" : "bordered"
-                        }
+                        variant={selectedTab === 'cancelled' ? 'solid' : 'bordered'}
                       >
                         {cancelledCount}
                       </Chip>
@@ -1060,9 +994,7 @@ export default function JobListClient() {
                             <DatePicker
                               label="วันที่เริ่มต้น"
                               maxValue={cancelledEndDate || undefined}
-                              selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
-                              }
+                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
                               value={cancelledStartDate}
                               variant="bordered"
                               onChange={(date) => {
@@ -1081,9 +1013,7 @@ export default function JobListClient() {
                             <DatePicker
                               label="วันที่สิ้นสุด"
                               minValue={cancelledStartDate || undefined}
-                              selectorIcon={
-                                <CalendarIcon className="w-4 h-4" />
-                              }
+                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
                               value={cancelledEndDate}
                               variant="bordered"
                               onChange={(date) => setCancelledEndDate(date)}
@@ -1105,6 +1035,7 @@ export default function JobListClient() {
                     <JobTable
                       currentPage={currentPage}
                       endIndex={endIndex}
+                      isLoading={isLoading}
                       items={paginatedJobs}
                       paginationId="rows-per-page-4"
                       rowsPerPage={rowsPerPage}
@@ -1123,8 +1054,8 @@ export default function JobListClient() {
         </Card>
       </div>
 
-      {/* Job Detail Drawer */}
-      <JobDetailDrawer
+      {/* Job Detail Drawer - Editable variant */}
+      <EditableJobDetailDrawer
         isOpen={isDrawerOpen}
         job={selectedJob}
         onAssignJob={handleAssignJob}

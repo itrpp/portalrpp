@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from 'react';
 
-import { PorterJobItem } from "@/types/porter";
-import { formatLocationString } from "@/lib/porter";
-import { getISODatePart, parseFullName, toISODateString } from "@/lib/utils";
+import { PorterJobItem } from '@/types/porter';
+import { formatLocationString } from '@/lib/porter';
+import { getISODatePart, parseFullName, toISODateString } from '@/lib/utils';
 
 type PorterRequestsApiSuccess = {
   success: true;
@@ -18,9 +18,7 @@ type PorterRequestsApiError = {
   message: string;
 };
 
-type PorterRequestsApiResponse =
-  | PorterRequestsApiSuccess
-  | PorterRequestsApiError;
+type PorterRequestsApiResponse = PorterRequestsApiSuccess | PorterRequestsApiError;
 
 interface PorterStats {
   totalJobs: number;
@@ -87,8 +85,8 @@ export function usePorterStats() {
 
         const fetchCount = async (status?: string): Promise<number> => {
           const url = buildUrl({
-            page: "1",
-            page_size: "1",
+            page: '1',
+            page_size: '1',
             status,
           });
 
@@ -97,35 +95,28 @@ export function usePorterStats() {
 
           if (!response.ok) {
             const message =
-              !("success" in result) || result.success === true
-                ? "ไม่สามารถโหลดข้อมูลสถิติได้"
+              !('success' in result) || result.success === true
+                ? 'ไม่สามารถโหลดข้อมูลสถิติได้'
                 : result.message;
 
             throw new Error(message);
           }
 
           if (!result.success) {
-            throw new Error(result.message || "ไม่สามารถโหลดข้อมูลสถิติได้");
+            throw new Error(result.message || 'ไม่สามารถโหลดข้อมูลสถิติได้');
           }
 
-          return typeof result.total === "number"
-            ? result.total
-            : (result.data ?? []).length;
+          return typeof result.total === 'number' ? result.total : (result.data ?? []).length;
         };
 
-        const [
-          totalJobs,
-          waitingJobs,
-          inProgressJobs,
-          completedJobs,
-          cancelledJobs,
-        ] = await Promise.all([
-          fetchCount(), // ทั้งหมด
-          fetchCount("WAITING"), // WAITING_CENTER + WAITING_ACCEPT
-          fetchCount("IN_PROGRESS"),
-          fetchCount("COMPLETED"),
-          fetchCount("CANCELLED"),
-        ]);
+        const [totalJobs, waitingJobs, inProgressJobs, completedJobs, cancelledJobs] =
+          await Promise.all([
+            fetchCount(), // ทั้งหมด
+            fetchCount('WAITING'), // WAITING_CENTER + WAITING_ACCEPT
+            fetchCount('IN_PROGRESS'),
+            fetchCount('COMPLETED'),
+            fetchCount('CANCELLED'),
+          ]);
 
         setSummaryCounts({
           totalJobs,
@@ -144,10 +135,7 @@ export function usePorterStats() {
         let totalFetched = 0;
         let grandTotal = totalJobs;
 
-        while (
-          totalFetched < grandTotal &&
-          allJobs.length < MAX_JOBS_FOR_STATS
-        ) {
+        while (totalFetched < grandTotal && allJobs.length < MAX_JOBS_FOR_STATS) {
           const jobsResponse = await fetch(
             buildUrl({
               page: String(page),
@@ -155,13 +143,12 @@ export function usePorterStats() {
             }),
           );
 
-          const jobsResult: PorterRequestsApiResponse =
-            await jobsResponse.json();
+          const jobsResult: PorterRequestsApiResponse = await jobsResponse.json();
 
           if (!jobsResponse.ok || !jobsResult.success) {
             const message =
-              !("success" in jobsResult) || jobsResult.success === true
-                ? "ไม่สามารถโหลดข้อมูลสถิติได้"
+              !('success' in jobsResult) || jobsResult.success === true
+                ? 'ไม่สามารถโหลดข้อมูลสถิติได้'
                 : jobsResult.message;
 
             throw new Error(message);
@@ -172,7 +159,7 @@ export function usePorterStats() {
           allJobs.push(...chunk);
           totalFetched += chunk.length;
 
-          if (jobsResult.success && typeof jobsResult.total === "number") {
+          if (jobsResult.success && typeof jobsResult.total === 'number') {
             grandTotal = jobsResult.total;
           }
 
@@ -183,8 +170,7 @@ export function usePorterStats() {
 
         setJobs(allJobs);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+        const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
 
         setError(errorMessage);
       } finally {
@@ -296,13 +282,10 @@ export function usePorterStats() {
 
     // Single loop ผ่าน jobs ทั้งหมด
     const isWaitingStatus = (status: string | undefined | null) =>
-      status === "WAITING_CENTER" || status === "WAITING_ACCEPT";
-    const isInProgressStatus = (status: string | undefined | null) =>
-      status === "IN_PROGRESS";
-    const isCompletedStatus = (status: string | undefined | null) =>
-      status === "COMPLETED";
-    const isCancelledStatus = (status: string | undefined | null) =>
-      status === "CANCELLED";
+      status === 'WAITING_CENTER' || status === 'WAITING_ACCEPT';
+    const isInProgressStatus = (status: string | undefined | null) => status === 'IN_PROGRESS';
+    const isCompletedStatus = (status: string | undefined | null) => status === 'COMPLETED';
+    const isCancelledStatus = (status: string | undefined | null) => status === 'CANCELLED';
 
     for (const job of filteredJobs) {
       // 1. นับจำนวนงานตาม status (ใช้สถานะจริงจาก DB)
@@ -319,13 +302,13 @@ export function usePorterStats() {
           const dayData = dailyJobsMap.get(createdAtStr);
 
           if (dayData) {
-            const urgencyLevel = job.form.urgencyLevel || "ปกติ";
+            const urgencyLevel = job.form.urgencyLevel || 'ปกติ';
 
-            if (urgencyLevel === "ปกติ") {
+            if (urgencyLevel === 'ปกติ') {
               dayData.ปกติ += 1;
-            } else if (urgencyLevel === "ด่วน") {
+            } else if (urgencyLevel === 'ด่วน') {
               dayData.ด่วน += 1;
-            } else if (urgencyLevel === "ฉุกเฉิน") {
+            } else if (urgencyLevel === 'ฉุกเฉิน') {
               dayData.ฉุกเฉิน += 1;
             }
           }
@@ -336,10 +319,7 @@ export function usePorterStats() {
       const reason = job.form.transportReason;
 
       if (reason) {
-        transportReasonMap.set(
-          reason,
-          (transportReasonMap.get(reason) || 0) + 1,
-        );
+        transportReasonMap.set(reason, (transportReasonMap.get(reason) || 0) + 1);
       }
 
       // 4. จุดรับยอดนิยม (ใช้ cache)
@@ -359,15 +339,11 @@ export function usePorterStats() {
       }
 
       // 5. จุดส่งยอดนิยม (ใช้ cache)
-      const deliveryLocationKey = JSON.stringify(
-        job.form.deliveryLocationDetail,
-      );
+      const deliveryLocationKey = JSON.stringify(job.form.deliveryLocationDetail);
       let deliveryLocationStr = locationStringCache.get(deliveryLocationKey);
 
       if (!deliveryLocationStr) {
-        deliveryLocationStr = formatLocationString(
-          job.form.deliveryLocationDetail,
-        );
+        deliveryLocationStr = formatLocationString(job.form.deliveryLocationDetail);
         locationStringCache.set(deliveryLocationKey, deliveryLocationStr);
       }
 
@@ -448,9 +424,7 @@ export function usePorterStats() {
         const assignedJobCount = data.jobs.length;
 
         // คำนวณระยะเวลาเฉลี่ยจาก jobs ที่มีทั้ง acceptedAt และ completedAt
-        const completedJobs = data.jobs.filter(
-          (job) => job.acceptedAt && job.completedAt,
-        );
+        const completedJobs = data.jobs.filter((job) => job.acceptedAt && job.completedAt);
         let averageDuration = 0;
 
         if (completedJobs.length > 0) {
@@ -460,8 +434,7 @@ export function usePorterStats() {
             // Parse dates ครั้งเดียว
             const acceptedTime = new Date(job.acceptedAt!).getTime();
             const completedTime = new Date(job.completedAt!).getTime();
-            const durationMinutes =
-              (completedTime - acceptedTime) / (1000 * 60);
+            const durationMinutes = (completedTime - acceptedTime) / (1000 * 60);
 
             totalDuration += durationMinutes;
           }
@@ -479,21 +452,11 @@ export function usePorterStats() {
       })
       .sort((a, b) => b.assignedJobCount - a.assignedJobCount);
 
-    const totalJobsForSummary = hasSummary
-      ? summaryCounts.totalJobs
-      : filteredJobs.length;
-    const waitingJobsForSummary = hasSummary
-      ? summaryCounts.waitingJobs
-      : waitingJobs;
-    const inProgressJobsForSummary = hasSummary
-      ? summaryCounts.inProgressJobs
-      : inProgressJobs;
-    const completedJobsForSummary = hasSummary
-      ? summaryCounts.completedJobs
-      : completedJobs;
-    const cancelledJobsForSummary = hasSummary
-      ? summaryCounts.cancelledJobs
-      : cancelledJobs;
+    const totalJobsForSummary = hasSummary ? summaryCounts.totalJobs : filteredJobs.length;
+    const waitingJobsForSummary = hasSummary ? summaryCounts.waitingJobs : waitingJobs;
+    const inProgressJobsForSummary = hasSummary ? summaryCounts.inProgressJobs : inProgressJobs;
+    const completedJobsForSummary = hasSummary ? summaryCounts.completedJobs : completedJobs;
+    const cancelledJobsForSummary = hasSummary ? summaryCounts.cancelledJobs : cancelledJobs;
 
     return {
       totalJobs: totalJobsForSummary,

@@ -1,16 +1,12 @@
 import cors, { CorsOptions } from 'cors';
+
 import { config } from '../config/env';
 
 export function createCorsMiddleware() {
   const options: CorsOptions = {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'x-user-id'
-    ]
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-user-id'],
   };
 
   if (config.cors.allowOrigins === '*') {
@@ -28,5 +24,3 @@ export function createCorsMiddleware() {
 
   return cors(options);
 }
-
-

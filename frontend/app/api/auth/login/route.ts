@@ -1,12 +1,13 @@
-import type { LDAPErrorCode } from "@/types/ldap";
+import type { LDAPErrorCode } from '@/types/ldap';
 
-import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
-import { createLDAPService } from "@/lib/ldap";
-import { prisma } from "@/lib/prisma";
-import { callPorterService } from "@/lib/grpcClient";
-import { upsertUserActivityOnLogin } from "@/lib/userActivity";
+import { createLDAPService } from '@/lib/ldap';
+import { prisma } from '@/lib/prisma';
+import { callPorterService } from '@/lib/grpcClient';
+import { upsertUserActivityOnLogin } from '@/lib/userActivity';
+import { DeviceType } from '@/generated/prisma/enums';
 
 /**
  * POST /api/auth/login
@@ -24,23 +25,22 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "MISSING_CREDENTIALS",
-          message: "username and password are required",
+          error: 'MISSING_CREDENTIALS',
+          message: 'username and password are required',
         },
         { status: 400 },
       );
     }
 
     // ตรวจสอบ JWT secret
-    const jwtSecret =
-      process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "";
+    const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
 
     if (!jwtSecret) {
       return NextResponse.json(
         {
           success: false,
-          error: "CONFIGURATION_ERROR",
-          message: "JWT secret is not configured",
+          error: 'CONFIGURATION_ERROR',
+          message: 'JWT secret is not configured',
         },
         { status: 500 },
       );
@@ -55,8 +55,8 @@ export async function POST(request: Request) {
 
       if (!result.success || !result.user) {
         // Map error code to HTTP status and message
-        const errorCode = result.errorCode || "INVALID_CREDENTIALS";
-        const statusCode = errorCode === "MISSING_CREDENTIALS" ? 400 : 401;
+        const errorCode = result.errorCode || 'INVALID_CREDENTIALS';
+        const statusCode = errorCode === 'MISSING_CREDENTIALS' ? 400 : 401;
 
         return NextResponse.json(
           {
@@ -70,11 +70,11 @@ export async function POST(request: Request) {
 
       ldapUser = result.user;
     } catch (error) {
-      console.error("LDAP authentication error:", error);
+      console.error('LDAP authentication error:', error);
 
       if (error instanceof Error) {
         const errorCode = error.message as LDAPErrorCode;
-        const statusCode = errorCode === "MISSING_CREDENTIALS" ? 400 : 401;
+        const statusCode = errorCode === 'MISSING_CREDENTIALS' ? 400 : 401;
 
         return NextResponse.json(
           {
@@ -89,8 +89,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "INTERNAL_ERROR",
-          message: "Authentication failed",
+          error: 'INTERNAL_ERROR',
+          message: 'Authentication failed',
         },
         { status: 500 },
       );
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     const department = ldapUser.department ?? null;
     const position = ldapUser.position ?? null;
     const memberOf = ldapUser.memberOf ?? null;
-    const role = ldapUser.role || "user";
+    const role = ldapUser.role || 'user';
     const ldapId = ldapUser.id;
 
     let dbUser;
@@ -128,13 +128,13 @@ export async function POST(request: Request) {
         },
       });
     } catch (error) {
-      console.error("Database upsert error:", error);
+      console.error('Database upsert error:', error);
 
       return NextResponse.json(
         {
           success: false,
-          error: "INTERNAL_ERROR",
-          message: "Failed to save user data",
+          error: 'INTERNAL_ERROR',
+          message: 'Failed to save user data',
         },
         { status: 500 },
       );
@@ -142,12 +142,9 @@ export async function POST(request: Request) {
 
     // อัปเดต user_activity เมื่อ login สำเร็จ (ไม่ให้ error กระทบ flow หลัก)
     try {
-      await upsertUserActivityOnLogin(dbUser.id);
+      await upsertUserActivityOnLogin(dbUser.id, new Date(), DeviceType.MOBILE_APP);
     } catch (error) {
-      console.info(
-        "Failed to upsert user_activity from /api/auth/login:",
-        error,
-      );
+      console.info('Failed to upsert user_activity from /api/auth/login:', error);
     }
 
     // ดึง PorterEmployee ที่ผูกกับ user นี้ (ถ้ามี)
@@ -157,7 +154,7 @@ export async function POST(request: Request) {
       const porterResponse = await callPorterService<{
         success: boolean;
         data?: Array<{ id: string }>;
-      }>("ListEmployees", { user_id: dbUser.id });
+      }>('ListEmployees', { user_id: dbUser.id });
 
       if (
         porterResponse?.success &&
@@ -180,7 +177,7 @@ export async function POST(request: Request) {
         role: dbUser.role,
       },
       jwtSecret,
-      { expiresIn: "1h" },
+      { expiresIn: '1h' },
     );
 
     // Return success response
@@ -200,18 +197,18 @@ export async function POST(request: Request) {
       },
     });
   } catch (error: unknown) {
-    console.error("Login API error:", error);
+    console.error('Login API error:', error);
 
     // จัดการกรณี request body ไม่ถูกต้อง
     if (
       error instanceof SyntaxError ||
-      (error instanceof Error && error.message.includes("JSON"))
+      (error instanceof Error && error.message.includes('JSON'))
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_REQUEST",
-          message: "Invalid request body",
+          error: 'INVALID_REQUEST',
+          message: 'Invalid request body',
         },
         { status: 400 },
       );
@@ -220,8 +217,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_SERVER_ERROR",
-        message: "An error occurred during authentication",
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'An error occurred during authentication',
       },
       { status: 500 },
     );
@@ -233,20 +230,20 @@ export async function POST(request: Request) {
  */
 function getErrorMessage(errorCode: LDAPErrorCode): string {
   switch (errorCode) {
-    case "MISSING_CREDENTIALS":
-      return "username and password are required";
-    case "USER_NOT_FOUND":
-      return "Invalid username or password";
-    case "ACCOUNT_DISABLED":
-      return "Account is disabled";
-    case "USER_NOT_AUTHORIZED":
-      return "User is not authorized";
-    case "INVALID_CREDENTIALS":
-      return "Invalid username or password";
-    case "CONNECTION_ERROR":
-      return "Cannot connect to authentication server";
-    case "INTERNAL_ERROR":
+    case 'MISSING_CREDENTIALS':
+      return 'username and password are required';
+    case 'USER_NOT_FOUND':
+      return 'Invalid username or password';
+    case 'ACCOUNT_DISABLED':
+      return 'Account is disabled';
+    case 'USER_NOT_AUTHORIZED':
+      return 'User is not authorized';
+    case 'INVALID_CREDENTIALS':
+      return 'Invalid username or password';
+    case 'CONNECTION_ERROR':
+      return 'Cannot connect to authentication server';
+    case 'INTERNAL_ERROR':
     default:
-      return "Authentication failed";
+      return 'Authentication failed';
   }
 }

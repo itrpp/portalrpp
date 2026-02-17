@@ -19,7 +19,7 @@ import {
   mapUrgencyLevelToPrisma,
   mapUrgencyLevelToProto,
   mapVehicleTypeToPrisma,
-  mapVehicleTypeToProto
+  mapVehicleTypeToProto,
 } from '../utils/enumMapper';
 import {
   CreateBuildingInput,
@@ -51,9 +51,8 @@ import {
   CreateBleStationInput,
   UpdateBleStationInput,
   ListBleStationsFilters,
-  BleStationMessage
+  BleStationMessage,
 } from '../types/porter';
-
 import type { Building, FloorDepartment } from '../generated/prisma/client';
 import type { BuildingWithFloorsAndFloorPlans } from '../repositories/building.repository';
 import type { FloorDepartmentWithBuilding } from '../repositories/floorDepartment.repository';
@@ -70,7 +69,9 @@ type PorterRequestWithLocationNames = PorterRequest & {
 
 /** Porter Service: รวม business logic และ database operations สำหรับ Porter */
 
-export const createPorterRequest = async (requestData: CreatePorterRequestInput): Promise<PorterRequestMessage> => {
+export const createPorterRequest = async (
+  requestData: CreatePorterRequestInput,
+): Promise<PorterRequestMessage> => {
   const {
     requester_department,
     requester_name,
@@ -93,7 +94,7 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     transport_reason,
     equipment,
     equipment_other,
-    special_notes
+    special_notes,
   } = requestData;
 
   const patientConditionValue = normalizePatientCondition(patient_condition);
@@ -101,7 +102,7 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
   // แปลง requester_department เป็น number (รองรับทั้ง number และ string สำหรับ backward compatibility)
   const requesterDepartmentValue =
     requester_department !== null && requester_department !== undefined
-      ? typeof requester_department === "number"
+      ? typeof requester_department === 'number'
         ? requester_department
         : Number.parseInt(String(requester_department), 10) || null
       : null;
@@ -126,10 +127,13 @@ export const createPorterRequest = async (requestData: CreatePorterRequestInput)
     hasVehicle: mapHasVehicleToPrisma(has_vehicle),
     returnTrip: mapReturnTripToPrisma(return_trip),
     transportReason: transport_reason,
-    equipment: equipment && Array.isArray(equipment) && equipment.length > 0 ? JSON.stringify(mapEquipmentToPrisma(equipment)) : JSON.stringify([]),
+    equipment:
+      equipment && Array.isArray(equipment) && equipment.length > 0
+        ? JSON.stringify(mapEquipmentToPrisma(equipment))
+        : JSON.stringify([]),
     equipmentOther: equipment_other ?? null,
     specialNotes: special_notes ?? null,
-    status: 'WAITING_CENTER'
+    status: 'WAITING_CENTER',
   };
 
   const porterRequest = await porterRequestRepo.createPorterRequest(createData);
@@ -151,9 +155,17 @@ export const getPorterRequestById = async (id: string): Promise<PorterRequestMes
 };
 
 export const listPorterRequests = async (
-  filters: ListPorterRequestsFilters
+  filters: ListPorterRequestsFilters,
 ): Promise<PaginationResult<PorterRequestMessage>> => {
-  const { status, urgency_level, requester_user_id, assigned_to_id, page = 1, page_size = 20 } = filters;
+  const {
+    status,
+    urgency_level,
+    requester_user_id,
+    assigned_to_id,
+    search,
+    page = 1,
+    page_size = 20,
+  } = filters;
 
   const where: Prisma.PorterRequestWhereInput = {};
 
@@ -174,6 +186,12 @@ export const listPorterRequests = async (
   if (assigned_to_id) {
     where.assignedToId = assigned_to_id;
   }
+  if (search && search.trim() !== '') {
+    const searchTerm = search.trim();
+    // MySQL doesn't support mode: 'insensitive' in Prisma
+    // Use contains which works with MySQL's default case-insensitive collation (utf8mb4_unicode_ci)
+    where.OR = [{ patientName: { contains: searchTerm } }, { patientHN: { contains: searchTerm } }];
+  }
 
   const skip = (page - 1) * page_size;
 
@@ -182,16 +200,16 @@ export const listPorterRequests = async (
       where,
       skip,
       take: page_size,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     }),
-    porterRequestRepo.countPorterRequests(where)
+    porterRequestRepo.countPorterRequests(where),
   ]);
 
   const buildingIds = new Set<string>();
   const floorDepartmentIds = new Set<string>();
   const employeeIds = new Set<string>();
 
-  porterRequests.forEach(req => {
+  porterRequests.forEach((req) => {
     buildingIds.add(req.pickupBuildingId);
     buildingIds.add(req.deliveryBuildingId);
     floorDepartmentIds.add(req.pickupFloorDepartmentId);
@@ -204,40 +222,37 @@ export const listPorterRequests = async (
   const [buildingMap, floorDepartmentMap, employeeMap] = await Promise.all([
     buildingRepo.findBuildingNamesByIds(Array.from(buildingIds)),
     floorDepartmentRepo.findFloorDepartmentNamesByIds(Array.from(floorDepartmentIds)),
-    porterEmployeeRepo.findPorterEmployeeNamesByIds(Array.from(employeeIds))
+    porterEmployeeRepo.findPorterEmployeeNamesByIds(Array.from(employeeIds)),
   ]);
 
-  const requestsWithNames: PorterRequestWithLocationNames[] = porterRequests.map(req => ({
+  const requestsWithNames: PorterRequestWithLocationNames[] = porterRequests.map((req) => ({
     ...req,
     pickupBuildingName: buildingMap.get(req.pickupBuildingId),
     pickupFloorDepartmentName: floorDepartmentMap.get(req.pickupFloorDepartmentId),
     deliveryBuildingName: buildingMap.get(req.deliveryBuildingId),
     deliveryFloorDepartmentName: floorDepartmentMap.get(req.deliveryFloorDepartmentId),
-    assignedToName: req.assignedToId ? employeeMap.get(req.assignedToId) : undefined
+    assignedToName: req.assignedToId ? employeeMap.get(req.assignedToId) : undefined,
   }));
 
   return {
     data: requestsWithNames.map(convertToProtoResponse),
     total,
     page,
-    page_size
+    page_size,
   };
 };
 
-
-
 export const updatePorterRequest = async (
   id: string,
-  updateData: Omit<UpdatePorterRequestInput, 'id'>
+  updateData: Omit<UpdatePorterRequestInput, 'id'>,
 ): Promise<PorterRequestMessage> => {
   const data: Prisma.PorterRequestUpdateInput = {};
 
   if (updateData.requester_department !== undefined) {
     // แปลง requester_department เป็น number (รองรับทั้ง number และ string สำหรับ backward compatibility)
     const requesterDepartmentValue =
-      updateData.requester_department !== null &&
-      updateData.requester_department !== undefined
-        ? typeof updateData.requester_department === "number"
+      updateData.requester_department !== null && updateData.requester_department !== undefined
+        ? typeof updateData.requester_department === 'number'
           ? updateData.requester_department
           : Number.parseInt(String(updateData.requester_department), 10) || null
         : null;
@@ -317,7 +332,7 @@ export const updatePorterRequest = async (
 
 export const updatePorterRequestStatus = async (
   id: string,
-  statusData: Omit<UpdatePorterRequestStatusInput, 'id'>
+  statusData: Omit<UpdatePorterRequestStatusInput, 'id'>,
 ): Promise<PorterRequestMessage> => {
   const { status, assigned_to_id, cancelled_reason, cancelled_by_id, accepted_by_id } = statusData;
   const oldRequest = await porterRequestRepo.findPorterRequestById(id);
@@ -330,7 +345,7 @@ export const updatePorterRequestStatus = async (
   }
 
   const data: Prisma.PorterRequestUpdateInput = {
-    status: newStatus
+    status: newStatus,
   };
 
   // คืนงานจาก WAITING_ACCEPT กลับไปที่ WAITING_CENTER ต้องล้างผู้ปฏิบัติงานและข้อมูลมอบหมาย
@@ -381,7 +396,7 @@ export const updatePorterRequestStatus = async (
 
 export const updatePorterRequestTimestamps = async (
   id: string,
-  timestampData: Omit<UpdatePorterRequestTimestampsInput, 'id'>
+  timestampData: Omit<UpdatePorterRequestTimestampsInput, 'id'>,
 ): Promise<PorterRequestMessage> => {
   const { pickup_at, delivery_at, return_at } = timestampData;
   const data: Prisma.PorterRequestUpdateInput = {};
@@ -425,25 +440,30 @@ export const healthCheck = async (): Promise<HealthCheckResult> => {
   return {
     success: true,
     message: 'Porter service is healthy',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 };
 
 // ----- Location Settings Service -----
 
-export const createBuilding = async (requestData: CreateBuildingInput): Promise<BuildingMessage> => {
+export const createBuilding = async (
+  requestData: CreateBuildingInput,
+): Promise<BuildingMessage> => {
   const { id, name, floor_count, floor_plans, status } = requestData;
 
   const createData: Prisma.BuildingUncheckedCreateInput = {
     name: name.trim(),
     floorCount: floor_count ?? null,
     status: status !== undefined ? status : true,
-    floorPlans: floor_plans && floor_plans.length > 0 ? {
-      create: floor_plans.map(fp => ({
-        floorNumber: fp.floor_number,
-        imageData: fp.image_data
-      }))
-    } : undefined
+    floorPlans:
+      floor_plans && floor_plans.length > 0
+        ? {
+            create: floor_plans.map((fp) => ({
+              floorNumber: fp.floor_number,
+              imageData: fp.image_data,
+            })),
+          }
+        : undefined,
   };
 
   if (id) {
@@ -460,7 +480,7 @@ export const getBuildingById = async (id: string): Promise<BuildingMessage | nul
 };
 
 export const listBuildings = async (
-  filters: ListBuildingsFilters
+  filters: ListBuildingsFilters,
 ): Promise<PaginationResult<BuildingMessage>> => {
   const { page = 1, page_size = 100 } = filters;
   const skip = (page - 1) * page_size;
@@ -469,22 +489,22 @@ export const listBuildings = async (
     buildingRepo.findBuildingsList({
       skip,
       take: page_size,
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     }),
-    buildingRepo.countBuildings()
+    buildingRepo.countBuildings(),
   ]);
 
   return {
     data: buildings.map(convertBuildingToProto),
     total,
     page,
-    page_size
+    page_size,
   };
 };
 
 export const updateBuilding = async (
   id: string,
-  updateData: UpdateBuildingInput
+  updateData: UpdateBuildingInput,
 ): Promise<BuildingMessage> => {
   const data: Prisma.BuildingUpdateInput = {};
 
@@ -500,10 +520,8 @@ export const updateBuilding = async (
 
   if (updateData.floor_plans !== undefined) {
     const existingFloorPlans = await floorPlanRepo.findManyFloorPlanIdsByBuildingId(id);
-    const incomingFloorNumbers = new Set(updateData.floor_plans.map(fp => fp.floor_number));
-    const toDelete = existingFloorPlans.filter(
-      (efp) => !incomingFloorNumbers.has(efp.floorNumber)
-    );
+    const incomingFloorNumbers = new Set(updateData.floor_plans.map((fp) => fp.floor_number));
+    const toDelete = existingFloorPlans.filter((efp) => !incomingFloorNumbers.has(efp.floorNumber));
 
     if (toDelete.length > 0) {
       await floorPlanRepo.deleteManyFloorPlansByIds(toDelete.map((d) => d.id));
@@ -517,11 +535,11 @@ export const updateBuilding = async (
             create: {
               buildingId: id,
               floorNumber: fp.floor_number,
-              imageData: fp.image_data
+              imageData: fp.image_data,
             },
-            update: { imageData: fp.image_data }
-          })
-        )
+            update: { imageData: fp.image_data },
+          }),
+        ),
       );
     } else {
       await floorPlanRepo.deleteManyFloorPlansByBuildingId(id);
@@ -537,7 +555,7 @@ export const deleteBuilding = async (id: string): Promise<void> => {
 };
 
 export const createFloorDepartment = async (
-  requestData: CreateFloorDepartmentInput
+  requestData: CreateFloorDepartmentInput,
 ): Promise<FloorDepartmentMessage> => {
   const {
     id,
@@ -548,7 +566,7 @@ export const createFloorDepartment = async (
     room_type,
     room_count,
     bed_count,
-    status
+    status,
   } = requestData;
 
   const createData: Prisma.FloorDepartmentUncheckedCreateInput = {
@@ -559,7 +577,7 @@ export const createFloorDepartment = async (
     roomType: room_type ?? null,
     roomCount: room_count ?? null,
     bedCount: bed_count ?? null,
-    status: status !== undefined ? status : true
+    status: status !== undefined ? status : true,
   };
 
   if (id) {
@@ -570,13 +588,15 @@ export const createFloorDepartment = async (
   return convertFloorDepartmentToProto(floorDepartment);
 };
 
-export const getFloorDepartmentById = async (id: string): Promise<FloorDepartmentMessage | null> => {
+export const getFloorDepartmentById = async (
+  id: string,
+): Promise<FloorDepartmentMessage | null> => {
   const floorDepartment = await floorDepartmentRepo.findFloorDepartmentById(id);
   return floorDepartment ? convertFloorDepartmentToProto(floorDepartment) : null;
 };
 
 export const listFloorDepartments = async (
-  filters: ListFloorDepartmentsFilters
+  filters: ListFloorDepartmentsFilters,
 ): Promise<PaginationResult<FloorDepartmentMessage>> => {
   const { building_id, department_type, page = 1, page_size = 100 } = filters;
 
@@ -591,22 +611,22 @@ export const listFloorDepartments = async (
       where,
       skip,
       take: page_size,
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     }),
-    floorDepartmentRepo.countFloorDepartments(where)
+    floorDepartmentRepo.countFloorDepartments(where),
   ]);
 
   return {
     data: floorDepartments.map(convertFloorDepartmentToProto),
     total,
     page,
-    page_size
+    page_size,
   };
 };
 
 export const updateFloorDepartment = async (
   id: string,
-  updateData: UpdateFloorDepartmentInput
+  updateData: UpdateFloorDepartmentInput,
 ): Promise<FloorDepartmentMessage> => {
   const data: Prisma.FloorDepartmentUpdateInput = {};
 
@@ -623,10 +643,10 @@ export const updateFloorDepartment = async (
     data.roomType = updateData.room_type ?? null;
   }
   if (updateData.room_count !== undefined) {
-    data.roomCount = updateData.room_count === 0 ? null : updateData.room_count ?? null;
+    data.roomCount = updateData.room_count === 0 ? null : (updateData.room_count ?? null);
   }
   if (updateData.bed_count !== undefined) {
-    data.bedCount = updateData.bed_count === 0 ? null : updateData.bed_count ?? null;
+    data.bedCount = updateData.bed_count === 0 ? null : (updateData.bed_count ?? null);
   }
   if (updateData.status !== undefined) {
     data.status = updateData.status;
@@ -642,15 +662,27 @@ export const deleteFloorDepartment = async (id: string): Promise<void> => {
 
 // ----- Employee Management Service -----
 
-export const createEmployee = async (requestData: CreateEmployeeInput): Promise<PorterEmployeeMessage> => {
-  const { citizen_id, first_name, last_name, nickname, profile_image, employment_type_id, position_id, status, user_id } = requestData;
+export const createEmployee = async (
+  requestData: CreateEmployeeInput,
+): Promise<PorterEmployeeMessage> => {
+  const {
+    citizen_id,
+    first_name,
+    last_name,
+    nickname,
+    profile_image,
+    employment_type_id,
+    position_id,
+    status,
+    user_id,
+  } = requestData;
 
   // แปลง employment_type_id และ position_id จาก string เป็น Int
   const employmentTypeIdInt = Number.parseInt(employment_type_id, 10);
   const positionIdInt = Number.parseInt(position_id, 10);
 
   if (Number.isNaN(employmentTypeIdInt) || Number.isNaN(positionIdInt)) {
-    throw new Error("employment_type_id และ position_id ต้องเป็นตัวเลข");
+    throw new Error('employment_type_id และ position_id ต้องเป็นตัวเลข');
   }
 
   const createData: Prisma.PorterEmployeeUncheckedCreateInput = {
@@ -659,11 +691,11 @@ export const createEmployee = async (requestData: CreateEmployeeInput): Promise<
     lastName: last_name.trim(),
     nickname: nickname?.trim() || null,
     // ถ้าเป็น empty string (จาก gRPC) ให้ตั้งค่าเป็น null
-    profileImage: profile_image && profile_image.trim() !== "" ? profile_image.trim() : null,
+    profileImage: profile_image && profile_image.trim() !== '' ? profile_image.trim() : null,
     employmentTypeId: employmentTypeIdInt,
     positionId: positionIdInt,
     status: status ?? true,
-    userId: user_id?.trim() || null
+    userId: user_id?.trim() || null,
   };
 
   const employee = await porterEmployeeRepo.createPorterEmployee(createData);
@@ -676,7 +708,7 @@ export const getEmployeeById = async (id: string): Promise<PorterEmployeeMessage
 };
 
 export const listEmployees = async (
-  filters: ListEmployeesFilters
+  filters: ListEmployeesFilters,
 ): Promise<PaginationResult<PorterEmployeeMessage>> => {
   const { employment_type_id, position_id, status, user_id, page = 1, page_size } = filters;
 
@@ -703,22 +735,22 @@ export const listEmployees = async (
       where,
       skip,
       take,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     }),
-    porterEmployeeRepo.countPorterEmployees(where)
+    porterEmployeeRepo.countPorterEmployees(where),
   ]);
 
   return {
     data: employees.map(convertEmployeeToProto),
     total,
     page,
-    page_size: page_size ?? total
+    page_size: page_size ?? total,
   };
 };
 
 export const updateEmployee = async (
   id: string,
-  updateData: UpdateEmployeeInput
+  updateData: UpdateEmployeeInput,
 ): Promise<PorterEmployeeMessage> => {
   const data: Prisma.PorterEmployeeUncheckedUpdateInput = {};
 
@@ -734,14 +766,14 @@ export const updateEmployee = async (
   if (updateData.profile_image !== undefined) {
     // ถ้าเป็น empty string (จาก gRPC) หรือ null ให้ตั้งค่าเป็น null เพื่อลบรูปภาพ
     // gRPC protobuf ส่ง empty string แทน null สำหรับ optional string
-    const trimmedValue = updateData.profile_image?.trim() || "";
-    data.profileImage = trimmedValue !== "" ? trimmedValue : null;
+    const trimmedValue = updateData.profile_image?.trim() || '';
+    data.profileImage = trimmedValue !== '' ? trimmedValue : null;
   }
   if (updateData.employment_type_id !== undefined && updateData.employment_type_id !== null) {
     // แปลงจาก string เป็น Int
     const employmentTypeIdInt = Number.parseInt(updateData.employment_type_id, 10);
     if (Number.isNaN(employmentTypeIdInt)) {
-      throw new Error("employment_type_id ต้องเป็นตัวเลข");
+      throw new Error('employment_type_id ต้องเป็นตัวเลข');
     }
     data.employmentTypeId = employmentTypeIdInt;
   }
@@ -749,7 +781,7 @@ export const updateEmployee = async (
     // แปลงจาก string เป็น Int
     const positionIdInt = Number.parseInt(updateData.position_id, 10);
     if (Number.isNaN(positionIdInt)) {
-      throw new Error("position_id ต้องเป็นตัวเลข");
+      throw new Error('position_id ต้องเป็นตัวเลข');
     }
     data.positionId = positionIdInt;
   }
@@ -761,10 +793,7 @@ export const updateEmployee = async (
     data.userId = newUserId;
 
     if (newUserId) {
-      const existing = await porterEmployeeRepo.findFirstPorterEmployeeIdByUserId(
-        newUserId,
-        id
-      );
+      const existing = await porterEmployeeRepo.findFirstPorterEmployeeIdByUserId(newUserId, id);
       if (existing) {
         throw new Error('USER_ALREADY_LINKED');
       }
@@ -782,7 +811,7 @@ export const deleteEmployee = async (id: string): Promise<void> => {
 // ----- Helper functions -----
 
 const normalizePatientCondition = (
-  value: string | string[] | null | undefined
+  value: string | string[] | null | undefined,
 ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput => {
   if (value === undefined || value === null) {
     return Prisma.DbNull;
@@ -803,43 +832,36 @@ const normalizePatientCondition = (
  * ดึง building / floor department / employee names แล้ว merge เข้า porter request (สำหรับ stream และ response)
  */
 const enrichPorterRequestWithNames = async (
-  porterRequest: PorterRequest
+  porterRequest: PorterRequest,
 ): Promise<PorterRequestWithLocationNames> => {
-  const buildingIds = [
-    porterRequest.pickupBuildingId,
-    porterRequest.deliveryBuildingId
-  ];
+  const buildingIds = [porterRequest.pickupBuildingId, porterRequest.deliveryBuildingId];
   const floorDepartmentIds = [
     porterRequest.pickupFloorDepartmentId,
-    porterRequest.deliveryFloorDepartmentId
+    porterRequest.deliveryFloorDepartmentId,
   ];
-  const employeeIds = porterRequest.assignedToId
-    ? [porterRequest.assignedToId]
-    : [];
+  const employeeIds = porterRequest.assignedToId ? [porterRequest.assignedToId] : [];
 
   const [buildingMap, floorDepartmentMap, employeeMap] = await Promise.all([
     buildingRepo.findBuildingNamesByIds(buildingIds),
     floorDepartmentRepo.findFloorDepartmentNamesByIds(floorDepartmentIds),
-    porterEmployeeRepo.findPorterEmployeeNamesByIds(employeeIds)
+    porterEmployeeRepo.findPorterEmployeeNamesByIds(employeeIds),
   ]);
 
   return {
     ...porterRequest,
     pickupBuildingName: buildingMap.get(porterRequest.pickupBuildingId),
-    pickupFloorDepartmentName: floorDepartmentMap.get(
-      porterRequest.pickupFloorDepartmentId
-    ),
+    pickupFloorDepartmentName: floorDepartmentMap.get(porterRequest.pickupFloorDepartmentId),
     deliveryBuildingName: buildingMap.get(porterRequest.deliveryBuildingId),
-    deliveryFloorDepartmentName: floorDepartmentMap.get(
-      porterRequest.deliveryFloorDepartmentId
-    ),
+    deliveryFloorDepartmentName: floorDepartmentMap.get(porterRequest.deliveryFloorDepartmentId),
     assignedToName: porterRequest.assignedToId
       ? employeeMap.get(porterRequest.assignedToId)
-      : undefined
+      : undefined,
   };
 };
 
-const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): PorterRequestMessage => {
+const convertToProtoResponse = (
+  porterRequest: PorterRequestWithLocationNames,
+): PorterRequestMessage => {
   const result = {
     id: porterRequest.id,
     created_at: porterRequest.createdAt.toISOString(),
@@ -882,7 +904,7 @@ const convertToProtoResponse = (porterRequest: PorterRequestWithLocationNames): 
     cancelled_by_id: porterRequest.cancelledById || undefined,
     pickup_at: porterRequest.pickupAt?.toISOString() || undefined,
     delivery_at: porterRequest.deliveryAt?.toISOString() || undefined,
-    return_at: porterRequest.returnAt?.toISOString() || undefined
+    return_at: porterRequest.returnAt?.toISOString() || undefined,
   };
 
   return result;
@@ -915,7 +937,7 @@ const formatPatientCondition = (value: Prisma.JsonValue | null): string | undefi
 type BuildingListItem = Building & { floors: unknown[]; floorPlans: never[] };
 
 const convertBuildingToProto = (
-  building: BuildingWithFloorsAndFloorPlans | BuildingListItem
+  building: BuildingWithFloorsAndFloorPlans | BuildingListItem,
 ): BuildingMessage => {
   const floorPlans = Array.isArray(building.floorPlans)
     ? (building.floorPlans as FloorPlanWithStations[]).map(convertFloorPlanToProto)
@@ -931,12 +953,12 @@ const convertBuildingToProto = (
     status: building.status,
     created_at: building.createdAt.toISOString(),
     updated_at: building.updatedAt.toISOString(),
-    floors
+    floors,
   };
 };
 
 const convertFloorPlanToProto = (
-  floorPlan: FloorPlanWithStations
+  floorPlan: FloorPlanWithStations,
 ): import('../types/porter').FloorPlanMessage => {
   return {
     id: floorPlan.id,
@@ -945,12 +967,12 @@ const convertFloorPlanToProto = (
     image_data: floorPlan.imageData,
     stations: floorPlan.stations?.map(convertBleStationToProto) ?? [],
     created_at: floorPlan.createdAt.toISOString(),
-    updated_at: floorPlan.updatedAt.toISOString()
+    updated_at: floorPlan.updatedAt.toISOString(),
   };
 };
 
 const convertBleStationToProto = (
-  station: import('../generated/prisma/client').BleStation
+  station: import('../generated/prisma/client').BleStation,
 ): import('../types/porter').BleStationMessage => {
   return {
     id: station.id,
@@ -964,12 +986,12 @@ const convertBleStationToProto = (
     battery_level: station.batteryLevel ?? undefined,
     status: station.status,
     created_at: station.createdAt.toISOString(),
-    updated_at: station.updatedAt.toISOString()
+    updated_at: station.updatedAt.toISOString(),
   };
 };
 
 const convertFloorDepartmentToProto = (
-  floorDepartment: FloorDepartmentWithBuilding | FloorDepartment
+  floorDepartment: FloorDepartmentWithBuilding | FloorDepartment,
 ): FloorDepartmentMessage => ({
   id: floorDepartment.id,
   name: floorDepartment.name,
@@ -982,12 +1004,10 @@ const convertFloorDepartmentToProto = (
   status: floorDepartment.status,
   created_at: floorDepartment.createdAt.toISOString(),
   updated_at: floorDepartment.updatedAt.toISOString(),
-  rooms: []
+  rooms: [],
 });
 
-const convertEmployeeToProto = (
-  employee: PorterEmployee
-): PorterEmployeeMessage => ({
+const convertEmployeeToProto = (employee: PorterEmployee): PorterEmployeeMessage => ({
   id: employee.id,
   citizen_id: employee.citizenId,
   first_name: employee.firstName,
@@ -1002,12 +1022,14 @@ const convertEmployeeToProto = (
   status: employee.status,
   created_at: employee.createdAt.toISOString(),
   updated_at: employee.updatedAt.toISOString(),
-  user_id: employee.userId || undefined
+  user_id: employee.userId || undefined,
 });
 
 // ===== FloorPlan Service Functions =====
 
-export const createFloorPlan = async (requestData: CreateFloorPlanInput): Promise<FloorPlanMessage> => {
+export const createFloorPlan = async (
+  requestData: CreateFloorPlanInput,
+): Promise<FloorPlanMessage> => {
   const { id, building_id, floor_number, image_data } = requestData;
 
   const building = await buildingRepo.findBuildingById(building_id);
@@ -1017,18 +1039,18 @@ export const createFloorPlan = async (requestData: CreateFloorPlanInput): Promis
 
   const existingFloorPlan = await floorPlanRepo.findFloorPlanByBuildingIdAndFloorNumber(
     building_id,
-    floor_number
+    floor_number,
   );
   if (existingFloorPlan) {
     throw new Error(
-      `Floor plan for building ${building_id} at floor ${floor_number} already exists`
+      `Floor plan for building ${building_id} at floor ${floor_number} already exists`,
     );
   }
 
   const createData: Prisma.FloorPlanUncheckedCreateInput = {
     buildingId: building_id,
     floorNumber: floor_number,
-    imageData: image_data
+    imageData: image_data,
   };
   if (id) createData.id = id;
 
@@ -1042,7 +1064,7 @@ export const getFloorPlanById = async (id: string): Promise<FloorPlanMessage | n
 };
 
 export const listFloorPlans = async (
-  filters: ListFloorPlansFilters
+  filters: ListFloorPlansFilters,
 ): Promise<PaginationResult<FloorPlanMessage>> => {
   const { building_id, floor_number, page = 1, page_size = 100 } = filters;
   const skip = (page - 1) * page_size;
@@ -1056,22 +1078,22 @@ export const listFloorPlans = async (
       where,
       skip,
       take: page_size,
-      orderBy: [{ buildingId: 'asc' }, { floorNumber: 'asc' }]
+      orderBy: [{ buildingId: 'asc' }, { floorNumber: 'asc' }],
     }),
-    floorPlanRepo.countFloorPlans(where)
+    floorPlanRepo.countFloorPlans(where),
   ]);
 
   return {
     data: floorPlans.map(convertFloorPlanToProto),
     total,
     page,
-    page_size
+    page_size,
   };
 };
 
 export const updateFloorPlan = async (
   id: string,
-  updateData: UpdateFloorPlanInput
+  updateData: UpdateFloorPlanInput,
 ): Promise<FloorPlanMessage> => {
   const data: Prisma.FloorPlanUncheckedUpdateInput = {};
 
@@ -1091,14 +1113,13 @@ export const updateFloorPlan = async (
     const targetFloorNumber = updateData.floor_number;
 
     if (currentFloorPlan && targetBuildingId) {
-      const existingFloorPlan =
-        await floorPlanRepo.findFloorPlanByBuildingIdAndFloorNumber(
-          targetBuildingId,
-          targetFloorNumber
-        );
+      const existingFloorPlan = await floorPlanRepo.findFloorPlanByBuildingIdAndFloorNumber(
+        targetBuildingId,
+        targetFloorNumber,
+      );
       if (existingFloorPlan && existingFloorPlan.id !== id) {
         throw new Error(
-          `Floor plan for building ${targetBuildingId} at floor ${targetFloorNumber} already exists`
+          `Floor plan for building ${targetBuildingId} at floor ${targetFloorNumber} already exists`,
         );
       }
     }
@@ -1118,8 +1139,21 @@ export const deleteFloorPlan = async (id: string): Promise<void> => {
 
 // ===== BleStation Service Functions =====
 
-export const createBleStation = async (requestData: CreateBleStationInput): Promise<BleStationMessage> => {
-  const { id, floor_plan_id, name, mac_address, uuid, position_x, position_y, signal_strength, battery_level, status } = requestData;
+export const createBleStation = async (
+  requestData: CreateBleStationInput,
+): Promise<BleStationMessage> => {
+  const {
+    id,
+    floor_plan_id,
+    name,
+    mac_address,
+    uuid,
+    position_x,
+    position_y,
+    signal_strength,
+    battery_level,
+    status,
+  } = requestData;
 
   const floorPlan = await floorPlanRepo.findFloorPlanById(floor_plan_id);
   if (!floorPlan) {
@@ -1140,7 +1174,7 @@ export const createBleStation = async (requestData: CreateBleStationInput): Prom
     positionY: position_y,
     signalStrength: signal_strength ?? null,
     batteryLevel: battery_level ?? null,
-    status: status !== undefined ? status : true
+    status: status !== undefined ? status : true,
   };
   if (id) createData.id = id;
 
@@ -1154,7 +1188,7 @@ export const getBleStationById = async (id: string): Promise<BleStationMessage |
 };
 
 export const listBleStations = async (
-  filters: ListBleStationsFilters
+  filters: ListBleStationsFilters,
 ): Promise<PaginationResult<BleStationMessage>> => {
   const { floor_plan_id, status, page = 1, page_size = 100 } = filters;
   const skip = (page - 1) * page_size;
@@ -1168,22 +1202,22 @@ export const listBleStations = async (
       where,
       skip,
       take: page_size,
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     }),
-    bleStationRepo.countBleStations(where)
+    bleStationRepo.countBleStations(where),
   ]);
 
   return {
     data: stations.map(convertBleStationToProto),
     total,
     page,
-    page_size
+    page_size,
   };
 };
 
 export const updateBleStation = async (
   id: string,
-  updateData: UpdateBleStationInput
+  updateData: UpdateBleStationInput,
 ): Promise<BleStationMessage> => {
   const data: Prisma.BleStationUpdateInput = {};
 
@@ -1192,13 +1226,9 @@ export const updateBleStation = async (
   }
 
   if (updateData.mac_address !== undefined) {
-    const existingStation = await bleStationRepo.findBleStationByMacAddress(
-      updateData.mac_address
-    );
+    const existingStation = await bleStationRepo.findBleStationByMacAddress(updateData.mac_address);
     if (existingStation && existingStation.id !== id) {
-      throw new Error(
-        `BLE Station with MAC address ${updateData.mac_address} already exists`
-      );
+      throw new Error(`BLE Station with MAC address ${updateData.mac_address} already exists`);
     }
     data.macAddress = updateData.mac_address;
   }
@@ -1224,5 +1254,3 @@ export const updateBleStation = async (
 export const deleteBleStation = async (id: string): Promise<void> => {
   await bleStationRepo.deleteBleStation(id);
 };
-
-

@@ -1,16 +1,9 @@
-"use client";
+'use client';
 
-import React from "react";
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-} from "@heroui/react";
+import React from 'react';
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react';
 
-import { AmbulanceIcon, InfoCircleIcon } from "@/components/ui/icons";
+import { AmbulanceIcon, InfoCircleIcon } from '@/components/ui/icons';
 
 interface EmergencyConfirmationModalProps {
   isOpen: boolean;
@@ -22,14 +15,14 @@ interface EmergencyConfirmationModalProps {
  * รายการอาการที่เข้าข่ายเคสฉุกเฉิน
  */
 const EMERGENCY_SYMPTOMS = [
-  "หมดสติ ไม่รู้สึกตัว",
-  "หยุดหายใจ / หายใจลำบากรุนแรง",
-  "เจ็บหน้าอกรุนแรง แน่น อึดอัด",
-  "ชัก ไม่หยุด หรือชักแล้วไม่ฟื้น",
-  "แขนขาอ่อนแรง พูดไม่ชัด ซึมลง (สงสัย Stroke)",
-  "เลือดออกมาก ควบคุมไม่ได้",
-  "อุบัติเหตุรุนแรง (ศีรษะ หน้าอก ช่องท้อง)",
-  "ไข้สูงร่วมกับซึม คอแข็ง (สงสัยติดเชื้อรุนแรง)",
+  'หมดสติ ไม่รู้สึกตัว',
+  'หยุดหายใจ / หายใจลำบากรุนแรง',
+  'เจ็บหน้าอกรุนแรง แน่น อึดอัด',
+  'ชัก ไม่หยุด หรือชักแล้วไม่ฟื้น',
+  'แขนขาอ่อนแรง พูดไม่ชัด ซึมลง (สงสัย Stroke)',
+  'เลือดออกมาก ควบคุมไม่ได้',
+  'อุบัติเหตุรุนแรง (ศีรษะ หน้าอก ช่องท้อง)',
+  'ไข้สูงร่วมกับซึม คอแข็ง (สงสัยติดเชื้อรุนแรง)',
 ];
 
 /**
@@ -58,8 +51,7 @@ export default function EmergencyConfirmationModal({
                 <InfoCircleIcon className="w-5 h-5 text-danger-600 dark:text-danger-400 mt-0.5 shrink-0" />
                 <div className="text-sm text-danger-800 dark:text-danger-200">
                   <p className="font-medium">
-                    เจ้าหน้าที่เปล จะถึงจุดรับภายใน 5 นาที
-                    และจะต้องเป็นเคสฉุกเฉิน
+                    เจ้าหน้าที่เปล จะถึงจุดรับภายใน 5 นาที และจะต้องเป็นเคสฉุกเฉิน
                   </p>
                 </div>
               </div>
@@ -74,9 +66,7 @@ export default function EmergencyConfirmationModal({
                     key={index}
                     className="flex items-start gap-2 text-sm text-default-700 dark:text-default-300"
                   >
-                    <span className="text-danger-500 dark:text-danger-400 mt-1.5 shrink-0">
-                      •
-                    </span>
+                    <span className="text-danger-500 dark:text-danger-400 mt-1.5 shrink-0">•</span>
                     <span>{symptom}</span>
                   </li>
                 ))}

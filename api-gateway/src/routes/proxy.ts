@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+
 import { config } from '../config/env';
 import { authMiddleware } from '../middlewares/auth';
 
@@ -33,15 +34,13 @@ if (config.services.revenue?.baseUrl) {
         },
         error: (err: any, _req: any, res: any) => {
           console.error('Proxy Error:', err);
-          res.status(500).json({ 
-            success: false, 
+          res.status(500).json({
+            success: false,
             error: 'PROXY_ERROR',
-            message: 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ Revenue Service'
+            message: 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ Revenue Service',
           });
-        }
-      }
-    })
+        },
+      },
+    }),
   );
 }
-
-

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import type { CrudItem, CrudTableProps } from "../types";
+import type { CrudItem, CrudTableProps } from '../types';
 
-import React from "react";
+import React from 'react';
 import {
   Table,
   TableHeader,
@@ -12,11 +12,12 @@ import {
   TableCell,
   Pagination,
   Button,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { PencilIcon, TrashIcon } from "@/components/ui/icons";
+import { PencilIcon, TrashIcon } from '@/components/ui/icons';
+import { TABLE_STYLES } from '@/lib/tableStyles';
 
-export type { CrudItem, CrudTableColumn, CrudTableProps } from "../types";
+export type { CrudItem, CrudTableColumn, CrudTableProps } from '../types';
 
 export function CrudTable<T extends CrudItem>({
   items,
@@ -33,19 +34,17 @@ export function CrudTable<T extends CrudItem>({
   onDelete,
   onPageChange,
   onRowsPerPageChange,
-  emptyContent = "ยังไม่มีข้อมูล",
+  emptyContent = 'ยังไม่มีข้อมูล',
   showActions = true,
 }: CrudTableProps<T>) {
   // Add actions column if showActions is true
-  const tableColumns = showActions
-    ? [...columns, { key: "actions", label: "การจัดการ" }]
-    : columns;
+  const tableColumns = showActions ? [...columns, { key: 'actions', label: 'การจัดการ' }] : columns;
 
   return (
     <>
       {isLoading ? (
         <div className="text-center py-8 text-default-500">
-          <p>กำลังโหลดข้อมูล...</p>
+          <p>{TABLE_STYLES.loading.content}</p>
         </div>
       ) : (
         <>
@@ -53,13 +52,14 @@ export function CrudTable<T extends CrudItem>({
             removeWrapper
             aria-label="รายการข้อมูล"
             classNames={{
-              wrapper: "min-h-[400px]",
+              wrapper: TABLE_STYLES.wrapper,
+              th: TABLE_STYLES.th,
+              td: TABLE_STYLES.td,
+              tr: TABLE_STYLES.tr,
             }}
           >
             <TableHeader columns={tableColumns}>
-              {(column) => (
-                <TableColumn key={column.key}>{column.label}</TableColumn>
-              )}
+              {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
             </TableHeader>
             <TableBody emptyContent={emptyContent} items={items}>
               {(item) => {
@@ -68,9 +68,7 @@ export function CrudTable<T extends CrudItem>({
                     {column.render ? (
                       column.render(item)
                     ) : (
-                      <span className="text-foreground">
-                        {String(item[column.key] ?? "")}
-                      </span>
+                      <span className="text-foreground">{String(item[column.key] ?? '')}</span>
                     )}
                   </TableCell>
                 ));
@@ -81,16 +79,18 @@ export function CrudTable<T extends CrudItem>({
                       <div className="flex items-center gap-2">
                         <Button
                           isIconOnly
+                          aria-label="แก้ไข"
                           color="primary"
                           isDisabled={isDeleting === item.id || isSaving}
                           size="sm"
                           variant="light"
                           onPress={() => onEdit(item)}
                         >
-                          <PencilIcon className="w-4 h-4" />
+                          <PencilIcon aria-hidden className="w-4 h-4" />
                         </Button>
                         <Button
                           isIconOnly
+                          aria-label="ลบ"
                           color="danger"
                           isDisabled={isDeleting === item.id}
                           isLoading={isDeleting === item.id}
@@ -98,7 +98,7 @@ export function CrudTable<T extends CrudItem>({
                           variant="light"
                           onPress={() => onDelete(item.id)}
                         >
-                          <TrashIcon className="w-4 h-4" />
+                          <TrashIcon aria-hidden className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>,
@@ -112,10 +112,9 @@ export function CrudTable<T extends CrudItem>({
 
           {/* Pagination */}
           {items.length > 0 && (
-            <div className="flex items-center justify-between mt-4 px-2">
-              <div className="text-sm text-default-600">
-                แสดง {startIndex + 1} - {Math.min(endIndex, items.length)} จาก{" "}
-                {items.length} รายการ
+            <div className={TABLE_STYLES.pagination.containerClass}>
+              <div className={TABLE_STYLES.pagination.textClass}>
+                แสดง {startIndex + 1} - {Math.min(endIndex, items.length)} จาก {items.length} รายการ
               </div>
               <Pagination
                 showControls
@@ -126,16 +125,13 @@ export function CrudTable<T extends CrudItem>({
                 total={totalPages}
                 onChange={onPageChange}
               />
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <label
-                    className="text-sm text-default-600"
-                    htmlFor="rows-per-page"
-                  >
+              <div className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}>
+                <div className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}>
+                  <label className={TABLE_STYLES.pagination.labelClass} htmlFor="rows-per-page">
                     แสดงต่อหน้า:
                   </label>
                   <select
-                    className="px-2 py-1 text-sm border border-default-300 rounded-md bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className={TABLE_STYLES.pagination.selectClass}
                     id="rows-per-page"
                     value={rowsPerPage}
                     onChange={(e) => {

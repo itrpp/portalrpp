@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalContent,
@@ -13,9 +13,9 @@ import {
   SelectItem,
   Checkbox,
   addToast,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { DepartmentSub, Department } from "@/types/hrd";
+import { DepartmentSub, Department } from '@/types/hrd';
 
 /**
  * Props สำหรับ DepartmentSubModal
@@ -24,7 +24,7 @@ interface DepartmentSubModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (
-    departmentSub: Omit<DepartmentSub, "id" | "createdAt" | "updatedAt"> & {
+    departmentSub: Omit<DepartmentSub, 'id' | 'createdAt' | 'updatedAt'> & {
       id?: number;
     },
   ) => void;
@@ -44,7 +44,7 @@ export default function DepartmentSubModal({
   departments,
   isLoading = false,
 }: DepartmentSubModalProps) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [departmentId, setDepartmentId] = useState<number | null>(null);
   const [active, setActive] = useState(true);
 
@@ -54,7 +54,7 @@ export default function DepartmentSubModal({
       setDepartmentId(departmentSub.departmentId);
       setActive(departmentSub.active ?? true);
     } else {
-      setName("");
+      setName('');
       setDepartmentId(null);
       setActive(true);
     }
@@ -63,9 +63,9 @@ export default function DepartmentSubModal({
   const handleSave = async () => {
     if (!name.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกชื่อกลุ่มงาน",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณากรอกชื่อกลุ่มงาน',
+        color: 'danger',
       });
 
       return;
@@ -73,9 +73,9 @@ export default function DepartmentSubModal({
 
     if (!departmentId) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาเลือกกลุ่มภารกิจ",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณาเลือกกลุ่มภารกิจ',
+        color: 'danger',
       });
 
       return;
@@ -97,9 +97,7 @@ export default function DepartmentSubModal({
   return (
     <Modal isOpen={isOpen} size="lg" onClose={onClose}>
       <ModalContent>
-        <ModalHeader>
-          {departmentSub ? "แก้ไขกลุ่มงาน" : "เพิ่มกลุ่มงานใหม่"}
-        </ModalHeader>
+        <ModalHeader>{departmentSub ? 'แก้ไขกลุ่มงาน' : 'เพิ่มกลุ่มงานใหม่'}</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             <Select
@@ -107,16 +105,12 @@ export default function DepartmentSubModal({
               isDisabled={isLoading}
               label="กลุ่มภารกิจ"
               placeholder="เลือกกลุ่มภารกิจ"
-              selectedKeys={
-                departmentId ? new Set([departmentId.toString()]) : new Set()
-              }
+              selectedKeys={departmentId ? new Set([departmentId.toString()]) : new Set()}
               variant="bordered"
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0] as string;
 
-                setDepartmentId(
-                  selected ? Number.parseInt(selected, 10) : null,
-                );
+                setDepartmentId(selected ? Number.parseInt(selected, 10) : null);
               }}
             >
               {departments.map((dept) => (
@@ -133,17 +127,11 @@ export default function DepartmentSubModal({
               onChange={(e) => setName(e.target.value)}
             />
             <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                สถานะการใช้งาน
-              </div>
+              <div className="text-sm font-medium text-foreground">สถานะการใช้งาน</div>
               <div className="text-xs text-default-500">
                 เปิดใช้งานเมื่อต้องการให้กลุ่มงานนี้สามารถเลือกใช้ได้
               </div>
-              <Checkbox
-                isDisabled={isLoading}
-                isSelected={active}
-                onValueChange={setActive}
-              >
+              <Checkbox isDisabled={isLoading} isSelected={active} onValueChange={setActive}>
                 ใช้งาน
               </Checkbox>
             </div>
@@ -153,12 +141,7 @@ export default function DepartmentSubModal({
           <Button isDisabled={isLoading} variant="flat" onPress={onClose}>
             ยกเลิก
           </Button>
-          <Button
-            color="primary"
-            isDisabled={isLoading}
-            isLoading={isLoading}
-            onPress={handleSave}
-          >
+          <Button color="primary" isDisabled={isLoading} isLoading={isLoading} onPress={handleSave}>
             บันทึก
           </Button>
         </ModalFooter>

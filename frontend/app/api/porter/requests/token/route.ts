@@ -1,9 +1,9 @@
-import type { ExtendedUser } from "@/types/ldap";
+import type { ExtendedUser } from '@/types/ldap';
 
-import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from '@/lib/auth';
 
 /**
  * สร้าง JWT token สำหรับ SSE stream connection
@@ -18,8 +18,7 @@ export async function GET() {
     const user = auth.session.user as ExtendedUser;
 
     // สร้าง JWT token สำหรับ authentication กับ API Gateway
-    const jwtSecret =
-      process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "";
+    const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
 
     const signedToken = jwt.sign(
       {
@@ -30,7 +29,7 @@ export async function GET() {
         role: user.role,
       },
       jwtSecret,
-      { expiresIn: "15m" },
+      { expiresIn: '15m' },
     );
 
     return NextResponse.json({
@@ -38,13 +37,13 @@ export async function GET() {
       token: signedToken,
     });
   } catch (error: unknown) {
-    console.error("Error creating stream token:", error);
+    console.error('Error creating stream token:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create stream token",
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to create stream token',
       },
       { status: 500 },
     );

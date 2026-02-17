@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo } from "react";
-import { Card, CardBody, Spinner } from "@heroui/react";
-import { getLocalTimeZone, today } from "@internationalized/date";
+import React, { useState, useMemo } from 'react';
+import { Card, CardBody, Spinner } from '@heroui/react';
+import { getLocalTimeZone, today } from '@internationalized/date';
 
-import { StatCard } from "./components/StatCard";
-import { DailyJobChart } from "./components/DailyJobChart";
-import { PopularLocationChart } from "./components/PopularLocationChart";
-import { EmployeePerformanceChart } from "./components/EmployeePerformanceChart";
-import { TimeHeatmap } from "./components/TimeHeatmap";
-import { StatFilter, FilterState } from "./components/StatFilter";
-import { usePorterStats } from "./hooks/usePorterStats";
+import { StatCard } from './components/StatCard';
+import { DailyJobChart } from './components/DailyJobChart';
+import { PopularLocationChart } from './components/PopularLocationChart';
+import { EmployeePerformanceChart } from './components/EmployeePerformanceChart';
+import { TimeHeatmap } from './components/TimeHeatmap';
+import { StatFilter, FilterState } from './components/StatFilter';
+import { usePorterStats } from './hooks/usePorterStats';
 
 import {
   ChartBarIcon,
@@ -18,7 +18,8 @@ import {
   CheckCircleIcon,
   XMarkIcon,
   ClockIcon,
-} from "@/components/ui/icons";
+} from '@/components/ui/icons';
+import { LOADING_MESSAGES } from '@/lib/constants';
 
 export default function PorterStatPage() {
   const { stats, jobs, isLoading, error } = usePorterStats();
@@ -29,7 +30,7 @@ export default function PorterStatPage() {
     const startDate = todayDate.subtract({ days: 30 });
 
     return {
-      mode: "date-range",
+      mode: 'date-range',
       dateRange: {
         start: startDate,
         end: todayDate,
@@ -37,9 +38,7 @@ export default function PorterStatPage() {
     };
   }, []);
 
-  const [filterState, setFilterState] = useState<FilterState | null>(
-    defaultFilterState,
-  );
+  const [filterState, setFilterState] = useState<FilterState | null>(defaultFilterState);
 
   if (isLoading) {
     return (
@@ -47,7 +46,7 @@ export default function PorterStatPage() {
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="text-center">
             <Spinner color="primary" size="lg" />
-            <p className="text-default-600 mt-4">กำลังโหลดข้อมูลสถิติ...</p>
+            <p className="text-default-600 mt-4">{LOADING_MESSAGES.stats}</p>
           </div>
         </div>
       </div>
@@ -60,9 +59,7 @@ export default function PorterStatPage() {
         <Card className="border border-danger-200 bg-danger-50">
           <CardBody className="p-6">
             <div className="text-center">
-              <p className="text-danger-700 font-semibold text-lg">
-                เกิดข้อผิดพลาด
-              </p>
+              <p className="text-danger-700 font-semibold text-lg">เกิดข้อผิดพลาด</p>
               <p className="text-danger-600 mt-2">{error}</p>
             </div>
           </CardBody>

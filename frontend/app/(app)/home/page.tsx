@@ -1,4 +1,4 @@
-import HomeClient from "./HomeClient";
+import HomeClient from './HomeClient';
 
 /**
  * หน้า Home – Server Component

@@ -1,9 +1,6 @@
-import type {
-  sendUnaryData,
-  ServerUnaryCall,
-  ServerWritableStream
-} from '@grpc/grpc-js';
+import type { sendUnaryData, ServerUnaryCall, ServerWritableStream } from '@grpc/grpc-js';
 import { status } from '@grpc/grpc-js';
+
 import * as porterService from '../services/porter.service';
 import porterEventEmitter from '../utils/eventEmitter';
 import {
@@ -36,7 +33,7 @@ import {
   CreateBleStationInput,
   UpdateBleStationInput,
   ListBleStationsFilters,
-  BleStationMessage
+  BleStationMessage,
 } from '../types/porter';
 import { handleGrpcError } from '../utils/grpcError';
 
@@ -65,7 +62,7 @@ interface GrpcDeleteResponse {
 /** สร้าง Porter Request ใหม่ */
 export const createPorterRequest = async (
   call: UnaryCall<CreatePorterRequestInput, GrpcResponse<PorterRequestMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
     const data = await porterService.createPorterRequest(call.request);
@@ -78,7 +75,7 @@ export const createPorterRequest = async (
 /** ดึงข้อมูล Porter Request โดย ID */
 export const getPorterRequest = async (
   call: UnaryCall<{ id: string }, GrpcResponse<PorterRequestMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
     const data = await porterService.getPorterRequestById(call.request.id);
@@ -86,7 +83,7 @@ export const getPorterRequest = async (
     if (!data) {
       callback({
         code: status.NOT_FOUND,
-        message: 'Porter request not found'
+        message: 'Porter request not found',
       });
       return;
     }
@@ -100,7 +97,7 @@ export const getPorterRequest = async (
 /** ดึงรายการ Porter Request ทั้งหมด */
 export const listPorterRequests = async (
   call: UnaryCall<ListPorterRequestsFilters, GrpcListResponse<PorterRequestMessage>>,
-  callback: UnaryCallback<GrpcListResponse<PorterRequestMessage>>
+  callback: UnaryCallback<GrpcListResponse<PorterRequestMessage>>,
 ) => {
   try {
     const result = await porterService.listPorterRequests(call.request);
@@ -110,7 +107,7 @@ export const listPorterRequests = async (
       data: result.data,
       total: result.total,
       page: result.page,
-      page_size: result.page_size
+      page_size: result.page_size,
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to list porter requests');
@@ -120,7 +117,7 @@ export const listPorterRequests = async (
 /** อัปเดตข้อมูล Porter Request */
 export const updatePorterRequest = async (
   call: UnaryCall<UpdatePorterRequestInput, GrpcResponse<PorterRequestMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
     const { id, ...updateData } = call.request;
@@ -129,7 +126,7 @@ export const updatePorterRequest = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update porter request', {
-      notFoundMessage: 'Porter request not found'
+      notFoundMessage: 'Porter request not found',
     });
   }
 };
@@ -137,7 +134,7 @@ export const updatePorterRequest = async (
 /** อัปเดตสถานะ Porter Request */
 export const updatePorterRequestStatus = async (
   call: UnaryCall<UpdatePorterRequestStatusInput, GrpcResponse<PorterRequestMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
     const { id, ...statusData } = call.request;
@@ -146,7 +143,7 @@ export const updatePorterRequestStatus = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update porter request status', {
-      notFoundMessage: 'Porter request not found'
+      notFoundMessage: 'Porter request not found',
     });
   }
 };
@@ -154,7 +151,7 @@ export const updatePorterRequestStatus = async (
 /** อัปเดตเวลาสำคัญของ Porter Request */
 export const updatePorterRequestTimestamps = async (
   call: UnaryCall<UpdatePorterRequestTimestampsInput, GrpcResponse<PorterRequestMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
     const { id, ...timestampData } = call.request;
@@ -163,7 +160,7 @@ export const updatePorterRequestTimestamps = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update porter request timestamps', {
-      notFoundMessage: 'Porter request not found'
+      notFoundMessage: 'Porter request not found',
     });
   }
 };
@@ -171,17 +168,17 @@ export const updatePorterRequestTimestamps = async (
 /** ลบ Porter Request */
 export const deletePorterRequest = async (
   call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
+  callback: UnaryCallback<GrpcDeleteResponse>,
 ) => {
   try {
     await porterService.deletePorterRequest(call.request.id);
     callback(null, {
       success: true,
-      message: 'Porter request deleted successfully'
+      message: 'Porter request deleted successfully',
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete porter request', {
-      notFoundMessage: 'Porter request not found'
+      notFoundMessage: 'Porter request not found',
     });
   }
 };
@@ -189,7 +186,7 @@ export const deletePorterRequest = async (
 /** Health Check */
 export const healthCheck = async (
   _call: UnaryCall<Record<string, never>, HealthCheckResult>,
-  callback: UnaryCallback<HealthCheckResult>
+  callback: UnaryCallback<HealthCheckResult>,
 ) => {
   try {
     const result = await porterService.healthCheck();
@@ -201,14 +198,15 @@ export const healthCheck = async (
 
 /** Stream Porter Request updates แบบ real-time */
 export const streamPorterRequests = (
-  call: ServerWritableStream<StreamPorterRequestsRequest, PorterRequestUpdateMessage>
+  call: ServerWritableStream<StreamPorterRequestsRequest, PorterRequestUpdateMessage>,
 ) => {
   const { status: statusFilter, urgency_level } = call.request;
 
   const matchesStatusFilter = (requestStatus: string) => {
     if (statusFilter === undefined || statusFilter === null) return true;
     // รองรับ filter "WAITING" = กลุ่ม WAITING_CENTER หรือ WAITING_ACCEPT (ค่าจาก proto เป็น WAITING_CENTER, WAITING_ACCEPT, ...)
-    if (String(statusFilter) === 'WAITING') return (PORTER_STATUS_WAIT_GROUP as readonly string[]).includes(requestStatus);
+    if (String(statusFilter) === 'WAITING')
+      return (PORTER_STATUS_WAIT_GROUP as readonly string[]).includes(requestStatus);
     return requestStatus === statusFilter;
   };
 
@@ -228,7 +226,7 @@ export const streamPorterRequests = (
     try {
       const streamData: PorterRequestUpdateMessage = {
         type: 0,
-        request
+        request,
       };
 
       call.write(streamData);
@@ -252,7 +250,7 @@ export const streamPorterRequests = (
     try {
       call.write({
         type: 1,
-        request
+        request,
       });
     } catch {
       // Silent error handling
@@ -263,7 +261,7 @@ export const streamPorterRequests = (
     try {
       call.write({
         type: 2,
-        request
+        request,
       });
     } catch {
       // Silent error handling
@@ -274,7 +272,7 @@ export const streamPorterRequests = (
     try {
       call.write({
         type: 3,
-        request
+        request,
       });
     } catch {
       // Silent error handling
@@ -296,7 +294,7 @@ export const streamPorterRequests = (
 
 export const createBuilding = async (
   call: UnaryCall<CreateBuildingInput, GrpcResponse<BuildingMessage>>,
-  callback: UnaryCallback<GrpcResponse<BuildingMessage>>
+  callback: UnaryCallback<GrpcResponse<BuildingMessage>>,
 ) => {
   try {
     const data = await porterService.createBuilding(call.request);
@@ -308,7 +306,7 @@ export const createBuilding = async (
 
 export const getBuilding = async (
   call: UnaryCall<{ id: string }, GrpcResponse<BuildingMessage>>,
-  callback: UnaryCallback<GrpcResponse<BuildingMessage>>
+  callback: UnaryCallback<GrpcResponse<BuildingMessage>>,
 ) => {
   try {
     const data = await porterService.getBuildingById(call.request.id);
@@ -316,7 +314,7 @@ export const getBuilding = async (
     if (!data) {
       callback({
         code: status.NOT_FOUND,
-        message: 'Building not found'
+        message: 'Building not found',
       });
       return;
     }
@@ -329,7 +327,7 @@ export const getBuilding = async (
 
 export const listBuildings = async (
   call: UnaryCall<ListBuildingsFilters, GrpcListResponse<BuildingMessage>>,
-  callback: UnaryCallback<GrpcListResponse<BuildingMessage>>
+  callback: UnaryCallback<GrpcListResponse<BuildingMessage>>,
 ) => {
   try {
     const result = await porterService.listBuildings(call.request);
@@ -338,7 +336,7 @@ export const listBuildings = async (
       data: result.data,
       total: result.total,
       page: result.page,
-      page_size: result.page_size
+      page_size: result.page_size,
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to list buildings');
@@ -347,7 +345,7 @@ export const listBuildings = async (
 
 export const updateBuilding = async (
   call: UnaryCall<UpdateBuildingInput & { id: string }, GrpcResponse<BuildingMessage>>,
-  callback: UnaryCallback<GrpcResponse<BuildingMessage>>
+  callback: UnaryCallback<GrpcResponse<BuildingMessage>>,
 ) => {
   try {
     const { id, ...updateData } = call.request;
@@ -355,24 +353,24 @@ export const updateBuilding = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update building', {
-      notFoundMessage: 'Building not found'
+      notFoundMessage: 'Building not found',
     });
   }
 };
 
 export const deleteBuilding = async (
   call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
+  callback: UnaryCallback<GrpcDeleteResponse>,
 ) => {
   try {
     await porterService.deleteBuilding(call.request.id);
     callback(null, {
       success: true,
-      message: 'Building deleted successfully'
+      message: 'Building deleted successfully',
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete building', {
-      notFoundMessage: 'Building not found'
+      notFoundMessage: 'Building not found',
     });
   }
 };
@@ -381,7 +379,7 @@ export const deleteBuilding = async (
 
 export const createFloorDepartment = async (
   call: UnaryCall<CreateFloorDepartmentInput, GrpcResponse<FloorDepartmentMessage>>,
-  callback: UnaryCallback<GrpcResponse<FloorDepartmentMessage>>
+  callback: UnaryCallback<GrpcResponse<FloorDepartmentMessage>>,
 ) => {
   try {
     const data = await porterService.createFloorDepartment(call.request);
@@ -393,7 +391,7 @@ export const createFloorDepartment = async (
 
 export const getFloorDepartment = async (
   call: UnaryCall<{ id: string }, GrpcResponse<FloorDepartmentMessage>>,
-  callback: UnaryCallback<GrpcResponse<FloorDepartmentMessage>>
+  callback: UnaryCallback<GrpcResponse<FloorDepartmentMessage>>,
 ) => {
   try {
     const data = await porterService.getFloorDepartmentById(call.request.id);
@@ -401,7 +399,7 @@ export const getFloorDepartment = async (
     if (!data) {
       callback({
         code: status.NOT_FOUND,
-        message: 'Floor department not found'
+        message: 'Floor department not found',
       });
       return;
     }
@@ -414,7 +412,7 @@ export const getFloorDepartment = async (
 
 export const listFloorDepartments = async (
   call: UnaryCall<ListFloorDepartmentsFilters, GrpcListResponse<FloorDepartmentMessage>>,
-  callback: UnaryCallback<GrpcListResponse<FloorDepartmentMessage>>
+  callback: UnaryCallback<GrpcListResponse<FloorDepartmentMessage>>,
 ) => {
   try {
     const result = await porterService.listFloorDepartments(call.request);
@@ -423,7 +421,7 @@ export const listFloorDepartments = async (
       data: result.data,
       total: result.total,
       page: result.page,
-      page_size: result.page_size
+      page_size: result.page_size,
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to list floor departments');
@@ -431,8 +429,11 @@ export const listFloorDepartments = async (
 };
 
 export const updateFloorDepartment = async (
-  call: UnaryCall<UpdateFloorDepartmentInput & { id: string }, GrpcResponse<FloorDepartmentMessage>>,
-  callback: UnaryCallback<GrpcResponse<FloorDepartmentMessage>>
+  call: UnaryCall<
+    UpdateFloorDepartmentInput & { id: string },
+    GrpcResponse<FloorDepartmentMessage>
+  >,
+  callback: UnaryCallback<GrpcResponse<FloorDepartmentMessage>>,
 ) => {
   try {
     const { id, ...updateData } = call.request;
@@ -440,24 +441,24 @@ export const updateFloorDepartment = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update floor department', {
-      notFoundMessage: 'Floor department not found'
+      notFoundMessage: 'Floor department not found',
     });
   }
 };
 
 export const deleteFloorDepartment = async (
   call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
+  callback: UnaryCallback<GrpcDeleteResponse>,
 ) => {
   try {
     await porterService.deleteFloorDepartment(call.request.id);
     callback(null, {
       success: true,
-      message: 'Floor department deleted successfully'
+      message: 'Floor department deleted successfully',
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete floor department', {
-      notFoundMessage: 'Floor department not found'
+      notFoundMessage: 'Floor department not found',
     });
   }
 };
@@ -466,7 +467,7 @@ export const deleteFloorDepartment = async (
 
 export const createFloorPlan = async (
   call: UnaryCall<CreateFloorPlanInput, GrpcResponse<FloorPlanMessage>>,
-  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>
+  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>,
 ) => {
   try {
     const data = await porterService.createFloorPlan(call.request);
@@ -478,7 +479,7 @@ export const createFloorPlan = async (
 
 export const getFloorPlan = async (
   call: UnaryCall<{ id: string }, GrpcResponse<FloorPlanMessage>>,
-  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>
+  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>,
 ) => {
   try {
     const data = await porterService.getFloorPlanById(call.request.id);
@@ -486,7 +487,7 @@ export const getFloorPlan = async (
     if (!data) {
       callback({
         code: status.NOT_FOUND,
-        message: 'Floor plan not found'
+        message: 'Floor plan not found',
       });
       return;
     }
@@ -499,7 +500,7 @@ export const getFloorPlan = async (
 
 export const listFloorPlans = async (
   call: UnaryCall<ListFloorPlansFilters, GrpcListResponse<FloorPlanMessage>>,
-  callback: UnaryCallback<GrpcListResponse<FloorPlanMessage>>
+  callback: UnaryCallback<GrpcListResponse<FloorPlanMessage>>,
 ) => {
   try {
     const result = await porterService.listFloorPlans(call.request);
@@ -509,7 +510,7 @@ export const listFloorPlans = async (
       data: result.data,
       total: result.total,
       page: result.page,
-      page_size: result.page_size
+      page_size: result.page_size,
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to list floor plans');
@@ -518,7 +519,7 @@ export const listFloorPlans = async (
 
 export const updateFloorPlan = async (
   call: UnaryCall<UpdateFloorPlanInput & { id: string }, GrpcResponse<FloorPlanMessage>>,
-  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>
+  callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>,
 ) => {
   try {
     const { id, ...updateData } = call.request;
@@ -526,24 +527,24 @@ export const updateFloorPlan = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update floor plan', {
-      notFoundMessage: 'Floor plan not found'
+      notFoundMessage: 'Floor plan not found',
     });
   }
 };
 
 export const deleteFloorPlan = async (
   call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
+  callback: UnaryCallback<GrpcDeleteResponse>,
 ) => {
   try {
     await porterService.deleteFloorPlan(call.request.id);
     callback(null, {
       success: true,
-      message: 'Floor plan deleted successfully'
+      message: 'Floor plan deleted successfully',
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete floor plan', {
-      notFoundMessage: 'Floor plan not found'
+      notFoundMessage: 'Floor plan not found',
     });
   }
 };
@@ -552,7 +553,7 @@ export const deleteFloorPlan = async (
 
 export const createBleStation = async (
   call: UnaryCall<CreateBleStationInput, GrpcResponse<BleStationMessage>>,
-  callback: UnaryCallback<GrpcResponse<BleStationMessage>>
+  callback: UnaryCallback<GrpcResponse<BleStationMessage>>,
 ) => {
   try {
     const data = await porterService.createBleStation(call.request);
@@ -564,7 +565,7 @@ export const createBleStation = async (
 
 export const getBleStation = async (
   call: UnaryCall<{ id: string }, GrpcResponse<BleStationMessage>>,
-  callback: UnaryCallback<GrpcResponse<BleStationMessage>>
+  callback: UnaryCallback<GrpcResponse<BleStationMessage>>,
 ) => {
   try {
     const data = await porterService.getBleStationById(call.request.id);
@@ -572,7 +573,7 @@ export const getBleStation = async (
     if (!data) {
       callback({
         code: status.NOT_FOUND,
-        message: 'BLE station not found'
+        message: 'BLE station not found',
       });
       return;
     }
@@ -585,7 +586,7 @@ export const getBleStation = async (
 
 export const listBleStations = async (
   call: UnaryCall<ListBleStationsFilters, GrpcListResponse<BleStationMessage>>,
-  callback: UnaryCallback<GrpcListResponse<BleStationMessage>>
+  callback: UnaryCallback<GrpcListResponse<BleStationMessage>>,
 ) => {
   try {
     const result = await porterService.listBleStations(call.request);
@@ -595,7 +596,7 @@ export const listBleStations = async (
       data: result.data,
       total: result.total,
       page: result.page,
-      page_size: result.page_size
+      page_size: result.page_size,
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to list BLE stations');
@@ -604,7 +605,7 @@ export const listBleStations = async (
 
 export const updateBleStation = async (
   call: UnaryCall<UpdateBleStationInput & { id: string }, GrpcResponse<BleStationMessage>>,
-  callback: UnaryCallback<GrpcResponse<BleStationMessage>>
+  callback: UnaryCallback<GrpcResponse<BleStationMessage>>,
 ) => {
   try {
     const { id, ...updateData } = call.request;
@@ -612,24 +613,24 @@ export const updateBleStation = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update BLE station', {
-      notFoundMessage: 'BLE station not found'
+      notFoundMessage: 'BLE station not found',
     });
   }
 };
 
 export const deleteBleStation = async (
   call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
+  callback: UnaryCallback<GrpcDeleteResponse>,
 ) => {
   try {
     await porterService.deleteBleStation(call.request.id);
     callback(null, {
       success: true,
-      message: 'BLE station deleted successfully'
+      message: 'BLE station deleted successfully',
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete BLE station', {
-      notFoundMessage: 'BLE station not found'
+      notFoundMessage: 'BLE station not found',
     });
   }
 };
@@ -638,23 +639,21 @@ export const deleteBleStation = async (
 
 export const createEmployee = async (
   call: UnaryCall<CreateEmployeeInput, GrpcResponse<PorterEmployeeMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterEmployeeMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterEmployeeMessage>>,
 ) => {
   try {
     const data = await porterService.createEmployee(call.request);
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to create employee', {
-      uniqueConstraints: [
-        { field: 'citizenId', message: 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว' }
-      ]
+      uniqueConstraints: [{ field: 'citizenId', message: 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว' }],
     });
   }
 };
 
 export const getEmployee = async (
   call: UnaryCall<{ id: string }, GrpcResponse<PorterEmployeeMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterEmployeeMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterEmployeeMessage>>,
 ) => {
   try {
     const data = await porterService.getEmployeeById(call.request.id);
@@ -662,7 +661,7 @@ export const getEmployee = async (
     if (!data) {
       callback({
         code: status.NOT_FOUND,
-        message: 'Employee not found'
+        message: 'Employee not found',
       });
       return;
     }
@@ -675,7 +674,7 @@ export const getEmployee = async (
 
 export const listEmployees = async (
   call: UnaryCall<ListEmployeesFilters, GrpcListResponse<PorterEmployeeMessage>>,
-  callback: UnaryCallback<GrpcListResponse<PorterEmployeeMessage>>
+  callback: UnaryCallback<GrpcListResponse<PorterEmployeeMessage>>,
 ) => {
   try {
     const result = await porterService.listEmployees(call.request);
@@ -684,7 +683,7 @@ export const listEmployees = async (
       data: result.data,
       total: result.total,
       page: result.page,
-      page_size: result.page_size
+      page_size: result.page_size,
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to list employees');
@@ -693,7 +692,7 @@ export const listEmployees = async (
 
 export const updateEmployee = async (
   call: UnaryCall<UpdateEmployeeInput & { id: string }, GrpcResponse<PorterEmployeeMessage>>,
-  callback: UnaryCallback<GrpcResponse<PorterEmployeeMessage>>
+  callback: UnaryCallback<GrpcResponse<PorterEmployeeMessage>>,
 ) => {
   try {
     const { id, ...updateData } = call.request;
@@ -701,24 +700,24 @@ export const updateEmployee = async (
     callback(null, { success: true, data });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to update employee', {
-      notFoundMessage: 'Employee not found'
+      notFoundMessage: 'Employee not found',
     });
   }
 };
 
 export const deleteEmployee = async (
   call: UnaryCall<{ id: string }, GrpcDeleteResponse>,
-  callback: UnaryCallback<GrpcDeleteResponse>
+  callback: UnaryCallback<GrpcDeleteResponse>,
 ) => {
   try {
     await porterService.deleteEmployee(call.request.id);
     callback(null, {
       success: true,
-      message: 'Employee deleted successfully'
+      message: 'Employee deleted successfully',
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to delete employee', {
-      notFoundMessage: 'Employee not found'
+      notFoundMessage: 'Employee not found',
     });
   }
 };
@@ -729,7 +728,7 @@ const registerStreamHandlers = (
   handleCreated: (request: PorterRequestMessage) => void,
   handleUpdated: (request: PorterRequestMessage) => void,
   handleStatusChanged: (request: PorterRequestMessage) => void,
-  handleDeleted: (request: PorterRequestMessage) => void
+  handleDeleted: (request: PorterRequestMessage) => void,
 ) => {
   porterEventEmitter.on('porterRequestCreated', handleCreated);
   porterEventEmitter.on('porterRequestUpdated', handleUpdated);
@@ -741,7 +740,7 @@ const unregisterStreamHandlers = (
   handleCreated: (request: PorterRequestMessage) => void,
   handleUpdated: (request: PorterRequestMessage) => void,
   handleStatusChanged: (request: PorterRequestMessage) => void,
-  handleDeleted: (request: PorterRequestMessage) => void
+  handleDeleted: (request: PorterRequestMessage) => void,
 ) => {
   porterEventEmitter.removeListener('porterRequestCreated', handleCreated);
   porterEventEmitter.removeListener('porterRequestUpdated', handleUpdated);

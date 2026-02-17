@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalContent,
@@ -13,9 +13,9 @@ import {
   SelectItem,
   Checkbox,
   addToast,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { DepartmentSubSub, DepartmentSub } from "@/types/hrd";
+import { DepartmentSubSub, DepartmentSub } from '@/types/hrd';
 
 /**
  * Props สำหรับ DepartmentSubSubModal
@@ -24,10 +24,7 @@ interface DepartmentSubSubModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (
-    departmentSubSub: Omit<
-      DepartmentSubSub,
-      "id" | "createdAt" | "updatedAt"
-    > & { id?: number },
+    departmentSubSub: Omit<DepartmentSubSub, 'id' | 'createdAt' | 'updatedAt'> & { id?: number },
   ) => void;
   departmentSubSub?: DepartmentSubSub | null;
   departmentSubs: DepartmentSub[];
@@ -45,7 +42,7 @@ export default function DepartmentSubSubModal({
   departmentSubs,
   isLoading = false,
 }: DepartmentSubSubModalProps) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [departmentSubId, setDepartmentSubId] = useState<number | null>(null);
   const [active, setActive] = useState(true);
 
@@ -55,7 +52,7 @@ export default function DepartmentSubSubModal({
       setDepartmentSubId(departmentSubSub.departmentSubId);
       setActive(departmentSubSub.active ?? true);
     } else {
-      setName("");
+      setName('');
       setDepartmentSubId(null);
       setActive(true);
     }
@@ -64,9 +61,9 @@ export default function DepartmentSubSubModal({
   const handleSave = async () => {
     if (!name.trim()) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกชื่อหน่วยงาน",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณากรอกชื่อหน่วยงาน',
+        color: 'danger',
       });
 
       return;
@@ -74,9 +71,9 @@ export default function DepartmentSubSubModal({
 
     if (!departmentSubId) {
       addToast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาเลือกกลุ่มงาน",
-        color: "danger",
+        title: 'ข้อมูลไม่ครบถ้วน',
+        description: 'กรุณาเลือกกลุ่มงาน',
+        color: 'danger',
       });
 
       return;
@@ -98,9 +95,7 @@ export default function DepartmentSubSubModal({
   return (
     <Modal isOpen={isOpen} size="lg" onClose={onClose}>
       <ModalContent>
-        <ModalHeader>
-          {departmentSubSub ? "แก้ไขหน่วยงาน" : "เพิ่มหน่วยงานใหม่"}
-        </ModalHeader>
+        <ModalHeader>{departmentSubSub ? 'แก้ไขหน่วยงาน' : 'เพิ่มหน่วยงานใหม่'}</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             <Select
@@ -108,18 +103,12 @@ export default function DepartmentSubSubModal({
               isDisabled={isLoading}
               label="กลุ่มงาน"
               placeholder="เลือกกลุ่มงาน"
-              selectedKeys={
-                departmentSubId
-                  ? new Set([departmentSubId.toString()])
-                  : new Set()
-              }
+              selectedKeys={departmentSubId ? new Set([departmentSubId.toString()]) : new Set()}
               variant="bordered"
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0] as string;
 
-                setDepartmentSubId(
-                  selected ? Number.parseInt(selected, 10) : null,
-                );
+                setDepartmentSubId(selected ? Number.parseInt(selected, 10) : null);
               }}
             >
               {departmentSubs.map((sub) => (
@@ -136,17 +125,11 @@ export default function DepartmentSubSubModal({
               onChange={(e) => setName(e.target.value)}
             />
             <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                สถานะการใช้งาน
-              </div>
+              <div className="text-sm font-medium text-foreground">สถานะการใช้งาน</div>
               <div className="text-xs text-default-500">
                 เปิดใช้งานเมื่อต้องการให้หน่วยงานนี้สามารถเลือกใช้ได้
               </div>
-              <Checkbox
-                isDisabled={isLoading}
-                isSelected={active}
-                onValueChange={setActive}
-              >
+              <Checkbox isDisabled={isLoading} isSelected={active} onValueChange={setActive}>
                 ใช้งาน
               </Checkbox>
             </div>
@@ -156,12 +139,7 @@ export default function DepartmentSubSubModal({
           <Button isDisabled={isLoading} variant="flat" onPress={onClose}>
             ยกเลิก
           </Button>
-          <Button
-            color="primary"
-            isDisabled={isLoading}
-            isLoading={isLoading}
-            onPress={handleSave}
-          >
+          <Button color="primary" isDisabled={isLoading} isLoading={isLoading} onPress={handleSave}>
             บันทึก
           </Button>
         </ModalFooter>

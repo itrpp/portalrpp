@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardBody,
@@ -9,13 +9,13 @@ import {
   Select,
   SelectItem,
   CardHeader,
-} from "@heroui/react";
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
-import { RangeValue } from "@react-types/shared";
+} from '@heroui/react';
+import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
+import { RangeValue } from '@react-types/shared';
 
-import { toBuddhistEra } from "@/lib/utils";
+import { toBuddhistEra } from '@/lib/utils';
 
-export type FilterMode = "date-range" | "month" | "fiscal-year";
+export type FilterMode = 'date-range' | 'month' | 'fiscal-year';
 
 export interface FilterState {
   mode: FilterMode;
@@ -30,18 +30,18 @@ interface StatFilterProps {
 }
 
 const MONTHS = [
-  { value: 1, label: "มกราคม" },
-  { value: 2, label: "กุมภาพันธ์" },
-  { value: 3, label: "มีนาคม" },
-  { value: 4, label: "เมษายน" },
-  { value: 5, label: "พฤษภาคม" },
-  { value: 6, label: "มิถุนายน" },
-  { value: 7, label: "กรกฎาคม" },
-  { value: 8, label: "สิงหาคม" },
-  { value: 9, label: "กันยายน" },
-  { value: 10, label: "ตุลาคม" },
-  { value: 11, label: "พฤศจิกายน" },
-  { value: 12, label: "ธันวาคม" },
+  { value: 1, label: 'มกราคม' },
+  { value: 2, label: 'กุมภาพันธ์' },
+  { value: 3, label: 'มีนาคม' },
+  { value: 4, label: 'เมษายน' },
+  { value: 5, label: 'พฤษภาคม' },
+  { value: 6, label: 'มิถุนายน' },
+  { value: 7, label: 'กรกฎาคม' },
+  { value: 8, label: 'สิงหาคม' },
+  { value: 9, label: 'กันยายน' },
+  { value: 10, label: 'ตุลาคม' },
+  { value: 11, label: 'พฤศจิกายน' },
+  { value: 12, label: 'ธันวาคม' },
 ];
 
 export function StatFilter({ onFilterChange }: StatFilterProps) {
@@ -62,7 +62,7 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
   };
 
   const [filterState, setFilterState] = useState<FilterState>({
-    mode: "date-range",
+    mode: 'date-range',
     dateRange: getDefaultDateRange(),
   });
 
@@ -74,12 +74,12 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
   const handleModeChange = (mode: FilterMode) => {
     const newState: FilterState = { mode };
 
-    if (mode === "month") {
+    if (mode === 'month') {
       newState.month = filterState.month || currentMonth;
       newState.year = filterState.year || currentYear;
-    } else if (mode === "fiscal-year") {
+    } else if (mode === 'fiscal-year') {
       newState.fiscalYear = filterState.fiscalYear || currentFiscalYear;
-    } else if (mode === "date-range") {
+    } else if (mode === 'date-range') {
       // Default: 30 วันย้อนหลัง
       const todayDate = today(getLocalTimeZone());
       const startDate = todayDate.subtract({ days: 30 });
@@ -95,7 +95,7 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
 
   const handleClearFilter = () => {
     const clearedState: FilterState = {
-      mode: "date-range",
+      mode: 'date-range',
       dateRange: getDefaultDateRange(),
     };
 
@@ -154,7 +154,7 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
           </div>
 
           {/* Date Range Picker (แสดงเมื่อเลือก "ช่วงวันที่") */}
-          {filterState.mode === "date-range" && (
+          {filterState.mode === 'date-range' && (
             <div className="flex-1 min-w-[280px]">
               <DateRangePicker
                 label="ช่วงวันที่"
@@ -173,20 +173,16 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
           )}
 
           {/* Month และ Year Select (แสดงเมื่อเลือก "ตามเดือน") */}
-          {filterState.mode === "month" && (
+          {filterState.mode === 'month' && (
             <>
               <div className="flex-1 min-w-[120px]">
                 <Select
                   label="เดือน"
-                  selectedKeys={
-                    filterState.month ? [filterState.month.toString()] : []
-                  }
+                  selectedKeys={filterState.month ? [filterState.month.toString()] : []}
                   size="sm"
                   variant="bordered"
                   onSelectionChange={(keys) => {
-                    const selectedMonth = parseInt(
-                      Array.from(keys)[0] as string,
-                    );
+                    const selectedMonth = parseInt(Array.from(keys)[0] as string);
 
                     setFilterState({
                       ...filterState,
@@ -195,24 +191,18 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
                   }}
                 >
                   {MONTHS.map((month) => (
-                    <SelectItem key={month.value.toString()}>
-                      {month.label}
-                    </SelectItem>
+                    <SelectItem key={month.value.toString()}>{month.label}</SelectItem>
                   ))}
                 </Select>
               </div>
               <div className="flex-1 min-w-[120px]">
                 <Select
                   label="ปี"
-                  selectedKeys={
-                    filterState.year ? [filterState.year.toString()] : []
-                  }
+                  selectedKeys={filterState.year ? [filterState.year.toString()] : []}
                   size="sm"
                   variant="bordered"
                   onSelectionChange={(keys) => {
-                    const selectedYearValue = parseInt(
-                      Array.from(keys)[0] as string,
-                    );
+                    const selectedYearValue = parseInt(Array.from(keys)[0] as string);
 
                     // selectedYearValue เป็น ค.ศ. (value ใน yearOptions)
                     setFilterState({
@@ -222,9 +212,7 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
                   }}
                 >
                   {yearOptions.map((year) => (
-                    <SelectItem key={year.value.toString()}>
-                      {year.label}
-                    </SelectItem>
+                    <SelectItem key={year.value.toString()}>{year.label}</SelectItem>
                   ))}
                 </Select>
               </div>
@@ -232,21 +220,15 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
           )}
 
           {/* Fiscal Year Select (แสดงเมื่อเลือก "ตามปีงบ") */}
-          {filterState.mode === "fiscal-year" && (
+          {filterState.mode === 'fiscal-year' && (
             <div className="flex-1 min-w-[150px]">
               <Select
                 label="ปีงบประมาณ"
-                selectedKeys={
-                  filterState.fiscalYear
-                    ? [filterState.fiscalYear.toString()]
-                    : []
-                }
+                selectedKeys={filterState.fiscalYear ? [filterState.fiscalYear.toString()] : []}
                 size="sm"
                 variant="bordered"
                 onSelectionChange={(keys) => {
-                  const selectedFiscalYear = parseInt(
-                    Array.from(keys)[0] as string,
-                  );
+                  const selectedFiscalYear = parseInt(Array.from(keys)[0] as string);
 
                   setFilterState({
                     ...filterState,
@@ -255,9 +237,7 @@ export function StatFilter({ onFilterChange }: StatFilterProps) {
                 }}
               >
                 {fiscalYearOptions.map((fiscalYear) => (
-                  <SelectItem key={fiscalYear.value.toString()}>
-                    {fiscalYear.label}
-                  </SelectItem>
+                  <SelectItem key={fiscalYear.value.toString()}>{fiscalYear.label}</SelectItem>
                 ))}
               </Select>
             </div>

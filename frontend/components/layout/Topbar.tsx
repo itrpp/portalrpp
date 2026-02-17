@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
+import React, { useMemo } from 'react';
 import {
   Dropdown,
   DropdownTrigger,
@@ -9,16 +9,13 @@ import {
   Avatar,
   Breadcrumbs,
   BreadcrumbItem,
-} from "@heroui/react";
-import { Button } from "@heroui/react";
+} from '@heroui/react';
+import { Button } from '@heroui/react';
 
-import {
-  UserIcon,
-  ArrowRightOnRectangleIcon,
-  Bars3Icon,
-} from "@/components/ui/icons";
-import { generateBreadcrumbs } from "@/lib/breadcrumbs";
-import { TopbarProps } from "@/types";
+import { UserIcon, ArrowRightOnRectangleIcon, Bars3Icon } from '@/components/ui/icons';
+import { LOADING_MESSAGES } from '@/lib/constants';
+import { generateBreadcrumbs } from '@/lib/breadcrumbs';
+import { TopbarProps } from '@/types';
 
 export default function Topbar({
   session,
@@ -39,7 +36,7 @@ export default function Topbar({
           <Button
             isIconOnly
             aria-expanded={isSidebarOpen}
-            aria-label={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
+            aria-label={isSidebarOpen ? 'ซ่อนเมนู' : 'แสดงเมนู'}
             className="bg-background border border-divider hover:bg-content2 transition-colors"
             isDisabled={isNavigating}
             size="sm"
@@ -60,14 +57,14 @@ export default function Topbar({
           <Breadcrumbs
             isDisabled={isNavigating}
             itemClasses={{
-              item: "text-black",
-              separator: "text-black",
+              item: 'text-black',
+              separator: 'text-black',
             }}
           >
             {breadcrumbs.map((item, index) => {
               const Icon = item.icon;
               const isLast = index === breadcrumbs.length - 1;
-              const hasNoPath = item.href === "#";
+              const hasNoPath = item.href === '#';
 
               return (
                 <BreadcrumbItem
@@ -95,30 +92,18 @@ export default function Topbar({
               <div className="flex items-center space-x-3 cursor-pointer hover:bg-content2 rounded-lg p-2">
                 <Avatar
                   isBordered
-                  color={
-                    (session.user as any).role === "admin"
-                      ? "success"
-                      : "primary"
-                  }
+                  color={session.user.role === 'admin' ? 'success' : 'primary'}
                   fallback={<UserIcon className="w-4 h-4 text-default-400" />}
-                  name={
-                    session.user.image
-                      ? undefined
-                      : (session.user as any).role === "admin"
-                        ? "A"
-                        : "U"
-                  }
+                  name={session.user.image ? undefined : session.user.role === 'admin' ? 'A' : 'U'}
                   size="sm"
                   src={session.user.image ?? undefined}
                 />
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium text-foreground">
-                    {session.user.name || session.user.email || "ผู้ใช้"}
+                    {session.user.name || session.user.email || 'ผู้ใช้'}
                   </p>
                   <p className="text-xs text-foreground-400">
-                    {(session.user as any).role === "admin"
-                      ? "ผู้ดูแลระบบ"
-                      : "ผู้ใช้งาน"}
+                    {session.user.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
                   </p>
                 </div>
               </div>
@@ -128,15 +113,15 @@ export default function Topbar({
                 key="profile"
                 isDisabled={isNavigating}
                 startContent={<UserIcon className="w-4 h-4" />}
-                onPress={() => handleNavigate("/profile")}
+                onPress={() => handleNavigate('/profile')}
               >
-                {isNavigating && pathname === "/profile" ? (
+                {isNavigating && pathname === '/profile' ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin">⏳</span>
-                    กำลังโหลด...
+                    {LOADING_MESSAGES.page}
                   </span>
                 ) : (
-                  "โปรไฟล์"
+                  'โปรไฟล์'
                 )}
               </DropdownItem>
               <DropdownItem

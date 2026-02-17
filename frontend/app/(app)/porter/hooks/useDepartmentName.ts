@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 /**
  * Hook สำหรับดึงชื่อหน่วยงานจาก departmentSubSubId
  */
-export function useDepartmentName(
-  departmentSubSubId: number | null | undefined,
-): string | null {
+export function useDepartmentName(departmentSubSubId: number | null | undefined): string | null {
   const [departmentName, setDepartmentName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -17,9 +15,7 @@ export function useDepartmentName(
       }
 
       try {
-        const response = await fetch(
-          `/api/hrd/department-sub-subs/${departmentSubSubId}`,
-        );
+        const response = await fetch(`/api/hrd/department-sub-subs/${departmentSubSubId}`);
 
         if (response.ok) {
           const result = await response.json();
@@ -33,7 +29,7 @@ export function useDepartmentName(
           setDepartmentName(null);
         }
       } catch (error) {
-        console.error("Error fetching department name:", error);
+        console.error('Error fetching department name:', error);
         setDepartmentName(null);
       }
     };

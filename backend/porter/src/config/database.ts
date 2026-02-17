@@ -1,5 +1,7 @@
-import { PrismaClient } from '../generated/prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+
+import { PrismaClient } from '../generated/prisma/client';
+
 import { config } from './env';
 
 function parseDatabaseUrl(url: string): {
@@ -16,7 +18,7 @@ function parseDatabaseUrl(url: string): {
     port: parsed.port ? Number.parseInt(parsed.port, 10) : 3306,
     user: parsed.username ? decodeURIComponent(parsed.username) : '',
     password: parsed.password ? decodeURIComponent(parsed.password) : '',
-    database: database ? decodeURIComponent(database) : ''
+    database: database ? decodeURIComponent(database) : '',
   };
 }
 
@@ -27,12 +29,12 @@ const adapter = new PrismaMariaDb({
   user: dbParams.user,
   password: dbParams.password,
   database: dbParams.database,
-  connectionLimit: 10
+  connectionLimit: 10,
 });
 
 const prisma = new PrismaClient({
   adapter,
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 });
 
 process.on('beforeExit', async () => {

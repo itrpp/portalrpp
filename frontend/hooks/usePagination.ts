@@ -1,14 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from 'react';
 
 interface UsePaginationOptions {
   initialPage?: number;
   initialRowsPerPage?: number;
 }
 
-export function usePagination<T>(
-  items: T[],
-  options: UsePaginationOptions = {},
-) {
+export function usePagination<T>(items: T[], options: UsePaginationOptions = {}) {
   const { initialPage = 1, initialRowsPerPage = 10 } = options;
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);

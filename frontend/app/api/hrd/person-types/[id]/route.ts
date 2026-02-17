@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { parsePositiveIntId } from "@/lib/utils";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { parsePositiveIntId } from '@/lib/utils';
 
 /**
  * GET /api/hrd/person-types/[id]
  * ดึงข้อมูลกลุ่มบุคลากรโดย ID
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -24,8 +21,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -47,8 +44,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มบุคลากร",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มบุคลากร',
         },
         { status: 404 },
       );
@@ -58,20 +55,20 @@ export async function GET(
       success: true,
       data: {
         id: personType.HR_PERSON_TYPE_ID,
-        name: personType.HR_PERSON_TYPE_NAME ?? "",
+        name: personType.HR_PERSON_TYPE_NAME ?? '',
         active: true, // Default value until ACTIVE field is added to schema
         createdAt: personType.created_at?.toISOString(),
         updatedAt: personType.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error fetching person type:", error);
+    console.error('Error fetching person type:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -82,10 +79,7 @@ export async function GET(
  * PUT /api/hrd/person-types/[id]
  * อัปเดตข้อมูลกลุ่มบุคลากร
  */
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -98,8 +92,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -119,8 +113,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มบุคลากร",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มบุคลากร',
         },
         { status: 404 },
       );
@@ -128,12 +122,12 @@ export async function PUT(
 
     // Validation
     if (name !== undefined) {
-      if (typeof name !== "string" || name.trim().length === 0) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
         return NextResponse.json(
           {
             success: false,
-            error: "VALIDATION_ERROR",
-            message: "กรุณากรอกชื่อกลุ่มบุคลากร",
+            error: 'VALIDATION_ERROR',
+            message: 'กรุณากรอกชื่อกลุ่มบุคลากร',
           },
           { status: 400 },
         );
@@ -155,8 +149,8 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: "DUPLICATE_NAME",
-            message: "ชื่อกลุ่มบุคลากรนี้มีอยู่ในระบบแล้ว",
+            error: 'DUPLICATE_NAME',
+            message: 'ชื่อกลุ่มบุคลากรนี้มีอยู่ในระบบแล้ว',
           },
           { status: 409 },
         );
@@ -188,20 +182,20 @@ export async function PUT(
       success: true,
       data: {
         id: updated.HR_PERSON_TYPE_ID,
-        name: updated.HR_PERSON_TYPE_NAME ?? "",
+        name: updated.HR_PERSON_TYPE_NAME ?? '',
         active: active !== undefined ? active : true, // Use provided value or default to true
         createdAt: updated.created_at?.toISOString(),
         updatedAt: updated.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error updating person type:", error);
+    console.error('Error updating person type:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล',
       },
       { status: 500 },
     );
@@ -212,10 +206,7 @@ export async function PUT(
  * DELETE /api/hrd/person-types/[id]
  * ลบกลุ่มบุคลากร
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -228,8 +219,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -246,8 +237,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มบุคลากร",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มบุคลากร',
         },
         { status: 404 },
       );
@@ -264,7 +255,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "IN_USE",
+          error: 'IN_USE',
           message: `ไม่สามารถลบได้ เนื่องจากมีผู้ใช้ ${userCount} รายการที่ใช้กลุ่มบุคลากรนี้อยู่`,
         },
         { status: 400 },
@@ -280,16 +271,16 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "ลบกลุ่มบุคลากรสำเร็จ",
+      message: 'ลบกลุ่มบุคลากรสำเร็จ',
     });
   } catch (error: any) {
-    console.error("Error deleting person type:", error);
+    console.error('Error deleting person type:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการลบข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
       },
       { status: 500 },
     );

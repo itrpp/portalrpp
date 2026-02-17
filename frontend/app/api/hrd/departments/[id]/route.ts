@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { parsePositiveIntId } from "@/lib/utils";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { parsePositiveIntId } from '@/lib/utils';
 
 /**
  * GET /api/hrd/departments/[id]
  * ดึงข้อมูลกลุ่มภารกิจโดย ID
  */
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -24,8 +21,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -48,8 +45,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มภารกิจ",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มภารกิจ',
         },
         { status: 404 },
       );
@@ -59,20 +56,20 @@ export async function GET(
       success: true,
       data: {
         id: department.HR_DEPARTMENT_ID,
-        name: department.HR_DEPARTMENT_NAME ?? "",
-        active: department.ACTIVE === "True",
+        name: department.HR_DEPARTMENT_NAME ?? '',
+        active: department.ACTIVE === 'True',
         createdAt: department.created_at?.toISOString(),
         updatedAt: department.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error fetching department:", error);
+    console.error('Error fetching department:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
       },
       { status: 500 },
     );
@@ -83,10 +80,7 @@ export async function GET(
  * PUT /api/hrd/departments/[id]
  * อัปเดตข้อมูลกลุ่มภารกิจ
  */
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -99,8 +93,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -120,8 +114,8 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มภารกิจ",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มภารกิจ',
         },
         { status: 404 },
       );
@@ -129,12 +123,12 @@ export async function PUT(
 
     // Validation
     if (name !== undefined) {
-      if (typeof name !== "string" || name.trim().length === 0) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
         return NextResponse.json(
           {
             success: false,
-            error: "VALIDATION_ERROR",
-            message: "กรุณากรอกชื่อกลุ่มภารกิจ",
+            error: 'VALIDATION_ERROR',
+            message: 'กรุณากรอกชื่อกลุ่มภารกิจ',
           },
           { status: 400 },
         );
@@ -156,8 +150,8 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: "DUPLICATE_NAME",
-            message: "ชื่อกลุ่มภารกิจนี้มีอยู่ในระบบแล้ว",
+            error: 'DUPLICATE_NAME',
+            message: 'ชื่อกลุ่มภารกิจนี้มีอยู่ในระบบแล้ว',
           },
           { status: 409 },
         );
@@ -171,7 +165,7 @@ export async function PUT(
       updateData.HR_DEPARTMENT_NAME = name.trim();
     }
     if (active !== undefined) {
-      updateData.ACTIVE = active ? "True" : "False";
+      updateData.ACTIVE = active ? 'True' : 'False';
     }
 
     const updated = await prisma.hrd_department.update({
@@ -192,20 +186,20 @@ export async function PUT(
       success: true,
       data: {
         id: updated.HR_DEPARTMENT_ID,
-        name: updated.HR_DEPARTMENT_NAME ?? "",
-        active: updated.ACTIVE === "True",
+        name: updated.HR_DEPARTMENT_NAME ?? '',
+        active: updated.ACTIVE === 'True',
         createdAt: updated.created_at?.toISOString(),
         updatedAt: updated.updated_at?.toISOString(),
       },
     });
   } catch (error: any) {
-    console.error("Error updating department:", error);
+    console.error('Error updating department:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล',
       },
       { status: 500 },
     );
@@ -216,10 +210,7 @@ export async function PUT(
  * DELETE /api/hrd/departments/[id]
  * ลบกลุ่มภารกิจ
  */
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await getAuthSession();
 
@@ -232,8 +223,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "INVALID_ID",
-          message: "ID ไม่ถูกต้อง",
+          error: 'INVALID_ID',
+          message: 'ID ไม่ถูกต้อง',
         },
         { status: 400 },
       );
@@ -250,8 +241,8 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "NOT_FOUND",
-          message: "ไม่พบข้อมูลกลุ่มภารกิจ",
+          error: 'NOT_FOUND',
+          message: 'ไม่พบข้อมูลกลุ่มภารกิจ',
         },
         { status: 404 },
       );
@@ -268,7 +259,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "IN_USE",
+          error: 'IN_USE',
           message: `ไม่สามารถลบได้ เนื่องจากมีกลุ่มงาน ${departmentSubCount} รายการที่ใช้กลุ่มภารกิจนี้อยู่`,
         },
         { status: 400 },
@@ -284,16 +275,16 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "ลบกลุ่มภารกิจสำเร็จ",
+      message: 'ลบกลุ่มภารกิจสำเร็จ',
     });
   } catch (error: any) {
-    console.error("Error deleting department:", error);
+    console.error('Error deleting department:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการลบข้อมูล",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
       },
       { status: 500 },
     );

@@ -1,7 +1,7 @@
-import type { ThemeProviderProps } from "next-themes";
-import type { useRouter } from "next/navigation";
+import type { ThemeProviderProps } from 'next-themes';
+import type { useRouter } from 'next/navigation';
 
-import React from "react";
+import React from 'react';
 
 /**
  * ========================================
@@ -22,10 +22,8 @@ export interface ProvidersProps {
  * Module declaration สำหรับ @react-types/shared
  * เพิ่ม type definition สำหรับ router options
  */
-declare module "@react-types/shared" {
+declare module '@react-types/shared' {
   interface RouterConfig {
-    routerOptions: NonNullable<
-      Parameters<ReturnType<typeof useRouter>["push"]>[1]
-    >;
+    routerOptions: NonNullable<Parameters<ReturnType<typeof useRouter>['push']>[1]>;
   }
 }

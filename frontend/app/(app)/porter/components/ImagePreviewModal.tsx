@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React from "react";
-import Image from "next/image";
-import { Modal, ModalContent, ModalBody } from "@heroui/react";
+import React from 'react';
+import Image from 'next/image';
+import { Modal, ModalContent, ModalBody } from '@heroui/react';
 
 /**
  * Props สำหรับ ImagePreviewModal
@@ -21,13 +21,13 @@ export default function ImagePreviewModal({
   isOpen,
   onClose,
   imageUrl,
-  alt = "รูปภาพ",
+  alt = 'รูปภาพ',
 }: ImagePreviewModalProps) {
   return (
     <Modal
       classNames={{
-        base: "max-w-3xl",
-        body: "p-6",
+        base: 'max-w-3xl',
+        body: 'p-6',
       }}
       isOpen={isOpen}
       size="2xl"

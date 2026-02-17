@@ -1,15 +1,12 @@
-import { Spinner } from "@heroui/spinner";
-import Image from "next/image";
+import { Spinner } from '@heroui/spinner';
+import Image from 'next/image';
 
 interface LoadingProps {
   message?: string;
   showLogo?: boolean;
 }
 
-export default function Loading({
-  message = "กำลังดำเนินการ...",
-  showLogo = true,
-}: LoadingProps) {
+export default function Loading({ message = 'กำลังดำเนินการ...', showLogo = true }: LoadingProps) {
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10 h-full">
       <div className="inline-block max-w-lg text-center justify-center">
@@ -25,7 +22,7 @@ export default function Loading({
         )}
         <Spinner
           classNames={{
-            label: "text-primary font-bold text-2xl mt-5",
+            label: 'text-primary font-bold text-2xl mt-5',
           }}
           label={message}
           size="lg"

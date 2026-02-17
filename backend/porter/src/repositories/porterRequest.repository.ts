@@ -3,7 +3,7 @@ import type { PorterRequest } from '../generated/prisma/client';
 import prisma from '../config/database';
 
 export async function createPorterRequest(
-  data: Prisma.PorterRequestUncheckedCreateInput
+  data: Prisma.PorterRequestUncheckedCreateInput,
 ): Promise<PorterRequest> {
   return prisma.porterRequest.create({ data });
 }
@@ -22,7 +22,7 @@ export async function findManyPorterRequests(params: {
     where: params.where,
     skip: params.skip,
     take: params.take,
-    orderBy: params.orderBy
+    orderBy: params.orderBy,
   });
 }
 
@@ -32,7 +32,7 @@ export async function countPorterRequests(where: Prisma.PorterRequestWhereInput)
 
 export async function updatePorterRequest(
   id: string,
-  data: Prisma.PorterRequestUpdateInput
+  data: Prisma.PorterRequestUpdateInput,
 ): Promise<PorterRequest> {
   return prisma.porterRequest.update({ where: { id }, data });
 }

@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
-import type { UserDTO } from "@/types/user";
+import type { UserDTO } from '@/types/user';
 
-import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import {
+  Button,
   Card,
   CardBody,
   CardHeader,
@@ -14,18 +15,20 @@ import {
   SelectItem,
   Pagination,
   addToast,
-} from "@heroui/react";
+} from '@heroui/react';
 
-import { UserTable } from "./components/UserTable";
-import { UserModal } from "./components/UserModal";
-import { useUsers } from "./hooks/useUsers";
+import { UserTable } from './components/UserTable';
+import { UserModal } from './components/UserModal';
+import { useUsers } from './hooks/useUsers';
 
-import { UserIcon, MagnifyingGlassIcon } from "@/components/ui/icons";
+import { CARD_STYLES } from '@/lib/cardStyles';
+import { TABLE_STYLES } from '@/lib/tableStyles';
+import { UserIcon, MagnifyingGlassIcon, XMarkIcon } from '@/components/ui/icons';
 
 export default function UserManagementPage() {
   const { data: session } = useSession();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('');
   const [editingUser, setEditingUser] = useState<UserDTO | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
@@ -44,16 +47,16 @@ export default function UserManagementPage() {
   } = useUsers({
     onError: (message) => {
       addToast({
-        title: "เกิดข้อผิดพลาด",
+        title: 'เกิดข้อผิดพลาด',
         description: message,
-        color: "danger",
+        color: 'danger',
       });
     },
     onSuccess: (message) => {
       addToast({
-        title: "สำเร็จ",
+        title: 'สำเร็จ',
         description: message,
-        color: "success",
+        color: 'success',
       });
     },
   });
@@ -70,9 +73,9 @@ export default function UserManagementPage() {
       page: 1,
       pageSize: 10,
       search: searchQuery || undefined,
-      role: roleFilter ? (roleFilter as "admin" | "user") : undefined,
+      role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
     });
-  }, [searchQuery, roleFilter]);
+  }, [searchQuery, roleFilter, loadUsers]);
 
   // Reload เมื่อ page หรือ pageSize เปลี่ยน
   useEffect(() => {
@@ -80,9 +83,9 @@ export default function UserManagementPage() {
       page,
       pageSize,
       search: searchQuery || undefined,
-      role: roleFilter ? (roleFilter as "admin" | "user") : undefined,
+      role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
     });
-  }, [page, pageSize]);
+  }, [page, pageSize, searchQuery, roleFilter, loadUsers]);
 
   const handleEditUser = (user: UserDTO) => {
     setEditingUser(user);
@@ -93,9 +96,7 @@ export default function UserManagementPage() {
     const user = users.find((u) => u.id === userId);
 
     if (
-      !confirm(
-        `คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ "${user?.displayName || user?.email || userId}"?`,
-      )
+      !confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ "${user?.displayName || user?.email || userId}"?`)
     ) {
       return;
     }
@@ -110,7 +111,7 @@ export default function UserManagementPage() {
           page,
           pageSize,
           search: searchQuery || undefined,
-          role: roleFilter ? (roleFilter as "admin" | "user") : undefined,
+          role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
         });
       }
     } finally {
@@ -118,10 +119,7 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleSaveUser = async (
-    userId: string,
-    payload: Parameters<typeof updateUserData>[1],
-  ) => {
+  const handleSaveUser = async (userId: string, payload: Parameters<typeof updateUserData>[1]) => {
     const success = await updateUserData(userId, payload);
 
     if (success) {
@@ -130,7 +128,7 @@ export default function UserManagementPage() {
         page,
         pageSize,
         search: searchQuery || undefined,
-        role: roleFilter ? (roleFilter as "admin" | "user") : undefined,
+        role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
       });
     }
 
@@ -160,50 +158,72 @@ export default function UserManagementPage() {
       </div>
 
       {/* Filters */}
-      <Card className="shadow-lg border border-default-200">
+      <Card className={CARD_STYLES.default}>
         <CardBody>
-          <div className="flex flex-col md:flex-row gap-4">
-            <Input
-              isClearable
-              className="flex-1"
-              placeholder="ค้นหาด้วยชื่อหรืออีเมล..."
-              startContent={
-                <MagnifyingGlassIcon className="w-5 h-5 text-default-400" />
-              }
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onClear={() => setSearchQuery("")}
-            />
-            <Select
-              className="w-full md:w-48"
-              placeholder="เลือกบทบาท"
-              selectedKeys={roleFilter ? [roleFilter] : []}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
+              <Input
+                isClearable
+                aria-label="ค้นหาผู้ใช้"
+                className="flex-1 min-w-[200px]"
+                label="ค้นหา"
+                labelPlacement="outside"
+                placeholder="ค้นหาด้วยชื่อหรืออีเมล..."
+                size="md"
+                startContent={<MagnifyingGlassIcon className="w-5 h-5 text-default-400" />}
+                value={searchQuery}
+                variant="bordered"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onClear={() => setSearchQuery('')}
+              />
+              <Select
+                aria-label="กรองตามบทบาท"
+                className="w-full sm:w-48"
+                label="บทบาท"
+                labelPlacement="outside"
+                placeholder="ทั้งหมด"
+                selectedKeys={roleFilter ? [roleFilter] : ['all']}
+                size="md"
+                variant="bordered"
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
 
-                setRoleFilter(selected || "");
-              }}
-            >
-              <SelectItem key="admin">ผู้ดูแลระบบ</SelectItem>
-              <SelectItem key="user">ผู้ใช้งาน</SelectItem>
-            </Select>
+                  setRoleFilter(selected && selected !== 'all' ? selected : '');
+                }}
+              >
+                <SelectItem key="all">ทั้งหมด</SelectItem>
+                <SelectItem key="admin">ผู้ดูแลระบบ</SelectItem>
+                <SelectItem key="user">ผู้ใช้งาน</SelectItem>
+              </Select>
+              <Button
+                color="default"
+                isDisabled={!searchQuery && !roleFilter}
+                size="md"
+                variant="flat"
+                onPress={() => {
+                  setSearchQuery('');
+                  setRoleFilter('');
+                }}
+              >
+                <XMarkIcon className="w-5 h-5" />
+                ล้างตัวกรอง
+              </Button>
+            </div>
           </div>
         </CardBody>
       </Card>
 
       {/* Table */}
-      <Card className="shadow-lg border border-default-200">
+      <Card className={CARD_STYLES.default}>
         <CardHeader className="pb-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <UserIcon className="w-6 h-6 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">
-                รายชื่อผู้ใช้
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground">รายชื่อผู้ใช้</h2>
             </div>
-            <div className="text-sm text-default-600">
+            <span className={`${TABLE_STYLES.text.small} ${TABLE_STYLES.colors.secondaryText}`}>
               ทั้งหมด {total} รายการ
-            </div>
+            </span>
           </div>
         </CardHeader>
         <CardBody className="pt-4">
@@ -217,37 +237,44 @@ export default function UserManagementPage() {
           />
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 px-2">
-              <div className="text-sm text-default-600">
-                แสดง {(page - 1) * pageSize + 1} -{" "}
-                {Math.min(page * pageSize, total)} จาก {total} รายการ
+          {total > 0 && (
+            <div className={TABLE_STYLES.pagination.containerClass}>
+              <div className={TABLE_STYLES.pagination.textClass}>
+                แสดง {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, total)} จาก {total}{' '}
+                รายการ
               </div>
               <Pagination
                 showControls
                 color="primary"
+                initialPage={1}
                 page={page}
                 size="sm"
                 total={totalPages}
                 onChange={setPage}
               />
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-default-600">แสดงต่อหน้า:</span>
-                <Select
-                  className="w-24"
-                  selectedKeys={[pageSize.toString()]}
-                  size="sm"
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as string;
-
-                    setPageSize(Number.parseInt(selected, 10));
-                    setPage(1);
-                  }}
-                >
-                  <SelectItem key="10">10</SelectItem>
-                  <SelectItem key="20">20</SelectItem>
-                  <SelectItem key="50">50</SelectItem>
-                </Select>
+              <div className={`flex items-center ${TABLE_STYLES.spacing.gapLarge}`}>
+                <div className={`flex items-center ${TABLE_STYLES.spacing.gapMedium}`}>
+                  <label
+                    className={TABLE_STYLES.pagination.labelClass}
+                    htmlFor="rows-per-page-users"
+                  >
+                    แสดงต่อหน้า:
+                  </label>
+                  <select
+                    className={TABLE_STYLES.pagination.selectClass}
+                    id="rows-per-page-users"
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setPage(1);
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}

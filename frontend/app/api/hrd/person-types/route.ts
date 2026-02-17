@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAuthSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get("q")?.trim() ?? "";
+  const query = searchParams.get('q')?.trim() ?? '';
 
   const where =
     query.length > 0
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       updated_at: true,
     },
     orderBy: {
-      HR_PERSON_TYPE_NAME: "asc",
+      HR_PERSON_TYPE_NAME: 'asc',
     },
   });
 
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     success: true,
     data: items.map((item) => ({
       id: item.HR_PERSON_TYPE_ID,
-      name: item.HR_PERSON_TYPE_NAME ?? "",
+      name: item.HR_PERSON_TYPE_NAME ?? '',
       active: true, // Default value until ACTIVE field is added to schema
       createdAt: item.created_at?.toISOString(),
       updatedAt: item.updated_at?.toISOString(),
@@ -59,12 +59,12 @@ export async function POST(request: Request) {
     const { name, active } = requestData;
 
     // Validation
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "VALIDATION_ERROR",
-          message: "กรุณากรอกชื่อกลุ่มบุคลากร",
+          error: 'VALIDATION_ERROR',
+          message: 'กรุณากรอกชื่อกลุ่มบุคลากร',
         },
         { status: 400 },
       );
@@ -83,8 +83,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "DUPLICATE_NAME",
-          message: "ชื่อกลุ่มบุคลากรนี้มีอยู่ในระบบแล้ว",
+          error: 'DUPLICATE_NAME',
+          message: 'ชื่อกลุ่มบุคลากรนี้มีอยู่ในระบบแล้ว',
         },
         { status: 409 },
       );
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
         success: true,
         data: {
           id: newPersonType.HR_PERSON_TYPE_ID,
-          name: newPersonType.HR_PERSON_TYPE_NAME ?? "",
+          name: newPersonType.HR_PERSON_TYPE_NAME ?? '',
           active: active !== undefined ? active : true, // Default to true if not provided
           createdAt: newPersonType.created_at?.toISOString(),
           updatedAt: newPersonType.updated_at?.toISOString(),
@@ -118,13 +118,13 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error: any) {
-    console.error("Error creating person type:", error);
+    console.error('Error creating person type:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "INTERNAL_ERROR",
-        message: error.message || "เกิดข้อผิดพลาดในการสร้างกลุ่มบุคลากร",
+        error: 'INTERNAL_ERROR',
+        message: error.message || 'เกิดข้อผิดพลาดในการสร้างกลุ่มบุคลากร',
       },
       { status: 500 },
     );

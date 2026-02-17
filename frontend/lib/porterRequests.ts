@@ -9,22 +9,16 @@ import type {
   ListPorterRequestsParams,
   ListPorterRequestsResult,
   PorterJobItem,
-} from "@/types/porter";
+} from '@/types/porter';
 
-import { callPorterService } from "@/lib/grpcClient";
-import {
-  mapStatusToProto,
-  mapUrgencyLevelToProto,
-  convertProtoToFrontend,
-} from "@/lib/porter";
-import { prisma } from "@/lib/prisma";
+import { callPorterService } from '@/lib/grpcClient';
+import { mapStatusToProto, mapUrgencyLevelToProto, convertProtoToFrontend } from '@/lib/porter';
+import { prisma } from '@/lib/prisma';
 
 /**
  * สร้าง proto request object สำหรับ ListPorterRequests จาก query params
  */
-export function buildListProtoRequest(
-  params: ListPorterRequestsParams,
-): Record<string, unknown> {
+export function buildListProtoRequest(params: ListPorterRequestsParams): Record<string, unknown> {
   const protoRequest: Record<string, unknown> = {};
 
   if (params.status !== undefined && params.status !== null) {
@@ -39,12 +33,13 @@ export function buildListProtoRequest(
   if (params.assigned_to_id) {
     protoRequest.assigned_to_id = params.assigned_to_id;
   }
+  if (params.search && params.search.trim() !== '') {
+    protoRequest.search = params.search.trim();
+  }
   if (params.page) {
     protoRequest.page = parseInt(params.page, 10);
   }
-  protoRequest.page_size = params.page_size
-    ? parseInt(params.page_size, 10)
-    : 1000;
+  protoRequest.page_size = params.page_size ? parseInt(params.page_size, 10) : 1000;
 
   return protoRequest;
 }
@@ -52,11 +47,9 @@ export function buildListProtoRequest(
 /**
  * เสริมรายการที่ยกเลิกด้วยชื่อผู้ยกเลิก (cancelledByName) จาก User table
  */
-export async function enrichWithCancelledNames(
-  items: PorterJobItem[],
-): Promise<PorterJobItem[]> {
+export async function enrichWithCancelledNames(items: PorterJobItem[]): Promise<PorterJobItem[]> {
   const cancelledUserIds = items
-    .filter((item) => item.status === "CANCELLED" && item.cancelledById != null)
+    .filter((item) => item.status === 'CANCELLED' && item.cancelledById != null)
     .map((item) => item.cancelledById as string)
     .filter((id, index, self) => self.indexOf(id) === index);
 
@@ -72,7 +65,7 @@ export async function enrichWithCancelledNames(
   const userMap = new Map(users.map((u) => [u.id, u.displayName]));
 
   return items.map((item) => {
-    if (item.status === "CANCELLED" && item.cancelledById != null) {
+    if (item.status === 'CANCELLED' && item.cancelledById != null) {
       return {
         ...item,
         cancelledByName: userMap.get(item.cancelledById) ?? undefined,
@@ -98,13 +91,13 @@ export async function listPorterRequestsWithEnrichment(
     page?: number;
     page_size?: number;
     error_message?: string;
-  }>("ListPorterRequests", protoRequest);
+  }>('ListPorterRequests', protoRequest);
 
   if (!response.success) {
     return {
       success: false,
-      error: "FETCH_FAILED",
-      message: response.error_message ?? "ไม่สามารถดึงข้อมูลได้",
+      error: 'FETCH_FAILED',
+      message: response.error_message ?? 'ไม่สามารถดึงข้อมูลได้',
     };
   }
 

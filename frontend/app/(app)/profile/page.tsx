@@ -1,24 +1,24 @@
-import type { ExtendedSession } from "@/types/ldap";
+import type { ExtendedSession } from '@/types/ldap';
 
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
 
-import ProfileClient from "./components/ProfileClient";
+import ProfileClient from './components/ProfileClient';
 
-import { authOptions } from "@/app/api/auth/authOptions";
-import { getUserProfile } from "@/lib/profile";
+import { authOptions } from '@/app/api/auth/authOptions';
+import { getUserProfile } from '@/lib/profile';
 
 export default async function ProfilePage() {
   const session = (await getServerSession(authOptions)) as ExtendedSession;
 
   if (!session?.user?.id) {
-    redirect(`/login?callbackUrl=${encodeURIComponent("/profile")}`);
+    redirect(`/login?callbackUrl=${encodeURIComponent('/profile')}`);
   }
 
   const profile = await getUserProfile(session.user.id);
 
   if (!profile) {
-    redirect("/login");
+    redirect('/login');
   }
 
   return (

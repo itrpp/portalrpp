@@ -1,6 +1,6 @@
-import type { PorterJobItem } from "@/types/porter";
+import type { PorterJobItem } from '@/types/porter';
 
-import { getISODatePart, parseFullName } from "@/lib/utils";
+import { getISODatePart, parseFullName } from '@/lib/utils';
 
 export interface EmployeePerformanceResult {
   employeeName: string;
@@ -83,9 +83,7 @@ export function calculateEmployeePerformance(
     }
 
     const averageDuration =
-      completedCount > 0
-        ? Math.round((totalDuration / completedCount) * 100) / 100
-        : 0;
+      completedCount > 0 ? Math.round((totalDuration / completedCount) * 100) / 100 : 0;
 
     result.push({
       employeeName,

@@ -8,24 +8,22 @@ export type FloorPlanWithStations = FloorPlan & {
   stations: BleStation[];
 };
 
-export async function findFloorPlanById(
-  id: string
-): Promise<FloorPlanWithStations | null> {
+export async function findFloorPlanById(id: string): Promise<FloorPlanWithStations | null> {
   const fp = await prisma.floorPlan.findUnique({
     where: { id },
-    include: floorPlanIncludeStations
+    include: floorPlanIncludeStations,
   });
   return fp as FloorPlanWithStations | null;
 }
 
 export async function findFloorPlanByBuildingIdAndFloorNumber(
   buildingId: string,
-  floorNumber: number
+  floorNumber: number,
 ): Promise<FloorPlan | null> {
   return prisma.floorPlan.findUnique({
     where: {
-      buildingId_floorNumber: { buildingId, floorNumber }
-    }
+      buildingId_floorNumber: { buildingId, floorNumber },
+    },
   });
 }
 
@@ -40,33 +38,31 @@ export async function findManyFloorPlans(params: {
     skip: params.skip,
     take: params.take,
     include: floorPlanIncludeStations,
-    orderBy: params.orderBy
+    orderBy: params.orderBy,
   }) as Promise<FloorPlanWithStations[]>;
 }
 
-export async function countFloorPlans(
-  where: Prisma.FloorPlanWhereInput
-): Promise<number> {
+export async function countFloorPlans(where: Prisma.FloorPlanWhereInput): Promise<number> {
   return prisma.floorPlan.count({ where });
 }
 
 export async function createFloorPlan(
-  data: Prisma.FloorPlanUncheckedCreateInput
+  data: Prisma.FloorPlanUncheckedCreateInput,
 ): Promise<FloorPlanWithStations> {
   return prisma.floorPlan.create({
     data,
-    include: floorPlanIncludeStations
+    include: floorPlanIncludeStations,
   }) as Promise<FloorPlanWithStations>;
 }
 
 export async function updateFloorPlan(
   id: string,
-  data: Prisma.FloorPlanUncheckedUpdateInput
+  data: Prisma.FloorPlanUncheckedUpdateInput,
 ): Promise<FloorPlanWithStations> {
   return prisma.floorPlan.update({
     where: { id },
     data,
-    include: floorPlanIncludeStations
+    include: floorPlanIncludeStations,
   }) as Promise<FloorPlanWithStations>;
 }
 
@@ -76,11 +72,11 @@ export async function deleteFloorPlan(id: string): Promise<void> {
 
 /** ใช้ใน updateBuilding สำหรับจัดการ floor plans */
 export async function findManyFloorPlanIdsByBuildingId(
-  buildingId: string
+  buildingId: string,
 ): Promise<Array<{ id: string; floorNumber: number }>> {
   return prisma.floorPlan.findMany({
     where: { buildingId },
-    select: { id: true, floorNumber: true }
+    select: { id: true, floorNumber: true },
   });
 }
 
@@ -89,9 +85,7 @@ export async function deleteManyFloorPlansByIds(ids: string[]): Promise<void> {
   await prisma.floorPlan.deleteMany({ where: { id: { in: ids } } });
 }
 
-export async function deleteManyFloorPlansByBuildingId(
-  buildingId: string
-): Promise<void> {
+export async function deleteManyFloorPlansByBuildingId(buildingId: string): Promise<void> {
   await prisma.floorPlan.deleteMany({ where: { buildingId } });
 }
 
@@ -102,9 +96,9 @@ export async function upsertFloorPlan(params: {
 }): Promise<FloorPlan> {
   return prisma.floorPlan.upsert({
     where: {
-      buildingId_floorNumber: params.where
+      buildingId_floorNumber: params.where,
     },
     create: params.create,
-    update: params.update
+    update: params.update,
   });
 }
