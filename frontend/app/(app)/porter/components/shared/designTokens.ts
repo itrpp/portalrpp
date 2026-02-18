@@ -38,7 +38,7 @@ export const PORTER_URGENCY_COLORS = {
 } as const;
 
 /**
- * Urgency container styles สำหรับ JobTable cards
+ * Urgency container styles สำหรับ PorterJobListTable (การ์ดแต่ละรายการ)
  */
 export const PORTER_URGENCY_STYLES = {
   ปกติ: {

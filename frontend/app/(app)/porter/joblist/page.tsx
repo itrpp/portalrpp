@@ -1,810 +1,381 @@
 'use client';
 
-import type { CalendarDate } from '@internationalized/date';
+import type { Selection } from '@react-types/shared';
+import type {
+  JobListTab,
+  PorterJobItem,
+  PorterRequestFormData,
+} from '@/types/porter';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import {
-  Button,
   Card,
   CardBody,
-  CardHeader,
   Chip,
   Tabs,
   Tab,
-  DatePicker,
   addToast,
 } from '@heroui/react';
+import { CalendarDate } from '@internationalized/date';
+import { RangeValue } from '@react-types/shared';
 
-import {
-  JobTable,
-  EditableJobDetailDrawer,
-  PorterLoadingSkeleton,
-  PorterEmptyState,
-} from '../components';
+import { PorterEmptyState } from '../components';
 import { CurrentTimeDisplay } from '../components/CurrentTimeDisplay';
 
-import { usePagination } from '@/hooks/usePagination';
+const EditableJobDetailDrawer = dynamic(
+  () =>
+    import('../components').then((m) => ({
+      default: m.EditableJobDetailDrawer,
+    })),
+  { ssr: false },
+);
+
+import { JobListFilters, JobListTableCard } from './components';
+import { isValidJobListTab } from './constants';
+import { useJobListCounts } from './hooks/useJobListCounts';
+import { useJobListData } from './hooks/useJobListData';
+import { useJobListStream } from './hooks/useJobListStream';
+
 import {
   ClockIcon,
   ClipboardListIcon,
   XMarkIcon,
   CheckCircleIcon,
-  CalendarIcon,
 } from '@/components/ui/icons';
 import { CARD_STYLES } from '@/lib/cardStyles';
-import { getApiGatewayBaseUrl } from '@/lib/env';
-import { JobListTab, PorterJobItem, PorterRequestFormData, UrgencyLevel } from '@/types/porter';
-import { sortJobs, playNotificationSound, playSirenSound } from '@/lib/porter';
-
-const JOBLIST_TAB_KEYS: JobListTab[] = ['waiting', 'in-progress', 'completed', 'cancelled'];
-
-function isValidJobListTab(value: string | null): value is JobListTab {
-  return value !== null && JOBLIST_TAB_KEYS.includes(value as JobListTab);
-}
+import { cn } from '@/lib/utils';
 
 export default function JobListClient() {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const tabFromUrl = searchParams.get('tab');
   const initialTab = isValidJobListTab(tabFromUrl) ? tabFromUrl : 'waiting';
 
   const [selectedTab, setSelectedTab] = useState<JobListTab>(initialTab);
 
-  // Sync tab จาก URL เมื่อเปิดหน้าจาก deep link (client-side nav)
-  useEffect(() => {
-    if (isValidJobListTab(tabFromUrl) && tabFromUrl !== selectedTab) {
-      setSelectedTab(tabFromUrl);
-    }
-  }, [tabFromUrl, selectedTab]);
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [urgencyFilter, setUrgencyFilter] = useState<string>('');
+  const [dateRange, setDateRange] = useState<RangeValue<CalendarDate> | null>(
+    null,
+  );
+  const [staffNameFilter, setStaffNameFilter] = useState<string>('');
 
-  const handleTabChange = (key: React.Key) => {
-    const tab = key as JobListTab;
-
-    setSelectedTab(tab);
-    const next = new URLSearchParams(searchParams.toString());
-
-    next.set('tab', tab);
-    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-  };
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [jobList, setJobList] = useState<PorterJobItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Date range filters สำหรับ completed และ cancelled tabs
-  const [completedStartDate, setCompletedStartDate] = useState<CalendarDate | null>(null);
-  const [completedEndDate, setCompletedEndDate] = useState<CalendarDate | null>(null);
-  const [cancelledStartDate, setCancelledStartDate] = useState<CalendarDate | null>(null);
-  const [cancelledEndDate, setCancelledEndDate] = useState<CalendarDate | null>(null);
+  const counts = useJobListCounts({
+    search: searchQuery.trim() || null,
+    urgencyLevel: urgencyFilter || null,
+    dateRange,
+    staffNameFilter: staffNameFilter.trim() || null,
+  });
+  const jobListData = useJobListData({
+    selectedTab,
+    search: searchQuery.trim() || null,
+    urgencyLevel: urgencyFilter || null,
+    dateRange,
+    staffNameFilter: staffNameFilter.trim() || null,
+  });
 
-  /** แปลงค่าจาก DatePicker (CalendarDate) เป็น Date เฉพาะส่วนวันที่ */
-  function toDateOnly(value: CalendarDate | null): Date | null {
-    if (!value) return null;
+  const handleJobDeleted = useCallback((jobId: string) => {
+    setSelectedJob((prev) => {
+      if (prev?.id === jobId) {
+        setIsDrawerOpen(false);
 
-    return new Date(value.year, value.month - 1, value.day);
-  }
+        setSelectedKeys(new Set());
 
-  // เวลาปัจจุบันถูกแสดงโดย CurrentTimeDisplay component แทน
-  // เพื่อไม่ให้ re-render ทั้งหน้าเมื่อเวลาอัปเดต
-
-  // ดึงข้อมูลรายการคำขอจาก API
-  const fetchPorterRequests = async (status?: JobListTab) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const queryParams = new URLSearchParams();
-
-      if (status) {
-        queryParams.append('status', status);
+        return null;
       }
 
-      // ดึงข้อมูลจำนวนมากเพื่อรองรับการ filter ใน frontend
-      queryParams.append('page_size', '1000');
-
-      const response = await fetch(`/api/porter/requests?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        throw new Error(errorData.message || 'ไม่สามารถโหลดข้อมูลรายการคำขอได้');
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        setJobList(result.data as PorterJobItem[]);
-      } else {
-        throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
-
-      setError(errorMessage);
-      addToast({
-        title: 'เกิดข้อผิดพลาด',
-        description: errorMessage,
-        color: 'danger',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // โหลดข้อมูลเมื่อ component mount และเมื่อเปลี่ยน tab
-  useEffect(() => {
-    fetchPorterRequests();
+      return prev;
+    });
   }, []);
 
-  // เชื่อมต่อกับ SSE stream สำหรับ real-time updates
-  useEffect(() => {
-    let abortController: AbortController | null = null;
-    let reconnectTimeout: NodeJS.Timeout | null = null;
-    let isMounted = true;
+  useJobListStream({ onJobDeleted: handleJobDeleted });
 
-    const connectSSE = async () => {
-      if (!isMounted) {
+  const {
+    items,
+    sortedJobs,
+    total,
+    totalPages,
+    page,
+    pageSize,
+    startIndex,
+    endIndex,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    onPageChange,
+    onPageSizeChange,
+  } = jobListData;
+
+  // Sync state from URL when URL changes (e.g. initial load with ?tab=... or browser back/forward).
+  // Tab clicks do not update URL; only this effect reads URL → state.
+  useEffect(() => {
+    if (isValidJobListTab(tabFromUrl)) {
+      setSelectedTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  const handleTabChange = useCallback((key: React.Key) => {
+    const tab = key as JobListTab;
+
+    setSelectedTab(tab);
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery('');
+    setUrgencyFilter('');
+    setDateRange(null);
+    setStaffNameFilter('');
+    onPageChange(1);
+  }, [onPageChange]);
+
+  const handleSelectionChange = useCallback(
+    (keys: Selection) => {
+      if (keys === 'all') {
+        setSelectedKeys(new Set());
+        setSelectedJob(null);
+        setIsDrawerOpen(false);
+
         return;
       }
 
+      const keysSet = keys as Set<string>;
+
+      setSelectedKeys(keysSet);
+      if (keysSet.size > 0) {
+        const id = Array.from(keysSet)[0];
+        const job = items.find((item) => item.id === id);
+
+        if (job) {
+          setSelectedJob(job);
+          setIsDrawerOpen(true);
+        }
+      } else {
+        setSelectedJob(null);
+        setIsDrawerOpen(false);
+      }
+    },
+    [items],
+  );
+
+  const handleCloseDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
+    setSelectedKeys(new Set());
+    setSelectedJob(null);
+  }, []);
+
+  const handleAssignJob = useCallback(
+    async (jobId: string, staffId: string, staffName: string) => {
       try {
-        // สร้าง query params สำหรับ filter (optional)
-        const params = new URLSearchParams();
-        // สามารถเพิ่ม filter ได้ตามต้องการ เช่น status, urgency_level
+        const response = await fetch(`/api/porter/requests/${jobId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'WAITING_ACCEPT',
+            assignedToId: staffId,
+          }),
+        });
+        const result = await response.json();
 
-        // สร้าง AbortController สำหรับยกเลิก request
-        abortController = new AbortController();
-
-        // ใช้ fetch แทน EventSource เพื่อรองรับ authentication
-        // ตัวเลือก: เชื่อมต่อโดยตรงกับ API Gateway (ไม่ผ่าน Next.js API route)
-        // สำหรับทดสอบ: ตั้งค่า USE_DIRECT_CONNECTION=true ใน .env.local
-        const useDirectConnection = process.env.NEXT_PUBLIC_USE_DIRECT_SSE === 'true';
-        const apiGatewayUrl = getApiGatewayBaseUrl();
-
-        let streamUrl: string;
-        let headers: HeadersInit = {};
-
-        if (useDirectConnection) {
-          // เชื่อมต่อโดยตรงกับ API Gateway
-          // ต้องสร้าง JWT token สำหรับ authentication
-          // สร้าง JWT token โดยใช้ session
-          // Note: ใน client-side เราไม่สามารถใช้ getServerSession ได้
-          // ดังนั้นเราจะใช้วิธีอื่น เช่น ส่ง token ผ่าน API endpoint เพื่อสร้าง token
-          try {
-            const tokenResponse = await fetch('/api/porter/requests/token');
-            const tokenData = await tokenResponse.json();
-
-            if (!tokenData.token) {
-              throw new Error('Failed to get stream token');
-            }
-
-            streamUrl = `${apiGatewayUrl}/api-gateway/porter/requests/stream?${params.toString()}`;
-            headers = {
-              Authorization: `Bearer ${tokenData.token}`,
-            };
-          } catch {
-            streamUrl = `/api/porter/requests/stream?${params.toString()}`;
-          }
+        if (result.success && result.data) {
+          setSelectedJob(result.data);
+          await refetch();
+          addToast({
+            title: 'มอบหมายสำเร็จ',
+            description: `มอบหมายให้ ${staffName} แล้ว รอผู้ปฏิบัติรับงาน`,
+            color: 'success',
+          });
         } else {
-          // ใช้ Next.js API route (default)
-          streamUrl = `/api/porter/requests/stream?${params.toString()}`;
+          addToast({
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถมอบหมายงานได้',
+            color: 'danger',
+          });
         }
-
-        const response = await fetch(streamUrl, {
-          signal: abortController.signal,
-          headers,
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        // อ่าน stream
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-
-        if (!reader) {
-          throw new Error('No reader available');
-        }
-
-        let buffer = '';
-
-        // อ่านข้อมูลจาก stream
-        while (isMounted) {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            break;
-          }
-
-          // Decode และเพิ่มข้อมูลเข้า buffer
-          const chunk = decoder.decode(value, { stream: true });
-
-          buffer += chunk;
-
-          // ประมวลผล SSE messages
-          const lines = buffer.split('\n');
-
-          buffer = lines.pop() || ''; // เก็บส่วนที่เหลือไว้สำหรับรอบถัดไป
-
-          for (const line of lines) {
-            // Skip empty lines
-            if (!line.trim()) {
-              continue;
-            }
-
-            if (line.startsWith(': ')) {
-              continue;
-            }
-
-            if (line.startsWith('data: ')) {
-              try {
-                const jsonData = line.slice(6); // ตัด "data: " ออก
-
-                if (jsonData.trim()) {
-                  const updateData = JSON.parse(jsonData);
-
-                  if (updateData.type && updateData.data) {
-                    const { type, data } = updateData;
-
-                    // อัพเดท jobList ตาม type
-                    if (type === 'CREATED') {
-                      setJobList((prevList) => {
-                        // ตรวจสอบว่ามีอยู่แล้วหรือไม่ (ป้องกัน duplicate)
-                        const exists = prevList.some((job) => job.id === data.id);
-
-                        if (exists) {
-                          return prevList;
-                        }
-
-                        return [...prevList, data];
-                      });
-
-                      // แสดง toast notification และเล่นเสียงตาม UrgencyLevel
-                      const urgencyLevel = data.form?.urgencyLevel as UrgencyLevel;
-
-                      if (urgencyLevel === 'ฉุกเฉิน') {
-                        // UrgencyLevel ฉุกเฉิน - เล่นเสียงไซเรน
-                        playSirenSound();
-                        addToast({
-                          title: 'มีคำขอใหม่ - ฉุกเฉิน',
-                          description: `คำขอฉุกเฉินจาก ${data.form?.requesterName || 'ไม่ระบุ'} (HN: ${data.form?.patientHN || 'ไม่ระบุ'})`,
-                          color: 'danger',
-                        });
-                      } else if (urgencyLevel === 'ด่วน' || urgencyLevel === 'ปกติ') {
-                        // UrgencyLevel ปกติ, ด่วน - เล่นเสียงแจ้งเตือน
-                        playNotificationSound();
-
-                        const urgencyText = urgencyLevel === 'ด่วน' ? 'ด่วน' : 'ปกติ';
-
-                        addToast({
-                          title: `มีคำขอใหม่ - ${urgencyText}`,
-                          description: `คำขอ${urgencyText}จาก ${data.form?.requesterName || 'ไม่ระบุ'} (HN: ${data.form?.patientHN || 'ไม่ระบุ'})`,
-                          color: urgencyLevel === 'ด่วน' ? 'warning' : 'success',
-                        });
-                      } else {
-                        // กรณีไม่มี UrgencyLevel หรือไม่ทราบค่า
-                        playNotificationSound();
-                        addToast({
-                          title: 'มีคำขอใหม่',
-                          description: `คำขอจาก ${data.form?.requesterName || 'ไม่ระบุ'} ได้รับการเพิ่มแล้ว`,
-                          color: 'success',
-                        });
-                      }
-                    } else if (type === 'UPDATED' || type === 'STATUS_CHANGED') {
-                      // อัพเดทคำขอที่มีอยู่
-                      setJobList((prevList) =>
-                        prevList.map((job) => (job.id === data.id ? data : job)),
-                      );
-
-                      // อัพเดท selectedJob ถ้ายังเลือกอยู่
-                      if (selectedJob?.id === data.id) {
-                        setSelectedJob(data);
-                      }
-
-                      // แสดง toast notification สำหรับ status change
-                      if (type === 'STATUS_CHANGED') {
-                        const urgencyLevel = data.form?.urgencyLevel as UrgencyLevel;
-                        const statusText =
-                          data.status === 'WAITING_CENTER'
-                            ? 'รอศูนย์เปลรับงาน'
-                            : data.status === 'WAITING_ACCEPT'
-                              ? 'รอผู้ปฏิบัติรับงาน'
-                              : data.status === 'IN_PROGRESS'
-                                ? 'กำลังดำเนินการ'
-                                : data.status === 'COMPLETED'
-                                  ? 'เสร็จสิ้น'
-                                  : 'ยกเลิก';
-
-                        if (urgencyLevel === 'ฉุกเฉิน') {
-                          addToast({
-                            title: 'สถานะเปลี่ยน - ฉุกเฉิน',
-                            description: `สถานะของคำขอฉุกเฉิน (HN: ${data.form?.patientHN || 'ไม่ระบุ'}) เปลี่ยนเป็น ${statusText}`,
-                            color: 'danger',
-                          });
-                        } else if (urgencyLevel === 'ด่วน' || urgencyLevel === 'ปกติ') {
-                          const urgencyText = urgencyLevel === 'ด่วน' ? 'ด่วน' : 'ปกติ';
-
-                          addToast({
-                            title: `สถานะเปลี่ยน - ${urgencyText}`,
-                            description: `สถานะของคำขอ${urgencyText} (HN: ${data.form?.patientHN || 'ไม่ระบุ'}) เปลี่ยนเป็น ${statusText}`,
-                            color: urgencyLevel === 'ด่วน' ? 'warning' : 'primary',
-                          });
-                        } else {
-                          // กรณีไม่มี UrgencyLevel หรือไม่ทราบค่า
-                          addToast({
-                            title: 'สถานะเปลี่ยน',
-                            description: `สถานะของคำขอ ${data.form?.patientHN || 'ไม่ระบุ'} เปลี่ยนเป็น ${statusText}`,
-                            color: 'primary',
-                          });
-                        }
-                      }
-                    } else if (type === 'DELETED') {
-                      // ลบคำขอ
-                      setJobList((prevList) => prevList.filter((job) => job.id !== data.id));
-
-                      // ปิด drawer ถ้าคำขอที่ลบคือคำขอที่เลือกอยู่
-                      if (selectedJob?.id === data.id) {
-                        setIsDrawerOpen(false);
-                        setSelectedJob(null);
-                        setSelectedKeys(new Set());
-                      }
-                    }
-                  }
-                }
-              } catch {
-                // Skip malformed SSE message
-              }
-            }
-          }
-        }
-
-        if (isMounted) {
-          reconnectTimeout = setTimeout(() => {
-            if (isMounted) {
-              connectSSE();
-            }
-          }, 3000);
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-        // Reconnect หลัง 3 วินาที (หรือเมื่อ stream timeout)
-        if (isMounted) {
-          reconnectTimeout = setTimeout(() => {
-            if (isMounted) {
-              connectSSE();
-            }
-          }, 3000);
-        }
-      }
-    };
-
-    // เชื่อมต่อ SSE
-    connectSSE();
-
-    // Cleanup เมื่อ component unmount
-    return () => {
-      isMounted = false;
-      if (abortController) {
-        abortController.abort();
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-    };
-  }, [selectedJob]);
-
-  // Helper สำหรับ map status จริง → กลุ่มของแท็บ
-  const isWaitingStatus = (status: string | undefined | null) => status === 'WAITING_CENTER';
-  const isInProgressStatus = (status: string | undefined | null) =>
-    status === 'IN_PROGRESS' || status === 'WAITING_ACCEPT';
-  const isCompletedStatus = (status: string | undefined | null) => status === 'COMPLETED';
-  const isCancelledStatus = (status: string | undefined | null) => status === 'CANCELLED';
-
-  // คำนวณจำนวนงานตามสถานะสำหรับแสดงบนแท็บ
-  const waitingCount = useMemo(
-    () => jobList.filter((job) => isWaitingStatus(job.status)).length,
-    [jobList],
-  );
-  const inProgressCount = useMemo(
-    () => jobList.filter((job) => isInProgressStatus(job.status)).length,
-    [jobList],
-  );
-  const completedCount = useMemo(
-    () => jobList.filter((job) => isCompletedStatus(job.status)).length,
-    [jobList],
-  );
-  const cancelledCount = useMemo(
-    () => jobList.filter((job) => isCancelledStatus(job.status)).length,
-    [jobList],
-  );
-
-  // กรองข้อมูลตามแท็บที่เลือกและ date range (ถ้ามี)
-  const filteredJobs = useMemo(() => {
-    let filtered = jobList.filter((job) => {
-      if (selectedTab === 'waiting') {
-        return isWaitingStatus(job.status);
-      }
-      if (selectedTab === 'in-progress') {
-        return isInProgressStatus(job.status);
-      }
-      if (selectedTab === 'completed') {
-        return isCompletedStatus(job.status);
-      }
-      if (selectedTab === 'cancelled') {
-        return isCancelledStatus(job.status);
-      }
-
-      return false;
-    });
-
-    // Filter ตาม date range สำหรับ completed tab
-    if (selectedTab === 'completed') {
-      if (completedStartDate || completedEndDate) {
-        filtered = filtered.filter((job) => {
-          if (!job.completedAt) {
-            return false;
-          }
-
-          const jobDate = new Date(job.completedAt);
-          const jobDateOnly = new Date(
-            jobDate.getFullYear(),
-            jobDate.getMonth(),
-            jobDate.getDate(),
-          );
-
-          // ตรวจสอบ startDate
-          if (completedStartDate) {
-            const startDateOnly = toDateOnly(completedStartDate);
-
-            if (startDateOnly && jobDateOnly < startDateOnly) {
-              return false;
-            }
-          }
-
-          // ตรวจสอบ endDate
-          if (completedEndDate) {
-            const endDateOnly = toDateOnly(completedEndDate);
-
-            if (endDateOnly && jobDateOnly > endDateOnly) {
-              return false;
-            }
-          }
-
-          return true;
-        });
-      }
-    }
-
-    // Filter ตาม date range สำหรับ cancelled tab
-    if (selectedTab === 'cancelled') {
-      if (cancelledStartDate || cancelledEndDate) {
-        filtered = filtered.filter((job) => {
-          if (!job.cancelledAt) {
-            return false;
-          }
-
-          const jobDate = new Date(job.cancelledAt);
-          const jobDateOnly = new Date(
-            jobDate.getFullYear(),
-            jobDate.getMonth(),
-            jobDate.getDate(),
-          );
-
-          // ตรวจสอบ startDate
-          if (cancelledStartDate) {
-            const startDateOnly = toDateOnly(cancelledStartDate);
-
-            if (startDateOnly && jobDateOnly < startDateOnly) {
-              return false;
-            }
-          }
-
-          // ตรวจสอบ endDate
-          if (cancelledEndDate) {
-            const endDateOnly = toDateOnly(cancelledEndDate);
-
-            if (endDateOnly && jobDateOnly > endDateOnly) {
-              return false;
-            }
-          }
-
-          return true;
-        });
-      }
-    }
-
-    return filtered;
-  }, [
-    jobList,
-    selectedTab,
-    completedStartDate,
-    completedEndDate,
-    cancelledStartDate,
-    cancelledEndDate,
-  ]);
-
-  // จัดเรียงตามกติกา: แท็บ 1-2 (emergency ก่อน + เวลา), แท็บ 3-4 (เวลาอย่างเดียว)
-  const sortedJobs = useMemo(
-    () => sortJobs(filteredJobs, selectedTab),
-    [filteredJobs, selectedTab],
-  );
-
-  // Helper function สำหรับ clear date filters
-  const clearCompletedDateFilter = () => {
-    setCompletedStartDate(null);
-    setCompletedEndDate(null);
-  };
-
-  const clearCancelledDateFilter = () => {
-    setCancelledStartDate(null);
-    setCancelledEndDate(null);
-  };
-
-  const {
-    currentPage,
-    rowsPerPage,
-    totalPages,
-    startIndex,
-    endIndex,
-    paginatedItems,
-    setCurrentPage: updateCurrentPage,
-    setRowsPerPage: updateRowsPerPage,
-  } = usePagination(sortedJobs, { initialRowsPerPage: 5 });
-  const paginatedJobs = paginatedItems;
-
-  // รีเซ็ตหน้าไปที่ 1 เมื่อเปลี่ยนแท็บหรือ date filter
-  useEffect(() => {
-    updateCurrentPage(1);
-    setSelectedKeys(new Set());
-    setSelectedJob(null);
-    setIsDrawerOpen(false);
-  }, [
-    selectedTab,
-    completedStartDate,
-    completedEndDate,
-    cancelledStartDate,
-    cancelledEndDate,
-    updateCurrentPage,
-  ]);
-
-  // Handler สำหรับ refresh ข้อมูล
-  const handleRefresh = () => {
-    fetchPorterRequests();
-  };
-
-  // Handler สำหรับการเลือก row
-  const handleSelectionChange = (keys: any) => {
-    if (keys === 'all') {
-      setSelectedKeys(new Set());
-      setSelectedJob(null);
-      setIsDrawerOpen(false);
-
-      return;
-    }
-
-    const keysSet = keys as Set<string>;
-
-    setSelectedKeys(keysSet);
-
-    if (keysSet.size > 0) {
-      // หา job ที่ถูกเลือกจาก sortedJobs (ทั้งหมดใน tab)
-      const selectedKey = Array.from(keysSet)[0];
-      const job = sortedJobs.find((item) => item.id === selectedKey);
-
-      if (job) {
-        setSelectedJob(job);
-        setIsDrawerOpen(true);
-      }
-    } else {
-      setSelectedJob(null);
-      setIsDrawerOpen(false);
-    }
-  };
-
-  // Handler สำหรับปิด Drawer
-  const handleCloseDrawer = () => {
-    setIsDrawerOpen(false);
-    setSelectedKeys(new Set());
-    setSelectedJob(null);
-  };
-
-  // Handler สำหรับมอบหมายงาน (เลือกผู้ปฏิบัติ) → สถานะ WAITING_ACCEPT
-  const handleAssignJob = async (jobId: string, staffId: string, staffName: string) => {
-    try {
-      const response = await fetch(`/api/porter/requests/${jobId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'WAITING_ACCEPT',
-          assignedToId: staffId,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        setJobList((prevList) => prevList.map((job) => (job.id === jobId ? result.data : job)));
-
-        if (selectedJob?.id === jobId) {
-          setSelectedJob(result.data);
-        }
-
-        addToast({
-          title: 'มอบหมายสำเร็จ',
-          description: `มอบหมายให้ ${staffName} แล้ว รอผู้ปฏิบัติรับงาน`,
-          color: 'success',
-        });
-      } else {
+      } catch {
         addToast({
           title: 'เกิดข้อผิดพลาด',
-          description: result.message || 'ไม่สามารถมอบหมายงานได้',
+          description: 'ไม่สามารถมอบหมายงานได้',
           color: 'danger',
         });
       }
-    } catch {
-      addToast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถมอบหมายงานได้',
-        color: 'danger',
-      });
-    }
-  };
+    },
+    [refetch],
+  );
 
-  // Handler สำหรับยกเลิกงาน
-  const handleCancelJob = async (jobId: string, cancelledReason?: string) => {
-    try {
-      // เรียก API เพื่ออัปเดตสถานะเป็น cancelled
-      const response = await fetch(`/api/porter/requests/${jobId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'CANCELLED',
-          cancelledReason: cancelledReason || undefined,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        // อัปเดต jobList ด้วยข้อมูลที่ได้จาก API
-        setJobList((prevList) => prevList.map((job) => (job.id === jobId ? result.data : job)));
-
-        // อัปเดต selectedJob ถ้ายังเลือกอยู่
-        if (selectedJob?.id === jobId) {
-          setSelectedJob(result.data);
-        }
-
-        addToast({
-          title: 'ยกเลิกงานสำเร็จ',
-          description: 'ยกเลิกงานสำเร็จ',
-          color: 'success',
+  const handleCancelJob = useCallback(
+    async (jobId: string, cancelledReason?: string) => {
+      try {
+        const response = await fetch(`/api/porter/requests/${jobId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'CANCELLED',
+            cancelledReason: cancelledReason || undefined,
+          }),
         });
-      } else {
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setSelectedJob(result.data);
+          await refetch();
+          addToast({
+            title: 'ยกเลิกงานสำเร็จ',
+            description: 'ยกเลิกงานสำเร็จ',
+            color: 'success',
+          });
+        } else {
+          addToast({
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถยกเลิกงานได้',
+            color: 'danger',
+          });
+        }
+      } catch {
         addToast({
           title: 'เกิดข้อผิดพลาด',
-          description: result.message || 'ไม่สามารถยกเลิกงานได้',
+          description: 'ไม่สามารถยกเลิกงานได้',
           color: 'danger',
         });
       }
-    } catch {
-      addToast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถยกเลิกงานได้',
-        color: 'danger',
-      });
-    }
-  };
+    },
+    [refetch],
+  );
 
-  // Handler สำหรับทำเสร็จสิ้นงาน
-  const handleCompleteJob = async (jobId: string) => {
-    try {
-      // เรียก API เพื่ออัปเดตสถานะเป็น completed
-      const response = await fetch(`/api/porter/requests/${jobId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'COMPLETED',
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        // อัปเดต jobList ด้วยข้อมูลที่ได้จาก API
-        setJobList((prevList) => prevList.map((job) => (job.id === jobId ? result.data : job)));
-
-        // อัปเดต selectedJob ถ้ายังเลือกอยู่
-        if (selectedJob?.id === jobId) {
-          setSelectedJob(result.data);
-        }
-
-        addToast({
-          title: 'ทำเสร็จสิ้นงานสำเร็จ',
-          description: 'ทำเสร็จสิ้นงานสำเร็จ',
-          color: 'success',
+  const handleCompleteJob = useCallback(
+    async (jobId: string) => {
+      try {
+        const response = await fetch(`/api/porter/requests/${jobId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'COMPLETED' }),
         });
-      } else {
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setSelectedJob(result.data);
+          await refetch();
+          addToast({
+            title: 'ทำเสร็จสิ้นงานสำเร็จ',
+            description: 'ทำเสร็จสิ้นงานสำเร็จ',
+            color: 'success',
+          });
+        } else {
+          addToast({
+            title: 'เกิดข้อผิดพลาด',
+            description: result.message || 'ไม่สามารถทำเสร็จสิ้นงานได้',
+            color: 'danger',
+          });
+        }
+      } catch {
         addToast({
           title: 'เกิดข้อผิดพลาด',
-          description: result.message || 'ไม่สามารถทำเสร็จสิ้นงานได้',
+          description: 'ไม่สามารถทำเสร็จสิ้นงานได้',
           color: 'danger',
         });
       }
-    } catch {
-      addToast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถทำเสร็จสิ้นงานได้',
-        color: 'danger',
-      });
-    }
-  };
+    },
+    [refetch],
+  );
 
-  // Handler สำหรับอัปเดตข้อมูลงาน
-  const handleUpdateJob = (jobId: string, updatedForm: PorterRequestFormData) => {
-    setJobList((prevList) =>
-      prevList.map((job) => (job.id === jobId ? { ...job, form: updatedForm } : job)),
-    );
-    // อัปเดต selectedJob ถ้ายังเลือกอยู่
-    if (selectedJob?.id === jobId) {
-      setSelectedJob({
-        ...selectedJob,
-        form: updatedForm,
-      });
-    }
-  };
+  const handleUpdateJob = useCallback(
+    (jobId: string, updatedForm: PorterRequestFormData) => {
+      setSelectedJob((prev) =>
+        prev?.id === jobId ? { ...prev, form: updatedForm } : prev,
+      );
+    },
+    [],
+  );
+
+  const emptyContentNode = useMemo(
+    () => (
+      <PorterEmptyState
+        message="ไม่มีรายการคำขอในหมวดนี้"
+        variant="no-data"
+      />
+    ),
+    [],
+  );
+
+  const tableSectionCommon = useMemo(
+    () => ({
+      items,
+      sortedJobs,
+      total,
+      totalPages,
+      page,
+      pageSize,
+      startIndex,
+      endIndex,
+      isLoading,
+      isFetching,
+      selectedKeys,
+      onPageChange,
+      onPageSizeChange,
+      onSelectionChange: handleSelectionChange,
+      onRefresh: refetch,
+      emptyContent: emptyContentNode,
+    }),
+    [
+      items,
+      sortedJobs,
+      total,
+      totalPages,
+      page,
+      pageSize,
+      startIndex,
+      endIndex,
+      isLoading,
+      isFetching,
+      selectedKeys,
+      onPageChange,
+      onPageSizeChange,
+      handleSelectionChange,
+      refetch,
+      emptyContentNode,
+    ],
+  );
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">รายการคำขอรับพนักงานเปล</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            รายการคำขอรับพนักงานเปล
+          </h1>
         </div>
         <div className="flex items-center space-x-2 text-default-600">
           <ClockIcon aria-hidden className="w-5 h-5" />
-          <div className="text-sm">
-            <div className="font-medium">
-              <CurrentTimeDisplay />
-            </div>
+          <div className="text-sm font-medium">
+            <CurrentTimeDisplay />
           </div>
         </div>
       </div>
 
+      <div>
+        <JobListFilters
+          dateRange={dateRange}
+          searchQuery={searchQuery}
+          staffNameFilter={staffNameFilter}
+          urgencyFilter={urgencyFilter}
+          onClearFilters={handleClearFilters}
+          onDateRangeChange={setDateRange}
+          onPageReset={() => onPageChange(1)}
+          onSearchChange={setSearchQuery}
+          onStaffNameChange={setStaffNameFilter}
+          onUrgencyChange={setUrgencyFilter}
+        />
+      </div>
+
       <div className="mt-8">
         <Card className={CARD_STYLES.highlight}>
-          <CardHeader>
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center space-x-2">
-                <ClipboardListIcon aria-hidden className="w-6 h-6" />
-                <h2 className="text-xl font-semibold text-foreground">รายการคำขอ</h2>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-default-600">
-                  คำขอทั้งหมด {filteredJobs.length} รายการ
-                </div>
-                <Button
-                  aria-label="รีเฟรชข้อมูล"
-                  color="primary"
-                  isLoading={isLoading}
-                  size="sm"
-                  title="รีเฟรชข้อมูล"
-                  variant="flat"
-                  onPress={handleRefresh}
-                >
-                  รีเฟรชข้อมูล
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
           <CardBody>
-            {/* แสดง Loading หรือ Error */}
-            {isLoading && <PorterLoadingSkeleton rows={5} variant="table-row" />}
             {error && !isLoading && (
               <PorterEmptyState
                 icon={<XMarkIcon className="w-12 h-12 text-danger" />}
@@ -812,249 +383,111 @@ export default function JobListClient() {
                 variant="error"
               />
             )}
-            {/* Tab Navigation - HeroUI Tabs */}
-            {!isLoading && !error && (
-              <Tabs
-                aria-label="รายการคำขอ"
-                classNames={{
-                  tabList: 'w-full',
-                  tab: 'data-[selected=true]:bg-primary-500 data-[selected=true]:text-white data-[selected=true]:hover:bg-primary/80',
-                }}
-                color="primary"
-                selectedKey={selectedTab}
-                size="lg"
-                variant="bordered"
-                onSelectionChange={handleTabChange}
-              >
-                <Tab
-                  key="waiting"
-                  title={
-                    <div className="flex items-center justify-center space-x-2">
-                      <ClipboardListIcon aria-hidden className="w-4 h-4" />
-                      <span>รอศูนย์เปลรับงาน</span>
-                      <Chip
-                        color="danger"
-                        size="sm"
-                        variant={selectedTab === 'waiting' ? 'solid' : 'bordered'}
-                      >
-                        {waitingCount}
-                      </Chip>
-                    </div>
-                  }
+            {!error && (
+              <>
+                <Tabs
+                  aria-label="รายการคำขอ"
+                  classNames={{
+                    tabList: 'w-full',
+                    tab: 'data-[selected=true]:bg-primary-500 data-[selected=true]:text-white data-[selected=true]:hover:bg-primary/80',
+                  }}
+                  color="primary"
+                  selectedKey={selectedTab}
+                  size="lg"
+                  variant="bordered"
+                  onSelectionChange={handleTabChange}
                 >
-                  <JobTable
-                    currentPage={currentPage}
-                    endIndex={endIndex}
-                    isLoading={isLoading}
-                    items={paginatedJobs}
-                    paginationId="rows-per-page"
-                    rowsPerPage={rowsPerPage}
-                    selectedKeys={selectedKeys}
-                    sortedJobs={sortedJobs}
-                    startIndex={startIndex}
-                    totalPages={totalPages}
-                    onPageChange={updateCurrentPage}
-                    onRowsPerPageChange={updateRowsPerPage}
-                    onSelectionChange={handleSelectionChange}
+                  <Tab
+                    key="waiting"
+                    title={
+                      <div className="flex items-center justify-center space-x-2">
+                        <ClipboardListIcon className="w-4 h-4" />
+                        <span>รอศูนย์เปลรับงาน</span>
+                        <Chip
+                          color="danger"
+                          size="sm"
+                          variant={
+                            selectedTab === 'waiting' ? 'solid' : 'bordered'
+                          }
+                        >
+                          {counts.waitingCount}
+                        </Chip>
+                      </div>
+                    }
                   />
-                </Tab>
-                <Tab
-                  key="in-progress"
-                  title={
-                    <div className="flex items-center justify-center space-x-2">
-                      <ClockIcon aria-hidden className="w-4 h-4" />
-                      <span>กำลังดำเนินการ</span>
-                      <Chip
-                        color="warning"
-                        size="sm"
-                        variant={selectedTab === 'in-progress' ? 'solid' : 'bordered'}
-                      >
-                        {inProgressCount}
-                      </Chip>
-                    </div>
-                  }
-                >
-                  <JobTable
-                    currentPage={currentPage}
-                    endIndex={endIndex}
-                    isLoading={isLoading}
-                    items={paginatedJobs}
-                    paginationId="rows-per-page-2"
-                    rowsPerPage={rowsPerPage}
-                    selectedKeys={selectedKeys}
-                    sortedJobs={sortedJobs}
-                    startIndex={startIndex}
-                    totalPages={totalPages}
-                    onPageChange={updateCurrentPage}
-                    onRowsPerPageChange={updateRowsPerPage}
-                    onSelectionChange={handleSelectionChange}
+                  <Tab
+                    key="in-progress"
+                    title={
+                      <div className="flex items-center justify-center space-x-2">
+                        <ClockIcon className="w-4 h-4" />
+                        <span>กำลังดำเนินการ</span>
+                        <Chip
+                          color="warning"
+                          size="sm"
+                          variant={
+                            selectedTab === 'in-progress'
+                              ? 'solid'
+                              : 'bordered'
+                          }
+                        >
+                          {counts.inProgressCount}
+                        </Chip>
+                      </div>
+                    }
                   />
-                </Tab>
-                <Tab
-                  key="completed"
-                  title={
-                    <div className="flex items-center justify-center space-x-2">
-                      <CheckCircleIcon aria-hidden className="w-4 h-4" />
-                      <span>เสร็จสิ้น</span>
-                      <Chip
-                        color="success"
-                        size="sm"
-                        variant={selectedTab === 'completed' ? 'solid' : 'bordered'}
-                      >
-                        {completedCount}
-                      </Chip>
-                    </div>
-                  }
-                >
-                  <div className="space-y-4">
-                    {/* Date Range Filter */}
-                    <Card className="border border-default-200">
-                      <CardBody>
-                        <div className="flex flex-col md:flex-row gap-4 items-end">
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DatePicker
-                              label="วันที่เริ่มต้น"
-                              maxValue={completedEndDate || undefined}
-                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
-                              value={completedStartDate}
-                              variant="bordered"
-                              onChange={(date) => {
-                                setCompletedStartDate(date);
-                                // ถ้าวันที่เริ่มต้นมากกว่าวันที่สิ้นสุด ให้ล้างวันที่สิ้นสุด
-                                if (date && completedEndDate) {
-                                  const start = toDateOnly(date);
-                                  const end = toDateOnly(completedEndDate);
-
-                                  if (start && end && start > end) {
-                                    setCompletedEndDate(null);
-                                  }
-                                }
-                              }}
-                            />
-                            <DatePicker
-                              label="วันที่สิ้นสุด"
-                              minValue={completedStartDate || undefined}
-                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
-                              value={completedEndDate}
-                              variant="bordered"
-                              onChange={(date) => setCompletedEndDate(date)}
-                            />
-                          </div>
-                          {(completedStartDate || completedEndDate) && (
-                            <Button
-                              color="default"
-                              size="md"
-                              variant="flat"
-                              onPress={clearCompletedDateFilter}
-                            >
-                              ล้างตัวกรอง
-                            </Button>
-                          )}
-                        </div>
-                      </CardBody>
-                    </Card>
-                    <JobTable
-                      currentPage={currentPage}
-                      endIndex={endIndex}
-                      isLoading={isLoading}
-                      items={paginatedJobs}
-                      paginationId="rows-per-page-3"
-                      rowsPerPage={rowsPerPage}
-                      sortedJobs={sortedJobs}
-                      startIndex={startIndex}
-                      totalPages={totalPages}
-                      onPageChange={updateCurrentPage}
-                      onRowsPerPageChange={updateRowsPerPage}
-                      onSelectionChange={handleSelectionChange}
-                    />
-                  </div>
-                </Tab>
-                <Tab
-                  key="cancelled"
-                  title={
-                    <div className="flex items-center justify-center space-x-2">
-                      <XMarkIcon aria-hidden className="w-4 h-4" />
-                      <span>ยกเลิก</span>
-                      <Chip
-                        color="danger"
-                        size="sm"
-                        variant={selectedTab === 'cancelled' ? 'solid' : 'bordered'}
-                      >
-                        {cancelledCount}
-                      </Chip>
-                    </div>
-                  }
-                >
-                  <div className="space-y-4">
-                    {/* Date Range Filter */}
-                    <Card className="border border-default-200">
-                      <CardBody>
-                        <div className="flex flex-col md:flex-row gap-4 items-end">
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DatePicker
-                              label="วันที่เริ่มต้น"
-                              maxValue={cancelledEndDate || undefined}
-                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
-                              value={cancelledStartDate}
-                              variant="bordered"
-                              onChange={(date) => {
-                                setCancelledStartDate(date);
-                                // ถ้าวันที่เริ่มต้นมากกว่าวันที่สิ้นสุด ให้ล้างวันที่สิ้นสุด
-                                if (date && cancelledEndDate) {
-                                  const start = toDateOnly(date);
-                                  const end = toDateOnly(cancelledEndDate);
-
-                                  if (start && end && start > end) {
-                                    setCancelledEndDate(null);
-                                  }
-                                }
-                              }}
-                            />
-                            <DatePicker
-                              label="วันที่สิ้นสุด"
-                              minValue={cancelledStartDate || undefined}
-                              selectorIcon={<CalendarIcon aria-hidden className="w-4 h-4" />}
-                              value={cancelledEndDate}
-                              variant="bordered"
-                              onChange={(date) => setCancelledEndDate(date)}
-                            />
-                          </div>
-                          {(cancelledStartDate || cancelledEndDate) && (
-                            <Button
-                              color="default"
-                              size="md"
-                              variant="flat"
-                              onPress={clearCancelledDateFilter}
-                            >
-                              ล้างตัวกรอง
-                            </Button>
-                          )}
-                        </div>
-                      </CardBody>
-                    </Card>
-                    <JobTable
-                      currentPage={currentPage}
-                      endIndex={endIndex}
-                      isLoading={isLoading}
-                      items={paginatedJobs}
-                      paginationId="rows-per-page-4"
-                      rowsPerPage={rowsPerPage}
-                      sortedJobs={sortedJobs}
-                      startIndex={startIndex}
-                      totalPages={totalPages}
-                      onPageChange={updateCurrentPage}
-                      onRowsPerPageChange={updateRowsPerPage}
-                      onSelectionChange={handleSelectionChange}
-                    />
-                  </div>
-                </Tab>
-              </Tabs>
+                  <Tab
+                    key="completed"
+                    title={
+                      <div className="flex items-center justify-center space-x-2">
+                        <CheckCircleIcon className="w-4 h-4" />
+                        <span>เสร็จสิ้น</span>
+                        <Chip
+                          color="success"
+                          size="sm"
+                          variant={
+                            selectedTab === 'completed'
+                              ? 'solid'
+                              : 'bordered'
+                          }
+                        >
+                          {counts.completedCount}
+                        </Chip>
+                      </div>
+                    }
+                  />
+                  <Tab
+                    key="cancelled"
+                    title={
+                      <div className="flex items-center justify-center space-x-2">
+                        <XMarkIcon className="w-4 h-4" />
+                        <span>ยกเลิก</span>
+                        <Chip
+                          color="danger"
+                          size="sm"
+                          variant={
+                            selectedTab === 'cancelled'
+                              ? 'solid'
+                              : 'bordered'
+                          }
+                        >
+                          {counts.cancelledCount}
+                        </Chip>
+                      </div>
+                    }
+                  />
+                </Tabs>
+                <div className={cn('mt-4', 'space-y-4')}>
+                  <JobListTableCard
+                    {...tableSectionCommon}
+                    paginationId={`rows-per-page-${selectedTab}`}
+                  />
+                </div>
+              </>
             )}
           </CardBody>
         </Card>
       </div>
 
-      {/* Job Detail Drawer - Editable variant */}
       <EditableJobDetailDrawer
         isOpen={isDrawerOpen}
         job={selectedJob}

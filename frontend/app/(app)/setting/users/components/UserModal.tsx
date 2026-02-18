@@ -234,56 +234,53 @@ export function UserModal({
     }
   }, [user, isOpen]);
 
-  // โหลดข้อมูลพื้นฐานสำหรับ Autocomplete เมื่อ modal เปิด
+  // โหลดข้อมูล HRD แบบขนานเมื่อ modal เปิด (ลด waterfall: async-parallel)
   useEffect(() => {
-    if (isOpen) {
-      void fetchPersonTypes();
-      void fetchPositions();
-      void fetchDepartments();
-    }
-  }, [isOpen]);
+    if (!isOpen) return;
 
-  // เมื่อมี departmentId ให้โหลดกลุ่มงาน
+    const deptId = user?.departmentId != null ? String(user.departmentId) : null;
+    const deptSubId = user?.departmentSubId != null ? String(user.departmentSubId) : null;
+
+    const promises: Promise<void>[] = [
+      fetchPersonTypes(),
+      fetchPositions(),
+      fetchDepartments(),
+    ];
+
+    if (deptId) promises.push(fetchDepartmentSubs(deptId));
+    if (deptSubId) promises.push(fetchDepartmentSubSubs(deptSubId));
+
+    void Promise.all(promises);
+  }, [isOpen, user?.departmentId, user?.departmentSubId]);
+
+  // เมื่อผู้ใช้เปลี่ยน departmentId/departmentSubId ในฟอร์ม (ไม่ใช่จาก user prop) ให้โหลดตัวเลือกใหม่ (ข้ามถ้าค่าตรงกับ user เพื่อไม่โหลดซ้ำ)
   useEffect(() => {
-    if (departmentId) {
-      void fetchDepartmentSubs(departmentId);
-    } else {
+    if (!isOpen) return;
+    if (!departmentId) {
       setDepartmentSubOptions([]);
-    }
-  }, [departmentId]);
 
-  // เมื่อมี departmentSubId ให้โหลดหน่วยงาน
+      return;
+    }
+    const userDeptId = user?.departmentId != null ? String(user.departmentId) : null;
+
+    if (userDeptId === departmentId) return; // โหลดแล้วใน effect แรก
+
+    void fetchDepartmentSubs(departmentId);
+  }, [isOpen, departmentId, user?.departmentId]);
+
   useEffect(() => {
-    if (departmentSubId) {
-      void fetchDepartmentSubSubs(departmentSubId);
-    } else {
+    if (!isOpen) return;
+    if (!departmentSubId) {
       setDepartmentSubSubOptions([]);
+
+      return;
     }
-  }, [departmentSubId]);
+    const userDeptSubId = user?.departmentSubId != null ? String(user.departmentSubId) : null;
 
-  // โหลดข้อมูลกลุ่มงานและหน่วยงานเมื่อ user data ถูก set และ modal เปิด
-  // ใช้เพื่อให้แน่ใจว่าข้อมูลจะถูกโหลดหลังจากที่ state ถูก update แล้ว
-  useEffect(() => {
-    if (isOpen && user) {
-      // ใช้ setTimeout เพื่อให้แน่ใจว่า state ถูก update แล้ว
-      const timer = setTimeout(() => {
-        // ถ้ามี departmentId ให้โหลดกลุ่มงาน
-        if (user.departmentId) {
-          const deptId = String(user.departmentId);
+    if (userDeptSubId === departmentSubId) return;
 
-          void fetchDepartmentSubs(deptId);
-        }
-        // ถ้ามี departmentSubId ให้โหลดหน่วยงาน
-        if (user.departmentSubId) {
-          const deptSubId = String(user.departmentSubId);
-
-          void fetchDepartmentSubSubs(deptSubId);
-        }
-      }, 0);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, user]);
+    void fetchDepartmentSubSubs(departmentSubId);
+  }, [isOpen, departmentSubId, user?.departmentSubId]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};

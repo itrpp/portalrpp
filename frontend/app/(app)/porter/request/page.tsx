@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
@@ -31,14 +32,22 @@ import {
 import { CalendarDateTime, CalendarDate, parseDate } from '@internationalized/date';
 import { RangeValue } from '@react-types/shared';
 
-import {
-  LocationSelector,
-  CancelJobModal,
-  ReadOnlyJobDetailDrawer,
-  EmergencyConfirmationModal,
-  PorterEmptyState,
-} from '../components';
+import { LocationSelector } from '../components/LocationSelector';
+import { PorterEmptyState } from '../components/shared/PorterEmptyState';
 import { useDepartmentName } from '../hooks/useDepartmentsMap';
+
+const CancelJobModal = dynamic(
+  () => import('../components/CancelJobModal').then((m) => m.default),
+  { ssr: false },
+);
+const ReadOnlyJobDetailDrawer = dynamic(
+  () => import('../components/ReadOnlyJobDetailDrawer').then((m) => ({ default: m.ReadOnlyJobDetailDrawer })),
+  { ssr: false },
+);
+const EmergencyConfirmationModal = dynamic(
+  () => import('../components/EmergencyConfirmationModal').then((m) => m.default),
+  { ssr: false },
+);
 
 import { RequestHistoryTable } from './components/RequestHistoryTable';
 import { usePorterRequestForm } from './hooks/usePorterRequestForm';
@@ -68,6 +77,45 @@ import {
   MagnifyingGlassIcon,
   RefreshIcon,
 } from '@/components/ui/icons';
+
+/** แปลง string (YYYY-MM-DDTHH:mm) เป็น CalendarDateTime (hoist เพื่อลดการสร้างฟังก์ชันทุก render) */
+function stringToCalendarDateTime(dateString: string): CalendarDateTime {
+  try {
+    const [datePart, timePart] = dateString.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = (timePart || '00:00').split(':').map(Number);
+
+    return new CalendarDateTime(year, month, day, hour || 0, minute || 0);
+  } catch {
+    const now = new Date();
+
+    return new CalendarDateTime(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      now.getDate(),
+      now.getHours(),
+      now.getMinutes(),
+    );
+  }
+}
+
+/** แปลงค่า CalendarDateTime-like เป็น string (hoist) */
+function calendarDateTimeToString(date: { year: number; month: number; day: number; hour: number; minute: number }): string {
+  const year = date.year.toString().padStart(4, '0');
+  const month = date.month.toString().padStart(2, '0');
+  const day = date.day.toString().padStart(2, '0');
+  const hour = date.hour.toString().padStart(2, '0');
+  const minute = date.minute.toString().padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+interface PorterApiResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  message?: string;
+}
 
 export default function PorterRequestPage() {
   const { data: session } = useSession();
@@ -236,34 +284,26 @@ export default function PorterRequestPage() {
     router.replace(newUrl, { scroll: false });
   }, [statusFilter, searchQuery, dateRange, urgencyFilter, page, pathname, router, searchParams]);
 
-  // Filter userRequests ตามช่วงวันที่และความเร่งด่วน (client-side)
+  // Filter userRequests ตามช่วงวันที่และความเร่งด่วน (client-side, single pass)
   const filteredUserRequests = useMemo(() => {
-    let result = userRequests;
+    const startStr = dateRange?.start?.toString();
+    const endStr = dateRange?.end?.toString();
 
-    // กรองตามช่วงวันที่
-    if (dateRange?.start && dateRange?.end) {
-      const startDateStr = dateRange.start.toString();
-      const endDateStr = dateRange.end.toString();
-
-      result = result.filter((request) => {
+    return userRequests.filter((request) => {
+      if (startStr != null && endStr != null) {
         if (!request.createdAt) return false;
-
         const requestDateStr = getISODatePart(request.createdAt);
 
-        return requestDateStr >= startDateStr && requestDateStr <= endDateStr;
-      });
-    }
-
-    // กรองตามความเร่งด่วน
-    if (urgencyFilter) {
-      result = result.filter((request) => {
+        if (requestDateStr < startStr || requestDateStr > endStr) return false;
+      }
+      if (urgencyFilter) {
         const level = request.form?.urgencyLevel ?? 'ปกติ';
 
-        return level === urgencyFilter;
-      });
-    }
+        if (level !== urgencyFilter) return false;
+      }
 
-    return result;
+      return true;
+    });
   }, [userRequests, dateRange, urgencyFilter]);
 
   // State สำหรับค้นหาข้อมูลผู้ป่วย
@@ -294,44 +334,44 @@ export default function PorterRequestPage() {
 
   // Scroll behavior handled inside usePorterRequestForm hook
 
-  // Handler สำหรับแก้ไขคำขอ
-  const handleEditRequest = (requestId: string) => {
-    const request = userRequests.find((r) => r.id === requestId);
+  const handleEditRequest = useCallback(
+    (requestId: string) => {
+      const request = userRequests.find((r) => r.id === requestId);
 
-    if (!request) {
+      if (!request) {
+        addToast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่พบข้อมูลคำขอ',
+          color: 'danger',
+        });
+
+        return;
+      }
+
+      if (request.status !== 'WAITING_CENTER' && request.status !== 'WAITING_ACCEPT') {
+        addToast({
+          title: 'ไม่สามารถแก้ไขได้',
+          description: 'สามารถแก้ไขได้เฉพาะงานที่ยังไม่รับงานเท่านั้น',
+          color: 'warning',
+        });
+
+        return;
+      }
+
+      loadRequestForEdit(request);
+      setSelectedTab('form');
       addToast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่พบข้อมูลคำขอ',
-        color: 'danger',
+        title: 'โหลดข้อมูลสำเร็จ',
+        description: 'ข้อมูลคำขอได้ถูกโหลดลงในฟอร์มแล้ว',
+        color: 'success',
       });
+    },
+    [userRequests, loadRequestForEdit],
+  );
 
-      return;
-    }
-
-    // ตรวจสอบ status ก่อนโหลดข้อมูลแก้ไข
-    // แก้ไขได้เฉพาะงานที่ยังไม่ถูกผู้ปฏิบัติรับ (WAITING_CENTER / WAITING_ACCEPT)
-    if (request.status !== 'WAITING_CENTER' && request.status !== 'WAITING_ACCEPT') {
-      addToast({
-        title: 'ไม่สามารถแก้ไขได้',
-        description: 'สามารถแก้ไขได้เฉพาะงานที่ยังไม่รับงานเท่านั้น',
-        color: 'warning',
-      });
-
-      return;
-    }
-
-    loadRequestForEdit(request);
-    setSelectedTab('form'); // Switch to form tab
-    addToast({
-      title: 'โหลดข้อมูลสำเร็จ',
-      description: 'ข้อมูลคำขอได้ถูกโหลดลงในฟอร์มแล้ว',
-      color: 'success',
-    });
-  };
-
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     cancelEditing();
-  };
+  }, [cancelEditing]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -353,17 +393,16 @@ export default function PorterRequestPage() {
 
     try {
       let response: Response;
-      let result: any;
+      let result: PorterApiResult;
 
       if (editingRequestId) {
-        // แก้ไขคำขอ
         response = await fetch(`/api/porter/requests/${editingRequestId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
 
-        result = await response.json();
+        result = (await response.json()) as PorterApiResult;
 
         if (!response.ok || !result.success) {
           const errorMessage =
@@ -395,7 +434,7 @@ export default function PorterRequestPage() {
           body: JSON.stringify(formData),
         });
 
-        result = await response.json();
+        result = (await response.json()) as PorterApiResult;
 
         if (!response.ok || !result.success) {
           const errorMessage =
@@ -424,14 +463,7 @@ export default function PorterRequestPage() {
       await refreshUserRequests();
       resetForm();
       // ไม่ต้อง switch tab ปล่อยให้ผู้ใช้กรอกต่อหรือกดดูเอง
-    } catch (error: unknown) {
-      // Log error for debugging (in production, use proper logging service)
-      if (error instanceof Error) {
-        console.error('Error submitting porter request:', error.message);
-      } else {
-        console.error('Error submitting porter request:', error);
-      }
-
+    } catch {
       addToast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง',
@@ -442,82 +474,47 @@ export default function PorterRequestPage() {
     }
   };
 
-  // Helper function to convert string to CalendarDateTime (ใช้ any เพื่อลดปัญหา type conflict)
-  const stringToCalendarDateTime = (dateString: string): any => {
-    try {
-      // Parse string in format "YYYY-MM-DDTHH:mm"
-      const [datePart, timePart] = dateString.split('T');
-      const [year, month, day] = datePart.split('-').map(Number);
-      const [hour, minute] = (timePart || '00:00').split(':').map(Number);
+  // Handle input change (useCallback เพื่อลด re-render ของลูก)
+  const handleInputChange = useCallback(
+    (field: keyof PorterRequestFormData, value: Parameters<typeof setFormField>[1]) => {
+      setFormField(field, value);
+      clearFieldError(field);
+    },
+    [setFormField, clearFieldError],
+  );
 
-      return new CalendarDateTime(year, month, day, hour || 0, minute || 0);
-    } catch {
-      // Fallback to current date/time
-      const now = new Date();
+  const handleUrgencyLevelChange = useCallback(
+    (urgencyLevel: string) => {
+      if (urgencyLevel === 'ฉุกเฉิน') {
+        setPendingUrgencyLevel(urgencyLevel);
+        onEmergencyModalOpen();
+      } else {
+        handleInputChange('urgencyLevel', urgencyLevel);
+      }
+    },
+    [onEmergencyModalOpen, handleInputChange],
+  );
 
-      return new CalendarDateTime(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        now.getDate(),
-        now.getHours(),
-        now.getMinutes(),
-      );
-    }
-  };
-
-  // Helper function to convert CalendarDateTime-like value to string
-  const calendarDateTimeToString = (date: any): string => {
-    const year = date.year.toString().padStart(4, '0');
-    const month = date.month.toString().padStart(2, '0');
-    const day = date.day.toString().padStart(2, '0');
-    const hour = date.hour.toString().padStart(2, '0');
-    const minute = date.minute.toString().padStart(2, '0');
-
-    return `${year}-${month}-${day}T${hour}:${minute}`;
-  };
-
-  // Handle input change
-  const handleInputChange = (field: keyof PorterRequestFormData, value: any) => {
-    setFormField(field, value);
-    clearFieldError(field);
-  };
-
-  // Handler สำหรับการเลือกความเร่งด่วน
-  const handleUrgencyLevelChange = (urgencyLevel: string) => {
-    if (urgencyLevel === 'ฉุกเฉิน') {
-      // เก็บค่าที่ผู้ใช้เลือกไว้ก่อน แล้วเปิด Modal ยืนยัน
-      setPendingUrgencyLevel(urgencyLevel);
-      onEmergencyModalOpen();
-    } else {
-      // ถ้าเลือก "ปกติ" หรือ "ด่วน" ให้อัพเดทค่าโดยตรง
-      handleInputChange('urgencyLevel', urgencyLevel);
-    }
-  };
-
-  // Handler สำหรับยืนยันการเลือก "ฉุกเฉิน"
-  const handleConfirmEmergency = () => {
+  const handleConfirmEmergency = useCallback(() => {
     if (pendingUrgencyLevel) {
       handleInputChange('urgencyLevel', pendingUrgencyLevel);
-      setPendingUrgencyLevel(null);
     }
-    onEmergencyModalClose();
-  };
-
-  // Handler สำหรับยกเลิกการเลือก "ฉุกเฉิน"
-  const handleCancelEmergency = () => {
     setPendingUrgencyLevel(null);
     onEmergencyModalClose();
-  };
+  }, [pendingUrgencyLevel, onEmergencyModalClose, handleInputChange]);
 
-  // Handler สำหรับล้างข้อมูล HN/AN
-  const handleClearPatientHN = () => {
+  const handleCancelEmergency = useCallback(() => {
+    setPendingUrgencyLevel(null);
+    onEmergencyModalClose();
+  }, [onEmergencyModalClose]);
+
+  const handleClearPatientHN = useCallback(() => {
     handleInputChange('patientHN', '');
     handleInputChange('patientName', '');
-  };
+  }, [handleInputChange]);
 
-  // Handler สำหรับค้นหาข้อมูลผู้ป่วยจาก HN/AN
-  const handleSearchPatient = async () => {
-    if (!formData.patientHN || !formData.patientHN.trim()) {
+  const handleSearchPatient = useCallback(async () => {
+    if (!formData.patientHN?.trim()) {
       addToast({
         title: 'ข้อมูลไม่ครบถ้วน',
         description: 'กรุณากรอกหมายเลข HN / AN',
@@ -527,12 +524,9 @@ export default function PorterRequestPage() {
       return;
     }
 
-    // ตรวจสอบรูปแบบ HN/AN ต้องมี / หรือ - เท่านั้น
     const trimmedHN = formData.patientHN.trim();
-    const hasSlash = trimmedHN.includes('/');
-    const hasDash = trimmedHN.includes('-');
 
-    if (!hasSlash && !hasDash) {
+    if (!trimmedHN.includes('/') && !trimmedHN.includes('-')) {
       addToast({
         title: 'ข้อมูลไม่ถูกต้อง',
         description: 'กรุณากรอกรูปแบบ HN (123456/68) หรือ AN (123456-68)',
@@ -547,31 +541,21 @@ export default function PorterRequestPage() {
     try {
       const response = await fetch('/api/porter/patient', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          patientHN: formData.patientHN.trim(),
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientHN: trimmedHN }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({})) as { message?: string };
 
         throw new Error(errorData.message || `HTTP ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as { success: boolean; data?: { PNAME?: string; FNAME?: string; LNAME?: string }; message?: string };
 
       if (result.success && result.data) {
         const patientData = result.data;
-
-        // นำ PNAME + FNAME + LNAME มาใส่ใน patientName
-        const patientName = [
-          patientData.PNAME || '',
-          patientData.FNAME || '',
-          patientData.LNAME || '',
-        ]
+        const patientName = [patientData.PNAME || '', patientData.FNAME || '', patientData.LNAME || '']
           .filter(Boolean)
           .join(' ');
 
@@ -592,45 +576,54 @@ export default function PorterRequestPage() {
       } else {
         throw new Error(result.message || 'ไม่พบข้อมูลผู้ป่วย');
       }
-    } catch (error: any) {
-      console.error('Error searching patient:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'ไม่สามารถค้นหาข้อมูลผู้ป่วยได้ กรุณาลองใหม่อีกครั้ง';
+
       addToast({
         title: 'เกิดข้อผิดพลาด',
-        description: error.message || 'ไม่สามารถค้นหาข้อมูลผู้ป่วยได้ กรุณาลองใหม่อีกครั้ง',
+        description: message,
         color: 'danger',
       });
     } finally {
       setIsLoadingPatient(false);
     }
-  };
+  }, [formData.patientHN, handleInputChange]);
 
-  // Get CalendarDateTime-like value for DatePicker
-  const getDateTimeValue = (): any => {
+  const getDateTimeValue = useCallback((): CalendarDateTime => {
     return stringToCalendarDateTime(formData.requestedDateTime);
-  };
+  }, [formData.requestedDateTime]);
 
-  // Handle DatePicker change
-  const handleDateTimeChange = (value: any | null) => {
-    if (value) {
-      handleInputChange('requestedDateTime', calendarDateTimeToString(value));
-    }
-  };
+  const handleDateTimeChange = useCallback(
+    (value: CalendarDateTime | null) => {
+      if (value) {
+        handleInputChange('requestedDateTime', calendarDateTimeToString(value));
+      }
+    },
+    [handleInputChange],
+  );
 
-  // Handler สำหรับเปิด Modal ยกเลิกงาน
-  const handleOpenCancelModal = (requestId: string) => {
+  const handleClearFilters = useCallback(() => {
+    setDateRange(null);
+    handleSearchChange('');
+    handleStatusFilterChange(null);
+    setUrgencyFilter('');
+  }, [handleSearchChange, handleStatusFilterChange]);
+
+  const handleJobDetailDrawerClose = useCallback(() => {
+    onJobDetailDrawerClose();
+    setSelectedJob(null);
+  }, [onJobDetailDrawerClose]);
+
+  const handleOpenCancelModal = useCallback((requestId: string) => {
     setSelectedRequestId(requestId);
     setCancelReason('');
     setCancelReasonError('');
     onCancelModalOpen();
-  };
+  }, [onCancelModalOpen]);
 
-  // Handler สำหรับยกเลิกงาน
-  const handleCancelJob = async () => {
-    if (!selectedRequestId) {
-      return;
-    }
+  const handleCancelJob = useCallback(async () => {
+    if (!selectedRequestId) return;
 
-    // Validate cancelReason
     if (!cancelReason.trim()) {
       setCancelReasonError('กรุณาระบุเหตุผลการยกเลิกงาน');
 
@@ -650,7 +643,7 @@ export default function PorterRequestPage() {
         }),
       });
 
-      const result = await response.json();
+      const result = (await response.json()) as PorterApiResult;
 
       if (result.success && result.data) {
         addToast({
@@ -658,13 +651,10 @@ export default function PorterRequestPage() {
           description: 'งานนี้ได้ถูกยกเลิกเรียบร้อยแล้ว',
           color: 'success',
         });
-
         onCancelModalClose();
         setSelectedRequestId(null);
         setCancelReason('');
         setCancelReasonError('');
-
-        // Refresh รายการคำขอหลังจากยกเลิกสำเร็จ
         await refreshUserRequests();
       } else {
         addToast({
@@ -682,7 +672,7 @@ export default function PorterRequestPage() {
     } finally {
       setIsCancelling(false);
     }
-  };
+  }, [selectedRequestId, cancelReason, onCancelModalClose, refreshUserRequests]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -1297,12 +1287,7 @@ export default function PorterRequestPage() {
                       isDisabled={!dateRange && !searchQuery && !statusFilter && !urgencyFilter}
                       size="md"
                       variant="flat"
-                      onPress={() => {
-                        setDateRange(null);
-                        handleSearchChange('');
-                        handleStatusFilterChange(null);
-                        setUrgencyFilter('');
-                      }}
+                      onPress={handleClearFilters}
                     >
                       <XMarkIcon className="w-5 h-5" />
                       ล้างตัวกรอง
@@ -1441,10 +1426,7 @@ export default function PorterRequestPage() {
       <ReadOnlyJobDetailDrawer
         isOpen={isJobDetailDrawerOpen}
         job={selectedJob}
-        onClose={() => {
-          onJobDetailDrawerClose();
-          setSelectedJob(null);
-        }}
+        onClose={handleJobDetailDrawerClose}
       />
 
       {/* Emergency Confirmation Modal */}

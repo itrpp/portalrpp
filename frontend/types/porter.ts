@@ -99,9 +99,10 @@ export interface PorterJobItem {
 }
 
 /**
- * Props สำหรับตารางแสดงรายการงาน
+ * Props สำหรับตารางรายการคำขอรับพนักงานเปล (ศูนย์เปล)
+ * ใช้กับ PorterJobListTable
  */
-export interface JobTableProps {
+export interface PorterJobListTableProps {
   items: PorterJobItem[];
   sortedJobs: PorterJobItem[];
   currentPage: number;
@@ -114,6 +115,7 @@ export interface JobTableProps {
   isLoading?: boolean;
   emptyContent?: React.ReactNode;
   loadingContent?: React.ReactNode;
+  totalCount?: number;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
   onSelectionChange?: (keys: Selection) => void;

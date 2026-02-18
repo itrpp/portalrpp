@@ -1,6 +1,6 @@
 import type { UserDTO, UserListQueryParams, UserUpdatePayload } from '@/types/user';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 import { getUserList, getUserById, updateUser, deleteUser } from '@/lib/users';
 
@@ -17,107 +17,99 @@ export function useUsers(options: UseUsersOptions = {}) {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
 
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
   /**
-   * โหลดรายการ users
+   * โหลดรายการ users (identity เสถียรเพื่อลด re-run ของ effect ที่เรียกใช้)
    */
-  const loadUsers = useCallback(
-    async (params?: UserListQueryParams) => {
-      setIsLoading(true);
-      try {
-        const response = await getUserList({
-          page: params?.page || page,
-          pageSize: params?.pageSize || pageSize,
-          search: params?.search,
-          role: params?.role,
-          departmentId: params?.departmentId,
-        });
+  const loadUsers = useCallback(async (params?: UserListQueryParams) => {
+    setIsLoading(true);
+    try {
+      const response = await getUserList({
+        page: params?.page ?? 1,
+        pageSize: params?.pageSize ?? 10,
+        search: params?.search,
+        role: params?.role,
+        departmentId: params?.departmentId,
+      });
 
-        setUsers(response.data);
-        setTotal(response.total);
-        setPage(response.page);
-        setPageSize(response.pageSize);
-        setTotalPages(response.totalPages || Math.ceil(response.total / response.pageSize));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'ไม่สามารถโหลดรายการผู้ใช้ได้';
+      setUsers(response.data);
+      setTotal(response.total);
+      setPage(response.page);
+      setPageSize(response.pageSize);
+      setTotalPages(response.totalPages || Math.ceil(response.total / response.pageSize));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'ไม่สามารถโหลดรายการผู้ใช้ได้';
 
-        options.onError?.(message);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [page, pageSize, options],
-  );
+      optionsRef.current.onError?.(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   /**
    * ดึงข้อมูล user โดย ID
    */
-  const loadUserById = useCallback(
-    async (userId: string): Promise<UserDTO | null> => {
-      try {
-        const user = await getUserById(userId);
+  const loadUserById = useCallback(async (userId: string): Promise<UserDTO | null> => {
+    try {
+      const user = await getUserById(userId);
 
-        return user;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'ไม่สามารถดึงข้อมูลผู้ใช้ได้';
+      return user;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'ไม่สามารถดึงข้อมูลผู้ใช้ได้';
 
-        options.onError?.(message);
+      optionsRef.current.onError?.(message);
 
-        return null;
-      }
-    },
-    [options],
-  );
+      return null;
+    }
+  }, []);
 
   /**
    * อัปเดตข้อมูล user
    */
-  const updateUserData = useCallback(
-    async (userId: string, payload: UserUpdatePayload): Promise<boolean> => {
-      try {
-        const updatedUser = await updateUser(userId, payload);
+  const updateUserData = useCallback(async (userId: string, payload: UserUpdatePayload): Promise<boolean> => {
+    try {
+      const updatedUser = await updateUser(userId, payload);
 
-        // อัปเดต user ใน list
-        setUsers((prevUsers) => prevUsers.map((user) => (user.id === userId ? updatedUser : user)));
+      setUsers((prevUsers) => prevUsers.map((user) => (user.id === userId ? updatedUser : user)));
 
-        options.onSuccess?.('อัปเดตข้อมูลผู้ใช้สำเร็จ');
+      optionsRef.current.onSuccess?.('อัปเดตข้อมูลผู้ใช้สำเร็จ');
 
-        return true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้';
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้';
 
-        options.onError?.(message);
+      optionsRef.current.onError?.(message);
 
-        return false;
-      }
-    },
-    [options],
-  );
+      return false;
+    }
+  }, []);
 
   /**
    * ลบ user
    */
-  const removeUser = useCallback(
-    async (userId: string): Promise<boolean> => {
-      try {
-        await deleteUser(userId);
+  const removeUser = useCallback(async (userId: string): Promise<boolean> => {
+    try {
+      await deleteUser(userId);
 
-        // ลบ user ออกจาก list
-        setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
-        setTotal((prevTotal) => prevTotal - 1);
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
+      setTotal((prevTotal) => prevTotal - 1);
 
-        options.onSuccess?.('ลบผู้ใช้สำเร็จ');
+      optionsRef.current.onSuccess?.('ลบผู้ใช้สำเร็จ');
 
-        return true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'ไม่สามารถลบผู้ใช้ได้';
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'ไม่สามารถลบผู้ใช้ได้';
 
-        options.onError?.(message);
+      optionsRef.current.onError?.(message);
 
-        return false;
-      }
-    },
-    [options],
-  );
+      return false;
+    }
+  }, []);
 
   return {
     users,

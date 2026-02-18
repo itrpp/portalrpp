@@ -1,10 +1,14 @@
+const path = require('path');
+
+const entryScript = path.join(__dirname, 'dist', 'index.js');
+
 module.exports = {
   apps: [
     {
       name: 'api-gateway',
-      script: 'npm',
-      args: 'run start',
-      cwd: './',
+      script: 'node',
+      args: [entryScript],
+      cwd: __dirname,
       instances: 1,
       exec_mode: 'fork',
       env: {
