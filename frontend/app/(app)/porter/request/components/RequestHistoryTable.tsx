@@ -62,7 +62,7 @@ const EXPANDED_RECORD_BORDER = {
   expandedCell: 'border-l-2 border-r-2 border-b-2 border-primary rounded-b-lg bg-default-50/70',
 } as const;
 
-type FormattedRow = {
+export type FormattedRow = {
   id: string;
   pickUpStr: string;
   deliveryStr: string;
@@ -74,7 +74,7 @@ type FormattedRow = {
   requestedDateTime: string | null;
 };
 
-function ExpandedDetailContent({
+export function ExpandedDetailContent({
   item,
 }: {
   item: PorterJobItem;
@@ -184,7 +184,7 @@ export interface RequestHistoryTableProps {
   emptyContent?: React.ReactNode;
 }
 
-export function RequestHistoryTable({
+function RequestHistoryTableComponent({
   items,
   isLoading = false,
   onEdit,
@@ -218,16 +218,18 @@ export function RequestHistoryTable({
   }, []);
 
   return (
-    <Table
-      removeWrapper
-      aria-label="ตารางประวัติคำขอ"
-      classNames={{
-        wrapper: TABLE_STYLES.wrapper,
-        th: TABLE_STYLES.th,
-        td: TABLE_STYLES.td,
-        tr: TABLE_STYLES.tr,
-      }}
-    >
+    <div className="overflow-x-auto">
+      <Table
+        removeWrapper
+        aria-label="ตารางประวัติคำขอ"
+        classNames={{
+          base: 'min-w-max',
+          wrapper: TABLE_STYLES.wrapper,
+          th: TABLE_STYLES.th,
+          td: TABLE_STYLES.td,
+          tr: TABLE_STYLES.tr,
+        }}
+      >
       <TableHeader columns={COLUMNS}>
         {(column) => (
           <TableColumn key={column.uid} align={'align' in column ? column.align : 'start'}>
@@ -249,192 +251,214 @@ export function RequestHistoryTable({
         {isLoading
           ? []
           : items.flatMap((item) => {
-              const formatted = formattedDataMap.get(item.id);
-              const pickUpStr = formatted?.pickUpStr ?? '-';
-              const deliveryStr = formatted?.deliveryStr ?? '-';
-              const isExpanded = expandedId === item.id;
-              const rowKey = String(item.id);
+            const formatted = formattedDataMap.get(item.id);
+            const pickUpStr = formatted?.pickUpStr ?? '-';
+            const deliveryStr = formatted?.deliveryStr ?? '-';
+            const isExpanded = expandedId === item.id;
+            const rowKey = String(item.id);
 
-              return [
-                <TableRow key={rowKey} className={TABLE_STYLES.loading.rowClassName}>
-                  <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainFirst : undefined}>
-                    <div
-                      className={`flex items-center justify-center ${TABLE_STYLES.spacing.gapSmall}`}
+            return [
+              <TableRow key={rowKey} className={TABLE_STYLES.loading.rowClassName}>
+                {/* cell status */}
+                <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainFirst : undefined}>
+                  <div
+                    className={`flex items-center justify-center ${TABLE_STYLES.spacing.gapSmall}`}
+                  >
+                    <Chip
+                      classNames={{ base: 'rounded-full' }}
+                      color={getStatusColor(item.status)}
+                      size="md"
+                      variant="bordered"
                     >
-                      <Chip
-                        classNames={{ base: 'rounded-full' }}
-                        color={getStatusColor(item.status)}
-                        size="md"
-                        variant="bordered"
-                      >
-                        {getStatusLabel(item.status)}
-                      </Chip>
-                    </div>
-                  </TableCell>
-                  <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainMiddle : undefined}>
-                    <div
-                      className={`flex items-center justify-center ${TABLE_STYLES.spacing.gapSmall}`}
+                      {getStatusLabel(item.status)}
+                    </Chip>
+                  </div>
+                </TableCell>
+                {/* cell urgency */}
+                <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainMiddle : undefined}>
+                  <div
+                    className={`flex items-center justify-center ${TABLE_STYLES.spacing.gapSmall}`}
+                  >
+                    <Chip
+                      classNames={{ base: 'rounded-full' }}
+                      color={getUrgencyColor(item.form.urgencyLevel ?? '')}
+                      size="md"
+                      variant="dot"
                     >
-                      <Chip
-                        classNames={{ base: 'rounded-full' }}
-                        color={getUrgencyColor(item.form.urgencyLevel ?? '')}
-                        size="md"
-                        variant="dot"
-                      >
-                        {item.form.urgencyLevel || 'ปกติ'}
-                      </Chip>
+                      {item.form.urgencyLevel || 'ปกติ'}
+                    </Chip>
+                  </div>
+                </TableCell>
+                {/* cell patient */}
+                <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainMiddle : undefined}>
+                  <div className={`flex flex-col ${TABLE_STYLES.spacing.gapMedium}`}>
+                    <div className={`${TABLE_STYLES.text.base} font-semibold text-primary`}>
+                      {item.form.patientHN || '-'}
+                      {item.form.patientName ? ` · ${item.form.patientName}` : ''}
                     </div>
-                  </TableCell>
-                  <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainMiddle : undefined}>
-                    <div className={`flex flex-col ${TABLE_STYLES.spacing.gapMedium}`}>
-                      <div className={`${TABLE_STYLES.text.base} font-semibold text-primary`}>
-                        {item.form.patientHN || '-'}
-                        {item.form.patientName ? ` · ${item.form.patientName}` : ''}
-                      </div>
-                      <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
+                    <div className="flex flex-col gap-1.5">
+                      <div
+                        className={`flex items-center ${TABLE_STYLES.spacing.gapSmall} whitespace-nowrap`}
+                      >
                         <BuildingOfficeIcon className="shrink-0 text-default-500" size={16} />
-                        <span className={TABLE_STYLES.colors.secondaryText}>รับ :</span>
+                        <span className={`shrink-0 ${TABLE_STYLES.colors.secondaryText}`}>
+                          รับ :{' '}
+                        </span>
                         <span className={TABLE_STYLES.colors.cellText}>{pickUpStr || '-'}</span>
-                        <ClockIcon className="shrink-0 text-default-500" size={14} />
-                        <span className="font-semibold text-success-700">
-                          {formatted?.pickupAt || ''}
-                        </span>
+                        <div className="ml-2 flex items-center shrink-0">
+                          <ClockIcon className="shrink-0 text-default-500" size={14} />
+                          <span className="font-semibold text-success-700">
+                            {formatted?.pickupAt || ''}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
+                      <div
+                        className={`flex items-center ${TABLE_STYLES.spacing.gapSmall} whitespace-nowrap`}
+                      >
                         <BuildingOfficeIcon className="shrink-0 text-default-500" size={16} />
-                        <span className={TABLE_STYLES.colors.secondaryText}>ส่ง :</span>
+                        <span className={`shrink-0 ${TABLE_STYLES.colors.secondaryText}`}>
+                          ส่ง :
+                        </span>
                         <span className={TABLE_STYLES.colors.cellText}>{deliveryStr || '-'}</span>
-                        <ClockIcon className="shrink-0 text-default-500" size={14} />
-                        <span className="font-semibold text-success-700">
-                          {formatted?.deliveryAt || ''}
-                        </span>
+                        <div className="ml-2 flex items-center shrink-0">
+                          <ClockIcon className="shrink-0 text-default-500" size={14} />
+                          <span className="font-semibold text-success-700">
+                            {formatted?.deliveryAt || ''}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainMiddle : undefined}>
-                    <div
-                      className={`flex flex-col ${TABLE_STYLES.spacing.gapMedium} ${TABLE_STYLES.text.small}`}
-                    >
-                      <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
-                        <UserIcon className="shrink-0 text-default-500" size={16} />
-                        <span className={TABLE_STYLES.colors.secondaryText}>เวลานัดหมาย</span>
-                        <ClockIcon className="shrink-0 text-default-500" size={14} />
-                        <span className="font-semibold text-success-700">
-                          {formatted?.requestedDateTime || '-'}
-                        </span>
-                      </div>
-                      <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
-                        <UserIcon className="shrink-0 text-default-500" size={16} />
-                        <span className={TABLE_STYLES.colors.secondaryText}>
-                          ศูนย์เปลมอบหมายงาน
-                        </span>
-                        <ClockIcon className="shrink-0 text-default-500" size={14} />
-                        <span className="font-semibold text-success-700">
-                          {formatted?.acceptedAt || '-'}
-                        </span>
-                      </div>
-                      <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
-                        <UserIcon className="shrink-0 text-default-500" size={16} />
-                        <span className={TABLE_STYLES.colors.secondaryText}>เจ้าหน้าที่เปล</span>
-                        <span className={TABLE_STYLES.colors.cellText}>
-                          {item.assignedToName || '-'}
-                        </span>
-                        <ClockIcon className="shrink-0 text-default-500" size={14} />
-                        <span className="font-semibold text-success-700">
-                          {formatted?.assignedAt || ''}
-                        </span>
-                      </div>
+                  </div>
+                </TableCell>
+                {/* cell staff */}
+                <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainMiddle : undefined}>
+                  <div
+                    className={`flex flex-col ${TABLE_STYLES.spacing.gapMedium} ${TABLE_STYLES.text.small}`}
+                  >
+                    <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
+                      <UserIcon className="shrink-0 text-default-500" size={16} />
+                      <span className={TABLE_STYLES.colors.secondaryText}>เวลานัดหมาย</span>
+                      <ClockIcon className="shrink-0 text-default-500" size={14} />
+                      <span className="font-semibold text-success-700">
+                        {formatted?.requestedDateTime || '-'}
+                      </span>
                     </div>
-                  </TableCell>
-                  <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainLast : undefined}>
-                    <div
-                      className={`flex items-center justify-center ${TABLE_STYLES.spacing.gapSmall}`}
-                    >
-                      <Tooltip content={isExpanded ? 'ย่อรายละเอียด' : 'ขยายรายละเอียด'}>
-                        <Button
-                          isIconOnly
-                          aria-label={isExpanded ? 'ย่อรายละเอียด' : 'ขยายรายละเอียด'}
-                          color="success"
-                          size="sm"
-                          variant="bordered"
-                          onPress={() => toggleExpanded(item.id)}
-                        >
-                          {isExpanded ? (
-                            <EyeSlashIcon className="w-5 h-5" />
-                          ) : (
-                            <EyeIcon className="w-5 h-5" />
-                          )}
-                        </Button>
-                      </Tooltip>
-                      <Tooltip content="แก้ไข">
-                        <Button
-                          isIconOnly
-                          aria-label="แก้ไขคำขอ"
-                          color="primary"
-                          isDisabled={
-                            item.status !== 'WAITING_CENTER' && item.status !== 'WAITING_ACCEPT'
-                          }
-                          size="sm"
-                          variant="bordered"
-                          onPress={() => onEdit(item.id)}
-                        >
-                          <PencilIcon className="w-5 h-5" />
-                        </Button>
-                      </Tooltip>
-                      <Tooltip
-                        color="danger"
-                        content={
-                          item.status === 'WAITING_CENTER' ||
+                    <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
+                      <UserIcon className="shrink-0 text-default-500" size={16} />
+                      <span className={TABLE_STYLES.colors.secondaryText}>
+                        ศูนย์เปลมอบหมายงาน
+                      </span>
+                      <ClockIcon className="shrink-0 text-default-500" size={14} />
+                      <span className="font-semibold text-success-700">
+                        {formatted?.acceptedAt || '-'}
+                      </span>
+                    </div>
+                    <div className={`flex items-center ${TABLE_STYLES.spacing.gapSmall}`}>
+                      <UserIcon className="shrink-0 text-default-500" size={16} />
+                      <span className={TABLE_STYLES.colors.secondaryText}>เจ้าหน้าที่เปล</span>
+                      <span className={TABLE_STYLES.colors.cellText}>
+                        {item.assignedToName || '-'}
+                      </span>
+                      <ClockIcon className="shrink-0 text-default-500" size={14} />
+                      <span className="font-semibold text-success-700">
+                        {formatted?.assignedAt || ''}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+                {/* cell actions */}
+                <TableCell className={isExpanded ? EXPANDED_RECORD_BORDER.mainLast : undefined}>
+                  <div
+                    className={`flex items-center justify-center ${TABLE_STYLES.spacing.gapSmall}`}
+                  >
+                    <Tooltip content={isExpanded ? 'ย่อรายละเอียด' : 'ขยายรายละเอียด'}>
+                      <Button
+                        isIconOnly
+                        aria-label={isExpanded ? 'ย่อรายละเอียด' : 'ขยายรายละเอียด'}
+                        color="success"
+                        size="sm"
+                        variant="bordered"
+                        onPress={() => toggleExpanded(item.id)}
+                      >
+                        {isExpanded ? (
+                          <EyeSlashIcon className="w-5 h-5" />
+                        ) : (
+                          <EyeIcon className="w-5 h-5" />
+                        )}
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content="แก้ไข">
+                      <Button
+                        isIconOnly
+                        aria-label="แก้ไขคำขอ"
+                        color="primary"
+                        isDisabled={
+                          item.status !== 'WAITING_CENTER' && item.status !== 'WAITING_ACCEPT'
+                        }
+                        size="sm"
+                        variant="bordered"
+                        onPress={() => onEdit(item.id)}
+                      >
+                        <PencilIcon className="w-5 h-5" />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip
+                      color="danger"
+                      content={
+                        item.status === 'WAITING_CENTER' ||
                           item.status === 'WAITING_ACCEPT' ||
                           item.status === 'IN_PROGRESS'
-                            ? 'ยกเลิก'
-                            : 'ไม่สามารถยกเลิกได้'
-                        }
-                      >
-                        <Button
-                          isIconOnly
-                          aria-label={
-                            item.status === 'WAITING_CENTER' ||
+                          ? 'ยกเลิก'
+                          : 'ไม่สามารถยกเลิกได้'
+                      }
+                    >
+                      <Button
+                        isIconOnly
+                        aria-label={
+                          item.status === 'WAITING_CENTER' ||
                             item.status === 'WAITING_ACCEPT' ||
                             item.status === 'IN_PROGRESS'
-                              ? 'ยกเลิกคำขอ'
-                              : 'ไม่สามารถยกเลิกได้'
-                          }
-                          color="danger"
-                          isDisabled={
-                            item.status !== 'WAITING_CENTER' &&
-                            item.status !== 'WAITING_ACCEPT' &&
-                            item.status !== 'IN_PROGRESS'
-                          }
-                          size="sm"
-                          variant="bordered"
-                          onPress={() => onCancel(item.id)}
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </Button>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>,
-                ...(isExpanded
-                  ? [
-                      <TableRow key={`${rowKey}-expanded`}>
-                        <TableCell
-                          className={`py-4 px-4 align-top ${EXPANDED_RECORD_BORDER.expandedCell}`}
-                          colSpan={TOTAL_COLUMNS}
-                        >
-                          <ExpandedDetailContent
-                            formatted={formattedDataMap.get(item.id)}
-                            item={item}
-                          />
-                        </TableCell>
-                      </TableRow>,
-                    ]
-                  : []),
-              ];
-            })}
+                            ? 'ยกเลิกคำขอ'
+                            : 'ไม่สามารถยกเลิกได้'
+                        }
+                        color="danger"
+                        isDisabled={
+                          item.status !== 'WAITING_CENTER' &&
+                          item.status !== 'WAITING_ACCEPT' &&
+                          item.status !== 'IN_PROGRESS'
+                        }
+                        size="sm"
+                        variant="bordered"
+                        onPress={() => onCancel(item.id)}
+                      >
+                        <XMarkIcon className="w-5 h-5" />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+              </TableRow>,
+              ...(isExpanded
+                ? [
+                  <TableRow key={`${rowKey}-expanded`}>
+                    <TableCell
+                      className={`py-4 px-4 align-top ${EXPANDED_RECORD_BORDER.expandedCell}`}
+                      colSpan={TOTAL_COLUMNS}
+                    >
+                      <ExpandedDetailContent
+                        formatted={formattedDataMap.get(item.id)}
+                        item={item}
+                      />
+                    </TableCell>
+                  </TableRow>,
+                ]
+                : []),
+            ];
+          })}
       </TableBody>
     </Table>
+    </div>
   );
 }
+
+export const RequestHistoryTable = React.memo(RequestHistoryTableComponent);

@@ -2,7 +2,8 @@
 
 import type { UserDTO } from '@/types/user';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import {
   Button,
@@ -18,12 +19,15 @@ import {
 } from '@heroui/react';
 
 import { UserTable } from './components/UserTable';
-import { UserModal } from './components/UserModal';
 import { useUsers } from './hooks/useUsers';
 
 import { CARD_STYLES } from '@/lib/cardStyles';
 import { TABLE_STYLES } from '@/lib/tableStyles';
 import { UserIcon, MagnifyingGlassIcon, XMarkIcon } from '@/components/ui/icons';
+
+const UserModal = dynamic(() => import('./components/UserModal').then((m) => ({ default: m.UserModal })), {
+  ssr: false,
+});
 
 export default function UserManagementPage() {
   const { data: session } = useSession();
@@ -67,17 +71,7 @@ export default function UserManagementPage() {
     onClose: onUserModalClose,
   } = useDisclosure();
 
-  // โหลดข้อมูลเมื่อ component mount หรือ filter เปลี่ยน
-  useEffect(() => {
-    loadUsers({
-      page: 1,
-      pageSize: 10,
-      search: searchQuery || undefined,
-      role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
-    });
-  }, [searchQuery, roleFilter, loadUsers]);
-
-  // Reload เมื่อ page หรือ pageSize เปลี่ยน
+  // โหลดรายการผู้ใช้ครั้งเดียวเมื่อ mount หรือเมื่อ page/pageSize/search/role เปลี่ยน (ลด waterfall)
   useEffect(() => {
     loadUsers({
       page,
@@ -87,58 +81,86 @@ export default function UserManagementPage() {
     });
   }, [page, pageSize, searchQuery, roleFilter, loadUsers]);
 
-  const handleEditUser = (user: UserDTO) => {
-    setEditingUser(user);
-    onUserModalOpen();
-  };
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  }, [setPage]);
 
-  const handleDeleteUser = async (userId: string) => {
-    const user = users.find((u) => u.id === userId);
+  const handleRoleFilterChange = useCallback(
+    (keys: Parameters<NonNullable<React.ComponentProps<typeof Select>['onSelectionChange']>>[0]) => {
+      const selected = Array.from(keys as Set<string>)[0] as string;
 
-    if (
-      !confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ "${user?.displayName || user?.email || userId}"?`)
-    ) {
-      return;
-    }
+      setRoleFilter(selected && selected !== 'all' ? selected : '');
+      setPage(1);
+    },
+    [setPage],
+  );
 
-    setIsDeleting(userId);
-    try {
-      const success = await removeUser(userId);
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery('');
+    setRoleFilter('');
+    setPage(1);
+  }, [setPage]);
+
+  const handleEditUser = useCallback(
+    (user: UserDTO) => {
+      setEditingUser(user);
+      onUserModalOpen();
+    },
+    [onUserModalOpen],
+  );
+
+  const getLoadParams = useCallback(
+    () => ({
+      page,
+      pageSize,
+      search: searchQuery || undefined,
+      role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
+    }),
+    [page, pageSize, searchQuery, roleFilter],
+  );
+
+  const handleDeleteUser = useCallback(
+    async (userId: string) => {
+      const user = users.find((u) => u.id === userId);
+
+      if (
+        !confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ "${user?.displayName || user?.email || userId}"?`)
+      ) {
+        return;
+      }
+
+      setIsDeleting(userId);
+      try {
+        const success = await removeUser(userId);
+
+        if (success) {
+          await loadUsers(getLoadParams());
+        }
+      } finally {
+        setIsDeleting(null);
+      }
+    },
+    [users, removeUser, loadUsers, getLoadParams],
+  );
+
+  const handleSaveUser = useCallback(
+    async (userId: string, payload: Parameters<typeof updateUserData>[1]) => {
+      const success = await updateUserData(userId, payload);
 
       if (success) {
-        // Reload users list
-        await loadUsers({
-          page,
-          pageSize,
-          search: searchQuery || undefined,
-          role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
-        });
+        await loadUsers(getLoadParams());
       }
-    } finally {
-      setIsDeleting(null);
-    }
-  };
 
-  const handleSaveUser = async (userId: string, payload: Parameters<typeof updateUserData>[1]) => {
-    const success = await updateUserData(userId, payload);
+      return success;
+    },
+    [updateUserData, loadUsers, getLoadParams],
+  );
 
-    if (success) {
-      // Reload users list
-      await loadUsers({
-        page,
-        pageSize,
-        search: searchQuery || undefined,
-        role: roleFilter ? (roleFilter as 'admin' | 'user') : undefined,
-      });
-    }
-
-    return success;
-  };
-
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     setEditingUser(null);
     onUserModalClose();
-  };
+  }, [onUserModalClose]);
 
   const currentUserId = session?.user?.id;
 
@@ -173,8 +195,8 @@ export default function UserManagementPage() {
                 startContent={<MagnifyingGlassIcon className="w-5 h-5 text-default-400" />}
                 value={searchQuery}
                 variant="bordered"
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClear={() => setSearchQuery('')}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onClear={() => handleSearchChange('')}
               />
               <Select
                 aria-label="กรองตามบทบาท"
@@ -185,11 +207,7 @@ export default function UserManagementPage() {
                 selectedKeys={roleFilter ? [roleFilter] : ['all']}
                 size="md"
                 variant="bordered"
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as string;
-
-                  setRoleFilter(selected && selected !== 'all' ? selected : '');
-                }}
+                onSelectionChange={handleRoleFilterChange}
               >
                 <SelectItem key="all">ทั้งหมด</SelectItem>
                 <SelectItem key="admin">ผู้ดูแลระบบ</SelectItem>
@@ -200,10 +218,7 @@ export default function UserManagementPage() {
                 isDisabled={!searchQuery && !roleFilter}
                 size="md"
                 variant="flat"
-                onPress={() => {
-                  setSearchQuery('');
-                  setRoleFilter('');
-                }}
+                onPress={handleClearFilters}
               >
                 <XMarkIcon className="w-5 h-5" />
                 ล้างตัวกรอง

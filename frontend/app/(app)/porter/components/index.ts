@@ -1,4 +1,4 @@
-export { default as JobTable } from './JobTable';
+export { default as PorterJobListTable } from '../joblist/components/PorterJobListTable';
 export { default as JobDetailDrawer } from './JobDetailDrawer';
 export { ReadOnlyJobDetailDrawer } from './ReadOnlyJobDetailDrawer';
 export { EditableJobDetailDrawer } from './EditableJobDetailDrawer';

@@ -53,7 +53,7 @@ export function LoadingPage({
     <div
       aria-label={message}
       aria-live="polite"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background"
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-background"
       role="status"
     >
       <div className="text-center">

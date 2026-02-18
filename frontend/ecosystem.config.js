@@ -1,10 +1,14 @@
+const path = require('path');
+
+const nextBin = path.join(__dirname, 'node_modules', 'next', 'dist', 'bin', 'next');
+
 module.exports = {
   apps: [
     {
       name: 'frontend',
-      script: 'npm',
-      args: 'run start',
-      cwd: './',
+      script: 'node',
+      args: [nextBin, 'start'],
+      cwd: __dirname,
       instances: 1,
       exec_mode: 'fork',
       env: {
@@ -12,7 +16,7 @@ module.exports = {
         PORT: 3000,
       },
       // Memory monitoring settings
-      max_memory_restart: '1G',
+      max_memory_restart: '2G',
       // Logging
       error_file: './logs/pm2-error.log',
       out_file: './logs/pm2-out.log',

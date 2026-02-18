@@ -20,6 +20,7 @@ export const porterQueryKeys = {
       page?: number;
       pageSize?: number;
       search?: string;
+      urgency_level?: string;
       dateFrom?: string;
       dateTo?: string;
     }) => [...porterQueryKeys.jobs.lists(), params] as const,

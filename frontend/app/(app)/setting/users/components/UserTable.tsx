@@ -19,6 +19,24 @@ import {
 import { PencilIcon, TrashIcon, UserIcon } from '@/components/ui/icons';
 import { TABLE_STYLES } from '@/lib/tableStyles';
 
+const TABLE_COLUMNS: Array<{ key: string; label: string }> = [
+  { key: 'avatar', label: '' },
+  { key: 'name', label: 'ชื่อ' },
+  { key: 'departmentSub', label: 'กลุ่มงาน' },
+  { key: 'departmentSubSub', label: 'หน่วยงาน' },
+  { key: 'phone', label: 'โทรศัพท์ภายใน' },
+  { key: 'role', label: 'บทบาท' },
+  { key: 'actions', label: 'การจัดการ' },
+];
+
+function getRoleColor(role: string): 'danger' | 'default' {
+  return role === 'admin' ? 'danger' : 'default';
+}
+
+function getRoleLabel(role: string): string {
+  return role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน';
+}
+
 interface UserTableProps {
   users: UserDTO[];
   isLoading?: boolean;
@@ -36,24 +54,6 @@ export function UserTable({
   isDeleting,
   currentUserId,
 }: UserTableProps) {
-  const columns = [
-    { key: 'avatar', label: '' },
-    { key: 'name', label: 'ชื่อ' },
-    { key: 'departmentSub', label: 'กลุ่มงาน' },
-    { key: 'departmentSubSub', label: 'หน่วยงาน' },
-    { key: 'phone', label: 'โทรศัพท์ภายใน' },
-    { key: 'role', label: 'บทบาท' },
-    { key: 'actions', label: 'การจัดการ' },
-  ];
-
-  const getRoleColor = (role: string) => {
-    return role === 'admin' ? 'danger' : 'default';
-  };
-
-  const getRoleLabel = (role: string) => {
-    return role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน';
-  };
-
   return (
     <Table
       removeWrapper
@@ -65,7 +65,7 @@ export function UserTable({
         tr: TABLE_STYLES.tr,
       }}
     >
-      <TableHeader columns={columns}>
+      <TableHeader columns={TABLE_COLUMNS}>
         {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
       </TableHeader>
       <TableBody

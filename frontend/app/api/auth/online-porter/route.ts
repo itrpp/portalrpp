@@ -44,15 +44,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // คำนวณเวลาที่ถือว่า offline (15 นาทีที่แล้ว)
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    // คำนวณเวลาที่ถือว่า offline (120 นาทีที่แล้ว)
+    const OFFLINE_THRESHOLD_MINUTES = 120;
+    const offlineThresholdTime = new Date(
+      Date.now() - OFFLINE_THRESHOLD_MINUTES * 60 * 1000,
+    );
 
-    // ดึง records จาก user_activity ที่ lastActivityAt ยังไม่เกิน 15 นาที
+    // ดึง records จาก user_activity ที่ lastActivityAt ยังไม่เกิน 120 นาที
     // และยังไม่ถูก logout (logoutAt = null)
-    const onlineUsers = await prisma.user_activity.findMany({
+    const recentActivityRecords = await prisma.user_activity.findMany({
       where: {
         lastActivityAt: {
-          gte: fifteenMinutesAgo,
+          gte: offlineThresholdTime,
         },
         logoutAt: null,
         deviceType: DeviceType.MOBILE_APP,
@@ -77,8 +80,8 @@ export async function GET(request: NextRequest) {
 
     // สร้าง response data พร้อมดึง PorterEmployee ที่ผูกกับ user แต่ละคน
     // และกรองเฉพาะ user ที่มี porterResponse.data[0].id
-    const usersWithPorter = await Promise.all(
-      onlineUsers.map(async (activity) => {
+    const usersWithPorterEmployee = await Promise.all(
+      recentActivityRecords.map(async (activity) => {
         let porterEmployee: { id: string } | null = null;
 
         try {
@@ -120,7 +123,7 @@ export async function GET(request: NextRequest) {
     );
 
     // กรองเฉพาะ user ที่มี porterEmployee (ไม่เป็น null)
-    const filteredUsers = usersWithPorter.filter((user) => user !== null) as Array<{
+    const onlinePorterUsers = usersWithPorterEmployee.filter((user) => user !== null) as Array<{
       id: string;
       name: string;
       email: string | null;
@@ -134,13 +137,13 @@ export async function GET(request: NextRequest) {
     }>;
 
     // นับจำนวนผู้ใช้ Online ที่มี Porter Employee ID
-    const count = filteredUsers.length;
+    const onlinePorterCount = onlinePorterUsers.length;
 
     return NextResponse.json(
       {
         success: true,
-        count,
-        users: filteredUsers,
+        count: onlinePorterCount,
+        users: onlinePorterUsers,
       },
       { status: 200 },
     );
