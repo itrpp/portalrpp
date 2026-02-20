@@ -21,7 +21,6 @@ import {
   getUrgencyColor,
 } from '../../components/shared/designTokens';
 import { PorterEmptyState } from '../../components/shared/PorterEmptyState';
-import { PorterLoadingSkeleton } from '../../components/shared/PorterLoadingSkeleton';
 
 import { TABLE_STYLES } from '@/lib/tableStyles';
 import { formatDateTimeFromString } from '@/lib/utils';
@@ -246,7 +245,6 @@ function RequestHistoryTableComponent({
           )
         }
         isLoading={isLoading}
-        loadingContent={<PorterLoadingSkeleton rows={5} variant="table-row" />}
       >
         {isLoading
           ? []

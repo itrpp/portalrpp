@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 
 import { usePorterRequests } from '../../hooks/usePorterRequests';
-import { porterQueryKeys } from '../../lib/queryKeys';
 
 import { PorterJobItem } from '@/types/porter';
 
@@ -24,7 +22,6 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const queryClient = useQueryClient();
 
   // Debounce search query
   useEffect(() => {
@@ -80,19 +77,8 @@ export function useUserRequests({ userId }: UseUserRequestsOptions) {
   }, []);
 
   const refreshUserRequests = useCallback(async () => {
-    // Invalidate queries เพื่อให้ refetch
-    await queryClient.invalidateQueries({
-      queryKey: porterQueryKeys.requests.list({
-        userId,
-        page,
-        pageSize,
-        status: statusFilter ?? undefined,
-        search: debouncedSearchQuery || undefined,
-      }),
-    });
-
     return refetch();
-  }, [queryClient, userId, page, pageSize, statusFilter, debouncedSearchQuery, refetch]);
+  }, [refetch]);
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);

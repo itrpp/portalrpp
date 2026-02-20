@@ -75,6 +75,7 @@ export function usePorterRequests(
       return result as PorterRequestsResponse;
     },
     enabled: !!userId, // ไม่ fetch ถ้าไม่มี userId
+    staleTime: 30_000, // 30 วินาที — ลดการเรียก API ซ้ำเมื่อ component mount ซ้ำ (เช่น useSearchParams / Suspense)
     ...options,
   });
 }

@@ -15,7 +15,6 @@ export { PorterUrgencyChip } from './shared/PorterUrgencyChip';
 export { DepartmentChip } from './shared/DepartmentChip';
 export { PorterActionButton, PorterIconButton } from './shared/PorterActionButton';
 export { PorterEmptyState } from './shared/PorterEmptyState';
-export { PorterLoadingSkeleton } from './shared/PorterLoadingSkeleton';
 
 // Design tokens
 export { PORTER_DESIGN_TOKENS } from './shared/designTokens';
