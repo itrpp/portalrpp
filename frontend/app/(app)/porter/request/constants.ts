@@ -48,7 +48,7 @@ export const createDefaultFormData = (
   vehicleType: '',
   equipment: [],
   hasVehicle: '',
-  returnTrip: '',
+  returnTrip: 'ไปส่งอย่างเดียว',
 
   transportReason: '',
   equipmentOther: '',
