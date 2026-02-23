@@ -1,5 +1,5 @@
-import type { Prisma } from '../generated/prisma/client';
-import type { PorterEmployee } from '../generated/prisma/client';
+import type { Prisma } from '@shared/prisma/client';
+import type { PorterEmployee } from '@shared/prisma/client';
 import prisma from '../config/database';
 
 export async function createPorterEmployee(
@@ -41,7 +41,12 @@ export async function findPorterEmployeeNamesByIds(ids: string[]): Promise<Map<s
     where: { id: { in: ids } },
     select: { id: true, firstName: true, lastName: true },
   });
-  return new Map(list.map((e) => [e.id, `${e.firstName} ${e.lastName}`]));
+  return new Map(
+    list.map((e: { id: string; firstName: string; lastName: string }) => [
+      e.id,
+      `${e.firstName} ${e.lastName}`,
+    ]),
+  );
 }
 
 /** ใช้ตรวจสอบว่า user นี้ถูกผูกกับ employee อื่นแล้วหรือไม่ (excludeId = employee ปัจจุบันที่กำลังอัปเดต) */

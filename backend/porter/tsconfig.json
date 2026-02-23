@@ -4,13 +4,20 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDirs": ["src", "../../shared/generated/prisma"],
     "strict": true,
     "noImplicitAny": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/prisma": ["../../shared/generated/prisma"],
+      "@shared/prisma/*": ["../../shared/generated/prisma/*"],
+      "@prisma/client": ["node_modules/@prisma/client"],
+      "@prisma/client/*": ["node_modules/@prisma/client/*"]
+    }
   },
   "include": ["src"]
 }

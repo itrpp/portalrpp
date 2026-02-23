@@ -1,7 +1,19 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextResponse } from 'next/server';
 
 import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+
+type PositionItem = Prisma.hrd_positionGetPayload<{
+  select: {
+    HR_POSITION_ID: true;
+    HR_POSITION_NAME: true;
+    POSITION_SP_ID: true;
+    created_at: true;
+    updated_at: true;
+  };
+}>;
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -36,7 +48,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     success: true,
-    data: items.map((item) => ({
+    data: items.map((item: PositionItem) => ({
       id: item.HR_POSITION_ID,
       name: item.HR_POSITION_NAME ?? '',
       positionSpId: item.POSITION_SP_ID ?? undefined,

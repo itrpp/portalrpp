@@ -1,8 +1,17 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { profileSelect } from '@/lib/profile';
+import { profileSelect, type ProfileDTO } from '@/lib/profile';
+
+type DepartmentSubMapItem = Prisma.hrd_department_subGetPayload<{
+  select: { HR_DEPARTMENT_SUB_ID: true; HR_DEPARTMENT_SUB_NAME: true };
+}>;
+type DepartmentSubSubMapItem = Prisma.hrd_department_sub_subGetPayload<{
+  select: { HR_DEPARTMENT_SUB_SUB_ID: true; HR_DEPARTMENT_SUB_SUB_NAME: true };
+}>;
 
 /**
  * GET /api/users
@@ -70,11 +79,11 @@ export async function GET(request: NextRequest) {
 
     // ดึงข้อมูล HRD (departmentSub และ departmentSubSub) สำหรับ users ที่มี ID
     const departmentSubIds = users
-      .map((u) => u.departmentSubId)
-      .filter((id): id is number => id !== null && id !== undefined);
+      .map((u: ProfileDTO) => u.departmentSubId)
+      .filter((id: number | null): id is number => id !== null && id !== undefined);
     const departmentSubSubIds = users
-      .map((u) => u.departmentSubSubId)
-      .filter((id): id is number => id !== null && id !== undefined);
+      .map((u: ProfileDTO) => u.departmentSubSubId)
+      .filter((id: number | null): id is number => id !== null && id !== undefined);
 
     const [departmentSubs, departmentSubSubs] = await Promise.all([
       departmentSubIds.length > 0
@@ -107,17 +116,20 @@ export async function GET(request: NextRequest) {
 
     // สร้าง map สำหรับ lookup
     const departmentSubMap = new Map(
-      departmentSubs.map((d) => [d.HR_DEPARTMENT_SUB_ID, d.HR_DEPARTMENT_SUB_NAME ?? '']),
+      (departmentSubs as DepartmentSubMapItem[]).map((d) => [
+        d.HR_DEPARTMENT_SUB_ID,
+        d.HR_DEPARTMENT_SUB_NAME ?? '',
+      ]),
     );
     const departmentSubSubMap = new Map(
-      departmentSubSubs.map((d) => [
+      (departmentSubSubs as DepartmentSubSubMapItem[]).map((d) => [
         d.HR_DEPARTMENT_SUB_SUB_ID,
         d.HR_DEPARTMENT_SUB_SUB_NAME ?? '',
       ]),
     );
 
     // รวมข้อมูล HRD เข้ากับ users
-    const usersWithHrd = users.map((user) => ({
+    const usersWithHrd = users.map((user: ProfileDTO) => ({
       ...user,
       departmentSubName:
         user.departmentSubId !== null && user.departmentSubId !== undefined

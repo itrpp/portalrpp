@@ -1,5 +1,5 @@
-import type { Prisma } from '../generated/prisma/client';
-import type { FloorDepartment } from '../generated/prisma/client';
+import type { Prisma } from '@shared/prisma/client';
+import type { FloorDepartment } from '@shared/prisma/client';
 import prisma from '../config/database';
 
 const floorDepartmentIncludeBuilding = { building: true } as const;
@@ -57,7 +57,7 @@ export async function findFloorDepartmentNamesByIds(ids: string[]): Promise<Map<
     where: { id: { in: ids } },
     select: { id: true, name: true },
   });
-  return new Map(list.map((f) => [f.id, f.name]));
+  return new Map(list.map((f: { id: string; name: string }) => [f.id, f.name]));
 }
 
 export async function updateFloorDepartment(

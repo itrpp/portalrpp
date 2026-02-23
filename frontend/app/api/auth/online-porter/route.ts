@@ -1,3 +1,5 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
@@ -5,6 +7,23 @@ import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { callPorterService } from '@/lib/grpcClient';
 import { DeviceType } from '@/generated/prisma/enums';
+
+type ActivityWithUser = Prisma.user_activityGetPayload<{
+  include: { user: { select: { id: true; displayName: true; email: true; department: true; departmentId: true; departmentSubId: true; departmentSubSubId: true } } };
+}>;
+
+type OnlinePorterUser = {
+  id: string;
+  name: string;
+  email: string | null;
+  department: string | null;
+  departmentId: number | null;
+  departmentSubId: number | null;
+  departmentSubSubId: number | null;
+  loginAt: Date | null;
+  lastActivityAt: Date | null;
+  porterEmployee: { id: string };
+};
 
 /**
  * GET /api/auth/online-porter
@@ -81,7 +100,7 @@ export async function GET(request: NextRequest) {
     // สร้าง response data พร้อมดึง PorterEmployee ที่ผูกกับ user แต่ละคน
     // และกรองเฉพาะ user ที่มี porterResponse.data[0].id
     const usersWithPorterEmployee = await Promise.all(
-      recentActivityRecords.map(async (activity) => {
+      recentActivityRecords.map(async (activity: ActivityWithUser) => {
         let porterEmployee: { id: string } | null = null;
 
         try {
@@ -123,18 +142,9 @@ export async function GET(request: NextRequest) {
     );
 
     // กรองเฉพาะ user ที่มี porterEmployee (ไม่เป็น null)
-    const onlinePorterUsers = usersWithPorterEmployee.filter((user) => user !== null) as Array<{
-      id: string;
-      name: string;
-      email: string | null;
-      department: string | null;
-      departmentId: string | null;
-      departmentSubId: string | null;
-      departmentSubSubId: string | null;
-      loginAt: Date | null;
-      lastActivityAt: Date | null;
-      porterEmployee: { id: string };
-    }>;
+    const onlinePorterUsers = usersWithPorterEmployee.filter(
+      (user: OnlinePorterUser | null): user is OnlinePorterUser => user !== null,
+    );
 
     // นับจำนวนผู้ใช้ Online ที่มี Porter Employee ID
     const onlinePorterCount = onlinePorterUsers.length;

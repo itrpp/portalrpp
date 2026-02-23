@@ -1,5 +1,5 @@
-import type { Prisma } from '../generated/prisma/client';
-import type { FloorPlan, BleStation } from '../generated/prisma/client';
+import type { Prisma } from '@shared/prisma/client';
+import type { FloorPlan, BleStation } from '@shared/prisma/client';
 import prisma from '../config/database';
 
 const floorPlanIncludeStations = { stations: true } as const;

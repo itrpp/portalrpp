@@ -1,7 +1,18 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextResponse } from 'next/server';
 
 import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+
+type PersonTypeItem = Prisma.hrd_person_typeGetPayload<{
+  select: {
+    HR_PERSON_TYPE_ID: true;
+    HR_PERSON_TYPE_NAME: true;
+    created_at: true;
+    updated_at: true;
+  };
+}>;
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -35,7 +46,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     success: true,
-    data: items.map((item) => ({
+    data: items.map((item: PersonTypeItem) => ({
       id: item.HR_PERSON_TYPE_ID,
       name: item.HR_PERSON_TYPE_NAME ?? '',
       active: true, // Default value until ACTIVE field is added to schema

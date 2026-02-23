@@ -6,7 +6,7 @@
 
 - **Interface:** gRPC (`proto/porter.proto`) ครอบคลุม Porter Request, Location Settings, Employee, Employment Type, Position และ Health Check
 - **Application Layer:** แยก `handlers/` สำหรับ gRPC server, `services/` สำหรับ business logic, `utils/` สำหรับ shared helpers (เช่น enum mapper, gRPC error handler, event emitter)
-- **Data Layer:** Prisma ORM (`prisma/schema.prisma`) เชื่อมต่อ MySQL ผ่าน `DATABASE_URL`
+- **Data Layer:** Prisma ORM (schema ร่วมที่ `shared/prisma/schema.prisma`) เชื่อมต่อ MySQL ผ่าน `DATABASE_URL`
 - **Realtime Update:** ใช้ `EventEmitter` กระจาย event จาก service ไปยัง gRPC stream (`streamPorterRequests`)
 
 ## โครงสร้างโฟลเดอร์หลัก
@@ -21,7 +21,7 @@ backend/porter
 │   ├── utils/                 # Shared helpers (enum mapper, ApiError, async handler, gRPC error helper, event emitter)
 │   └── types/                 # Shared TS types สำหรับ handlers/services
 ├── proto/porter.proto         # gRPC contract
-├── prisma/schema.prisma       # Database schema
+├── (schema อยู่ที่ shared/prisma/schema.prisma)
 ├── dist/                      # ผลลัพธ์ build (tsc)
 └── scripts (.sh)              # run/start/clean up helper scripts
 ```
@@ -94,7 +94,7 @@ backend/porter
 
 ## บันทึกการทำความสะอาดล่าสุด
 
-- ปรับโครงสร้างคอมเมนต์ใน `src/`, `proto/`, `prisma/` ให้สั้น กระชับ และเป็นมาตรฐานเดียวกัน
+- ปรับโครงสร้างคอมเมนต์ใน `src/`, `proto/` ให้สั้น กระชับ และเป็นมาตรฐานเดียวกัน
 - เพิ่ม `utils/grpcError.ts` เพื่อรวมการแมป Prisma error → gRPC status และลดโค้ดซ้ำในทุก handler
 - ปรับ handler ทั้งหมดให้ใช้ helper ใหม่ ส่งผลให้การจัดการ error/ข้อความตอบกลับมีความสม่ำเสมอ
 - จัดทำ README ฉบับนี้เพื่อสรุปขั้นตอนการใช้งานและแนวปฏิบัติสำคัญของโปรเจกต์

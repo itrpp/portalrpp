@@ -1,5 +1,5 @@
-import type { Prisma } from '../generated/prisma/client';
-import type { Building } from '../generated/prisma/client';
+import type { Prisma } from '@shared/prisma/client';
+import type { Building } from '@shared/prisma/client';
 import prisma from '../config/database';
 
 const buildingIncludeWithFloorsAndFloorPlans = {
@@ -58,7 +58,7 @@ export async function findBuildingsList(params: {
     },
     orderBy: params.orderBy,
   });
-  return buildings.map((b) => ({ ...b, floorPlans: [] })) as Array<
+  return buildings.map((b: Building) => ({ ...b, floorPlans: [] })) as Array<
     Building & { floors: unknown[]; floorPlans: never[] }
   >;
 }
@@ -74,7 +74,7 @@ export async function findBuildingNamesByIds(ids: string[]): Promise<Map<string,
     where: { id: { in: ids } },
     select: { id: true, name: true },
   });
-  return new Map(list.map((b) => [b.id, b.name]));
+  return new Map(list.map((b: { id: string; name: string }) => [b.id, b.name]));
 }
 
 export async function updateBuilding(

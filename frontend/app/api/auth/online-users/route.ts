@@ -1,3 +1,5 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
@@ -6,9 +8,16 @@ import { prisma } from '@/lib/prisma';
 import { callPorterService } from '@/lib/grpcClient';
 import { DeviceType } from '@/generated/prisma/enums';
 
+type ActivityWithUser = Prisma.user_activityGetPayload<{
+  include: { user: { select: { id: true; displayName: true; email: true; department: true; departmentId: true; departmentSubId: true; departmentSubSubId: true } } };
+}>;
+
+/** ระยะเวลาที่ถือว่า offline (มิลลิวินาที) — สอดคล้องกับ NextAuth session maxAge (1 ชม.) และ update-activity */
+const OFFLINE_AFTER_MS = 60 * 60 * 1000; // 60 นาที
+
 /**
  * GET /api/auth/online-users
- * ดึงจำนวนผู้ใช้ที่ Online (lastActivityAt ยังไม่เกิน 15 นาที)
+ * ดึงจำนวนผู้ใช้ที่ Online (lastActivityAt ยังไม่เกินเกณฑ์ offline — 60 นาที / ตาม session)
  * ต้อง login ก่อน
  */
 export async function GET(request: NextRequest) {
@@ -44,15 +53,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // คำนวณเวลาที่ถือว่า offline (15 นาทีที่แล้ว)
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    // คำนวณเวลาที่ถือว่า offline (ตาม OFFLINE_AFTER_MS — สอดคล้องกับ NextAuth session)
+    const offlineBefore = new Date(Date.now() - OFFLINE_AFTER_MS);
 
-    // ดึง records จาก user_activity ที่ lastActivityAt ยังไม่เกิน 15 นาที
+    // ดึง records จาก user_activity ที่ lastActivityAt ยังไม่เกินเกณฑ์ offline
     // และยังไม่ถูก logout (logoutAt = null)
     const onlineUsers = await prisma.user_activity.findMany({
       where: {
         lastActivityAt: {
-          gte: fifteenMinutesAgo,
+          gte: offlineBefore,
         },
         logoutAt: null,
         deviceType: DeviceType.WEB_APP,
@@ -80,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     // สร้าง response data พร้อมดึง PorterEmployee ที่ผูกกับ user แต่ละคน (ถ้ามี)
     const users = await Promise.all(
-      onlineUsers.map(async (activity) => {
+      onlineUsers.map(async (activity: ActivityWithUser) => {
         let porterEmployee: { id: string } | null = null;
 
         try {

@@ -1,8 +1,17 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthSession } from '@/lib/auth';
 import { callPorterService } from '@/lib/grpcClient';
 import { prisma } from '@/lib/prisma';
+
+type PersonTypeMapItem = Prisma.hrd_person_typeGetPayload<{
+  select: { HR_PERSON_TYPE_ID: true; HR_PERSON_TYPE_NAME: true };
+}>;
+type PositionMapItem = Prisma.hrd_positionGetPayload<{
+  select: { HR_POSITION_ID: true; HR_POSITION_NAME: true };
+}>;
 
 /**
  * GET /api/porter/employees
@@ -59,10 +68,16 @@ export async function GET(request: NextRequest) {
 
       // สร้าง map สำหรับ lookup
       const personTypeMap = new Map(
-        personTypes.map((pt) => [pt.HR_PERSON_TYPE_ID, pt.HR_PERSON_TYPE_NAME ?? '']),
+        personTypes.map((pt: PersonTypeMapItem) => [
+          pt.HR_PERSON_TYPE_ID,
+          pt.HR_PERSON_TYPE_NAME ?? '',
+        ]),
       );
       const positionMap = new Map(
-        positions.map((p) => [p.HR_POSITION_ID, p.HR_POSITION_NAME ?? '']),
+        positions.map((p: PositionMapItem) => [
+          p.HR_POSITION_ID,
+          p.HR_POSITION_NAME ?? '',
+        ]),
       );
 
       // แปลงข้อมูลจาก Proto format เป็น Frontend format และ populate names

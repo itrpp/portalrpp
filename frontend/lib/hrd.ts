@@ -52,7 +52,7 @@ export async function listDepartments(query?: string): Promise<Department[]> {
     orderBy: { HR_DEPARTMENT_NAME: 'asc' },
   });
 
-  return items.map((row) =>
+  return items.map((row: DepartmentRow) =>
     mapDepartmentToItem({
       ...row,
       ACTIVE: row.ACTIVE as string | null,
