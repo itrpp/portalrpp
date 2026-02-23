@@ -6,7 +6,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', 'coverage', 'prisma/generated'],
+    ignores: ['dist', 'node_modules', 'coverage'],
   },
   {
     files: ['**/*.ts'],

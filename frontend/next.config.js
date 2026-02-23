@@ -20,10 +20,12 @@ const nextConfig = {
     // แก้ไขปัญหา case sensitivity บน Linux
     config.resolve.symlinks = false;
 
-    // เพิ่ม alias สำหรับ '@/...' ให้แน่นอนบนทุกแพลตฟอร์ม
+    // ให้ shared/generated/prisma (อยู่นอก frontend) resolve @prisma/client จาก frontend
+    // ใช้ alias แทน resolve.modules เพื่อไม่ให้กระทบ next-auth/openid-client (lru-cache v6)
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       '@': path.resolve(__dirname),
+      '@prisma/client': path.resolve(__dirname, 'node_modules/@prisma/client'),
     };
 
     // เผื่อกรณี environment ไม่ได้ตั้งค่าชนิดไฟล์ครบ

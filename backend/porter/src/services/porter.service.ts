@@ -1,4 +1,4 @@
-import { Prisma, type PorterRequest } from '../generated/prisma/client';
+import { Prisma, type PorterRequest } from '@shared/prisma/client';
 import porterEventEmitter from '../utils/eventEmitter';
 import * as buildingRepo from '../repositories/building.repository';
 import * as bleStationRepo from '../repositories/bleStation.repository';
@@ -53,11 +53,11 @@ import {
   ListBleStationsFilters,
   BleStationMessage,
 } from '../types/porter';
-import type { Building, FloorDepartment } from '../generated/prisma/client';
+import type { Building, FloorDepartment } from '@shared/prisma/client';
 import type { BuildingWithFloorsAndFloorPlans } from '../repositories/building.repository';
 import type { FloorDepartmentWithBuilding } from '../repositories/floorDepartment.repository';
 import type { FloorPlanWithStations } from '../repositories/floorPlan.repository';
-import type { PorterEmployee } from '../generated/prisma/client';
+import type { PorterEmployee } from '@shared/prisma/client';
 
 type PorterRequestWithLocationNames = PorterRequest & {
   pickupBuildingName?: string;
@@ -972,7 +972,7 @@ const convertFloorPlanToProto = (
 };
 
 const convertBleStationToProto = (
-  station: import('../generated/prisma/client').BleStation,
+  station: import('@shared/prisma/client').BleStation,
 ): import('../types/porter').BleStationMessage => {
   return {
     id: station.id,

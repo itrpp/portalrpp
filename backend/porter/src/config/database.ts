@@ -1,6 +1,6 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '@shared/prisma/client';
 
 import { config } from './env';
 
