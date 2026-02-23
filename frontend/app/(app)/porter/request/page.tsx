@@ -1057,7 +1057,7 @@ export default function PorterRequestPage() {
                       </Radio>
                     </RadioGroup>
                   </div>
-                  <div>
+                  {/* <div>
                     <div className="text-sm font-medium text-foreground mb-2 block">
                       ส่งกลับหรือไม่
                       <span className="text-danger ml-1">*</span>
@@ -1082,7 +1082,7 @@ export default function PorterRequestPage() {
                         รับกลับด้วย
                       </Radio>
                     </RadioGroup>
-                  </div>
+                  </div> */}
                 </div>
                 <div className="mt-4">
                   <label

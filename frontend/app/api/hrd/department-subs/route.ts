@@ -1,7 +1,24 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextResponse } from 'next/server';
 
 import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+
+type DepartmentSubItem = Prisma.hrd_department_subGetPayload<{
+  select: {
+    HR_DEPARTMENT_SUB_ID: true;
+    HR_DEPARTMENT_SUB_NAME: true;
+    HR_DEPARTMENT_ID: true;
+    ACTIVE: true;
+    created_at: true;
+    updated_at: true;
+  };
+}>;
+
+type DepartmentItem = Prisma.hrd_departmentGetPayload<{
+  select: { HR_DEPARTMENT_ID: true; HR_DEPARTMENT_NAME: true };
+}>;
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -47,11 +64,18 @@ export async function GET(request: Request) {
   });
 
   // ดึงชื่อ department สำหรับแสดงผล
-  const departmentIds = [...new Set(items.map((item) => item.HR_DEPARTMENT_ID).filter(Boolean))];
+  const rawDepartmentIds = [
+    ...new Set(
+      items
+        .map((item: DepartmentSubItem) => item.HR_DEPARTMENT_ID)
+        .filter((v: string | null): v is string => v != null && v !== ''),
+    ),
+  ] as string[];
+  const departmentIds = rawDepartmentIds.map((id) => Number.parseInt(id, 10));
   const departments = await prisma.hrd_department.findMany({
     where: {
       HR_DEPARTMENT_ID: {
-        in: departmentIds.map((id) => Number.parseInt(id || '0', 10)),
+        in: departmentIds,
       },
     },
     select: {
@@ -61,12 +85,15 @@ export async function GET(request: Request) {
   });
 
   const departmentMap = new Map(
-    departments.map((d) => [d.HR_DEPARTMENT_ID, d.HR_DEPARTMENT_NAME ?? '']),
+    departments.map((d: DepartmentItem) => [
+      d.HR_DEPARTMENT_ID,
+      d.HR_DEPARTMENT_NAME ?? '',
+    ]),
   );
 
   return NextResponse.json({
     success: true,
-    data: items.map((item) => ({
+    data: items.map((item: DepartmentSubItem) => ({
       id: item.HR_DEPARTMENT_SUB_ID,
       name: item.HR_DEPARTMENT_SUB_NAME ?? '',
       departmentId: Number.parseInt(item.HR_DEPARTMENT_ID || '0', 10),

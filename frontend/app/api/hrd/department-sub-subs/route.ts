@@ -1,7 +1,24 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { NextResponse } from 'next/server';
 
 import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+
+type DepartmentSubSubItem = Prisma.hrd_department_sub_subGetPayload<{
+  select: {
+    HR_DEPARTMENT_SUB_SUB_ID: true;
+    HR_DEPARTMENT_SUB_SUB_NAME: true;
+    HR_DEPARTMENT_SUB_ID: true;
+    ACTIVE: true;
+    created_at: true;
+    updated_at: true;
+  };
+}>;
+
+type DepartmentSubItem = Prisma.hrd_department_subGetPayload<{
+  select: { HR_DEPARTMENT_SUB_ID: true; HR_DEPARTMENT_SUB_NAME: true };
+}>;
 
 export async function GET(request: Request) {
   const auth = await getAuthSession();
@@ -70,13 +87,21 @@ export async function GET(request: Request) {
   });
 
   // ดึงชื่อ department_sub สำหรับแสดงผล
-  const departmentSubIds = [
-    ...new Set(items.map((item) => item.HR_DEPARTMENT_SUB_ID).filter(Boolean)),
-  ];
+  const rawDepartmentSubIds = [
+    ...new Set(
+      items
+        .map((item: DepartmentSubSubItem) => item.HR_DEPARTMENT_SUB_ID)
+        .filter((v: string | null): v is string => v != null && v !== ''),
+    ),
+  ] as string[];
+  const departmentSubIds: number[] = rawDepartmentSubIds.map((id) =>
+    Number.parseInt(id, 10),
+  );
+
   const departmentSubs = await prisma.hrd_department_sub.findMany({
     where: {
       HR_DEPARTMENT_SUB_ID: {
-        in: departmentSubIds.map((id) => Number.parseInt(id || '0', 10)),
+        in: departmentSubIds,
       },
     },
     select: {
@@ -86,12 +111,15 @@ export async function GET(request: Request) {
   });
 
   const departmentSubMap = new Map(
-    departmentSubs.map((d) => [d.HR_DEPARTMENT_SUB_ID, d.HR_DEPARTMENT_SUB_NAME ?? '']),
+    departmentSubs.map((d: DepartmentSubItem) => [
+      d.HR_DEPARTMENT_SUB_ID,
+      d.HR_DEPARTMENT_SUB_NAME ?? '',
+    ]),
   );
 
   return NextResponse.json({
     success: true,
-    data: items.map((item) => ({
+    data: items.map((item: DepartmentSubSubItem) => ({
       id: item.HR_DEPARTMENT_SUB_SUB_ID,
       name: item.HR_DEPARTMENT_SUB_SUB_NAME ?? '',
       departmentSubId: Number.parseInt(item.HR_DEPARTMENT_SUB_ID || '0', 10),

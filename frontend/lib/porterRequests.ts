@@ -10,6 +10,7 @@ import type {
   ListPorterRequestsResult,
   PorterJobItem,
 } from '@/types/porter';
+import type { Prisma } from '@/generated/prisma/client';
 
 import { callPorterService } from '@/lib/grpcClient';
 import { mapStatusToProto, mapUrgencyLevelToProto, convertProtoToFrontend } from '@/lib/porter';
@@ -62,13 +63,21 @@ export async function enrichWithCancelledNames(items: PorterJobItem[]): Promise<
     select: { id: true, displayName: true },
   });
 
-  const userMap = new Map(users.map((u) => [u.id, u.displayName]));
+  type UserMapItem = Prisma.userGetPayload<{
+    select: { id: true; displayName: true };
+  }>;
+  const userMap = new Map(
+    users.map((u: UserMapItem) => [u.id, u.displayName]),
+  );
 
-  return items.map((item) => {
+  return items.map((item: PorterJobItem) => {
     if (item.status === 'CANCELLED' && item.cancelledById != null) {
+      const cancelledByName: string | undefined =
+        (userMap.get(item.cancelledById) as string | null | undefined) ?? undefined;
+
       return {
         ...item,
-        cancelledByName: userMap.get(item.cancelledById) ?? undefined,
+        cancelledByName,
       };
     }
 
