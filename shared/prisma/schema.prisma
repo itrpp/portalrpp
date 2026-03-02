@@ -260,7 +260,7 @@ model Building {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  floors     FloorDepartment[]
+  floors     Department[]
   floorPlans FloorPlan[]
 
   @@index([name])
@@ -268,7 +268,7 @@ model Building {
   @@index([createdAt])
 }
 
-model FloorDepartment {
+model Department {
   id          String   @id @default(cuid())
   name        String   @db.VarChar(200)
   buildingId  String
@@ -287,6 +287,7 @@ model FloorDepartment {
   @@index([buildingId])
   @@index([departmentType])
   @@index([status])
+  @@map("FloorDepartment")
 }
 
 model FloorPlan {

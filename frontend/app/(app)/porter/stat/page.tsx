@@ -1,16 +1,40 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Card, CardBody, Spinner } from '@heroui/react';
+import dynamic from 'next/dynamic';
+import { Card, CardBody, CardHeader, Spinner } from '@heroui/react';
 import { getLocalTimeZone, today } from '@internationalized/date';
 
 import { StatCard } from './components/StatCard';
-import { DailyJobChart } from './components/DailyJobChart';
-import { PopularLocationChart } from './components/PopularLocationChart';
-import { EmployeePerformanceChart } from './components/EmployeePerformanceChart';
 import { TimeHeatmap } from './components/TimeHeatmap';
 import { StatFilter, FilterState } from './components/StatFilter';
 import { usePorterStats } from './hooks/usePorterStats';
+
+function ChartPlaceholder() {
+  return (
+    <Card className="min-h-[280px]">
+      <CardHeader className="pb-0" />
+      <CardBody className="flex items-center justify-center min-h-[240px]">
+        <Spinner color="primary" size="lg" />
+      </CardBody>
+    </Card>
+  );
+}
+
+const DailyJobChart = dynamic(
+  () => import('./components/DailyJobChart').then((m) => m.DailyJobChart),
+  { ssr: false, loading: ChartPlaceholder }
+);
+
+const PopularLocationChart = dynamic(
+  () => import('./components/PopularLocationChart').then((m) => m.PopularLocationChart),
+  { ssr: false, loading: ChartPlaceholder }
+);
+
+const EmployeePerformanceChart = dynamic(
+  () => import('./components/EmployeePerformanceChart').then((m) => m.EmployeePerformanceChart),
+  { ssr: false, loading: ChartPlaceholder }
+);
 
 import {
   ChartBarIcon,

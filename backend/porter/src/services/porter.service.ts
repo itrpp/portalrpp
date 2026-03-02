@@ -53,7 +53,7 @@ import {
   ListBleStationsFilters,
   BleStationMessage,
 } from '../types/porter';
-import type { Building, FloorDepartment } from '@shared/prisma/client';
+import type { Building, Department } from '@shared/prisma/client';
 import type { BuildingWithFloorsAndFloorPlans } from '../repositories/building.repository';
 import type { FloorDepartmentWithBuilding } from '../repositories/floorDepartment.repository';
 import type { FloorPlanWithStations } from '../repositories/floorPlan.repository';
@@ -569,7 +569,7 @@ export const createFloorDepartment = async (
     status,
   } = requestData;
 
-  const createData: Prisma.FloorDepartmentUncheckedCreateInput = {
+  const createData: Prisma.DepartmentUncheckedCreateInput = {
     name: name.trim(),
     buildingId: building_id,
     floorNumber: floor_number ?? null,
@@ -600,7 +600,7 @@ export const listFloorDepartments = async (
 ): Promise<PaginationResult<FloorDepartmentMessage>> => {
   const { building_id, department_type, page = 1, page_size = 100 } = filters;
 
-  const where: Prisma.FloorDepartmentWhereInput = {};
+  const where: Prisma.DepartmentWhereInput = {};
   if (building_id) where.buildingId = building_id;
   if (department_type) where.departmentType = department_type;
 
@@ -628,7 +628,7 @@ export const updateFloorDepartment = async (
   id: string,
   updateData: UpdateFloorDepartmentInput,
 ): Promise<FloorDepartmentMessage> => {
-  const data: Prisma.FloorDepartmentUpdateInput = {};
+  const data: Prisma.DepartmentUpdateInput = {};
 
   if (updateData.name) {
     data.name = updateData.name.trim();
@@ -943,7 +943,7 @@ const convertBuildingToProto = (
     ? (building.floorPlans as FloorPlanWithStations[]).map(convertFloorPlanToProto)
     : [];
   const floors = Array.isArray(building.floors)
-    ? (building.floors as FloorDepartment[]).map(convertFloorDepartmentToProto)
+    ? (building.floors as Department[]).map(convertFloorDepartmentToProto)
     : [];
   return {
     id: building.id,
@@ -991,7 +991,7 @@ const convertBleStationToProto = (
 };
 
 const convertFloorDepartmentToProto = (
-  floorDepartment: FloorDepartmentWithBuilding | FloorDepartment,
+  floorDepartment: FloorDepartmentWithBuilding | Department,
 ): FloorDepartmentMessage => ({
   id: floorDepartment.id,
   name: floorDepartment.name,

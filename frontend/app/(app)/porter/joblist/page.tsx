@@ -358,7 +358,7 @@ export default function JobListClient() {
         </div>
       </div>
 
-      <div>
+      <div className="min-w-0 overflow-x-auto">
         <JobListFilters
           dateRange={dateRange}
           searchQuery={searchQuery}

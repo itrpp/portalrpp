@@ -226,7 +226,7 @@ export type BuildingWhereInput = {
   status?: Prisma.BoolFilter<"Building"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Building"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Building"> | Date | string
-  floors?: Prisma.FloorDepartmentListRelationFilter
+  floors?: Prisma.DepartmentListRelationFilter
   floorPlans?: Prisma.FloorPlanListRelationFilter
 }
 
@@ -237,7 +237,7 @@ export type BuildingOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  floors?: Prisma.FloorDepartmentOrderByRelationAggregateInput
+  floors?: Prisma.DepartmentOrderByRelationAggregateInput
   floorPlans?: Prisma.FloorPlanOrderByRelationAggregateInput
   _relevance?: Prisma.BuildingOrderByRelevanceInput
 }
@@ -252,7 +252,7 @@ export type BuildingWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.BoolFilter<"Building"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Building"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Building"> | Date | string
-  floors?: Prisma.FloorDepartmentListRelationFilter
+  floors?: Prisma.DepartmentListRelationFilter
   floorPlans?: Prisma.FloorPlanListRelationFilter
 }, "id">
 
@@ -289,7 +289,7 @@ export type BuildingCreateInput = {
   status?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  floors?: Prisma.FloorDepartmentCreateNestedManyWithoutBuildingInput
+  floors?: Prisma.DepartmentCreateNestedManyWithoutBuildingInput
   floorPlans?: Prisma.FloorPlanCreateNestedManyWithoutBuildingInput
 }
 
@@ -300,7 +300,7 @@ export type BuildingUncheckedCreateInput = {
   status?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  floors?: Prisma.FloorDepartmentUncheckedCreateNestedManyWithoutBuildingInput
+  floors?: Prisma.DepartmentUncheckedCreateNestedManyWithoutBuildingInput
   floorPlans?: Prisma.FloorPlanUncheckedCreateNestedManyWithoutBuildingInput
 }
 
@@ -311,7 +311,7 @@ export type BuildingUpdateInput = {
   status?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  floors?: Prisma.FloorDepartmentUpdateManyWithoutBuildingNestedInput
+  floors?: Prisma.DepartmentUpdateManyWithoutBuildingNestedInput
   floorPlans?: Prisma.FloorPlanUpdateManyWithoutBuildingNestedInput
 }
 
@@ -322,7 +322,7 @@ export type BuildingUncheckedUpdateInput = {
   status?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  floors?: Prisma.FloorDepartmentUncheckedUpdateManyWithoutBuildingNestedInput
+  floors?: Prisma.DepartmentUncheckedUpdateManyWithoutBuildingNestedInput
   floorPlans?: Prisma.FloorPlanUncheckedUpdateManyWithoutBuildingNestedInput
 }
 
@@ -494,7 +494,7 @@ export type BuildingCreateWithoutFloorPlansInput = {
   status?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  floors?: Prisma.FloorDepartmentCreateNestedManyWithoutBuildingInput
+  floors?: Prisma.DepartmentCreateNestedManyWithoutBuildingInput
 }
 
 export type BuildingUncheckedCreateWithoutFloorPlansInput = {
@@ -504,7 +504,7 @@ export type BuildingUncheckedCreateWithoutFloorPlansInput = {
   status?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  floors?: Prisma.FloorDepartmentUncheckedCreateNestedManyWithoutBuildingInput
+  floors?: Prisma.DepartmentUncheckedCreateNestedManyWithoutBuildingInput
 }
 
 export type BuildingCreateOrConnectWithoutFloorPlansInput = {
@@ -530,7 +530,7 @@ export type BuildingUpdateWithoutFloorPlansInput = {
   status?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  floors?: Prisma.FloorDepartmentUpdateManyWithoutBuildingNestedInput
+  floors?: Prisma.DepartmentUpdateManyWithoutBuildingNestedInput
 }
 
 export type BuildingUncheckedUpdateWithoutFloorPlansInput = {
@@ -540,7 +540,7 @@ export type BuildingUncheckedUpdateWithoutFloorPlansInput = {
   status?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  floors?: Prisma.FloorDepartmentUncheckedUpdateManyWithoutBuildingNestedInput
+  floors?: Prisma.DepartmentUncheckedUpdateManyWithoutBuildingNestedInput
 }
 
 
@@ -572,7 +572,7 @@ export type BuildingCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Ext
  * BuildingCountOutputType without action
  */
 export type BuildingCountOutputTypeCountFloorsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.FloorDepartmentWhereInput
+  where?: Prisma.DepartmentWhereInput
 }
 
 /**
@@ -616,7 +616,7 @@ export type BuildingInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type $BuildingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Building"
   objects: {
-    floors: Prisma.$FloorDepartmentPayload<ExtArgs>[]
+    floors: Prisma.$DepartmentPayload<ExtArgs>[]
     floorPlans: Prisma.$FloorPlanPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -966,7 +966,7 @@ readonly fields: BuildingFieldRefs;
  */
 export interface Prisma__BuildingClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  floors<T extends Prisma.Building$floorsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Building$floorsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FloorDepartmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  floors<T extends Prisma.Building$floorsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Building$floorsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DepartmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   floorPlans<T extends Prisma.Building$floorPlansArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Building$floorPlansArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FloorPlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1350,23 +1350,23 @@ export type BuildingDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
  */
 export type Building$floorsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the FloorDepartment
+   * Select specific fields to fetch from the Department
    */
-  select?: Prisma.FloorDepartmentSelect<ExtArgs> | null
+  select?: Prisma.DepartmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the FloorDepartment
+   * Omit specific fields from the Department
    */
-  omit?: Prisma.FloorDepartmentOmit<ExtArgs> | null
+  omit?: Prisma.DepartmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.FloorDepartmentInclude<ExtArgs> | null
-  where?: Prisma.FloorDepartmentWhereInput
-  orderBy?: Prisma.FloorDepartmentOrderByWithRelationInput | Prisma.FloorDepartmentOrderByWithRelationInput[]
-  cursor?: Prisma.FloorDepartmentWhereUniqueInput
+  include?: Prisma.DepartmentInclude<ExtArgs> | null
+  where?: Prisma.DepartmentWhereInput
+  orderBy?: Prisma.DepartmentOrderByWithRelationInput | Prisma.DepartmentOrderByWithRelationInput[]
+  cursor?: Prisma.DepartmentWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.FloorDepartmentScalarFieldEnum | Prisma.FloorDepartmentScalarFieldEnum[]
+  distinct?: Prisma.DepartmentScalarFieldEnum | Prisma.DepartmentScalarFieldEnum[]
 }
 
 /**

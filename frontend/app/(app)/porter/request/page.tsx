@@ -21,7 +21,6 @@ import {
   Radio,
   Form,
   DatePicker,
-  DateRangePicker,
   useDisclosure,
   addToast,
   Tabs,
@@ -50,6 +49,7 @@ const EmergencyConfirmationModal = dynamic(
 );
 
 import { RequestHistoryTable } from './components/RequestHistoryTable';
+import { RequestHistoryFilters } from './components/RequestHistoryFilters';
 import { usePorterRequestForm } from './hooks/usePorterRequestForm';
 import { useUserRequests } from './hooks/useUserRequests';
 
@@ -1209,93 +1209,17 @@ export default function PorterRequestPage() {
           }
         >
           <div className="mt-[-8px]">
-            {/* Filters */}
-            <Card className={cn(CARD_STYLES.default, 'mb-4')}>
-              <CardBody>
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
-                    <Input
-                      isClearable
-                      aria-label="ค้นหาประวัติคำขอ"
-                      className="flex-1 min-w-[200px]"
-                      label="ค้นหา"
-                      labelPlacement="outside"
-                      placeholder="ค้นหาด้วยชื่อผู้ป่วย หรือ HN..."
-                      size="md"
-                      startContent={<MagnifyingGlassIcon className="w-5 h-5 text-default-400" />}
-                      value={searchQuery}
-                      variant="bordered"
-                      onClear={() => handleSearchChange('')}
-                      onValueChange={handleSearchChange}
-                    />
-                    <Select
-                      aria-label="กรองตามสถานะ"
-                      className="w-full sm:w-48"
-                      label="สถานะ"
-                      labelPlacement="outside"
-                      placeholder="สถานะ"
-                      selectedKeys={statusFilter ? [statusFilter] : ['all']}
-                      size="md"
-                      variant="bordered"
-                      onSelectionChange={(keys) => {
-                        const k = Array.from(keys)[0] as string | undefined;
-
-                        handleStatusFilterChange(k && k !== 'all' ? k : null);
-                      }}
-                    >
-                      <SelectItem key="all">ทั้งหมด</SelectItem>
-                      <SelectItem key="WAITING_CENTER">รอศูนย์รับ</SelectItem>
-                      <SelectItem key="WAITING_ACCEPT">รอผู้ปฏิบัติรับงาน</SelectItem>
-                      <SelectItem key="IN_PROGRESS">กำลังดำเนินการ</SelectItem>
-                      <SelectItem key="COMPLETED">เสร็จสิ้น</SelectItem>
-                      <SelectItem key="CANCELLED">ยกเลิก</SelectItem>
-                    </Select>
-                    <Select
-                      aria-label="กรองตามความเร่งด่วน"
-                      className="w-full sm:w-48"
-                      label="ความเร่งด่วน"
-                      labelPlacement="outside"
-                      placeholder="ความเร่งด่วน"
-                      selectedKeys={urgencyFilter ? [urgencyFilter] : ['all']}
-                      size="md"
-                      variant="bordered"
-                      onSelectionChange={(keys) => {
-                        const k = Array.from(keys)[0] as string | undefined;
-
-                        setUrgencyFilter(k && k !== 'all' ? k : '');
-                      }}
-                    >
-                      <SelectItem key="all">ทั้งหมด</SelectItem>
-                      <SelectItem key="ปกติ">ปกติ</SelectItem>
-                      <SelectItem key="ด่วน">ด่วน</SelectItem>
-                      <SelectItem key="ฉุกเฉิน">ฉุกเฉิน</SelectItem>
-                    </Select>
-                    <div className="flex flex-col gap-1 flex-1 min-w-[280px]">
-                      <DateRangePicker
-                        aria-label="ช่วงวันที่"
-                        className="w-full"
-                        label="ช่วงวันที่"
-                        labelPlacement="outside"
-                        size="md"
-                        value={dateRange}
-                        variant="bordered"
-                        onChange={setDateRange}
-                      />
-                    </div>
-                    <Button
-                      color="default"
-                      isDisabled={!dateRange && !searchQuery && !statusFilter && !urgencyFilter}
-                      size="md"
-                      variant="flat"
-                      onPress={handleClearFilters}
-                    >
-                      <XMarkIcon className="w-5 h-5" />
-                      ล้างตัวกรอง
-                    </Button>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
+            <RequestHistoryFilters
+              dateRange={dateRange}
+              searchQuery={searchQuery}
+              statusFilter={statusFilter}
+              urgencyFilter={urgencyFilter}
+              onClearFilters={handleClearFilters}
+              onDateRangeChange={setDateRange}
+              onSearchChange={handleSearchChange}
+              onStatusChange={handleStatusFilterChange}
+              onUrgencyChange={setUrgencyFilter}
+            />
 
             {/* Table */}
             <Card className={CARD_STYLES.default}>

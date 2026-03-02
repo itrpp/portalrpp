@@ -18,23 +18,13 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  Input,
-  Select,
-  SelectItem,
 } from '@heroui/react';
 
 import { EmployeeModal, ImagePreviewModal } from '../../components';
-
+import { EmployeeFilters } from './components/EmployeeFilters';
 import { useEmployees } from './hooks/useEmployees';
 
-import {
-  UserIcon,
-  PlusIcon,
-  TrashIcon,
-  PencilIcon,
-  MagnifyingGlassIcon,
-  XMarkIcon,
-} from '@/components/ui/icons';
+import { UserIcon, PlusIcon, TrashIcon, PencilIcon } from '@/components/ui/icons';
 import { usePagination } from '@/hooks/usePagination';
 import { CARD_STYLES } from '@/lib/cardStyles';
 import { TABLE_STYLES } from '@/lib/tableStyles';
@@ -147,116 +137,19 @@ export default function EmployeeManagementPage() {
         </Button>
       </div>
 
-      <Card className={CARD_STYLES.default}>
-        <CardBody>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
-              <Input
-                isClearable
-                aria-label="ค้นหาเจ้าหน้าที่"
-                className="flex-1 min-w-[200px]"
-                label="ค้นหา"
-                labelPlacement="outside"
-                placeholder="ค้นหาด้วยชื่อ นามสกุล ชื่อเล่น หรือเลขบัตรประชาชน..."
-                size="md"
-                startContent={
-                  <MagnifyingGlassIcon className="w-5 h-5 text-default-400" />
-                }
-                value={searchQuery}
-                variant="bordered"
-                onClear={() => setSearchQuery('')}
-                onValueChange={setSearchQuery}
-              />
-              <Select
-                aria-label="กรองตามประเภทการจ้าง"
-                className="w-full sm:w-48"
-                label="ประเภทการจ้าง"
-                labelPlacement="outside"
-                placeholder="ทั้งหมด"
-                selectedKeys={
-                  filterEmploymentTypeId ? [filterEmploymentTypeId] : ['all']
-                }
-                size="md"
-                variant="bordered"
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as string;
-
-                  setFilterEmploymentTypeId(
-                    selected && selected !== 'all' ? selected : '',
-                  );
-                }}
-              >
-                <>
-                  <SelectItem key="all">ทั้งหมด</SelectItem>
-                  {employmentTypes.map((item) => (
-                    <SelectItem key={item.id}>{item.name}</SelectItem>
-                  ))}
-                </>
-              </Select>
-              <Select
-                aria-label="กรองตามตำแหน่ง"
-                className="w-full sm:w-48"
-                label="ตำแหน่ง"
-                labelPlacement="outside"
-                placeholder="ทั้งหมด"
-                selectedKeys={filterPositionId ? [filterPositionId] : ['all']}
-                size="md"
-                variant="bordered"
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as string;
-
-                  setFilterPositionId(
-                    selected && selected !== 'all' ? selected : '',
-                  );
-                }}
-              >
-                <>
-                  <SelectItem key="all">ทั้งหมด</SelectItem>
-                  {positions.map((item) => (
-                    <SelectItem key={item.id}>{item.name}</SelectItem>
-                  ))}
-                </>
-              </Select>
-              <Select
-                aria-label="กรองตามสถานะ"
-                className="w-full sm:w-48"
-                label="สถานะ"
-                labelPlacement="outside"
-                placeholder="ทั้งหมด"
-                selectedKeys={filterStatus ? [filterStatus] : ['all']}
-                size="md"
-                variant="bordered"
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as string;
-
-                  setFilterStatus(
-                    selected && selected !== 'all' ? selected : '',
-                  );
-                }}
-              >
-                <SelectItem key="all">ทั้งหมด</SelectItem>
-                <SelectItem key="active">ใช้งาน</SelectItem>
-                <SelectItem key="inactive">ไม่ใช้งาน</SelectItem>
-              </Select>
-              <Button
-                color="default"
-                isDisabled={
-                  !searchQuery &&
-                  !filterEmploymentTypeId &&
-                  !filterPositionId &&
-                  !filterStatus
-                }
-                size="md"
-                variant="flat"
-                onPress={clearFilters}
-              >
-                <XMarkIcon className="w-5 h-5" />
-                ล้างตัวกรอง
-              </Button>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
+      <EmployeeFilters
+        employmentTypes={employmentTypes}
+        filterEmploymentTypeId={filterEmploymentTypeId}
+        filterPositionId={filterPositionId}
+        filterStatus={filterStatus}
+        positions={positions}
+        searchQuery={searchQuery}
+        onClearFilters={clearFilters}
+        onEmploymentTypeChange={setFilterEmploymentTypeId}
+        onPositionChange={setFilterPositionId}
+        onSearchChange={setSearchQuery}
+        onStatusChange={setFilterStatus}
+      />
 
       <Card className={CARD_STYLES.default}>
         <CardHeader className="pb-0">

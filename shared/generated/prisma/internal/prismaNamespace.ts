@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.3.0
- * Query Engine version: 9d6ad21cbbceab97458517b147a6a09ff43aa735
+ * Prisma Client JS version: 7.4.1
+ * Query Engine version: 55ae170b1ced7fc6ed07a15f110549408c501bb3
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.3.0",
-  engine: "9d6ad21cbbceab97458517b147a6a09ff43aa735"
+  client: "7.4.1",
+  engine: "55ae170b1ced7fc6ed07a15f110549408c501bb3"
 }
 
 /**
@@ -396,7 +396,7 @@ export const ModelName = {
   verificationtoken: 'verificationtoken',
   PorterRequest: 'PorterRequest',
   Building: 'Building',
-  FloorDepartment: 'FloorDepartment',
+  Department: 'Department',
   FloorPlan: 'FloorPlan',
   BleStation: 'BleStation',
   PorterEmployee: 'PorterEmployee'
@@ -415,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "account" | "hrd_department" | "hrd_department_sub" | "hrd_department_sub_sub" | "hrd_person_type" | "hrd_position" | "session" | "user" | "user_activity" | "verificationtoken" | "porterRequest" | "building" | "floorDepartment" | "floorPlan" | "bleStation" | "porterEmployee"
+    modelProps: "account" | "hrd_department" | "hrd_department_sub" | "hrd_department_sub_sub" | "hrd_person_type" | "hrd_position" | "session" | "user" | "user_activity" | "verificationtoken" | "porterRequest" | "building" | "department" | "floorPlan" | "bleStation" | "porterEmployee"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1211,69 +1211,69 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    FloorDepartment: {
-      payload: Prisma.$FloorDepartmentPayload<ExtArgs>
-      fields: Prisma.FloorDepartmentFieldRefs
+    Department: {
+      payload: Prisma.$DepartmentPayload<ExtArgs>
+      fields: Prisma.DepartmentFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.FloorDepartmentFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload> | null
+          args: Prisma.DepartmentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.FloorDepartmentFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload>
+          args: Prisma.DepartmentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload>
         }
         findFirst: {
-          args: Prisma.FloorDepartmentFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload> | null
+          args: Prisma.DepartmentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.FloorDepartmentFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload>
+          args: Prisma.DepartmentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload>
         }
         findMany: {
-          args: Prisma.FloorDepartmentFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload>[]
+          args: Prisma.DepartmentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload>[]
         }
         create: {
-          args: Prisma.FloorDepartmentCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload>
+          args: Prisma.DepartmentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload>
         }
         createMany: {
-          args: Prisma.FloorDepartmentCreateManyArgs<ExtArgs>
+          args: Prisma.DepartmentCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         delete: {
-          args: Prisma.FloorDepartmentDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload>
+          args: Prisma.DepartmentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload>
         }
         update: {
-          args: Prisma.FloorDepartmentUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload>
+          args: Prisma.DepartmentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload>
         }
         deleteMany: {
-          args: Prisma.FloorDepartmentDeleteManyArgs<ExtArgs>
+          args: Prisma.DepartmentDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.FloorDepartmentUpdateManyArgs<ExtArgs>
+          args: Prisma.DepartmentUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         upsert: {
-          args: Prisma.FloorDepartmentUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorDepartmentPayload>
+          args: Prisma.DepartmentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentPayload>
         }
         aggregate: {
-          args: Prisma.FloorDepartmentAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateFloorDepartment>
+          args: Prisma.DepartmentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDepartment>
         }
         groupBy: {
-          args: Prisma.FloorDepartmentGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.FloorDepartmentGroupByOutputType>[]
+          args: Prisma.DepartmentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DepartmentGroupByOutputType>[]
         }
         count: {
-          args: Prisma.FloorDepartmentCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.FloorDepartmentCountAggregateOutputType> | number
+          args: Prisma.DepartmentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DepartmentCountAggregateOutputType> | number
         }
       }
     }
@@ -1727,7 +1727,7 @@ export const BuildingScalarFieldEnum = {
 export type BuildingScalarFieldEnum = (typeof BuildingScalarFieldEnum)[keyof typeof BuildingScalarFieldEnum]
 
 
-export const FloorDepartmentScalarFieldEnum = {
+export const DepartmentScalarFieldEnum = {
   id: 'id',
   name: 'name',
   buildingId: 'buildingId',
@@ -1741,7 +1741,7 @@ export const FloorDepartmentScalarFieldEnum = {
   bedCount: 'bedCount'
 } as const
 
-export type FloorDepartmentScalarFieldEnum = (typeof FloorDepartmentScalarFieldEnum)[keyof typeof FloorDepartmentScalarFieldEnum]
+export type DepartmentScalarFieldEnum = (typeof DepartmentScalarFieldEnum)[keyof typeof DepartmentScalarFieldEnum]
 
 
 export const FloorPlanScalarFieldEnum = {
@@ -2002,13 +2002,13 @@ export const BuildingOrderByRelevanceFieldEnum = {
 export type BuildingOrderByRelevanceFieldEnum = (typeof BuildingOrderByRelevanceFieldEnum)[keyof typeof BuildingOrderByRelevanceFieldEnum]
 
 
-export const FloorDepartmentOrderByRelevanceFieldEnum = {
+export const DepartmentOrderByRelevanceFieldEnum = {
   id: 'id',
   name: 'name',
   buildingId: 'buildingId'
 } as const
 
-export type FloorDepartmentOrderByRelevanceFieldEnum = (typeof FloorDepartmentOrderByRelevanceFieldEnum)[keyof typeof FloorDepartmentOrderByRelevanceFieldEnum]
+export type DepartmentOrderByRelevanceFieldEnum = (typeof DepartmentOrderByRelevanceFieldEnum)[keyof typeof DepartmentOrderByRelevanceFieldEnum]
 
 
 export const FloorPlanOrderByRelevanceFieldEnum = {
@@ -2240,7 +2240,7 @@ export type GlobalOmitConfig = {
   verificationtoken?: Prisma.verificationtokenOmit
   porterRequest?: Prisma.PorterRequestOmit
   building?: Prisma.BuildingOmit
-  floorDepartment?: Prisma.FloorDepartmentOmit
+  department?: Prisma.DepartmentOmit
   floorPlan?: Prisma.FloorPlanOmit
   bleStation?: Prisma.BleStationOmit
   porterEmployee?: Prisma.PorterEmployeeOmit

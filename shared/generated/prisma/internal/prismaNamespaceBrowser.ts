@@ -63,7 +63,7 @@ export const ModelName = {
   verificationtoken: 'verificationtoken',
   PorterRequest: 'PorterRequest',
   Building: 'Building',
-  FloorDepartment: 'FloorDepartment',
+  Department: 'Department',
   FloorPlan: 'FloorPlan',
   BleStation: 'BleStation',
   PorterEmployee: 'PorterEmployee'
@@ -298,7 +298,7 @@ export const BuildingScalarFieldEnum = {
 export type BuildingScalarFieldEnum = (typeof BuildingScalarFieldEnum)[keyof typeof BuildingScalarFieldEnum]
 
 
-export const FloorDepartmentScalarFieldEnum = {
+export const DepartmentScalarFieldEnum = {
   id: 'id',
   name: 'name',
   buildingId: 'buildingId',
@@ -312,7 +312,7 @@ export const FloorDepartmentScalarFieldEnum = {
   bedCount: 'bedCount'
 } as const
 
-export type FloorDepartmentScalarFieldEnum = (typeof FloorDepartmentScalarFieldEnum)[keyof typeof FloorDepartmentScalarFieldEnum]
+export type DepartmentScalarFieldEnum = (typeof DepartmentScalarFieldEnum)[keyof typeof DepartmentScalarFieldEnum]
 
 
 export const FloorPlanScalarFieldEnum = {
@@ -573,13 +573,13 @@ export const BuildingOrderByRelevanceFieldEnum = {
 export type BuildingOrderByRelevanceFieldEnum = (typeof BuildingOrderByRelevanceFieldEnum)[keyof typeof BuildingOrderByRelevanceFieldEnum]
 
 
-export const FloorDepartmentOrderByRelevanceFieldEnum = {
+export const DepartmentOrderByRelevanceFieldEnum = {
   id: 'id',
   name: 'name',
   buildingId: 'buildingId'
 } as const
 
-export type FloorDepartmentOrderByRelevanceFieldEnum = (typeof FloorDepartmentOrderByRelevanceFieldEnum)[keyof typeof FloorDepartmentOrderByRelevanceFieldEnum]
+export type DepartmentOrderByRelevanceFieldEnum = (typeof DepartmentOrderByRelevanceFieldEnum)[keyof typeof DepartmentOrderByRelevanceFieldEnum]
 
 
 export const FloorPlanOrderByRelevanceFieldEnum = {

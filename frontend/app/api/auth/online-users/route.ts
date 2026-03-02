@@ -19,6 +19,7 @@ const OFFLINE_AFTER_MS = 60 * 60 * 1000; // 60 นาที
  * GET /api/auth/online-users
  * ดึงจำนวนผู้ใช้ที่ Online (lastActivityAt ยังไม่เกินเกณฑ์ offline — 60 นาที / ตาม session)
  * ต้อง login ก่อน
+ * Query: countOnly=true — ส่งกลับเฉพาะ { success, count } ไม่ดึง user หรือ ListEmployees (เหมาะกับหน้าแสดงแค่จำนวน)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -56,16 +57,22 @@ export async function GET(request: NextRequest) {
     // คำนวณเวลาที่ถือว่า offline (ตาม OFFLINE_AFTER_MS — สอดคล้องกับ NextAuth session)
     const offlineBefore = new Date(Date.now() - OFFLINE_AFTER_MS);
 
-    // ดึง records จาก user_activity ที่ lastActivityAt ยังไม่เกินเกณฑ์ offline
-    // และยังไม่ถูก logout (logoutAt = null)
+    const whereOnline = {
+      lastActivityAt: { gte: offlineBefore },
+      logoutAt: null,
+      deviceType: DeviceType.WEB_APP,
+    };
+
+    const countOnly = request.nextUrl.searchParams.get('countOnly') === 'true';
+
+    if (countOnly) {
+      const count = await prisma.user_activity.count({ where: whereOnline });
+      return NextResponse.json({ success: true, count }, { status: 200 });
+    }
+
+    // ดึง records จาก user_activity พร้อม user (สำหรับ response แบบเต็ม)
     const onlineUsers = await prisma.user_activity.findMany({
-      where: {
-        lastActivityAt: {
-          gte: offlineBefore,
-        },
-        logoutAt: null,
-        deviceType: DeviceType.WEB_APP,
-      },
+      where: whereOnline,
       include: {
         user: {
           select: {
@@ -79,12 +86,9 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: {
-        lastActivityAt: 'desc',
-      },
+      orderBy: { lastActivityAt: 'desc' },
     });
 
-    // นับจำนวนผู้ใช้ Online
     const count = onlineUsers.length;
 
     // สร้าง response data พร้อมดึง PorterEmployee ที่ผูกกับ user แต่ละคน (ถ้ามี)
@@ -125,11 +129,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json(
-      {
-        success: true,
-        count,
-        users,
-      },
+      { success: true, count, users },
       { status: 200 },
     );
   } catch (error: any) {

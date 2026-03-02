@@ -1,7 +1,7 @@
 'use client';
 
 import type { ExtendedUser } from '@/types/ldap';
-import type { OnlineUsersResponse } from '@/types';
+import type { OnlineUsersCountResponse } from '@/types';
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -20,8 +20,8 @@ export default function HomeClient() {
   const fetchOnlineUsers = async () => {
     try {
       setIsLoadingOnlineUsers(true);
-      const response = await fetch('/api/auth/online-users');
-      const data: OnlineUsersResponse = await response.json();
+      const response = await fetch('/api/auth/online-users?countOnly=true');
+      const data: OnlineUsersCountResponse = await response.json();
 
       if (data.success) {
         setOnlineUsersCount(data.count);
