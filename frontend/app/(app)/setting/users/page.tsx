@@ -5,25 +5,15 @@ import type { UserDTO } from '@/types/user';
 import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  useDisclosure,
-  Input,
-  Select,
-  SelectItem,
-  Pagination,
-  addToast,
-} from '@heroui/react';
+import { Card, CardBody, CardHeader, useDisclosure, Pagination, addToast } from '@heroui/react';
 
 import { UserTable } from './components/UserTable';
+import { UserFilters } from './components/UserFilters';
 import { useUsers } from './hooks/useUsers';
 
 import { CARD_STYLES } from '@/lib/cardStyles';
 import { TABLE_STYLES } from '@/lib/tableStyles';
-import { UserIcon, MagnifyingGlassIcon, XMarkIcon } from '@/components/ui/icons';
+import { UserIcon } from '@/components/ui/icons';
 
 const UserModal = dynamic(() => import('./components/UserModal').then((m) => ({ default: m.UserModal })), {
   ssr: false,
@@ -87,7 +77,13 @@ export default function UserManagementPage() {
   }, [setPage]);
 
   const handleRoleFilterChange = useCallback(
-    (keys: Parameters<NonNullable<React.ComponentProps<typeof Select>['onSelectionChange']>>[0]) => {
+    (
+      keys: Parameters<
+        NonNullable<
+          React.ComponentProps<typeof UserFilters>['onRoleFilterChange']
+        >
+      >[0],
+    ) => {
       const selected = Array.from(keys as Set<string>)[0] as string;
 
       setRoleFilter(selected && selected !== 'all' ? selected : '');
@@ -180,53 +176,13 @@ export default function UserManagementPage() {
       </div>
 
       {/* Filters */}
-      <Card className={CARD_STYLES.default}>
-        <CardBody>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
-              <Input
-                isClearable
-                aria-label="ค้นหาผู้ใช้"
-                className="flex-1 min-w-[200px]"
-                label="ค้นหา"
-                labelPlacement="outside"
-                placeholder="ค้นหาด้วยชื่อหรืออีเมล..."
-                size="md"
-                startContent={<MagnifyingGlassIcon className="w-5 h-5 text-default-400" />}
-                value={searchQuery}
-                variant="bordered"
-                onChange={(e) => handleSearchChange(e.target.value)}
-                onClear={() => handleSearchChange('')}
-              />
-              <Select
-                aria-label="กรองตามบทบาท"
-                className="w-full sm:w-48"
-                label="บทบาท"
-                labelPlacement="outside"
-                placeholder="ทั้งหมด"
-                selectedKeys={roleFilter ? [roleFilter] : ['all']}
-                size="md"
-                variant="bordered"
-                onSelectionChange={handleRoleFilterChange}
-              >
-                <SelectItem key="all">ทั้งหมด</SelectItem>
-                <SelectItem key="admin">ผู้ดูแลระบบ</SelectItem>
-                <SelectItem key="user">ผู้ใช้งาน</SelectItem>
-              </Select>
-              <Button
-                color="default"
-                isDisabled={!searchQuery && !roleFilter}
-                size="md"
-                variant="flat"
-                onPress={handleClearFilters}
-              >
-                <XMarkIcon className="w-5 h-5" />
-                ล้างตัวกรอง
-              </Button>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
+      <UserFilters
+        roleFilter={roleFilter}
+        searchQuery={searchQuery}
+        onClearFilters={handleClearFilters}
+        onRoleFilterChange={handleRoleFilterChange}
+        onSearchChange={handleSearchChange}
+      />
 
       {/* Table */}
       <Card className={CARD_STYLES.default}>

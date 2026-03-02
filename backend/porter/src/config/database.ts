@@ -22,20 +22,28 @@ function parseDatabaseUrl(url: string): {
   };
 }
 
-const dbParams = parseDatabaseUrl(config.databaseUrl);
-const adapter = new PrismaMariaDb({
-  host: dbParams.host,
-  port: dbParams.port,
-  user: dbParams.user,
-  password: dbParams.password,
-  database: dbParams.database,
-  connectionLimit: 10,
-});
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
 
-const prisma = new PrismaClient({
-  adapter,
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-});
+function createPrismaClient(): PrismaClient {
+  const dbParams = parseDatabaseUrl(config.databaseUrl);
+  const adapter = new PrismaMariaDb({
+    host: dbParams.host,
+    port: dbParams.port,
+    user: dbParams.user,
+    password: dbParams.password,
+    database: dbParams.database,
+    connectionLimit: 10,
+  });
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+}
+
+const prisma = globalForPrisma.prisma ?? createPrismaClient();
+globalForPrisma.prisma = prisma;
 
 process.on('beforeExit', async () => {
   await prisma.$disconnect();

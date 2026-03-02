@@ -140,3 +140,11 @@ export interface OnlineUsersResponse {
   error?: string;
   message?: string;
 }
+
+/** Response เมื่อเรียก GET /api/auth/online-users?countOnly=true */
+export interface OnlineUsersCountResponse {
+  success: boolean;
+  count: number;
+  error?: string;
+  message?: string;
+}

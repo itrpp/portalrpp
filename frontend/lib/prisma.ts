@@ -34,6 +34,8 @@ function createPrismaClient(): PrismaClient {
 
   const dbParams = parseDatabaseUrl(url);
 
+  // PoolConfig ตาม mariadb driver
+  // ป้องกัน JWT_SESSION_ERROR / pool timeout เมื่อ DB ช้าหรืออยู่คนละเครือข่าย
   const adapter = new PrismaMariaDb({
     host: dbParams.host,
     port: dbParams.port,
@@ -41,13 +43,12 @@ function createPrismaClient(): PrismaClient {
     password: dbParams.password,
     database: dbParams.database,
     connectionLimit: 10,
+    connectTimeout: 20_000, // 20s ให้เวลาต่อ DB (default บางเวอร์ชันแค่ 1s)
+    acquireTimeout: 20_000, // 20s รอ connection จาก pool (default 10s ทำให้ timeout ได้)
   });
 
   return new PrismaClient({ adapter });
 }
 
 export const prisma: PrismaClient = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;

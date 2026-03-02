@@ -1,19 +1,19 @@
 import type { Prisma } from '@shared/prisma/client';
-import type { FloorDepartment } from '@shared/prisma/client';
+import type { Department } from '@shared/prisma/client';
 import prisma from '../config/database';
 
 const floorDepartmentIncludeBuilding = { building: true } as const;
 
-export type FloorDepartmentWithBuilding = FloorDepartment & {
-  building: Prisma.FloorDepartmentGetPayload<{
+export type FloorDepartmentWithBuilding = Department & {
+  building: Prisma.DepartmentGetPayload<{
     include: typeof floorDepartmentIncludeBuilding;
   }>['building'];
 };
 
 export async function createFloorDepartment(
-  data: Prisma.FloorDepartmentUncheckedCreateInput,
+  data: Prisma.DepartmentUncheckedCreateInput,
 ): Promise<FloorDepartmentWithBuilding> {
-  return prisma.floorDepartment.create({
+  return prisma.department.create({
     data,
     include: floorDepartmentIncludeBuilding,
   }) as Promise<FloorDepartmentWithBuilding>;
@@ -22,7 +22,7 @@ export async function createFloorDepartment(
 export async function findFloorDepartmentById(
   id: string,
 ): Promise<FloorDepartmentWithBuilding | null> {
-  const fd = await prisma.floorDepartment.findUnique({
+  const fd = await prisma.department.findUnique({
     where: { id },
     include: floorDepartmentIncludeBuilding,
   });
@@ -30,12 +30,12 @@ export async function findFloorDepartmentById(
 }
 
 export async function findManyFloorDepartments(params: {
-  where: Prisma.FloorDepartmentWhereInput;
+  where: Prisma.DepartmentWhereInput;
   skip: number;
   take: number;
-  orderBy: Prisma.FloorDepartmentOrderByWithRelationInput;
+  orderBy: Prisma.DepartmentOrderByWithRelationInput;
 }): Promise<FloorDepartmentWithBuilding[]> {
-  return prisma.floorDepartment.findMany({
+  return prisma.department.findMany({
     where: params.where,
     skip: params.skip,
     take: params.take,
@@ -45,15 +45,15 @@ export async function findManyFloorDepartments(params: {
 }
 
 export async function countFloorDepartments(
-  where: Prisma.FloorDepartmentWhereInput,
+  where: Prisma.DepartmentWhereInput,
 ): Promise<number> {
-  return prisma.floorDepartment.count({ where });
+  return prisma.department.count({ where });
 }
 
 /** คืนค่า Map id -> name สำหรับใช้ enrich porter request */
 export async function findFloorDepartmentNamesByIds(ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
-  const list = await prisma.floorDepartment.findMany({
+  const list = await prisma.department.findMany({
     where: { id: { in: ids } },
     select: { id: true, name: true },
   });
@@ -62,9 +62,9 @@ export async function findFloorDepartmentNamesByIds(ids: string[]): Promise<Map<
 
 export async function updateFloorDepartment(
   id: string,
-  data: Prisma.FloorDepartmentUpdateInput,
+  data: Prisma.DepartmentUpdateInput,
 ): Promise<FloorDepartmentWithBuilding> {
-  return prisma.floorDepartment.update({
+  return prisma.department.update({
     where: { id },
     data,
     include: floorDepartmentIncludeBuilding,
@@ -72,5 +72,5 @@ export async function updateFloorDepartment(
 }
 
 export async function deleteFloorDepartment(id: string): Promise<void> {
-  await prisma.floorDepartment.delete({ where: { id } });
+  await prisma.department.delete({ where: { id } });
 }

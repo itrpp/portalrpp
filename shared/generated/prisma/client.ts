@@ -102,10 +102,10 @@ export type PorterRequest = Prisma.PorterRequestModel
  */
 export type Building = Prisma.BuildingModel
 /**
- * Model FloorDepartment
+ * Model Department
  * 
  */
-export type FloorDepartment = Prisma.FloorDepartmentModel
+export type Department = Prisma.DepartmentModel
 /**
  * Model FloorPlan
  * 

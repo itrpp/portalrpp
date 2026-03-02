@@ -9,7 +9,7 @@ export const TABLE_STYLES = {
   wrapper: 'min-h-[222px]',
 
   // Header (th) styling
-  th: 'bg-default-100/80 text-default-700 font-semibold py-3 px-4 text-sm',
+  th: 'bg-default-200 text-default-700 font-semibold py-3 px-4 text-sm',
 
   // Cell (td) styling
   td: 'py-4 px-4 align-top text-sm',

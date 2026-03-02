@@ -50,11 +50,18 @@ const porterProto = grpc.loadPackageDefinition(packageDefinition).porter as any;
 const PORTER_GRPC_URL_KEY = 'PORTER_SERVICE_GRPC_URL';
 const DEFAULT_PORTER_GRPC_URL = 'localhost:50051';
 
+/** Singleton instance ของ Porter gRPC client (สร้างครั้งเดียวแล้ว reuse) */
+let porterClientInstance: any | null = null;
+
 /**
- * สร้าง gRPC Client สำหรับ Porter Service
+ * สร้างหรือคืนค่า gRPC Client สำหรับ Porter Service (singleton)
  * เรียกโดยตรงจาก Next.js API route
  */
 export function getPorterClient(): any {
+  if (porterClientInstance !== null) {
+    return porterClientInstance;
+  }
+
   const grpcUrl =
     (process.env[PORTER_GRPC_URL_KEY] as string | undefined) || DEFAULT_PORTER_GRPC_URL;
 
@@ -62,14 +69,25 @@ export function getPorterClient(): any {
     throw new Error('PORTER_SERVICE_GRPC_URL is not configured');
   }
 
-  const client = new porterProto.PorterService(grpcUrl, grpc.credentials.createInsecure(), {
-    // เพิ่ม max message size เป็น 10MB เพื่อรองรับข้อมูลขนาดใหญ่
-    // Default คือ 4MB (4194304 bytes) ซึ่งไม่พอสำหรับบาง response
-    'grpc.max_receive_message_length': 10 * 1024 * 1024, // 10MB
-    'grpc.max_send_message_length': 10 * 1024 * 1024, // 10MB
-  });
+  porterClientInstance = new porterProto.PorterService(
+    grpcUrl,
+    grpc.credentials.createInsecure(),
+    {
+      // เพิ่ม max message size เป็น 10MB เพื่อรองรับข้อมูลขนาดใหญ่
+      // Default คือ 4MB (4194304 bytes) ซึ่งไม่พอสำหรับบาง response
+      'grpc.max_receive_message_length': 10 * 1024 * 1024, // 10MB
+      'grpc.max_send_message_length': 10 * 1024 * 1024, // 10MB
+    },
+  );
 
-  return client;
+  return porterClientInstance;
+}
+
+/**
+ * ล้าง singleton client (ใช้เมื่อต้องการบังคับ reconnect หรือใน test)
+ */
+export function resetPorterClient(): void {
+  porterClientInstance = null;
 }
 
 /**
