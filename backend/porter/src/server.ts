@@ -6,6 +6,7 @@ import * as protoLoader from '@grpc/proto-loader';
 import { config } from './config/env';
 import prisma from './config/database';
 import * as porterHandlers from './handlers/porter.handler';
+import { logger } from './utils/logger';
 import { withGrpcLog, withGrpcStreamLog } from './utils/withGrpcLog';
 
 // Path ไปยัง proto file ใน shared/proto/porter.proto
@@ -32,7 +33,7 @@ const porterProto = grpc.loadPackageDefinition(packageDefinition) as unknown as 
 const startServer = async () => {
   try {
     await prisma.$connect();
-    console.info('✅ Database connected successfully');
+    logger.info('Database connected successfully');
 
     const server = new grpc.Server({
       // เพิ่ม max message size เป็น 10MB เพื่อรองรับข้อมูลขนาดใหญ่
@@ -105,41 +106,39 @@ const startServer = async () => {
       grpc.ServerCredentials.createInsecure(),
       (error, boundPort) => {
         if (error) {
-          console.error('❌ Failed to start gRPC server:', error);
+          logger.error({ err: error }, 'Failed to start gRPC server');
           process.exit(1);
         }
 
         server.start();
-        console.info(`🚀 gRPC Server is running on port ${boundPort}`);
-        console.info(`📝 Environment: ${config.nodeEnv}`);
-        console.info(`🌐 gRPC endpoint: 0.0.0.0:${boundPort}`);
+        logger.info({ port: boundPort, nodeEnv: config.nodeEnv }, 'gRPC Server is running');
       },
     );
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    logger.error({ err: error }, 'Failed to start server');
     await prisma.$disconnect();
     process.exit(1);
   }
 };
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
+  logger.error({ err }, 'Unhandled Rejection');
   process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+  logger.error({ err }, 'Uncaught Exception');
   process.exit(1);
 });
 
 process.on('SIGTERM', async () => {
-  console.info('SIGTERM received, shutting down gracefully...');
+  logger.info('SIGTERM received, shutting down gracefully');
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.info('SIGINT received, shutting down gracefully...');
+  logger.info('SIGINT received, shutting down gracefully');
   await prisma.$disconnect();
   process.exit(0);
 });
