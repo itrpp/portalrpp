@@ -1,6 +1,8 @@
 import type { sendUnaryData, ServiceError } from '@grpc/grpc-js';
 import { Metadata, status } from '@grpc/grpc-js';
 
+import { logger } from './logger';
+
 type UniqueConstraintOption = {
   field: string;
   message: string;
@@ -18,7 +20,7 @@ export const handleGrpcError = <Response>(
   fallbackMessage: string,
   options?: GrpcErrorOptions,
 ): void => {
-  console.error('[gRPC]', fallbackMessage, error);
+  logger.error({ fallbackMessage, error }, 'gRPC handler error');
 
   if (options?.notFoundMessage && isPrismaNotFoundError(error)) {
     callback(createGrpcError(status.NOT_FOUND, options.notFoundMessage));
