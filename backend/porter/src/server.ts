@@ -6,6 +6,7 @@ import * as protoLoader from '@grpc/proto-loader';
 import { config } from './config/env';
 import prisma from './config/database';
 import * as porterHandlers from './handlers/porter.handler';
+import { withGrpcLog, withGrpcStreamLog } from './utils/withGrpcLog';
 
 // Path ไปยัง proto file ใน shared/proto/porter.proto
 // รองรับทั้ง development (__dirname = backend/porter/src/) และ production (__dirname = backend/porter/dist/)
@@ -41,40 +42,61 @@ const startServer = async () => {
     });
 
     server.addService(porterProto.porter.PorterService.service, {
-      createPorterRequest: porterHandlers.createPorterRequest,
-      getPorterRequest: porterHandlers.getPorterRequest,
-      listPorterRequests: porterHandlers.listPorterRequests,
-      updatePorterRequest: porterHandlers.updatePorterRequest,
-      updatePorterRequestStatus: porterHandlers.updatePorterRequestStatus,
-      updatePorterRequestTimestamps: porterHandlers.updatePorterRequestTimestamps,
-      deletePorterRequest: porterHandlers.deletePorterRequest,
-      healthCheck: porterHandlers.healthCheck,
-      streamPorterRequests: porterHandlers.streamPorterRequests,
-      createBuilding: porterHandlers.createBuilding,
-      getBuilding: porterHandlers.getBuilding,
-      listBuildings: porterHandlers.listBuildings,
-      updateBuilding: porterHandlers.updateBuilding,
-      deleteBuilding: porterHandlers.deleteBuilding,
-      createFloorDepartment: porterHandlers.createFloorDepartment,
-      getFloorDepartment: porterHandlers.getFloorDepartment,
-      listFloorDepartments: porterHandlers.listFloorDepartments,
-      updateFloorDepartment: porterHandlers.updateFloorDepartment,
-      deleteFloorDepartment: porterHandlers.deleteFloorDepartment,
-      createFloorPlan: porterHandlers.createFloorPlan,
-      getFloorPlan: porterHandlers.getFloorPlan,
-      listFloorPlans: porterHandlers.listFloorPlans,
-      updateFloorPlan: porterHandlers.updateFloorPlan,
-      deleteFloorPlan: porterHandlers.deleteFloorPlan,
-      createBleStation: porterHandlers.createBleStation,
-      getBleStation: porterHandlers.getBleStation,
-      listBleStations: porterHandlers.listBleStations,
-      updateBleStation: porterHandlers.updateBleStation,
-      deleteBleStation: porterHandlers.deleteBleStation,
-      createEmployee: porterHandlers.createEmployee,
-      getEmployee: porterHandlers.getEmployee,
-      listEmployees: porterHandlers.listEmployees,
-      updateEmployee: porterHandlers.updateEmployee,
-      deleteEmployee: porterHandlers.deleteEmployee,
+      createPorterRequest: withGrpcLog('createPorterRequest', porterHandlers.createPorterRequest),
+      getPorterRequest: withGrpcLog('getPorterRequest', porterHandlers.getPorterRequest),
+      listPorterRequests: withGrpcLog('listPorterRequests', porterHandlers.listPorterRequests),
+      updatePorterRequest: withGrpcLog('updatePorterRequest', porterHandlers.updatePorterRequest),
+      updatePorterRequestStatus: withGrpcLog(
+        'updatePorterRequestStatus',
+        porterHandlers.updatePorterRequestStatus,
+      ),
+      updatePorterRequestTimestamps: withGrpcLog(
+        'updatePorterRequestTimestamps',
+        porterHandlers.updatePorterRequestTimestamps,
+      ),
+      deletePorterRequest: withGrpcLog('deletePorterRequest', porterHandlers.deletePorterRequest),
+      healthCheck: withGrpcLog('healthCheck', porterHandlers.healthCheck),
+      streamPorterRequests: withGrpcStreamLog(
+        'streamPorterRequests',
+        porterHandlers.streamPorterRequests,
+      ),
+      createBuilding: withGrpcLog('createBuilding', porterHandlers.createBuilding),
+      getBuilding: withGrpcLog('getBuilding', porterHandlers.getBuilding),
+      listBuildings: withGrpcLog('listBuildings', porterHandlers.listBuildings),
+      updateBuilding: withGrpcLog('updateBuilding', porterHandlers.updateBuilding),
+      deleteBuilding: withGrpcLog('deleteBuilding', porterHandlers.deleteBuilding),
+      createFloorDepartment: withGrpcLog(
+        'createFloorDepartment',
+        porterHandlers.createFloorDepartment,
+      ),
+      getFloorDepartment: withGrpcLog('getFloorDepartment', porterHandlers.getFloorDepartment),
+      listFloorDepartments: withGrpcLog(
+        'listFloorDepartments',
+        porterHandlers.listFloorDepartments,
+      ),
+      updateFloorDepartment: withGrpcLog(
+        'updateFloorDepartment',
+        porterHandlers.updateFloorDepartment,
+      ),
+      deleteFloorDepartment: withGrpcLog(
+        'deleteFloorDepartment',
+        porterHandlers.deleteFloorDepartment,
+      ),
+      createFloorPlan: withGrpcLog('createFloorPlan', porterHandlers.createFloorPlan),
+      getFloorPlan: withGrpcLog('getFloorPlan', porterHandlers.getFloorPlan),
+      listFloorPlans: withGrpcLog('listFloorPlans', porterHandlers.listFloorPlans),
+      updateFloorPlan: withGrpcLog('updateFloorPlan', porterHandlers.updateFloorPlan),
+      deleteFloorPlan: withGrpcLog('deleteFloorPlan', porterHandlers.deleteFloorPlan),
+      createBleStation: withGrpcLog('createBleStation', porterHandlers.createBleStation),
+      getBleStation: withGrpcLog('getBleStation', porterHandlers.getBleStation),
+      listBleStations: withGrpcLog('listBleStations', porterHandlers.listBleStations),
+      updateBleStation: withGrpcLog('updateBleStation', porterHandlers.updateBleStation),
+      deleteBleStation: withGrpcLog('deleteBleStation', porterHandlers.deleteBleStation),
+      createEmployee: withGrpcLog('createEmployee', porterHandlers.createEmployee),
+      getEmployee: withGrpcLog('getEmployee', porterHandlers.getEmployee),
+      listEmployees: withGrpcLog('listEmployees', porterHandlers.listEmployees),
+      updateEmployee: withGrpcLog('updateEmployee', porterHandlers.updateEmployee),
+      deleteEmployee: withGrpcLog('deleteEmployee', porterHandlers.deleteEmployee),
     });
 
     const port = config.port || 50051;

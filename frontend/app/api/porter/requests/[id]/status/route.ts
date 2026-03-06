@@ -60,6 +60,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       );
     }
   } catch (error: any) {
+    console.error('[API] PUT /api/porter/requests/[id]/status error:', error);
     // จัดการ gRPC errors
     if (error.code === 5) {
       // NOT_FOUND

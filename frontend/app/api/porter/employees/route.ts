@@ -124,6 +124,7 @@ export async function GET(request: NextRequest) {
       );
     }
   } catch (error: any) {
+    console.error('[API] GET /api/porter/employees error:', error);
     return NextResponse.json(
       {
         success: false,
@@ -221,6 +222,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error: any) {
+    console.error('[API] POST /api/porter/employees error:', error);
     // จัดการ gRPC errors
     if (error.code === 6) {
       // ALREADY_EXISTS

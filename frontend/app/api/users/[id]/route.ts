@@ -332,6 +332,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         updateData.departmentSubSubId = departmentSubSubId ?? null;
       }
     } catch (error: any) {
+      console.error('[API] PUT /api/users/[id] validation error:', error);
       return NextResponse.json(
         {
           success: false,

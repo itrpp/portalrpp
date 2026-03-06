@@ -37,6 +37,9 @@ export function buildListProtoRequest(params: ListPorterRequestsParams): Record<
   if (params.search && params.search.trim() !== '') {
     protoRequest.search = params.search.trim();
   }
+  if (params.created_after && params.created_after.trim() !== '') {
+    protoRequest.created_after = params.created_after.trim();
+  }
   if (params.page) {
     protoRequest.page = parseInt(params.page, 10);
   }

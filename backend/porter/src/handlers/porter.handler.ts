@@ -281,13 +281,19 @@ export const streamPorterRequests = (
 
   registerStreamHandlers(handleCreated, handleUpdated, handleStatusChanged, handleDeleted);
 
-  call.on('cancelled', () => {
+  let cleanedUp = false;
+  const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
     unregisterStreamHandlers(handleCreated, handleUpdated, handleStatusChanged, handleDeleted);
-  });
+  };
 
-  call.on('end', () => {
-    unregisterStreamHandlers(handleCreated, handleUpdated, handleStatusChanged, handleDeleted);
-  });
+  call.on('cancelled', cleanup);
+  call.on('end', cleanup);
+  call.on('error', cleanup);
+  // บางเวอร์ชันของ @grpc/grpc-js รองรับ event 'close'
+  // หากรองรับจะช่วย cleanup เพิ่มเติมเมื่อ stream ถูกปิด
+  (call as unknown as NodeJS.EventEmitter).on('close', cleanup);
 };
 
 // ----- Location Settings Handlers -----
