@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
     // สร้าง ReadableStream เพื่อแปลง gRPC stream เป็น SSE
     let isStreamClosed = false;
     let keepAliveInterval: NodeJS.Timeout | null = null;
+    let sessionCheckInterval: NodeJS.Timeout | null = null;
 
     const stream = new ReadableStream({
       async start(streamController) {
@@ -68,11 +69,20 @@ export async function GET(request: NextRequest) {
               clearInterval(keepAliveInterval);
               keepAliveInterval = null;
             }
+            if (sessionCheckInterval) {
+              clearInterval(sessionCheckInterval);
+              sessionCheckInterval = null;
+            }
 
             try {
               streamController.close();
             } catch {
               // Ignore errors when closing
+            }
+            try {
+              grpcStream.cancel();
+            } catch {
+              // Ignore errors when cancelling gRPC
             }
           };
 
@@ -208,6 +218,23 @@ export async function GET(request: NextRequest) {
               safeClose();
             }
           }, 20000);
+
+          // ตรวจ session ทุก 60 วินาที — ถ้าหมดอายุให้ปิด stream และ cancel gRPC
+          const SESSION_CHECK_MS = 60000;
+          sessionCheckInterval = setInterval(async () => {
+            if (isStreamClosed) {
+              if (sessionCheckInterval) {
+                clearInterval(sessionCheckInterval);
+                sessionCheckInterval = null;
+              }
+              return;
+            }
+            const auth = await getAuthSession();
+            if (!auth.ok) {
+              safeClose();
+              return;
+            }
+          }, SESSION_CHECK_MS);
         } catch (error: any) {
           console.error('[Next.js API] Error setting up stream:', error);
           isStreamClosed = true;
@@ -215,6 +242,10 @@ export async function GET(request: NextRequest) {
           if (keepAliveInterval) {
             clearInterval(keepAliveInterval);
             keepAliveInterval = null;
+          }
+          if (sessionCheckInterval) {
+            clearInterval(sessionCheckInterval);
+            sessionCheckInterval = null;
           }
 
           try {
@@ -231,6 +262,10 @@ export async function GET(request: NextRequest) {
         if (keepAliveInterval) {
           clearInterval(keepAliveInterval);
           keepAliveInterval = null;
+        }
+        if (sessionCheckInterval) {
+          clearInterval(sessionCheckInterval);
+          sessionCheckInterval = null;
         }
 
         try {

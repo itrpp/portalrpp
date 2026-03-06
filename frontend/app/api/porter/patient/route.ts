@@ -162,6 +162,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data, { status: 200 });
   } catch (error: any) {
+    console.error('[API] POST /api/porter/patient error:', error);
     // จัดการกรณีเครือข่ายผิดพลาดจาก fetch
     if (error?.name === 'TypeError' && String(error?.message || '').includes('fetch')) {
       return NextResponse.json(

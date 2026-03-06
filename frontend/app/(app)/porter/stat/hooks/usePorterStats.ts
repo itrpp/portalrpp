@@ -127,45 +127,61 @@ export function usePorterStats() {
         });
         setHasSummary(true);
 
-        // ดึง jobs หลายหน้าเพื่อใช้คำนวณกราฟ/สถิติตามช่วงเวลา (ไม่จำกัดแค่ 1000 รายการ)
+        // ดึงเฉพาะ jobs 30 วันล่าสุดสำหรับกราฟ/สถิติ (created_after) — ลด request และ payload มาก
         const PAGE_SIZE = 1000;
-        const MAX_JOBS_FOR_STATS = 20_000; // ขีดจำกัดเพื่อไม่ให้ request มากเกินไป
-        const allJobs: PorterJobItem[] = [];
-        let page = 1;
-        let totalFetched = 0;
-        let grandTotal = totalJobs;
+        const CONCURRENT_PAGES = 6;
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
 
-        while (totalFetched < grandTotal && allJobs.length < MAX_JOBS_FOR_STATS) {
-          const jobsResponse = await fetch(
-            buildUrl({
-              page: String(page),
-              page_size: String(PAGE_SIZE),
-            }),
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const createdAfter = toISODateString(thirtyDaysAgo); // YYYY-MM-DD
+
+        const listParams = (page: number) => ({
+          page: String(page),
+          page_size: String(PAGE_SIZE),
+          created_after: createdAfter,
+        });
+
+        // หน้าแรกเพื่อเอา total ของช่วง 30 วัน
+        const firstRes = await fetch(buildUrl(listParams(1)));
+        const firstResult: PorterRequestsApiResponse = await firstRes.json();
+
+        if (!firstRes.ok || !firstResult.success) {
+          throw new Error(
+            'message' in firstResult && firstResult.message
+              ? firstResult.message
+              : 'ไม่สามารถโหลดข้อมูลสถิติได้',
           );
+        }
 
-          const jobsResult: PorterRequestsApiResponse = await jobsResponse.json();
+        const firstChunk = (firstResult.data ?? []) as PorterJobItem[];
+        const totalInRange =
+          typeof firstResult.total === 'number' ? firstResult.total : firstChunk.length;
+        const totalPages = Math.max(1, Math.ceil(totalInRange / PAGE_SIZE));
+        const allJobs: PorterJobItem[] = [...firstChunk];
 
-          if (!jobsResponse.ok || !jobsResult.success) {
-            const message =
-              !('success' in jobsResult) || jobsResult.success === true
-                ? 'ไม่สามารถโหลดข้อมูลสถิติได้'
-                : jobsResult.message;
+        if (totalPages > 1) {
+          const restPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
 
-            throw new Error(message);
+          for (let i = 0; i < restPages.length; i += CONCURRENT_PAGES) {
+            const batch = restPages.slice(i, i + CONCURRENT_PAGES);
+            const results = await Promise.all(
+              batch.map((page) =>
+                fetch(buildUrl(listParams(page)))
+                  .then((r) => r.json() as Promise<PorterRequestsApiResponse>)
+                  .then((result) => result),
+              ),
+            );
+
+            for (const result of results) {
+              if (!result.success) {
+                throw new Error(
+                  'message' in result ? result.message : 'ไม่สามารถโหลดข้อมูลสถิติได้',
+                );
+              }
+              allJobs.push(...((result.data ?? []) as PorterJobItem[]));
+            }
           }
-
-          const chunk = jobsResult.data ?? [];
-
-          allJobs.push(...chunk);
-          totalFetched += chunk.length;
-
-          if (jobsResult.success && typeof jobsResult.total === 'number') {
-            grandTotal = jobsResult.total;
-          }
-
-          if (chunk.length < PAGE_SIZE) break;
-
-          page += 1;
         }
 
         setJobs(allJobs);

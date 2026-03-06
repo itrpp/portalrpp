@@ -139,6 +139,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       );
     }
   } catch (error: any) {
+    console.error('[API] PUT /api/porter/requests/[id] error:', error);
     // จัดการ gRPC errors
     if (error.code === 14) {
       // UNAVAILABLE
@@ -171,8 +172,6 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         { status: 400 },
       );
     }
-
-    console.error('Error updating porter request:', error);
 
     return NextResponse.json(
       {

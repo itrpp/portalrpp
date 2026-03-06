@@ -115,6 +115,8 @@ export interface ListPorterRequestsFilters {
   search?: string | null;
   page?: number;
   page_size?: number;
+  /** ISO 8601 date string — กรองเฉพาะรายการที่ createdAt >= ค่านี้ */
+  created_after?: string | null;
 }
 
 export interface UpdatePorterRequestInput {

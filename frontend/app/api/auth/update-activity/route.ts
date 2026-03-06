@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error: unknown) {
+    console.error('[API] POST /api/auth/update-activity error:', error);
     const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการอัปเดต activity';
 
     return NextResponse.json(

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     return NextResponse.json({ success: true, data: user }, { status: 200 });
   } catch (error: unknown) {
+    console.error('[API] GET /api/users/[id]/basic error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
 
     return NextResponse.json({ success: false, error: 'INTERNAL_ERROR', message }, { status: 500 });

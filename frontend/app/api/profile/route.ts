@@ -34,7 +34,8 @@ export async function PUT(request: Request) {
 
   try {
     payload = await request.json();
-  } catch {
+  } catch (error) {
+    console.error('[API] PUT /api/profile parse error:', error);
     return NextResponse.json({ success: false, error: 'INVALID_REQUEST' }, { status: 400 });
   }
 
@@ -43,6 +44,7 @@ export async function PUT(request: Request) {
   try {
     updateData = await parseAndValidateProfileUpdate(payload);
   } catch (error) {
+    console.error('[API] PUT /api/profile validation error:', error);
     const message = error instanceof Error ? error.message : 'INVALID_REQUEST';
 
     return NextResponse.json({ success: false, error: message }, { status: 400 });

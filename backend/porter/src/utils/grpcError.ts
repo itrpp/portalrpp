@@ -18,6 +18,8 @@ export const handleGrpcError = <Response>(
   fallbackMessage: string,
   options?: GrpcErrorOptions,
 ): void => {
+  console.error('[gRPC]', fallbackMessage, error);
+
   if (options?.notFoundMessage && isPrismaNotFoundError(error)) {
     callback(createGrpcError(status.NOT_FOUND, options.notFoundMessage));
     return;
@@ -37,7 +39,6 @@ export const handleGrpcError = <Response>(
     return;
   }
 
-  console.error('[gRPC Handler] Unexpected error:', error);
   callback(
     createGrpcError(status.INTERNAL, error instanceof Error ? error.message : fallbackMessage),
   );

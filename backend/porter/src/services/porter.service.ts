@@ -163,12 +163,20 @@ export const listPorterRequests = async (
     requester_user_id,
     assigned_to_id,
     search,
+    created_after,
     page = 1,
     page_size = 20,
   } = filters;
 
   const where: Prisma.PorterRequestWhereInput = {};
 
+  if (created_after && created_after.trim() !== '') {
+    const afterDate = new Date(created_after.trim());
+
+    if (!Number.isNaN(afterDate.getTime())) {
+      where.createdAt = { gte: afterDate };
+    }
+  }
   if (status !== undefined && status !== null) {
     const s = String(status).trim();
     if (s === 'WAITING') {

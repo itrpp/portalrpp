@@ -264,6 +264,8 @@ export interface ListPorterRequestsParams {
   search?: string | null;
   page?: string | null;
   page_size?: string | null;
+  /** ISO 8601 date string — กรองเฉพาะรายการที่สร้างหลังวันที่นี้ */
+  created_after?: string | null;
 }
 
 /**
