@@ -8,10 +8,11 @@ class PorterEventEmitter extends EventEmitter {
   constructor() {
     super();
 
-    const maxListenersFromEnv = Number.parseInt(process.env.PORTER_MAX_LISTENERS ?? '100', 10);
-    const maxListeners = Number.isNaN(maxListenersFromEnv) ? 100 : maxListenersFromEnv;
+    const maxListenersFromEnv = Number.parseInt(process.env.PORTER_MAX_LISTENERS ?? '500', 10);
+    const normalizedMaxListeners =
+      Number.isNaN(maxListenersFromEnv) || maxListenersFromEnv <= 0 ? 500 : maxListenersFromEnv;
 
-    this.setMaxListeners(maxListeners);
+    this.setMaxListeners(normalizedMaxListeners);
   }
 }
 

@@ -3,6 +3,7 @@ import { status } from '@grpc/grpc-js';
 
 import * as porterService from '../services/porter.service';
 import porterEventEmitter from '../utils/eventEmitter';
+import { logger } from '../utils/logger';
 import {
   BuildingMessage,
   CreateBuildingInput,
@@ -196,6 +197,8 @@ export const healthCheck = async (
   }
 };
 
+let activePorterRequestStreams = 0;
+
 /** Stream Porter Request updates แบบ real-time */
 export const streamPorterRequests = (
   call: ServerWritableStream<StreamPorterRequestsRequest, PorterRequestUpdateMessage>,
@@ -281,11 +284,22 @@ export const streamPorterRequests = (
 
   registerStreamHandlers(handleCreated, handleUpdated, handleStatusChanged, handleDeleted);
 
+  activePorterRequestStreams += 1;
+  logger.info(
+    { activeStreams: activePorterRequestStreams },
+    'porter.streamPorterRequests stream started',
+  );
+
   let cleanedUp = false;
   const cleanup = () => {
     if (cleanedUp) return;
     cleanedUp = true;
     unregisterStreamHandlers(handleCreated, handleUpdated, handleStatusChanged, handleDeleted);
+    activePorterRequestStreams = Math.max(0, activePorterRequestStreams - 1);
+    logger.info(
+      { activeStreams: activePorterRequestStreams },
+      'porter.streamPorterRequests stream ended',
+    );
   };
 
   call.on('cancelled', cleanup);

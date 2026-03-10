@@ -110,7 +110,6 @@ const startServer = async () => {
           process.exit(1);
         }
 
-        server.start();
         logger.info({ port: boundPort, nodeEnv: config.nodeEnv }, 'gRPC Server is running');
       },
     );
