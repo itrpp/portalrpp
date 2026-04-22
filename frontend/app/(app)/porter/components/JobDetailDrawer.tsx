@@ -2,7 +2,7 @@
 
 import type { PorterEmployee } from '@/types/porter';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Card,
   CardBody,
@@ -94,6 +94,7 @@ export default function JobDetailDrawer({
   onUpdateJob,
   readOnly = false,
 }: JobDetailDrawerProps) {
+  const previousJobIdRef = useRef<string | null>(null);
   const [formData, setFormData] = useState<PorterRequestFormData | null>(null);
   const [employees, setEmployees] = useState<PorterEmployee[]>([]);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
@@ -179,10 +180,25 @@ export default function JobDetailDrawer({
   //   void loadOnlineUsers();
   // }, [isOpen, job?.status, readOnly]);
 
-  // Sync form data with job when it changes
+  // Sync form data กับงานปัจจุบัน
+  // - ถ้าเป็นงานคนละรายการ: reset ออกจากโหมดแก้ไขและโหลด form ใหม่เสมอ
+  // - ถ้าเป็นงานเดิม: sync เฉพาะตอนที่ไม่ได้อยู่ในโหมดแก้ไข
   useEffect(() => {
-    if (job && !isEditMode) {
+    if (!job) {
+      previousJobIdRef.current = null;
+      return;
+    }
+
+    const isJobChanged = previousJobIdRef.current !== job.id;
+
+    if (isJobChanged) {
       setIsEditMode(false);
+      setFormData({ ...job.form });
+      previousJobIdRef.current = job.id;
+      return;
+    }
+
+    if (!isEditMode) {
       setFormData({ ...job.form });
     }
   }, [job, isEditMode]);
@@ -373,10 +389,15 @@ export default function JobDetailDrawer({
         return;
       }
 
-      // อัปเดต state ใน parent component ด้วยข้อมูลที่ได้จาก API
-      const updatedForm = result.data?.form || formData;
+      // ใช้ค่าจาก formData ฝั่ง client เป็นหลัก เพื่อให้ UI อัปเดตรายการทันทีหลังบันทึก
+      // (บาง response อาจไม่สะท้อน field อุปกรณ์ล่าสุดกลับมาครบ)
+      const updatedForm = {
+        ...(result.data?.form ?? {}),
+        ...formData,
+      };
 
       onUpdateJob(job.id, updatedForm);
+      setFormData(updatedForm);
 
       addToast({
         title: 'บันทึกสำเร็จ',

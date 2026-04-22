@@ -167,7 +167,6 @@ export default function JobListClient() {
   const handleCloseDrawer = useCallback(() => {
     setIsDrawerOpen(false);
     setSelectedKeys(new Set());
-    setSelectedJob(null);
   }, []);
 
   const handleAssignJob = useCallback(

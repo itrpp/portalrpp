@@ -138,9 +138,13 @@ message UpdatePorterRequestRequest {
   optional string patient_hn = 6;
   optional string patient_condition = 7;
 
+  optional string pickup_floor_department_id = 8;
   optional string pickup_building_id = 9;
+  optional string pickup_room_bed_name = 10;
 
   optional string delivery_building_id = 11;
+  optional string delivery_floor_department_id = 21;
+  optional string delivery_room_bed_name = 22;
   optional string requested_date_time = 12;
   optional string urgency_level = 13; // NORMAL, RUSH, EMERGENCY
   optional string vehicle_type = 14; // SITTING, LYING, GOLF

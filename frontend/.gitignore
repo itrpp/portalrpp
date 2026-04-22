@@ -41,3 +41,7 @@ pnpm-lock.yaml
 yarn.lock
 package-lock.json
 bun.lockb
+
+frontend/logs/
+# pm2 logs
+/logs/*.log

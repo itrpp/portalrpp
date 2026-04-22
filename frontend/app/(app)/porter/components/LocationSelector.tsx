@@ -64,6 +64,7 @@ export function LocationSelector({
 
     return floor?.departmentType === 2;
   }, [floors, selectedFloorId]);
+  const shouldShowRoomBed = isWard || Boolean(value?.roomBedName);
 
   // Sync state with value prop
   useEffect(() => {
@@ -80,12 +81,16 @@ export function LocationSelector({
 
   // Sync room bed selection when roomBeds are ready and we have a value
   useEffect(() => {
-    if (value?.roomBedName && roomBeds.length > 0) {
-      const found = roomBeds.find((r) => r.name === value.roomBedName);
+    if (!value?.roomBedName || roomBeds.length === 0) {
+      return;
+    }
 
-      if (found) {
-        setSelectedRoomBed(found.id);
-      }
+    const normalizeName = (name: string) => name.replace(/\s+/g, '');
+    const targetName = normalizeName(value.roomBedName);
+    const found = roomBeds.find((r) => normalizeName(r.name) === targetName);
+
+    if (found) {
+      setSelectedRoomBed(found.id);
     }
   }, [roomBeds, value?.roomBedName]);
 
@@ -106,11 +111,25 @@ export function LocationSelector({
       return;
     }
 
-    // Filter active floors
+    // โดยปกติแสดงเฉพาะหน่วยงานที่เปิดใช้งาน
+    // แต่ถ้ามีค่าที่ถูกเลือกอยู่เดิม (จากงานเก่า) ให้แสดงค่านั้นด้วย
+    // เพื่อไม่ให้ค่า "หาย" ตอนเข้าโหมดแก้ไข
     const activeFloors = selectedBuilding.floors.filter((f) => f.status === true);
+    const selectedFloorFromValue = value?.floorDepartmentId
+      ? selectedBuilding.floors.find((f) => f.id === value.floorDepartmentId)
+      : undefined;
+
+    if (
+      selectedFloorFromValue &&
+      !activeFloors.some((floor) => floor.id === selectedFloorFromValue.id)
+    ) {
+      setFloors([...activeFloors, selectedFloorFromValue]);
+
+      return;
+    }
 
     setFloors(activeFloors);
-  }, [selectedBuilding]);
+  }, [selectedBuilding, value?.floorDepartmentId]);
 
   // เรียงลำดับ floors จากชั้นบนสุดไปชั้นล่างสุด
   const sortedFloors = useMemo(() => {
@@ -144,8 +163,13 @@ export function LocationSelector({
     }
 
     // แสดงห้อง/เตียงเฉพาะเมื่อเป็นหอผู้ป่วย (departmentType === 2)
+    // แต่ถ้าเป็นงานเดิมและมี roomBedName ให้แสดงค่านั้นได้เพื่อแก้ไขข้อมูลเดิม
     if (selectedFloor.departmentType !== 2) {
-      setRoomBeds([]);
+      if (value?.roomBedName) {
+        setRoomBeds([{ id: `legacy-roombed-${selectedFloorId}`, name: value.roomBedName }]);
+      } else {
+        setRoomBeds([]);
+      }
 
       return;
     }
@@ -185,8 +209,15 @@ export function LocationSelector({
       }
     }
 
+    if (value?.roomBedName && !generated.some((item) => item.name === value.roomBedName)) {
+      generated.push({
+        id: `legacy-roombed-${selectedFloorId}`,
+        name: value.roomBedName,
+      });
+    }
+
     setRoomBeds(generated);
-  }, [selectedFloorId, floors, showOnlyBeds]);
+  }, [selectedFloorId, floors, showOnlyBeds, value?.roomBedName]);
 
   // Helper to update parent
   const updateLocation = useCallback(
@@ -341,7 +372,7 @@ export function LocationSelector({
         </Select>
 
         {/* เลือกห้อง/เตียง (แสดงเฉพาะหอผู้ป่วย) */}
-        {isWard && (
+        {shouldShowRoomBed && (
           <Select
             isDisabled={
               isDisabled ||
