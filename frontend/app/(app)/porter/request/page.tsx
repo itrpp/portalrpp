@@ -1091,6 +1091,9 @@ export default function PorterRequestPage() {
                   >
                     อุปกรณ์ที่ต้องการ
                   </label>
+                  <p className="text-xs text-default-500 mb-2">
+                    ไม่บังคับ — ไม่เลือกรายการได้ถ้าไม่ต้องการอุปกรณ์
+                  </p>
                   <CheckboxGroup
                     id="equipment-group"
                     value={Array.isArray(formData.equipment) ? formData.equipment : []}

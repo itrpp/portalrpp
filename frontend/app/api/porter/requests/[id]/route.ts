@@ -104,14 +104,24 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     if (requestData.transportReason !== undefined) {
       protoRequest.transport_reason = requestData.transportReason;
     }
-    if (requestData.equipment !== undefined) {
-      protoRequest.equipment = mapEquipmentToProto(requestData.equipment || []);
+    // รวมกรณี equipment เป็น [] — ต้องส่งชัดเจนเพื่อล้างรายการอุปกรณ์ในฐานข้อมูล (ไม่ใช้แค่ค่า default ของ proto)
+    if (Object.prototype.hasOwnProperty.call(requestData, 'equipment')) {
+      protoRequest.equipment = mapEquipmentToProto(
+        Array.isArray(requestData.equipment) ? requestData.equipment : [],
+      );
     }
     if (requestData.equipmentOther !== undefined) {
-      protoRequest.equipment_other = requestData.equipmentOther || null;
+      // ส่งสตริงว่างแทน null — optional บน gRPC มักถูกตัดทิ้ง ทำให้ backend ไม่รู้ว่าต้องล้างค่าในฐานข้อมูล
+      protoRequest.equipment_other =
+        requestData.equipmentOther === null || requestData.equipmentOther === ''
+          ? ''
+          : String(requestData.equipmentOther);
     }
     if (requestData.specialNotes !== undefined) {
-      protoRequest.special_notes = requestData.specialNotes || null;
+      protoRequest.special_notes =
+        requestData.specialNotes === null || requestData.specialNotes === ''
+          ? ''
+          : String(requestData.specialNotes);
     }
 
     // เรียก gRPC service

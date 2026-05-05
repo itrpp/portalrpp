@@ -37,6 +37,10 @@ import {
   BleStationMessage,
 } from '../types/porter';
 import { handleGrpcError } from '../utils/grpcError';
+import {
+  applyUpdatePorterRequestFieldAliases,
+  toPlainGrpcRequest,
+} from '../utils/grpcPlainRequest';
 
 type UnaryCall<Request, Response> = ServerUnaryCall<Request, Response>;
 type UnaryCallback<Response> = sendUnaryData<Response>;
@@ -121,7 +125,10 @@ export const updatePorterRequest = async (
   callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
-    const { id, ...updateData } = call.request;
+    const plain = applyUpdatePorterRequestFieldAliases(
+      toPlainGrpcRequest(call.request as object) as Record<string, unknown>,
+    ) as unknown as UpdatePorterRequestInput;
+    const { id, ...updateData } = plain;
     const data = await porterService.updatePorterRequest(id, updateData);
 
     callback(null, { success: true, data });
@@ -138,7 +145,8 @@ export const updatePorterRequestStatus = async (
   callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
-    const { id, ...statusData } = call.request;
+    const plain = toPlainGrpcRequest(call.request as object) as UpdatePorterRequestStatusInput;
+    const { id, ...statusData } = plain;
     const data = await porterService.updatePorterRequestStatus(id, statusData);
 
     callback(null, { success: true, data });
@@ -155,7 +163,8 @@ export const updatePorterRequestTimestamps = async (
   callback: UnaryCallback<GrpcResponse<PorterRequestMessage>>,
 ) => {
   try {
-    const { id, ...timestampData } = call.request;
+    const plain = toPlainGrpcRequest(call.request as object) as UpdatePorterRequestTimestampsInput;
+    const { id, ...timestampData } = plain;
     const data = await porterService.updatePorterRequestTimestamps(id, timestampData);
 
     callback(null, { success: true, data });
@@ -368,7 +377,8 @@ export const updateBuilding = async (
   callback: UnaryCallback<GrpcResponse<BuildingMessage>>,
 ) => {
   try {
-    const { id, ...updateData } = call.request;
+    const plain = toPlainGrpcRequest(call.request as object) as UpdateBuildingInput & { id: string };
+    const { id, ...updateData } = plain;
     const data = await porterService.updateBuilding(id, updateData);
     callback(null, { success: true, data });
   } catch (error: unknown) {
@@ -456,7 +466,10 @@ export const updateFloorDepartment = async (
   callback: UnaryCallback<GrpcResponse<FloorDepartmentMessage>>,
 ) => {
   try {
-    const { id, ...updateData } = call.request;
+    const plain = toPlainGrpcRequest(call.request as object) as UpdateFloorDepartmentInput & {
+      id: string;
+    };
+    const { id, ...updateData } = plain;
     const data = await porterService.updateFloorDepartment(id, updateData);
     callback(null, { success: true, data });
   } catch (error: unknown) {
@@ -542,7 +555,8 @@ export const updateFloorPlan = async (
   callback: UnaryCallback<GrpcResponse<FloorPlanMessage>>,
 ) => {
   try {
-    const { id, ...updateData } = call.request;
+    const plain = toPlainGrpcRequest(call.request as object) as UpdateFloorPlanInput & { id: string };
+    const { id, ...updateData } = plain;
     const data = await porterService.updateFloorPlan(id, updateData);
     callback(null, { success: true, data });
   } catch (error: unknown) {
@@ -628,7 +642,8 @@ export const updateBleStation = async (
   callback: UnaryCallback<GrpcResponse<BleStationMessage>>,
 ) => {
   try {
-    const { id, ...updateData } = call.request;
+    const plain = toPlainGrpcRequest(call.request as object) as UpdateBleStationInput & { id: string };
+    const { id, ...updateData } = plain;
     const data = await porterService.updateBleStation(id, updateData);
     callback(null, { success: true, data });
   } catch (error: unknown) {
@@ -715,7 +730,8 @@ export const updateEmployee = async (
   callback: UnaryCallback<GrpcResponse<PorterEmployeeMessage>>,
 ) => {
   try {
-    const { id, ...updateData } = call.request;
+    const plain = toPlainGrpcRequest(call.request as object) as UpdateEmployeeInput & { id: string };
+    const { id, ...updateData } = plain;
     const data = await porterService.updateEmployee(id, updateData);
     callback(null, { success: true, data });
   } catch (error: unknown) {

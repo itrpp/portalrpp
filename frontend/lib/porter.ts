@@ -311,13 +311,32 @@ export function mapReturnTripToProto(returnTrip: string): string {
 export function mapEquipmentToProto(equipment: string[]): string[] {
   const map: Record<string, string> = {
     'ถังออกซิเจน (ออกซิเจนCannula / mask with bag)': 'OXYGEN',
+    // ค่าเก่า / สะกดต่าง (เช่น มีช่องว่างหลัง "ออกซิเจน") — ไม่ตรง key แล้วเคยถูกกรองออกหมด → DB ไม่อัปเดต
+    'ถังออกซิเจน (ออกซิเจน Cannula / mask with bag)': 'OXYGEN',
+    'ถังออกซิเจน (ออกซิเจนCannula/mask with bag)': 'OXYGEN',
     เสาน้ำเกลือ: 'SALINE_POLE',
     'กล่องวางขวด ICD': 'ICD_BOX',
     ผ้าผูกตรึงร่างกาย: 'CLOTH_TIED',
     'อื่นๆ ระบุ': 'OTHER',
   };
 
-  return equipment.map((eq) => map[eq]).filter((val): val is string => val !== undefined);
+  return equipment
+    .map((eq) => map[eq] ?? map[eq.trim()])
+    .filter((val): val is string => val !== undefined);
+}
+
+/**
+ * เตรียมฟอร์มสำหรับ PUT — `JSON.stringify` จะละ key ที่เป็น `undefined`
+ * จึงกำหนดค่าเริ่มให้ฟิลด์ที่ต้องส่งไปอัปเดตฐานข้อมูลเสมอ
+ */
+export function serializePorterRequestFormForPut(form: PorterRequestFormData): PorterRequestFormData {
+  return {
+    ...form,
+    equipment: form.equipment ?? [],
+    equipmentOther: form.equipmentOther ?? '',
+    specialNotes: form.specialNotes ?? '',
+    patientCondition: form.patientCondition ?? [],
+  };
 }
 
 /**

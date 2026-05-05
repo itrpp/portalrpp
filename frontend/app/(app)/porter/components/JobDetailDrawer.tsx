@@ -48,6 +48,7 @@ import {
   VEHICLE_TYPE_OPTIONS,
   EQUIPMENT_OPTIONS,
   TRANSPORT_REASON_OPTIONS,
+  serializePorterRequestFormForPut,
 } from '@/lib/porter';
 import {
   BuildingOfficeIcon,
@@ -75,6 +76,8 @@ interface JobDetailDrawerProps {
   onCancelJob?: (jobId: string, cancelledReason?: string) => void;
   onCompleteJob?: (jobId: string) => void;
   onUpdateJob?: (jobId: string, updatedForm: PorterRequestFormData) => void;
+  /** เรียกหลัง PUT สำเร็จ (เช่น refetch รายการจากเซิร์ฟเวอร์) */
+  onAfterSaveSuccess?: () => void | Promise<void>;
   readOnly?: boolean; // โหมดอ่านอย่างเดียว
 }
 
@@ -92,6 +95,7 @@ export default function JobDetailDrawer({
   onCancelJob,
   onCompleteJob,
   onUpdateJob,
+  onAfterSaveSuccess,
   readOnly = false,
 }: JobDetailDrawerProps) {
   const previousJobIdRef = useRef<string | null>(null);
@@ -369,7 +373,7 @@ export default function JobDetailDrawer({
       const response = await fetch(`/api/porter/requests/${job.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(serializePorterRequestFormForPut(formData)),
       });
 
       const result = await response.json();
@@ -398,6 +402,8 @@ export default function JobDetailDrawer({
 
       onUpdateJob(job.id, updatedForm);
       setFormData(updatedForm);
+
+      await onAfterSaveSuccess?.();
 
       addToast({
         title: 'บันทึกสำเร็จ',
@@ -791,11 +797,14 @@ export default function JobDetailDrawer({
                         </div>
                       </div>
                       <div>
+                        <p className="text-xs text-default-500 mb-2">
+                          ไม่บังคับ — ไม่เลือกรายการได้ถ้าไม่ต้องการอุปกรณ์
+                        </p>
                         <CheckboxGroup
                           isDisabled={!canEdit || !isEditMode}
                           label="อุปกรณ์ที่ต้องการ"
                           orientation="horizontal"
-                          value={formData.equipment}
+                          value={formData.equipment ?? []}
                           onValueChange={(values) => {
                             handleInputChange('equipment', values as EquipmentType[]);
                             if (!values.includes('อื่นๆ ระบุ')) {
@@ -810,7 +819,7 @@ export default function JobDetailDrawer({
                           ))}
                         </CheckboxGroup>
                       </div>
-                      {formData.equipment.includes('อื่นๆ ระบุ') && (
+                      {(formData.equipment ?? []).includes('อื่นๆ ระบุ') && (
                         <Input
                           className="mt-3"
                           isDisabled={!canEdit || !isEditMode}
@@ -971,21 +980,23 @@ export default function JobDetailDrawer({
                         </div>
                       )}
 
-                      {formData.equipment.length > 0 && (
-                        <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
-                          <div className="flex items-start gap-3">
-                            <div className="shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
-                              <ToolsIcon
-                                aria-hidden
-                                className="w-5 h-5 text-default-600 dark:text-default-700"
-                              />
+                      <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">
+                        <div className="flex items-start gap-3">
+                          <div className="shrink-0 w-10 h-10 rounded-lg bg-default-200 dark:bg-default-300 flex items-center justify-center">
+                            <ToolsIcon
+                              aria-hidden
+                              className="w-5 h-5 text-default-600 dark:text-default-700"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-2">
+                              อุปกรณ์ที่ต้องการ
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-2">
-                                อุปกรณ์ที่ต้องการ
-                              </div>
+                            {(formData.equipment ?? []).length === 0 ? (
+                              <p className="text-sm text-default-500">ไม่มี</p>
+                            ) : (
                               <div className="flex flex-wrap gap-2">
-                                {formData.equipment.map((eq, index) => {
+                                {(formData.equipment ?? []).map((eq, index) => {
                                   // ถ้าเป็น "อื่นๆ ระบุ" และมีค่า equipmentOther ให้แสดงทั้งสองค่า
                                   if (eq === 'อื่นๆ ระบุ' && formData.equipmentOther?.trim()) {
                                     return (
@@ -1014,15 +1025,12 @@ export default function JobDetailDrawer({
                                     );
                                   }
 
-                                  // สำหรับอุปกรณ์อื่นๆ แสดงตามปกติ
                                   return (
                                     <Chip
                                       key={index}
                                       color="default"
                                       size="sm"
-                                      startContent={
-                                        <MedicalBagIcon aria-hidden className="w-3 h-3" />
-                                      }
+                                      startContent={<MedicalBagIcon aria-hidden className="w-3 h-3" />}
                                       variant="flat"
                                     >
                                       {eq}
@@ -1030,10 +1038,10 @@ export default function JobDetailDrawer({
                                   );
                                 })}
                               </div>
-                            </div>
+                            )}
                           </div>
                         </div>
-                      )}
+                      </div>
 
                       {formData.specialNotes && (
                         <div className="bg-default-50 dark:bg-default-100 rounded-lg p-4 border border-default-200">

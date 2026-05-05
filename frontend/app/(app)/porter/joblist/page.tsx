@@ -495,6 +495,7 @@ export default function JobListClient() {
         onClose={handleCloseDrawer}
         onCompleteJob={handleCompleteJob}
         onUpdateJob={handleUpdateJob}
+        onAfterSaveSuccess={refetch}
       />
     </div>
   );

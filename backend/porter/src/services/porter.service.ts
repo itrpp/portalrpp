@@ -127,10 +127,9 @@ export const createPorterRequest = async (
     hasVehicle: mapHasVehicleToPrisma(has_vehicle),
     returnTrip: mapReturnTripToPrisma(return_trip),
     transportReason: transport_reason,
-    equipment:
-      equipment && Array.isArray(equipment) && equipment.length > 0
-        ? JSON.stringify(mapEquipmentToPrisma(equipment))
-        : JSON.stringify([]),
+    equipment: mapEquipmentToPrisma(
+      Array.isArray(equipment) ? equipment : [],
+    ) as unknown as Prisma.InputJsonValue,
     equipmentOther: equipment_other ?? null,
     specialNotes: special_notes ?? null,
     status: 'WAITING_CENTER',
@@ -303,7 +302,8 @@ export const updatePorterRequest = async (
     data.requestedDateTime = new Date(updateData.requested_date_time);
   }
   if (updateData.special_notes !== undefined) {
-    data.specialNotes = updateData.special_notes;
+    const sn = updateData.special_notes;
+    data.specialNotes = sn === null || sn === '' ? null : String(sn);
   }
 
   if (updateData.urgency_level !== undefined && updateData.urgency_level !== null) {
@@ -321,11 +321,13 @@ export const updatePorterRequest = async (
   if (updateData.transport_reason) {
     data.transportReason = updateData.transport_reason;
   }
-  if (updateData.equipment && updateData.equipment.length > 0) {
-    data.equipment = JSON.stringify(mapEquipmentToPrisma(updateData.equipment));
+
+  if (updateData.equipment !== undefined && Array.isArray(updateData.equipment)) {
+    data.equipment = mapEquipmentToPrisma(updateData.equipment) as unknown as Prisma.InputJsonValue;
   }
   if (updateData.equipment_other !== undefined) {
-    data.equipmentOther = updateData.equipment_other ?? null;
+    const eo = updateData.equipment_other;
+    data.equipmentOther = eo === null || eo === '' ? null : String(eo);
   }
 
   const porterRequest = await porterRequestRepo.updatePorterRequest(id, data);

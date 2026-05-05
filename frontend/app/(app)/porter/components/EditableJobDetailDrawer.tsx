@@ -14,6 +14,7 @@ interface EditableJobDetailDrawerProps {
   onCancelJob?: (jobId: string, cancelledReason?: string) => void;
   onCompleteJob?: (jobId: string) => void;
   onUpdateJob?: (jobId: string, updatedForm: PorterRequestFormData) => void;
+  onAfterSaveSuccess?: () => void | Promise<void>;
 }
 
 /**
@@ -28,6 +29,7 @@ export function EditableJobDetailDrawer({
   onCancelJob,
   onCompleteJob,
   onUpdateJob,
+  onAfterSaveSuccess,
 }: EditableJobDetailDrawerProps) {
   return (
     <JobDetailDrawer
@@ -39,6 +41,7 @@ export function EditableJobDetailDrawer({
       onClose={onClose}
       onCompleteJob={onCompleteJob}
       onUpdateJob={onUpdateJob}
+      onAfterSaveSuccess={onAfterSaveSuccess}
     />
   );
 }
