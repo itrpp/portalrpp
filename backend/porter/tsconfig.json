@@ -4,6 +4,8 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist",
+    "rootDir": "../..",
+    "rootDirs": ["src", "../../shared/generated/prisma"],
     "strict": true,
     "noImplicitAny": true,
     "esModuleInterop": true,
@@ -18,5 +20,5 @@
       "@prisma/client/*": ["node_modules/@prisma/client/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../../shared/generated/prisma/**/*.ts"]
 }

@@ -1,6 +1,6 @@
 const path = require('path');
 
-const entryScript = path.join(__dirname, 'dist', 'server.js');
+const entryScript = path.join(__dirname, 'scripts', 'start-dist.cjs');
 
 module.exports = {
   apps: [
@@ -25,7 +25,7 @@ module.exports = {
       min_uptime: '10s',
       max_restarts: 10,
       autorestart: true,
-      watch: false,
+      watch: true,
       // Memory and CPU monitoring
       merge_logs: true,
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',

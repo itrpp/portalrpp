@@ -9,10 +9,8 @@ import * as porterHandlers from './handlers/porter.handler';
 import { logger } from './utils/logger';
 import { withGrpcLog, withGrpcStreamLog } from './utils/withGrpcLog';
 
-// Path ไปยัง proto file ใน shared/proto/porter.proto
-// รองรับทั้ง development (__dirname = backend/porter/src/) และ production (__dirname = backend/porter/dist/)
-// จาก backend/porter/src/ หรือ backend/porter/dist/ ไปที่ shared/proto/porter.proto = ../../../shared/proto/porter.proto
-const PROTO_PATH = path.resolve(__dirname, '../../../shared/proto/porter.proto');
+// Resolve จาก project cwd (backend/porter) เพื่อให้ทำงานได้ทั้ง tsx/dev และ build/dist ที่โครงสร้าง __dirname ต่างกัน
+const PROTO_PATH = path.resolve(process.cwd(), '../../shared/proto/porter.proto');
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
