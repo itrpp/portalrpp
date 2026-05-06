@@ -36,6 +36,7 @@ export async function PUT(request: Request) {
     payload = await request.json();
   } catch (error) {
     console.error('[API] PUT /api/profile parse error:', error);
+
     return NextResponse.json({ success: false, error: 'INVALID_REQUEST' }, { status: 400 });
   }
 

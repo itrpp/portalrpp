@@ -190,6 +190,7 @@ export default function JobDetailDrawer({
   useEffect(() => {
     if (!job) {
       previousJobIdRef.current = null;
+
       return;
     }
 
@@ -199,6 +200,7 @@ export default function JobDetailDrawer({
       setIsEditMode(false);
       setFormData({ ...job.form });
       previousJobIdRef.current = job.id;
+
       return;
     }
 

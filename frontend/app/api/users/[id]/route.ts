@@ -333,6 +333,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       }
     } catch (error: any) {
       console.error('[API] PUT /api/users/[id] validation error:', error);
+
       return NextResponse.json(
         {
           success: false,

@@ -14,6 +14,14 @@ export type GrpcErrorOptions = {
   uniqueConstraints?: UniqueConstraintOption[];
 };
 
+/** โยนเมื่อ validation / business rule ล้มเหลว — map เป็น gRPC INVALID_ARGUMENT */
+export class InvalidArgumentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidArgumentError';
+  }
+}
+
 export const handleGrpcError = <Response>(
   callback: sendUnaryData<Response>,
   error: unknown,
@@ -21,6 +29,11 @@ export const handleGrpcError = <Response>(
   options?: GrpcErrorOptions,
 ): void => {
   logger.error({ fallbackMessage, error }, 'gRPC handler error');
+
+  if (error instanceof InvalidArgumentError) {
+    callback(createGrpcError(status.INVALID_ARGUMENT, error.message));
+    return;
+  }
 
   if (options?.notFoundMessage && isPrismaNotFoundError(error)) {
     callback(createGrpcError(status.NOT_FOUND, options.notFoundMessage));

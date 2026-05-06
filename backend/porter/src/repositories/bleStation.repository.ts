@@ -1,5 +1,6 @@
 import type { Prisma } from '@shared/prisma/client';
 import type { BleStation } from '@shared/prisma/client';
+
 import prisma from '../config/database';
 
 export async function createBleStation(

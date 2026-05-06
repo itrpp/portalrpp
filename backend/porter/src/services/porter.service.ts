@@ -1,4 +1,7 @@
 import { Prisma, type PorterRequest } from '@shared/prisma/client';
+import type { Building, Department } from '@shared/prisma/client';
+import type { PorterEmployee } from '@shared/prisma/client';
+
 import porterEventEmitter from '../utils/eventEmitter';
 import * as buildingRepo from '../repositories/building.repository';
 import * as bleStationRepo from '../repositories/bleStation.repository';
@@ -53,11 +56,10 @@ import {
   ListBleStationsFilters,
   BleStationMessage,
 } from '../types/porter';
-import type { Building, Department } from '@shared/prisma/client';
 import type { BuildingWithFloorsAndFloorPlans } from '../repositories/building.repository';
 import type { FloorDepartmentWithBuilding } from '../repositories/floorDepartment.repository';
 import type { FloorPlanWithStations } from '../repositories/floorPlan.repository';
-import type { PorterEmployee } from '@shared/prisma/client';
+import { InvalidArgumentError } from '../utils/grpcError';
 
 type PorterRequestWithLocationNames = PorterRequest & {
   pickupBuildingName?: string;
@@ -68,6 +70,16 @@ type PorterRequestWithLocationNames = PorterRequest & {
 };
 
 /** Porter Service: รวม business logic และ database operations สำหรับ Porter */
+
+async function assertActivePorterEmployee(employeeId: string): Promise<void> {
+  const emp = await porterEmployeeRepo.findPorterEmployeeById(employeeId);
+  if (!emp) {
+    throw new InvalidArgumentError(`Porter employee not found: ${employeeId}`);
+  }
+  if (!emp.status) {
+    throw new InvalidArgumentError(`Porter employee is inactive: ${employeeId}`);
+  }
+}
 
 export const createPorterRequest = async (
   requestData: CreatePorterRequestInput,
@@ -354,6 +366,28 @@ export const updatePorterRequestStatus = async (
     newStatus = 'WAITING_ACCEPT';
   }
 
+  if (assigned_to_id) {
+    await assertActivePorterEmployee(assigned_to_id);
+    if (oldStatus === 'COMPLETED' || oldStatus === 'CANCELLED') {
+      throw new InvalidArgumentError('Cannot change assignee on completed or cancelled request');
+    }
+    if (newStatus === 'COMPLETED' || newStatus === 'CANCELLED') {
+      throw new InvalidArgumentError(
+        'assigned_to_id cannot be used when completing or cancelling a request',
+      );
+    }
+    if (oldStatus === 'WAITING_ACCEPT' && newStatus === 'WAITING_CENTER') {
+      throw new InvalidArgumentError(
+        'assigned_to_id cannot be used when returning a request to the queue',
+      );
+    }
+    if (oldStatus === 'IN_PROGRESS' && newStatus !== 'IN_PROGRESS') {
+      throw new InvalidArgumentError(
+        'assigned_to_id on an in-progress request is only valid for handoff (status must stay IN_PROGRESS)',
+      );
+    }
+  }
+
   const data: Prisma.PorterRequestUpdateInput = {
     status: newStatus,
   };
@@ -366,8 +400,42 @@ export const updatePorterRequestStatus = async (
     data.acceptedAt = null;
   }
 
-  // เจ้าหน้าที่เปลกดรับงาน (IN_PROGRESS) → บันทึกเวลาที่รับงานเท่านั้น (assignedAt ตาม schema)
-  if (newStatus === 'IN_PROGRESS') {
+  // ศูนย์เปลมอบหมายงาน (เลือกผู้ปฏิบัติ) → acceptedById = ผู้มอบหมาย (ศูนย์เปล), acceptedAt = เวลามอบหมาย, assignedToId = ผู้ที่ได้รับมอบหมาย (ยังไม่ set assignedAt จนกว่าผู้ปฏิบัติจะกดรับ)
+  if (assigned_to_id && oldRequest?.status === 'WAITING_CENTER') {
+    data.assignedToId = assigned_to_id;
+    data.acceptedAt = new Date();
+    if (accepted_by_id) {
+      data.acceptedById = accepted_by_id;
+    }
+  }
+
+  // เปลี่ยนผู้ปฏิบัติ: WAITING_ACCEPT (รอรับ) / IN_PROGRESS (โอนงาน) — ไม่ใช่มอบหมายครั้งแรกจาก WAITING_CENTER
+  if (assigned_to_id && oldRequest && oldStatus !== 'WAITING_CENTER') {
+    if (oldStatus === 'WAITING_ACCEPT') {
+      if (newStatus === 'WAITING_ACCEPT' || newStatus === 'IN_PROGRESS') {
+        data.assignedToId = assigned_to_id;
+        if (newStatus === 'WAITING_ACCEPT' && assigned_to_id !== oldRequest.assignedToId) {
+          data.acceptedAt = new Date();
+          if (accepted_by_id) {
+            data.acceptedById = accepted_by_id;
+          }
+        }
+      }
+    } else if (oldStatus === 'IN_PROGRESS' && newStatus === 'IN_PROGRESS') {
+      if (assigned_to_id !== oldRequest.assignedToId) {
+        data.assignedToId = assigned_to_id;
+      }
+    }
+  }
+
+  // assignedAt: ตอนเข้า IN_PROGRESS ครั้งแรก หรือโอนงาน (handoff) เท่านั้น — ไม่ดันซ้ำเมื่อ retry
+  const entersInProgress = newStatus === 'IN_PROGRESS' && oldStatus !== 'IN_PROGRESS';
+  const handoffInProgress =
+    newStatus === 'IN_PROGRESS' &&
+    oldStatus === 'IN_PROGRESS' &&
+    Boolean(assigned_to_id) &&
+    assigned_to_id !== oldRequest?.assignedToId;
+  if (entersInProgress || handoffInProgress) {
     data.assignedAt = new Date();
   } else if (newStatus === 'COMPLETED') {
     data.completedAt = new Date();
@@ -378,15 +446,6 @@ export const updatePorterRequestStatus = async (
     }
     if (cancelled_by_id) {
       data.cancelledById = cancelled_by_id;
-    }
-  }
-
-  // ศูนย์เปลมอบหมายงาน (เลือกผู้ปฏิบัติ) → acceptedById = ผู้มอบหมาย (ศูนย์เปล), acceptedAt = เวลามอบหมาย, assignedToId = ผู้ที่ได้รับมอบหมาย (ยังไม่ set assignedAt จนกว่าผู้ปฏิบัติจะกดรับ)
-  if (assigned_to_id && oldRequest?.status === 'WAITING_CENTER') {
-    data.assignedToId = assigned_to_id;
-    data.acceptedAt = new Date();
-    if (accepted_by_id) {
-      data.acceptedById = accepted_by_id;
     }
   }
 

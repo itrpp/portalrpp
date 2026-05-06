@@ -9,7 +9,9 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith('/api')) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const user = token?.sub ?? (token as { email?: string } | null)?.email ?? 'anonymous';
-    console.log(`[API] ${req.method} ${pathname} user=${user}`);
+
+    console.info(`[API] ${req.method} ${pathname} user=${user}`);
+
     return NextResponse.next();
   }
 

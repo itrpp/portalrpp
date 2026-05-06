@@ -490,12 +490,12 @@ export default function JobListClient() {
       <EditableJobDetailDrawer
         isOpen={isDrawerOpen}
         job={selectedJob}
+        onAfterSaveSuccess={refetch}
         onAssignJob={handleAssignJob}
         onCancelJob={handleCancelJob}
         onClose={handleCloseDrawer}
         onCompleteJob={handleCompleteJob}
         onUpdateJob={handleUpdateJob}
-        onAfterSaveSuccess={refetch}
       />
     </div>
   );

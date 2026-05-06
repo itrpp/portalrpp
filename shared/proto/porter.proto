@@ -159,9 +159,14 @@ message UpdatePorterRequestRequest {
 message UpdatePorterRequestStatusRequest {
   string id = 1;
   string status = 2; // WAITING_CENTER, WAITING_ACCEPT, IN_PROGRESS, COMPLETED, CANCELLED
+  // Porter employee id ผู้ถูกมอบหมาย / เปลี่ยนผู้ปฏิบัติ:
+  // - จาก WAITING_CENTER: มอบหมายครั้งแรก (พร้อม accepted_by_id = ผู้มอบหมายที่ศูนย์)
+  // - WAITING_ACCEPT: เปลี่ยนคนรอรับ (status คง WAITING_ACCEPT) หรือระบุผู้รับเมื่อเข้า IN_PROGRESS (รับแทน)
+  // - IN_PROGRESS: โอนงานให้พนักงานคนอื่น (status คง IN_PROGRESS; pickup/delivery timestamps ไม่ถูกล้าง)
   optional string assigned_to_id = 3;
   optional string cancelled_reason = 4;
   optional string cancelled_by_id = 5;
+  // ผู้ดำเนินการมอบหมาย/เปลี่ยนผู้ปฏิบัติ (เช่น user id ศูนย์ หรือ actor บนมือถือ) — ใช้คู่กับมอบหมายหรือเปลี่ยนคนขณะ WAITING_ACCEPT
   optional string accepted_by_id = 6;
 }
 

@@ -42,8 +42,10 @@ export function withApiLog(handler: ApiHandler): ApiHandler {
     const path = getPath(request);
 
     let user: string | null = null;
+
     try {
       const auth = await getAuthSession();
+
       if (auth.ok) user = auth.userId;
     } catch {
       // ไม่ให้การดึง session ล้มการ log
@@ -55,7 +57,8 @@ export function withApiLog(handler: ApiHandler): ApiHandler {
 
     const duration = Date.now() - start;
     const status = res.status;
-    console.log(`[API] ${method} ${path} ${status} ${duration}ms user=${user ?? 'anonymous'}`);
+
+    console.info(`[API] ${method} ${path} ${status} ${duration}ms user=${user ?? 'anonymous'}`);
 
     return res;
   }) as ApiHandler;

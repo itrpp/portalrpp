@@ -52,6 +52,7 @@ export async function GET(request: Request) {
     );
   } catch (error: unknown) {
     const err = error as { code?: number; message?: string };
+
     console.error('[API] GET /api/porter/requests error:', error);
 
     if (err.code === 14) {
@@ -169,6 +170,7 @@ export async function POST(request: Request) {
     );
   } catch (error: unknown) {
     const err = error as { code?: number; message?: string };
+
     console.error('[API] POST /api/porter/requests error:', error);
 
     if (err.code === 14) {

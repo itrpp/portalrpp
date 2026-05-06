@@ -36,12 +36,12 @@ export function EditableJobDetailDrawer({
       isOpen={isOpen}
       job={job}
       readOnly={false}
+      onAfterSaveSuccess={onAfterSaveSuccess}
       onAssignJob={onAssignJob}
       onCancelJob={onCancelJob}
       onClose={onClose}
       onCompleteJob={onCompleteJob}
       onUpdateJob={onUpdateJob}
-      onAfterSaveSuccess={onAfterSaveSuccess}
     />
   );
 }

@@ -40,8 +40,8 @@ export function UserFilters({
               startContent={<MagnifyingGlassIcon className="w-5 h-5 text-default-400" />}
               value={searchQuery}
               variant="bordered"
-              onClear={() => onSearchChange('')}
               onChange={(e) => onSearchChange(e.target.value)}
+              onClear={() => onSearchChange('')}
             />
           </div>
           <div className="flex flex-col gap-1 min-w-0 md:col-span-1">

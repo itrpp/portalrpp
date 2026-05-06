@@ -1,5 +1,6 @@
 import type { Prisma } from '@shared/prisma/client';
 import type { PorterRequest } from '@shared/prisma/client';
+
 import prisma from '../config/database';
 
 export async function createPorterRequest(

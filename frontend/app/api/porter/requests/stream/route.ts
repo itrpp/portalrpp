@@ -221,17 +221,21 @@ export async function GET(request: NextRequest) {
 
           // ตรวจ session ทุก 60 วินาที — ถ้าหมดอายุให้ปิด stream และ cancel gRPC
           const SESSION_CHECK_MS = 60000;
+
           sessionCheckInterval = setInterval(async () => {
             if (isStreamClosed) {
               if (sessionCheckInterval) {
                 clearInterval(sessionCheckInterval);
                 sessionCheckInterval = null;
               }
+
               return;
             }
             const auth = await getAuthSession();
+
             if (!auth.ok) {
               safeClose();
+
               return;
             }
           }, SESSION_CHECK_MS);

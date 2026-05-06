@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('[API] GET /api/porter/employees error:', error);
+
     return NextResponse.json(
       {
         success: false,

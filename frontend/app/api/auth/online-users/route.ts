@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
 
     if (countOnly) {
       const count = await prisma.user_activity.count({ where: whereOnline });
+
       return NextResponse.json({ success: true, count }, { status: 200 });
     }
 
