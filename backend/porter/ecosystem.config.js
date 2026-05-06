@@ -25,7 +25,7 @@ module.exports = {
       min_uptime: '10s',
       max_restarts: 10,
       autorestart: true,
-      watch: true,
+      watch: false,
       // Memory and CPU monitoring
       merge_logs: true,
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',

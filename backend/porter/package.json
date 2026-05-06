@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "dotenv -e .env -e .env.local -- tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "dotenv -e .env -e .env.local -- node --import tsx -r tsconfig-paths/register dist/backend/porter/src/server.js",
+    "start": "node --import tsx -r tsconfig-paths/register dist/backend/porter/src/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
