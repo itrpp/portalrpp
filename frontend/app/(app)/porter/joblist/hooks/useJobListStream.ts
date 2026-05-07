@@ -6,8 +6,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { addToast } from '@heroui/react';
 
-import { porterQueryKeys } from '../../lib/queryKeys';
-
+import { porterQueryKeys } from '@/features/porter/lib/queryKeys';
 import { getApiGatewayBaseUrl } from '@/lib/env';
 import { playNotificationSound, playSirenSound } from '@/lib/porter';
 

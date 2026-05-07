@@ -7,10 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { RangeValue } from '@react-types/shared';
 
-import { porterQueryKeys } from '../../lib/queryKeys';
-
 import { useCenterPorterRequests } from './useCenterPorterRequests';
 
+import { porterQueryKeys } from '@/features/porter/lib/queryKeys';
 import { sortJobs } from '@/lib/porter';
 import { PorterJobItem } from '@/types/porter';
 import { getISODatePart } from '@/lib/utils';

@@ -32,7 +32,6 @@ import { CalendarDateTime, CalendarDate, parseDate } from '@internationalized/da
 import { RangeValue } from '@react-types/shared';
 
 import { LocationSelector } from '../components/LocationSelector';
-import { PorterEmptyState } from '../components/shared/PorterEmptyState';
 import { useDepartmentName } from '../hooks/useDepartmentsMap';
 
 const CancelJobModal = dynamic(
@@ -53,6 +52,7 @@ import { RequestHistoryFilters } from './components/RequestHistoryFilters';
 import { usePorterRequestForm } from './hooks/usePorterRequestForm';
 import { useUserRequests } from './hooks/useUserRequests';
 
+import { PorterEmptyState } from '@/features/porter/components/shared/PorterEmptyState';
 import { CARD_STYLES } from '@/lib/cardStyles';
 import { TABLE_STYLES } from '@/lib/tableStyles';
 import { cn, getISODatePart } from '@/lib/utils';

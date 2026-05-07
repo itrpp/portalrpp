@@ -1,7 +1,6 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 
-import { porterQueryKeys } from '../lib/queryKeys';
-
+import { porterQueryKeys } from '@/features/porter/lib/queryKeys';
 import { Building } from '@/types/porter';
 import { convertBuildingFromProto } from '@/lib/porter';
 

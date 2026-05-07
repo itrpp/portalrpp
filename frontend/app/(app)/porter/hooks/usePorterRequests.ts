@@ -1,7 +1,6 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 
-import { porterQueryKeys } from '../lib/queryKeys';
-
+import { porterQueryKeys } from '@/features/porter/lib/queryKeys';
 import { PorterJobItem } from '@/types/porter';
 
 interface UsePorterRequestsParams {

@@ -268,6 +268,19 @@ export const DocumentTextIcon = (props: IconProps) => (
   />
 );
 
+export const PrinterIcon = (props: IconProps) => (
+  <IconifyIcon
+    className={cn('inline-block', props.className)}
+    color={props.color}
+    flip={props.flip}
+    height={props.size || 24}
+    icon="tabler:printer"
+    rotate={props.rotate}
+    width={props.size || 24}
+    {...props}
+  />
+);
+
 export const Bars3Icon = (props: IconProps) => (
   <IconifyIcon
     className={cn('inline-block', props.className)}

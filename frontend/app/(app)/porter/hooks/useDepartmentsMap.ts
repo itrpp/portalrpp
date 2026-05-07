@@ -1,6 +1,6 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 
-import { porterQueryKeys } from '../lib/queryKeys';
+import { porterQueryKeys } from '@/features/porter/lib/queryKeys';
 
 interface DepartmentsMapResponse {
   success: boolean;

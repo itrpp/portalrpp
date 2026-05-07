@@ -4,7 +4,7 @@ import React from 'react';
 
 import { LOADING_MESSAGES } from '../../lib/constants';
 
-import { Logo } from '@/components/icons';
+import { Logo } from '@/components/ui/Logo';
 
 interface LoadingPageProps {
   message?: string;

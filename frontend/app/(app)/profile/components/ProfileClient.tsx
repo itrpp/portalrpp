@@ -1,6 +1,6 @@
 'use client';
 
-import type { ProfileClientProps, ProfileEditableFields, HrdOption } from '../types';
+import type { ProfileClientProps, ProfileEditableFields, HrdOption } from '@/features/profile/types';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';

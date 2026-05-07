@@ -19,9 +19,8 @@ import {
   getStatusLabel,
   getStatusColor,
   getUrgencyColor,
-} from '../../components/shared/designTokens';
-import { PorterEmptyState } from '../../components/shared/PorterEmptyState';
-
+} from '@/features/porter/components/shared/designTokens';
+import { PorterEmptyState } from '@/features/porter/components/shared/PorterEmptyState';
 import { TABLE_STYLES } from '@/lib/tableStyles';
 import { formatDateTimeFromString } from '@/lib/utils';
 import { formatLocationString } from '@/lib/porter';

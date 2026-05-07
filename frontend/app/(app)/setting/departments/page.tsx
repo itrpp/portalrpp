@@ -3,10 +3,9 @@
 import React from 'react';
 import { Button, Card, CardBody, CardHeader, Chip } from '@heroui/react';
 
-import { SimpleCrudModal } from '../components/SimpleCrudModal';
-import { CrudTable } from '../components/CrudTable';
-import { useCrudManagement } from '../hooks/useCrudManagement';
-
+import { SimpleCrudModal } from '@/features/setting/components/SimpleCrudModal';
+import { CrudTable } from '@/features/setting/components/CrudTable';
+import { useCrudManagement } from '@/features/setting/hooks/useCrudManagement';
 import { CARD_STYLES } from '@/lib/cardStyles';
 import { BuildingOfficeIcon, PlusIcon } from '@/components/ui/icons';
 import { Department } from '@/types/hrd';
