@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(powershell -Command \"\\(Get-Content 'app\\\\\\(app\\)\\\\porter\\\\request\\\\page.tsx' | Measure-Object -Line\\).Lines\")"
+    ]
+  }
+}

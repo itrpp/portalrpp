@@ -20,6 +20,20 @@ interface PorterRequestsResponse {
   error_message?: string;
 }
 
+/** Normalize ค่า filter — รวม logic ครั้งเดียวเพื่อให้ queryKey และ queryFn ตรงกันแน่นอน */
+function normalizeFilters(params: UsePorterRequestsParams) {
+  const status = params.status?.trim() || undefined;
+  const search = params.search?.trim() || undefined;
+
+  return {
+    userId: params.userId,
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 10,
+    status,
+    search,
+  };
+}
+
 /**
  * Hook สำหรับดึงรายการคำขอของผู้ใช้ (user requests)
  * ใช้ React Query สำหรับ caching และ deduplication
@@ -28,16 +42,11 @@ export function usePorterRequests(
   params: UsePorterRequestsParams,
   options?: Omit<UseQueryOptions<PorterRequestsResponse, Error>, 'queryKey' | 'queryFn'>,
 ) {
-  const { userId, page = 1, pageSize = 10, status, search } = params;
+  const normalized = normalizeFilters(params);
+  const { userId, page, pageSize, status, search } = normalized;
 
   return useQuery<PorterRequestsResponse, Error>({
-    queryKey: porterQueryKeys.requests.list({
-      userId,
-      page,
-      pageSize,
-      status: status ?? undefined,
-      search: search?.trim() || undefined,
-    }),
+    queryKey: porterQueryKeys.requests.list(normalized),
     queryFn: async () => {
       if (!userId) {
         return {
@@ -55,26 +64,21 @@ export function usePorterRequests(
         page_size: String(pageSize),
       });
 
-      if (status != null && status !== '') {
-        queryParams.set('status', status);
-      }
+      if (status) queryParams.set('status', status);
+      if (search) queryParams.set('search', search);
 
-      if (search && search.trim() !== '') {
-        queryParams.set('search', search.trim());
-      }
-
-      const response = await fetch(`/api/porter/requests?${queryParams.toString()}`);
+      const response = await fetch(`/api/porter/requests?${queryParams.toString()}`, {
+        cache: 'no-store',
+      });
 
       if (!response.ok) {
         throw new Error('ไม่สามารถโหลดข้อมูลรายการคำขอได้');
       }
 
-      const result = await response.json();
-
-      return result as PorterRequestsResponse;
+      return (await response.json()) as PorterRequestsResponse;
     },
-    enabled: !!userId, // ไม่ fetch ถ้าไม่มี userId
-    staleTime: 30_000, // 30 วินาที — ลดการเรียก API ซ้ำเมื่อ component mount ซ้ำ (เช่น useSearchParams / Suspense)
+    enabled: !!userId,
+    staleTime: 30_000,
     ...options,
   });
 }

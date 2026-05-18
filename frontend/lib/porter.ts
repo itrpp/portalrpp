@@ -17,6 +17,34 @@ import {
 } from '@/types/porter';
 
 /**
+ * สถานะ Porter Job (ตรงกับ Proto / DB)
+ */
+export const PORTER_STATUS = {
+  WAITING_CENTER: 'WAITING_CENTER',
+  WAITING_ACCEPT: 'WAITING_ACCEPT',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+/**
+ * สถานะที่ผู้ใช้แก้ไขข้อมูลคำขอได้ (ยังไม่มีคนรับงาน)
+ */
+export const EDITABLE_STATUSES: PorterJobStatus[] = [
+  PORTER_STATUS.WAITING_CENTER,
+  PORTER_STATUS.WAITING_ACCEPT,
+];
+
+/**
+ * ระดับความเร่งด่วน (ภาษาไทย ใช้ใน UI)
+ */
+export const URGENCY = {
+  NORMAL: 'ปกติ',
+  URGENT: 'ด่วน',
+  EMERGENCY: 'ฉุกเฉิน',
+} as const;
+
+/**
  * ตัวเลือกความเร่งด่วนพร้อมสีที่ใช้แสดงผล
  */
 export const URGENCY_OPTIONS: {

@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import { callPorterService } from '@/lib/grpcClient';
 import { mapStatusToProto, convertProtoToFrontend } from '@/lib/porter';
+import { handleGrpcError } from '@/lib/grpcErrorHandler';
+import { UpdateStatusSchema, formatZodError } from '@/lib/schemas/porterRequest';
 
 /**
  * PUT /api/porter/requests/[id]/status
@@ -15,72 +17,51 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     if (!auth.ok) return auth.response;
 
     const { id } = await context.params;
+    const body = await request.json();
+    const parsed = UpdateStatusSchema.safeParse(body);
 
-    // อ่านข้อมูลจาก request body
-    const requestData = await request.json();
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
+    }
 
-    // สร้าง proto request
-    const protoRequest: any = {
+    const data = parsed.data;
+
+    const protoRequest: Record<string, unknown> = {
       id,
-      status: mapStatusToProto(requestData.status),
+      status: mapStatusToProto(data.status),
     };
 
-    // ศูนย์เปลมอบหมายงาน: ส่ง assigned_to_id (ผู้ที่ได้รับมอบหมาย) และ accepted_by_id (ผู้ที่ดำเนินการมอบหมาย = ศูนย์เปล)
-    if (requestData.assignedToId) {
-      protoRequest.assigned_to_id = requestData.assignedToId;
+    // ศูนย์เปลมอบหมายงาน
+    if (data.assignedToId) {
+      protoRequest.assigned_to_id = data.assignedToId;
       protoRequest.accepted_by_id = auth.userId;
     }
-    if (requestData.cancelledReason) {
-      protoRequest.cancelled_reason = requestData.cancelledReason;
+    if (data.cancelledReason) {
+      protoRequest.cancelled_reason = data.cancelledReason;
       protoRequest.cancelled_by_id = auth.userId;
     }
 
-    // เรียก gRPC service
-    const response = await callPorterService<any>('UpdatePorterRequestStatus', protoRequest);
+    const response = await callPorterService<{
+      success: boolean;
+      data?: unknown;
+      error_message?: string;
+    }>('UpdatePorterRequestStatus', protoRequest);
 
     if (response.success) {
-      // แปลงข้อมูลจาก Proto format เป็น Frontend format
       const frontendData = convertProtoToFrontend(response.data);
 
-      return NextResponse.json(
-        {
-          success: true,
-          data: frontendData,
-        },
-        { status: 200 },
-      );
-    } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'UPDATE_FAILED',
-          message: response.error_message || 'ไม่สามารถอัปเดตสถานะได้',
-        },
-        { status: 400 },
-      );
-    }
-  } catch (error: any) {
-    console.error('[API] PUT /api/porter/requests/[id]/status error:', error);
-    // จัดการ gRPC errors
-    if (error.code === 5) {
-      // NOT_FOUND
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'NOT_FOUND',
-          message: error.message || 'ไม่พบข้อมูลคำขอ',
-        },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: true, data: frontendData }, { status: 200 });
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: 'INTERNAL_ERROR',
-        message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ',
+        error: 'UPDATE_FAILED',
+        message: response.error_message || 'ไม่สามารถอัปเดตสถานะได้',
       },
-      { status: 500 },
+      { status: 400 },
     );
+  } catch (error) {
+    return handleGrpcError(error, { context: 'PUT /api/porter/requests/[id]/status' });
   }
 }

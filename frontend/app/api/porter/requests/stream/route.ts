@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import { streamPorterRequests } from '@/lib/grpcClient';
 import { mapStatusToProto, mapUrgencyLevelToProto, convertProtoToFrontend } from '@/lib/porter';
+import { logger } from '@/lib/logger';
 
 // Route segment config สำหรับ SSE stream
 // maxDuration 300 วินาที (5 นาที) เป็น maximum ที่ Next.js อนุญาต
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
                     : 'DELETED';
 
             if (!isControllerOpen()) {
-              console.warn('[Next.js API] Stream controller is closed, ignoring data');
+              logger.warn('[stream] controller closed, ignoring data');
 
               return;
             }
@@ -139,16 +140,16 @@ export async function GET(request: NextRequest) {
                   try {
                     streamController.enqueue(encoder.encode(sseMessage));
                   } catch (enqueueError) {
-                    console.error('[Next.js API] Error enqueueing SSE message:', enqueueError);
+                    logger.error('[stream] enqueue failed', enqueueError);
                   }
                 } else {
-                  console.warn('[Next.js API] Controller closed, cannot send SSE message');
+                  logger.warn('[stream] controller closed, cannot send SSE');
                 }
               } else {
-                console.warn('[Next.js API] Received update without request data:', update);
+                logger.warn('[stream] update missing request data', update);
               }
             } catch (error) {
-              console.error('[Next.js API] Error processing stream data:', {
+              logger.error('[stream] process data error', {
                 error: error instanceof Error ? error.message : String(error),
                 stack: error instanceof Error ? error.stack : undefined,
                 rawUpdateType: update.type,
@@ -171,7 +172,7 @@ export async function GET(request: NextRequest) {
             }
 
             // Error อื่นๆ - log และส่ง error message
-            console.error('[Next.js API] gRPC stream error:', error);
+            logger.error('[stream] gRPC stream error', error);
 
             if (isControllerOpen()) {
               try {
@@ -239,8 +240,8 @@ export async function GET(request: NextRequest) {
               return;
             }
           }, SESSION_CHECK_MS);
-        } catch (error: any) {
-          console.error('[Next.js API] Error setting up stream:', error);
+        } catch (error: unknown) {
+          logger.error('[stream] setup error', error);
           isStreamClosed = true;
 
           if (keepAliveInterval) {
@@ -290,8 +291,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    // Log error for debugging
-    console.error('Error setting up SSE stream:', error);
+    logger.error('[stream] setup error', error);
 
     return new Response(
       JSON.stringify({

@@ -1,10 +1,14 @@
 import type { Prisma } from '@/generated/prisma/client';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { getAuthSession } from '@/lib/auth';
 import { callPorterService } from '@/lib/grpcClient';
 import { prisma } from '@/lib/prisma';
+import { handleGrpcError } from '@/lib/grpcErrorHandler';
+import { logger } from '@/lib/logger';
+import { formatZodError } from '@/lib/schemas/porterRequest';
 
 type PersonTypeMapItem = Prisma.hrd_person_typeGetPayload<{
   select: { HR_PERSON_TYPE_ID: true; HR_PERSON_TYPE_NAME: true };
@@ -13,9 +17,66 @@ type PositionMapItem = Prisma.hrd_positionGetPayload<{
   select: { HR_POSITION_ID: true; HR_POSITION_NAME: true };
 }>;
 
+const ListEmployeesQuerySchema = z.object({
+  employment_type_id: z.string().optional(),
+  position_id: z.string().optional(),
+  status: z.string().optional(),
+  page: z.string().optional(),
+  page_size: z.string().optional(),
+});
+
+const CreateEmployeeSchema = z.object({
+  citizenId: z.string().min(1, 'กรุณาระบุเลขบัตรประชาชน'),
+  firstName: z.string().min(1, 'กรุณาระบุชื่อ'),
+  lastName: z.string().min(1, 'กรุณาระบุนามสกุล'),
+  nickname: z.string().optional(),
+  profileImage: z.string().nullable().optional(),
+  employmentTypeId: z.union([z.string(), z.number()]),
+  positionId: z.union([z.string(), z.number()]),
+  status: z.boolean().optional().default(true),
+  userId: z.string().optional(),
+});
+
+type EmployeeProtoData = {
+  id: string;
+  citizen_id: string;
+  first_name: string;
+  last_name: string;
+  nickname?: string;
+  profile_image?: string;
+  employment_type_id: string;
+  position_id: string;
+  status: boolean;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+function mapEmployeeFromProto(
+  data: EmployeeProtoData,
+  personTypeName: string,
+  positionName: string,
+) {
+  return {
+    id: data.id,
+    citizenId: data.citizen_id,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    nickname: data.nickname || undefined,
+    profileImage: data.profile_image || undefined,
+    employmentType: personTypeName,
+    employmentTypeId: data.employment_type_id,
+    position: positionName,
+    positionId: data.position_id,
+    status: data.status,
+    userId: data.user_id || undefined,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
 /**
  * GET /api/porter/employees
- * ดึงรายการ Employee ทั้งหมด
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,97 +84,35 @@ export async function GET(request: NextRequest) {
 
     if (!auth.ok) return auth.response;
 
-    // อ่าน query parameters
     const url = new URL(request.url);
-    const searchParams = url.searchParams;
-    const { employment_type_id, position_id, status, page, page_size } =
-      Object.fromEntries(searchParams);
+    const parsed = ListEmployeesQuerySchema.safeParse(Object.fromEntries(url.searchParams));
 
-    // สร้าง request object สำหรับ gRPC
-    const protoRequest: any = {};
-
-    if (employment_type_id) {
-      protoRequest.employment_type_id = employment_type_id;
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
     }
-    if (position_id) {
-      protoRequest.position_id = position_id;
+
+    const query = parsed.data;
+    const protoRequest: Record<string, unknown> = {
+      page_size: query.page_size ? parseInt(query.page_size, 10) : 1000,
+    };
+
+    if (query.employment_type_id) protoRequest.employment_type_id = query.employment_type_id;
+    if (query.position_id) protoRequest.position_id = query.position_id;
+    if (query.status !== undefined) {
+      protoRequest.status = query.status === 'true' || query.status === '1';
     }
-    if (status !== undefined && status !== null) {
-      protoRequest.status = status === 'true' || status === '1';
-    }
-    if (page) {
-      protoRequest.page = parseInt(page, 10);
-    }
-    protoRequest.page_size = page_size ? parseInt(page_size, 10) : 1000;
+    if (query.page) protoRequest.page = parseInt(query.page, 10);
 
-    // เรียก gRPC service
-    const response = await callPorterService<any>('ListEmployees', protoRequest);
+    const response = await callPorterService<{
+      success: boolean;
+      data?: EmployeeProtoData[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+      error_message?: string;
+    }>('ListEmployees', protoRequest);
 
-    if (response.success) {
-      // ดึงข้อมูล employment types และ positions จาก hrd tables
-      const [personTypes, positions] = await Promise.all([
-        prisma.hrd_person_type.findMany({
-          select: {
-            HR_PERSON_TYPE_ID: true,
-            HR_PERSON_TYPE_NAME: true,
-          },
-        }),
-        prisma.hrd_position.findMany({
-          select: {
-            HR_POSITION_ID: true,
-            HR_POSITION_NAME: true,
-          },
-        }),
-      ]);
-
-      // สร้าง map สำหรับ lookup
-      const personTypeMap = new Map(
-        personTypes.map((pt: PersonTypeMapItem) => [
-          pt.HR_PERSON_TYPE_ID,
-          pt.HR_PERSON_TYPE_NAME ?? '',
-        ]),
-      );
-      const positionMap = new Map(
-        positions.map((p: PositionMapItem) => [
-          p.HR_POSITION_ID,
-          p.HR_POSITION_NAME ?? '',
-        ]),
-      );
-
-      // แปลงข้อมูลจาก Proto format เป็น Frontend format และ populate names
-      const frontendData = (response.data || []).map((item: any) => {
-        const employmentTypeId = parseInt(item.employment_type_id, 10);
-        const positionId = parseInt(item.position_id, 10);
-
-        return {
-          id: item.id,
-          citizenId: item.citizen_id,
-          firstName: item.first_name,
-          lastName: item.last_name,
-          nickname: item.nickname || undefined,
-          profileImage: item.profile_image || undefined,
-          employmentType: personTypeMap.get(employmentTypeId) || '',
-          employmentTypeId: item.employment_type_id,
-          position: positionMap.get(positionId) || '',
-          positionId: item.position_id,
-          status: item.status,
-          userId: item.user_id || undefined,
-          createdAt: item.created_at,
-          updatedAt: item.updated_at,
-        };
-      });
-
-      return NextResponse.json(
-        {
-          success: true,
-          data: frontendData,
-          total: response.total || frontendData.length,
-          page: response.page || 1,
-          page_size: response.page_size || 1000,
-        },
-        { status: 200 },
-      );
-    } else {
+    if (!response.success) {
       return NextResponse.json(
         {
           success: false,
@@ -123,23 +122,51 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
-  } catch (error: any) {
-    console.error('[API] GET /api/porter/employees error:', error);
+
+    const [personTypes, positions] = await Promise.all([
+      prisma.hrd_person_type.findMany({
+        select: { HR_PERSON_TYPE_ID: true, HR_PERSON_TYPE_NAME: true },
+      }),
+      prisma.hrd_position.findMany({
+        select: { HR_POSITION_ID: true, HR_POSITION_NAME: true },
+      }),
+    ]);
+
+    const personTypeMap = new Map<number, string>(
+      personTypes.map((pt: PersonTypeMapItem) => [
+        pt.HR_PERSON_TYPE_ID,
+        pt.HR_PERSON_TYPE_NAME ?? '',
+      ]),
+    );
+    const positionMap = new Map<number, string>(
+      positions.map((p: PositionMapItem) => [p.HR_POSITION_ID, p.HR_POSITION_NAME ?? '']),
+    );
+
+    const frontendData = (response.data || []).map((item) =>
+      mapEmployeeFromProto(
+        item,
+        personTypeMap.get(parseInt(item.employment_type_id, 10)) ?? '',
+        positionMap.get(parseInt(item.position_id, 10)) ?? '',
+      ),
+    );
 
     return NextResponse.json(
       {
-        success: false,
-        error: 'INTERNAL_ERROR',
-        message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล',
+        success: true,
+        data: frontendData,
+        total: response.total || frontendData.length,
+        page: response.page || 1,
+        page_size: response.page_size || 1000,
       },
-      { status: 500 },
+      { status: 200 },
     );
+  } catch (error) {
+    return handleGrpcError(error, { context: 'GET /api/porter/employees' });
   }
 }
 
 /**
  * POST /api/porter/employees
- * สร้าง Employee ใหม่
  */
 export async function POST(request: Request) {
   try {
@@ -147,72 +174,34 @@ export async function POST(request: Request) {
 
     if (!auth.ok) return auth.response;
 
-    // อ่านข้อมูลจาก request body
-    const requestData = await request.json();
+    const body = await request.json();
+    const parsed = CreateEmployeeSchema.safeParse(body);
 
-    // สร้าง proto request
-    // แปลง employmentTypeId และ positionId จาก number (hrd) เป็น string (gRPC)
-    const protoRequest: any = {
-      citizen_id: requestData.citizenId,
-      first_name: requestData.firstName,
-      last_name: requestData.lastName,
-      nickname: requestData.nickname || undefined,
-      // ส่ง empty string ถ้า profileImage เป็น null เพื่อลบรูปภาพ (gRPC ไม่รองรับ null)
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
+    }
+
+    const data = parsed.data;
+    const protoRequest = {
+      citizen_id: data.citizenId,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      nickname: data.nickname || undefined,
       profile_image:
-        requestData.profileImage && requestData.profileImage.trim() !== ''
-          ? requestData.profileImage
-          : '',
-      employment_type_id: String(requestData.employmentTypeId),
-      position_id: String(requestData.positionId),
-      status: requestData.status ?? true,
-      user_id: requestData.userId || undefined,
+        data.profileImage && data.profileImage.trim() !== '' ? data.profileImage : '',
+      employment_type_id: String(data.employmentTypeId),
+      position_id: String(data.positionId),
+      status: data.status,
+      user_id: data.userId || undefined,
     };
 
-    // เรียก gRPC service
-    const response = await callPorterService<any>('CreateEmployee', protoRequest);
+    const response = await callPorterService<{
+      success: boolean;
+      data?: EmployeeProtoData;
+      error_message?: string;
+    }>('CreateEmployee', protoRequest);
 
-    if (response.success) {
-      // ดึงข้อมูล employment type และ position จาก hrd tables
-      const employmentTypeId = parseInt(response.data.employment_type_id, 10);
-      const positionId = parseInt(response.data.position_id, 10);
-
-      const [personType, position] = await Promise.all([
-        prisma.hrd_person_type.findUnique({
-          where: { HR_PERSON_TYPE_ID: employmentTypeId },
-          select: { HR_PERSON_TYPE_NAME: true },
-        }),
-        prisma.hrd_position.findUnique({
-          where: { HR_POSITION_ID: positionId },
-          select: { HR_POSITION_NAME: true },
-        }),
-      ]);
-
-      // แปลงข้อมูลจาก Proto format เป็น Frontend format
-      const frontendData = {
-        id: response.data.id,
-        citizenId: response.data.citizen_id,
-        firstName: response.data.first_name,
-        lastName: response.data.last_name,
-        nickname: response.data.nickname || undefined,
-        profileImage: response.data.profile_image || undefined,
-        employmentType: personType?.HR_PERSON_TYPE_NAME || '',
-        employmentTypeId: response.data.employment_type_id,
-        position: position?.HR_POSITION_NAME || '',
-        positionId: response.data.position_id,
-        status: response.data.status,
-        userId: response.data.user_id || undefined,
-        createdAt: response.data.created_at,
-        updatedAt: response.data.updated_at,
-      };
-
-      return NextResponse.json(
-        {
-          success: true,
-          data: frontendData,
-        },
-        { status: 200 },
-      );
-    } else {
+    if (!response.success || !response.data) {
       return NextResponse.json(
         {
           success: false,
@@ -222,28 +211,42 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-  } catch (error: any) {
-    console.error('[API] POST /api/porter/employees error:', error);
-    // จัดการ gRPC errors
-    if (error.code === 6) {
-      // ALREADY_EXISTS
+
+    const [personType, position] = await Promise.all([
+      prisma.hrd_person_type.findUnique({
+        where: { HR_PERSON_TYPE_ID: parseInt(response.data.employment_type_id, 10) },
+        select: { HR_PERSON_TYPE_NAME: true },
+      }),
+      prisma.hrd_position.findUnique({
+        where: { HR_POSITION_ID: parseInt(response.data.position_id, 10) },
+        select: { HR_POSITION_NAME: true },
+      }),
+    ]);
+
+    const frontendData = mapEmployeeFromProto(
+      response.data,
+      personType?.HR_PERSON_TYPE_NAME || '',
+      position?.HR_POSITION_NAME || '',
+    );
+
+    return NextResponse.json({ success: true, data: frontendData }, { status: 200 });
+  } catch (error) {
+    const err = error as { code?: number; message?: string };
+
+    // ALREADY_EXISTS — เลขบัตรประชาชนซ้ำ
+    if (err.code === 6) {
+      logger.warn('POST /api/porter/employees duplicate', { message: err.message });
+
       return NextResponse.json(
         {
           success: false,
           error: 'DUPLICATE_CITIZEN_ID',
-          message: error.message || 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว',
+          message: err.message || 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว',
         },
         { status: 409 },
       );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'INTERNAL_ERROR',
-        message: error.message || 'เกิดข้อผิดพลาดในการสร้างเจ้าหน้าที่',
-      },
-      { status: 500 },
-    );
+    return handleGrpcError(error, { context: 'POST /api/porter/employees' });
   }
 }

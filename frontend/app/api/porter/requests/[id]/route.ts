@@ -10,6 +10,8 @@ import {
   mapEquipmentToProto,
   convertProtoToFrontend,
 } from '@/lib/porter';
+import { handleGrpcError } from '@/lib/grpcErrorHandler';
+import { UpdatePorterRequestSchema, formatZodError } from '@/lib/schemas/porterRequest';
 
 /**
  * PUT /api/porter/requests/[id]
@@ -23,173 +25,94 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
     const { id } = await context.params;
 
-    // อ่านข้อมูลจาก request body
-    const requestData = await request.json();
+    const body = await request.json();
+    const parsed = UpdatePorterRequestSchema.safeParse(body);
 
-    // แปลงข้อมูลจาก Frontend format เป็น Proto format
-    const protoRequest: any = {
-      id,
-    };
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
+    }
 
-    // หน่วยงานผู้แจ้งควรถูกอัปเดตจากโปรไฟล์ผู้ใช้งาน (departmentSubSubId)
+    const data = parsed.data;
+
+    // หน่วยงานผู้แจ้งใช้จาก session profile เสมอ
     const requesterDepartment = (auth.session.user as { departmentSubSubId?: number })
       ?.departmentSubSubId;
 
-    if (requesterDepartment !== null && requesterDepartment !== undefined) {
+    const protoRequest: Record<string, unknown> = { id };
+
+    if (requesterDepartment !== undefined && requesterDepartment !== null) {
       protoRequest.requester_department = requesterDepartment;
     }
-    if (requestData.requesterName !== undefined) {
-      protoRequest.requester_name = requestData.requesterName;
-    }
-    if (requestData.requesterPhone !== undefined) {
-      protoRequest.requester_phone = requestData.requesterPhone;
-    }
-    if (requestData.patientName !== undefined) {
-      protoRequest.patient_name = requestData.patientName;
-    }
-    if (requestData.patientHN !== undefined) {
-      protoRequest.patient_hn = requestData.patientHN;
-    }
-    if (requestData.patientCondition !== undefined) {
+    if (data.requesterName !== undefined) protoRequest.requester_name = data.requesterName;
+    if (data.requesterPhone !== undefined) protoRequest.requester_phone = data.requesterPhone;
+    if (data.patientName !== undefined) protoRequest.patient_name = data.patientName;
+    if (data.patientHN !== undefined) protoRequest.patient_hn = data.patientHN;
+    if (data.patientCondition !== undefined) {
       protoRequest.patient_condition =
-        Array.isArray(requestData.patientCondition) && requestData.patientCondition.length > 0
-          ? requestData.patientCondition.join(', ')
-          : null;
+        data.patientCondition.length > 0 ? data.patientCondition.join(', ') : null;
     }
 
-    if (requestData.pickupLocationDetail?.buildingId !== undefined) {
-      protoRequest.pickup_building_id = requestData.pickupLocationDetail?.buildingId || null;
+    if (data.pickupLocationDetail !== undefined && data.pickupLocationDetail !== null) {
+      protoRequest.pickup_building_id = data.pickupLocationDetail.buildingId ?? null;
+      protoRequest.pickup_floor_department_id = data.pickupLocationDetail.floorDepartmentId ?? '';
+      protoRequest.pickup_room_bed_name = data.pickupLocationDetail.roomBedName ?? null;
     }
-    if (requestData.pickupLocationDetail?.floorDepartmentId !== undefined) {
-      protoRequest.pickup_floor_department_id =
-        requestData.pickupLocationDetail?.floorDepartmentId || '';
-    } else if (requestData.pickupLocationDetail) {
-      // If object exists but field is missing (undefined), it means it should be empty (e.g. cleared)
-      protoRequest.pickup_floor_department_id = '';
-    }
-
-    if (requestData.pickupLocationDetail?.roomBedName !== undefined) {
-      protoRequest.pickup_room_bed_name = requestData.pickupLocationDetail?.roomBedName || null;
-    }
-
-    if (requestData.deliveryLocationDetail?.buildingId !== undefined) {
-      protoRequest.delivery_building_id = requestData.deliveryLocationDetail?.buildingId || null;
-    }
-    if (requestData.deliveryLocationDetail?.floorDepartmentId !== undefined) {
+    if (data.deliveryLocationDetail !== undefined && data.deliveryLocationDetail !== null) {
+      protoRequest.delivery_building_id = data.deliveryLocationDetail.buildingId ?? null;
       protoRequest.delivery_floor_department_id =
-        requestData.deliveryLocationDetail?.floorDepartmentId || '';
-    } else if (requestData.deliveryLocationDetail) {
-      // If object exists but field is missing (undefined), it means it should be empty (e.g. cleared)
-      protoRequest.delivery_floor_department_id = '';
+        data.deliveryLocationDetail.floorDepartmentId ?? '';
+      protoRequest.delivery_room_bed_name = data.deliveryLocationDetail.roomBedName ?? null;
+    }
+    if (data.requestedDateTime !== undefined) {
+      protoRequest.requested_date_time = data.requestedDateTime;
+    }
+    if (data.urgencyLevel !== undefined) {
+      protoRequest.urgency_level = mapUrgencyLevelToProto(data.urgencyLevel);
+    }
+    if (data.vehicleType !== undefined) {
+      protoRequest.vehicle_type = mapVehicleTypeToProto(data.vehicleType);
+    }
+    if (data.hasVehicle !== undefined) {
+      protoRequest.has_vehicle = mapHasVehicleToProto(data.hasVehicle);
+    }
+    if (data.returnTrip !== undefined) {
+      protoRequest.return_trip = mapReturnTripToProto(data.returnTrip);
+    }
+    if (data.transportReason !== undefined) {
+      protoRequest.transport_reason = data.transportReason;
+    }
+    // ส่งชัดเจนเสมอเมื่อ client ระบุ — รวมกรณี [] เพื่อล้างใน DB
+    if (Object.prototype.hasOwnProperty.call(body, 'equipment')) {
+      protoRequest.equipment = mapEquipmentToProto(data.equipment ?? []);
+    }
+    if (data.equipmentOther !== undefined) {
+      protoRequest.equipment_other = data.equipmentOther ?? '';
+    }
+    if (data.specialNotes !== undefined) {
+      protoRequest.special_notes = data.specialNotes ?? '';
     }
 
-    if (requestData.deliveryLocationDetail?.roomBedName !== undefined) {
-      protoRequest.delivery_room_bed_name = requestData.deliveryLocationDetail?.roomBedName || null;
-    }
-    if (requestData.requestedDateTime !== undefined) {
-      protoRequest.requested_date_time = requestData.requestedDateTime;
-    }
-    if (requestData.urgencyLevel !== undefined) {
-      protoRequest.urgency_level = mapUrgencyLevelToProto(requestData.urgencyLevel);
-    }
-    if (requestData.vehicleType !== undefined) {
-      protoRequest.vehicle_type = mapVehicleTypeToProto(requestData.vehicleType);
-    }
-    if (requestData.hasVehicle !== undefined) {
-      protoRequest.has_vehicle = mapHasVehicleToProto(requestData.hasVehicle);
-    }
-    if (requestData.returnTrip !== undefined) {
-      protoRequest.return_trip = mapReturnTripToProto(requestData.returnTrip);
-    }
-    if (requestData.transportReason !== undefined) {
-      protoRequest.transport_reason = requestData.transportReason;
-    }
-    // รวมกรณี equipment เป็น [] — ต้องส่งชัดเจนเพื่อล้างรายการอุปกรณ์ในฐานข้อมูล (ไม่ใช้แค่ค่า default ของ proto)
-    if (Object.prototype.hasOwnProperty.call(requestData, 'equipment')) {
-      protoRequest.equipment = mapEquipmentToProto(
-        Array.isArray(requestData.equipment) ? requestData.equipment : [],
-      );
-    }
-    if (requestData.equipmentOther !== undefined) {
-      // ส่งสตริงว่างแทน null — optional บน gRPC มักถูกตัดทิ้ง ทำให้ backend ไม่รู้ว่าต้องล้างค่าในฐานข้อมูล
-      protoRequest.equipment_other =
-        requestData.equipmentOther === null || requestData.equipmentOther === ''
-          ? ''
-          : String(requestData.equipmentOther);
-    }
-    if (requestData.specialNotes !== undefined) {
-      protoRequest.special_notes =
-        requestData.specialNotes === null || requestData.specialNotes === ''
-          ? ''
-          : String(requestData.specialNotes);
-    }
-
-    // เรียก gRPC service
-    const response = await callPorterService<any>('UpdatePorterRequest', protoRequest);
+    const response = await callPorterService<{
+      success: boolean;
+      data?: unknown;
+      error_message?: string;
+    }>('UpdatePorterRequest', protoRequest);
 
     if (response.success) {
-      // แปลงข้อมูลจาก Proto format เป็น Frontend format
       const frontendData = convertProtoToFrontend(response.data);
 
-      return NextResponse.json(
-        {
-          success: true,
-          data: frontendData,
-        },
-        { status: 200 },
-      );
-    } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'UPDATE_FAILED',
-          message: response.error_message || 'ไม่สามารถอัปเดตคำขอได้',
-        },
-        { status: 400 },
-      );
-    }
-  } catch (error: any) {
-    console.error('[API] PUT /api/porter/requests/[id] error:', error);
-    // จัดการ gRPC errors
-    if (error.code === 14) {
-      // UNAVAILABLE
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'PORTER_SERVICE_UNAVAILABLE',
-          message: 'บริการพนักงานเปลไม่พร้อมใช้งานในขณะนี้',
-        },
-        { status: 503 },
-      );
-    } else if (error.code === 5) {
-      // NOT_FOUND
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'NOT_FOUND',
-          message: error.message || 'ไม่พบข้อมูลที่ต้องการ',
-        },
-        { status: 404 },
-      );
-    } else if (error.code === 3) {
-      // INVALID_ARGUMENT
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'INVALID_ARGUMENT',
-          message: error.message || 'ข้อมูลไม่ถูกต้อง',
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: true, data: frontendData }, { status: 200 });
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: error.message || 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์',
+        error: 'UPDATE_FAILED',
+        message: response.error_message || 'ไม่สามารถอัปเดตคำขอได้',
       },
-      { status: 500 },
+      { status: 400 },
     );
+  } catch (error) {
+    return handleGrpcError(error, { context: 'PUT /api/porter/requests/[id]' });
   }
 }
