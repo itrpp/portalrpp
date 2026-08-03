@@ -1,11 +1,15 @@
 export const URGENCY_LEVELS = ['NORMAL', 'RUSH', 'EMERGENCY'] as const;
 export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
 
-export const VEHICLE_TYPES = ['SITTING', 'LYING', 'GOLF'] as const;
+export const VEHICLE_TYPES = ['SITTING', 'LYING'] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 export const HAS_VEHICLE_VALUES = ['YES', 'NO'] as const;
 export type HasVehicle = (typeof HAS_VEHICLE_VALUES)[number];
+
+/** ต้องการรถกอล์ฟหรือไม่ — ใช้ค่าเดียวกับ HasVehicle (YES | NO) */
+export const VEHICLE_TYPE_GOLF_VALUES = ['YES', 'NO'] as const;
+export type VehicleTypeGolf = (typeof VEHICLE_TYPE_GOLF_VALUES)[number];
 
 export const RETURN_TRIP_VALUES = ['ONE_WAY', 'ROUND_TRIP'] as const;
 export type ReturnTrip = (typeof RETURN_TRIP_VALUES)[number];
@@ -61,6 +65,7 @@ export interface PorterRequestMessage {
   urgency_level: UrgencyLevel;
   vehicle_type: VehicleType;
   has_vehicle: HasVehicle;
+  vehicle_type_golf: VehicleTypeGolf;
   return_trip: ReturnTrip;
   transport_reason: string;
   equipment: Equipment[];
@@ -100,6 +105,7 @@ export interface CreatePorterRequestInput {
   urgency_level: UrgencyLevel | number;
   vehicle_type: VehicleType | number;
   has_vehicle: HasVehicle | number;
+  vehicle_type_golf?: VehicleTypeGolf | number | null;
   return_trip: ReturnTrip | number;
   transport_reason: string;
   equipment?: Array<Equipment | number>;
@@ -139,6 +145,7 @@ export interface UpdatePorterRequestInput {
   urgency_level?: UrgencyLevel | number | null;
   vehicle_type?: VehicleType | number | null;
   has_vehicle?: HasVehicle | number | null;
+  vehicle_type_golf?: VehicleTypeGolf | number | null;
   return_trip?: ReturnTrip | number | null;
   transport_reason?: string;
   equipment?: Array<Equipment | number>;

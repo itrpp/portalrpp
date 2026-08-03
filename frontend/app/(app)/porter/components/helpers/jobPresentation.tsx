@@ -46,6 +46,10 @@ export const buildMetaChipData = (job: PorterJobItem, departmentName?: string | 
     chips.push(`มีรถแล้ว: ${job.form.hasVehicle}`);
   }
 
+  if (job.form.vehicleTypeGolf) {
+    chips.push(`รถกอล์ฟ: ${job.form.vehicleTypeGolf}`);
+  }
+
   if (job.form.returnTrip) {
     chips.push(job.form.returnTrip);
   }

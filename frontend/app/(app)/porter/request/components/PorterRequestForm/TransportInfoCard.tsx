@@ -287,7 +287,32 @@ export function TransportInfoCard({
               </Radio>
             </RadioGroup>
           </div>
-        </div>
+          <div>
+            <div className="text-sm font-medium text-foreground mb-2 block">
+              รถกอล์ฟ
+              <span className="text-danger ml-1">*</span>
+            </div>
+            {validationErrors.vehicleTypeGolf && (
+              <div className="text-sm text-danger mb-2">{validationErrors.vehicleTypeGolf}</div>
+            )}
+            <RadioGroup
+              isRequired
+              className="gap-3"
+              name="vehicleTypeGolf"
+              orientation="horizontal"
+              value={formData.vehicleTypeGolf || 'ไม่ต้องการ'}
+              onValueChange={(val) => onChange('vehicleTypeGolf', val as 'ต้องการ' | 'ไม่ต้องการ' )}
+            >
+              <Radio size="sm" value="ต้องการ">
+                ต้องการ
+              </Radio>
+              <Radio size="sm" value="ไม่ต้องการ">
+                ไม่ต้องการ
+              </Radio>
+            </RadioGroup>
+          </div>
+          </div>
+      
         <div className="mt-4">
           <label
             className="text-sm font-medium text-foreground mb-2 block"

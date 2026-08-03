@@ -6,6 +6,7 @@ import {
   mapUrgencyLevelToProto,
   mapVehicleTypeToProto,
   mapHasVehicleToProto,
+  mapVehicleTypeGolfToProto,
   mapReturnTripToProto,
   mapEquipmentToProto,
   convertProtoToFrontend,
@@ -74,6 +75,9 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     }
     if (data.hasVehicle !== undefined) {
       protoRequest.has_vehicle = mapHasVehicleToProto(data.hasVehicle);
+    }
+    if (data.vehicleTypeGolf !== undefined) {
+      protoRequest.vehicle_type_golf = mapVehicleTypeGolfToProto(data.vehicleTypeGolf);
     }
     if (data.returnTrip !== undefined) {
       protoRequest.return_trip = mapReturnTripToProto(data.returnTrip);

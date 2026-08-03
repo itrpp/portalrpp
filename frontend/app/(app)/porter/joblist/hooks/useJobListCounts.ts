@@ -17,17 +17,20 @@ export interface UseJobListCountsParams {
   search?: string | null;
   /** ความเร่งด่วน — ส่งไป API (filter จากข้อมูลทั้งหมด) */
   urgencyLevel?: string | null;
+  /** ประเภทรถ — กรอง client-side ต้องโหลดชุดใหญ่ */
+  vehicleType?: string | null;
   /** ช่วงวันที่ (createdAt) — กรอง client-side ต้องโหลดชุดใหญ่ */
   dateRange?: RangeValue<CalendarDate> | null;
   /** ชื่อเจ้าหน้าที่เปล — กรอง client-side ต้องโหลดชุดใหญ่ */
   staffNameFilter?: string | null;
 }
 
-/** กรองตามช่วงวันที่ (createdAt) และชื่อเจ้าหน้าที่เปล */
-function filterByDateRangeAndStaff(
+/** กรองตามช่วงวันที่ (createdAt), ชื่อเจ้าหน้าที่เปล และประเภทรถ */
+function filterByClientSideFilters(
   items: PorterJobItem[],
   dateRange: RangeValue<CalendarDate> | null | undefined,
   staffNameFilter: string | null | undefined,
+  vehicleType: string | null | undefined,
 ): PorterJobItem[] {
   let filtered = items;
 
@@ -53,6 +56,12 @@ function filterByDateRangeAndStaff(
     );
   }
 
+  if (vehicleType?.trim()) {
+    filtered = filtered.filter(
+      (job) => job.form.vehicleType === vehicleType,
+    );
+  }
+
   return filtered;
 }
 
@@ -63,12 +72,15 @@ function filterByDateRangeAndStaff(
 export function useJobListCounts({
   search,
   urgencyLevel,
+  vehicleType,
   dateRange,
   staffNameFilter,
 }: UseJobListCountsParams = {}) {
   /** มี filter ที่ต้องกรอง client-side (ต้องโหลดชุดใหญ่) */
   const hasClientSideFilter =
-    !!(dateRange?.start && dateRange?.end) || !!(staffNameFilter?.trim());
+    !!(dateRange?.start && dateRange?.end) ||
+    !!(staffNameFilter?.trim()) ||
+    !!(vehicleType?.trim());
 
   const commonParams = {
     search: search?.trim() || null,
@@ -111,30 +123,35 @@ export function useJobListCounts({
   return useMemo(() => {
     if (hasClientSideFilter) {
       // กรอง client-side แล้วนับจำนวน
-      const waitingFiltered = filterByDateRangeAndStaff(
+      const waitingFiltered = filterByClientSideFilters(
         waiting.data?.data ?? [],
         dateRange,
         staffNameFilter,
+        vehicleType,
       );
-      const waitingAcceptFiltered = filterByDateRangeAndStaff(
+      const waitingAcceptFiltered = filterByClientSideFilters(
         waitingAccept.data?.data ?? [],
         dateRange,
         staffNameFilter,
+        vehicleType,
       );
-      const inProgressFiltered = filterByDateRangeAndStaff(
+      const inProgressFiltered = filterByClientSideFilters(
         inProgress.data?.data ?? [],
         dateRange,
         staffNameFilter,
+        vehicleType,
       );
-      const completedFiltered = filterByDateRangeAndStaff(
+      const completedFiltered = filterByClientSideFilters(
         completed.data?.data ?? [],
         dateRange,
         staffNameFilter,
+        vehicleType,
       );
-      const cancelledFiltered = filterByDateRangeAndStaff(
+      const cancelledFiltered = filterByClientSideFilters(
         cancelled.data?.data ?? [],
         dateRange,
         staffNameFilter,
+        vehicleType,
       );
 
       return {
@@ -168,5 +185,6 @@ export function useJobListCounts({
     cancelled.data?.total,
     dateRange,
     staffNameFilter,
+    vehicleType,
   ]);
 }

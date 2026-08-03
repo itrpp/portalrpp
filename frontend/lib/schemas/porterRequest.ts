@@ -19,8 +19,9 @@ const DetailedLocationSchema = z
   .optional();
 
 const UrgencyLevelSchema = z.enum(['ปกติ', 'ด่วน', 'ฉุกเฉิน', '']);
-const VehicleTypeSchema = z.enum(['รถนั่ง', 'รถนอน', 'รถกอล์ฟ', '']);
+const VehicleTypeSchema = z.enum(['รถนั่ง', 'รถนอน']);
 const HasVehicleSchema = z.enum(['มี', 'ไม่มี', '']);
+const VehicleTypeGolfSchema = z.enum(['ต้องการ', 'ไม่ต้องการ', '']);
 const ReturnTripSchema = z.enum(['ไปส่งอย่างเดียว', 'รับกลับด้วย', '']);
 
 /**
@@ -41,6 +42,7 @@ export const CreatePorterRequestSchema = z.object({
   urgencyLevel: UrgencyLevelSchema,
   vehicleType: VehicleTypeSchema,
   hasVehicle: HasVehicleSchema,
+  vehicleTypeGolf: VehicleTypeGolfSchema.optional().default('ไม่ต้องการ'),
   returnTrip: ReturnTripSchema.optional().default('ไปส่งอย่างเดียว'),
   transportReason: z.string().min(1, 'กรุณากรอกเหตุผลการเคลื่อนย้าย'),
   equipment: z.array(z.string()).optional().default([]),

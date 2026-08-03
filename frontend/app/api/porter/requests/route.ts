@@ -9,6 +9,7 @@ import {
   mapUrgencyLevelToProto,
   mapVehicleTypeToProto,
   mapHasVehicleToProto,
+  mapVehicleTypeGolfToProto,
   mapReturnTripToProto,
   mapEquipmentToProto,
 } from '@/lib/porter';
@@ -138,6 +139,7 @@ export async function POST(request: Request) {
       urgency_level: mapUrgencyLevelToProto(data.urgencyLevel),
       vehicle_type: mapVehicleTypeToProto(data.vehicleType),
       has_vehicle: mapHasVehicleToProto(data.hasVehicle),
+      vehicle_type_golf: mapVehicleTypeGolfToProto(data.vehicleTypeGolf ?? 'ไม่ต้องการ'),
       return_trip: mapReturnTripToProto(data.returnTrip),
       transport_reason: data.transportReason,
       equipment: mapEquipmentToProto(data.equipment),

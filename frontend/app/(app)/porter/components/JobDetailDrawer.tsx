@@ -700,7 +700,7 @@ export default function JobDetailDrawer({
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                           <div className="text-sm font-medium text-foreground mb-2 block">
                             ประเภทรถ
@@ -738,6 +738,29 @@ export default function JobDetailDrawer({
                             </Radio>
                             <Radio size="sm" value="ไม่มี">
                               ไม่มี
+                            </Radio>
+                          </RadioGroup>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-foreground mb-2 block">
+                            ต้องการเป็นรถกอล์ฟ หรือไม่
+                          </div>
+                          <RadioGroup
+                            isDisabled={!canEdit || !isEditMode}
+                            orientation="horizontal"
+                            value={formData.vehicleTypeGolf || 'ไม่ต้องการ'}
+                            onValueChange={(value) =>
+                              handleInputChange(
+                                'vehicleTypeGolf',
+                                value as 'ต้องการ' | 'ไม่ต้องการ' | '',
+                              )
+                            }
+                          >
+                            <Radio size="sm" value="ต้องการ">
+                              ต้องการ
+                            </Radio>
+                            <Radio size="sm" value="ไม่ต้องการ">
+                              ไม่ต้องการ
                             </Radio>
                           </RadioGroup>
                         </div>
@@ -959,9 +982,6 @@ export default function JobDetailDrawer({
                                   {formData.vehicleType === 'รถนอน' && (
                                     <BedIcon aria-hidden className="w-4 h-4 text-default-400" />
                                   )}
-                                  {formData.vehicleType === 'รถกอล์ฟ' && (
-                                    <CarIcon aria-hidden className="w-4 h-4 text-default-400" />
-                                  )}
                                   <p className="text-sm font-medium text-foreground">
                                     {formData.vehicleType}
                                   </p>
@@ -974,6 +994,16 @@ export default function JobDetailDrawer({
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-medium text-foreground">
                                     {formData.hasVehicle}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs font-medium text-default-500 uppercase tracking-wide mb-1">
+                                  รถกอล์ฟ
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-foreground">
+                                    {formData.vehicleTypeGolf || 'ไม่ต้องการ'}
                                   </p>
                                 </div>
                               </div>

@@ -162,6 +162,7 @@ export function usePorterRequestForm({
         vehicleType: request.form.vehicleType || '',
         equipment: request.form.equipment || [],
         hasVehicle: request.form.hasVehicle || '',
+        vehicleTypeGolf: request.form.vehicleTypeGolf || 'ไม่ต้องการ',
         returnTrip: request.form.returnTrip || 'ไปส่งอย่างเดียว',
         transportReason: request.form.transportReason || '',
         equipmentOther: request.form.equipmentOther || '',

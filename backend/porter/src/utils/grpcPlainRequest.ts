@@ -25,6 +25,7 @@ const UPDATE_PORTER_REQUEST_FIELD_ALIASES: [string, string][] = [
   ['urgency_level', 'urgencyLevel'],
   ['vehicle_type', 'vehicleType'],
   ['has_vehicle', 'hasVehicle'],
+  ['vehicle_type_golf', 'vehicleTypeGolf'],
   ['return_trip', 'returnTrip'],
   ['transport_reason', 'transportReason'],
   ['equipment_other', 'equipmentOther'],

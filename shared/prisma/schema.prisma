@@ -210,10 +210,11 @@ model PorterRequest {
   patientCondition Json? // สภาพผู้ป่วย
 
   /// Transport Meta
-  urgencyLevel    String  @db.VarChar(50) // ระดับความด่วน
-  vehicleType     String  @db.VarChar(50) // ประเภทรถ
-  hasVehicle      String  @db.VarChar(50) // มีรถแล้วหรือยัง
-  returnTrip      String  @db.VarChar(50) // ส่งกลับหรือไม่
+  urgencyLevel      String @db.VarChar(50) // ระดับความด่วน
+  vehicleType       String @db.VarChar(50) // ประเภทรถ (SITTING | LYING)
+  hasVehicle        String @db.VarChar(50) // มีรถแล้วหรือยัง (YES | NO)
+  vehicleTypeGolf   String @default("NO") @db.VarChar(50) // ต้องการรถกอล์ฟหรือไม่ (YES | NO)
+  returnTrip        String @db.VarChar(50) // ส่งกลับหรือไม่
   transportReason String  @db.VarChar(200) // เหตุผลการเคลื่อนย้าย
   equipment       Json // อุปกรณ์ที่ต้องการ
   equipmentOther  String? @db.VarChar(200) // อุปกรณ์อื่นๆ ระบุ

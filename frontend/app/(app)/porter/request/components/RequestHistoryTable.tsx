@@ -103,9 +103,6 @@ export function ExpandedDetailContent({
                 {item.form.vehicleType === 'รถนอน' && (
                   <BedIcon aria-hidden className="w-4 h-4 text-default-400" />
                 )}
-                {item.form.vehicleType === 'รถกอล์ฟ' && (
-                  <CarIcon aria-hidden className="w-4 h-4 text-default-400" />
-                )}
                 <p className="text-sm font-medium text-foreground">{item.form.vehicleType}</p>
               </div>
             </div>
@@ -113,6 +110,14 @@ export function ExpandedDetailContent({
               <div className={labelClass}>มีรถแล้วหรือไม่</div>
               <div className="flex items-center gap-2">
                 <p className="text-md font-medium text-foreground">{item.form.hasVehicle}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={labelClass}>รถกอล์ฟ</div>
+              <div className="flex items-center gap-2">
+                <p className="text-md font-medium text-foreground">
+                  {item.form.vehicleTypeGolf || 'ไม่ต้องการ'}
+                </p>
               </div>
             </div>
           </div>
