@@ -11,7 +11,12 @@ import type React from 'react';
 /**
  * ประเภทรถเปล
  */
-export type VehicleType = 'รถนั่ง' | 'รถนอน' | 'รถกอล์ฟ';
+export type VehicleType = 'รถนั่ง' | 'รถนอน';
+
+/**
+ * ต้องการรถกอล์ฟหรือไม่
+ */
+export type VehicleTypeGolf = 'ต้องการ' | 'ไม่ต้องการ';
 
 /**
  * ระดับความเร่งด่วน
@@ -49,6 +54,7 @@ export interface PorterRequestFormData {
   vehicleType: VehicleType | '';
   equipment: EquipmentType[];
   hasVehicle: 'มี' | 'ไม่มี' | '';
+  vehicleTypeGolf: VehicleTypeGolf | '';
   returnTrip: 'ไปส่งอย่างเดียว' | 'รับกลับด้วย' | '';
 
   // รายละเอียดเพิ่มเติม

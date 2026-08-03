@@ -25,6 +25,7 @@ export const REQUEST_FIELD_LABELS: Partial<Record<keyof PorterRequestFormData, s
   urgencyLevel: 'ความเร่งด่วน',
   vehicleType: 'ประเภทรถ',
   hasVehicle: 'มีรถแล้วหรือยัง',
+  vehicleTypeGolf: 'ต้องการเป็นรถกอล์ฟ หรือไม่',
   returnTrip: 'ส่งกลับหรือไม่',
 };
 
@@ -48,6 +49,7 @@ export const createDefaultFormData = (
   vehicleType: '',
   equipment: [],
   hasVehicle: '',
+  vehicleTypeGolf: 'ไม่ต้องการ',
   returnTrip: 'ไปส่งอย่างเดียว',
 
   transportReason: '',

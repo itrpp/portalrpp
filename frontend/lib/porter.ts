@@ -60,7 +60,9 @@ export const URGENCY_OPTIONS: {
 /**
  * ประเภทรถเปล
  */
-export const VEHICLE_TYPE_OPTIONS: VehicleType[] = ['รถนั่ง', 'รถนอน', 'รถกอล์ฟ'];
+export const VEHICLE_TYPE_OPTIONS: VehicleType[] = ['รถนั่ง', 'รถนอน'];
+
+export const VEHICLE_TYPE_GOLF_OPTIONS = ['ต้องการ', 'ไม่ต้องการ'] as const;
 
 /**
  * อุปกรณ์ที่ต้องการ
@@ -303,7 +305,6 @@ export function mapVehicleTypeToProto(type: string): string {
   const map: Record<string, string> = {
     รถนั่ง: 'SITTING',
     รถนอน: 'LYING',
-    รถกอล์ฟ: 'GOLF',
   };
 
   return map[type] ?? 'SITTING';
@@ -321,6 +322,17 @@ export function mapHasVehicleToProto(hasVehicle: string): string {
   return map[hasVehicle] ?? 'NO';
 }
 
+/**
+ * แปลง Vehicle Type Golf จาก Frontend (ภาษาไทย) เป็น Proto string
+ */
+export function mapVehicleTypeGolfToProto(vehicleTypeGolf: string): string {
+  const map: Record<string, string> = {
+    ต้องการ: 'YES',
+    ไม่ต้องการ: 'NO',
+  };
+
+  return map[vehicleTypeGolf] ?? 'NO';
+}
 /**
  * แปลง Return Trip จาก Frontend (ภาษาไทย) เป็น Proto string
  */
@@ -360,6 +372,7 @@ export function mapEquipmentToProto(equipment: string[]): string[] {
 export function serializePorterRequestFormForPut(form: PorterRequestFormData): PorterRequestFormData {
   return {
     ...form,
+    vehicleTypeGolf: form.vehicleTypeGolf || 'ไม่ต้องการ',
     equipment: form.equipment ?? [],
     equipmentOther: form.equipmentOther ?? '',
     specialNotes: form.specialNotes ?? '',
@@ -432,7 +445,6 @@ function mapVehicleTypeFromProto(type: string | number): VehicleType {
     const map: Record<number, VehicleType> = {
       0: 'รถนั่ง',
       1: 'รถนอน',
-      2: 'รถกอล์ฟ',
     };
 
     return map[type] ?? 'รถนั่ง';
@@ -441,7 +453,8 @@ function mapVehicleTypeFromProto(type: string | number): VehicleType {
   const map: Record<string, VehicleType> = {
     SITTING: 'รถนั่ง',
     LYING: 'รถนอน',
-    GOLF: 'รถกอล์ฟ',
+    // legacy — ค่าเก่าใน DB ที่ยังเป็น GOLF
+    GOLF: 'รถนอน',
   };
 
   return map[type] ?? 'รถนั่ง';
@@ -466,6 +479,30 @@ function mapHasVehicleFromProto(hasVehicle: string | number): 'มี' | 'ไม
   };
 
   return map[hasVehicle] ?? '';
+}
+
+/**
+ * แปลง Vehicle Type Golf จาก Proto string เป็น Frontend (ภาษาไทย)
+ */
+function mapVehicleTypeGolfFromProto(
+  value: string | number | undefined | null,
+): 'ต้องการ' | 'ไม่ต้องการ' {
+  if (value == null || value === '') return 'ไม่ต้องการ';
+
+  if (typeof value === 'number') {
+    const map: Record<number, 'ต้องการ' | 'ไม่ต้องการ'> = {
+      0: 'ต้องการ',
+      1: 'ไม่ต้องการ',
+    };
+    return map[value] ?? 'ไม่ต้องการ';
+  }
+
+  const map: Record<string, 'ต้องการ' | 'ไม่ต้องการ'> = {
+    YES: 'ต้องการ',
+    NO: 'ไม่ต้องการ',
+  };
+
+  return map[value] ?? 'ไม่ต้องการ';
 }
 
 /**
@@ -593,6 +630,12 @@ export function convertProtoToFrontend(protoData: any): PorterJobItem {
       urgencyLevel: mapUrgencyLevelFromProto(protoData.urgency_level || protoData.urgencyLevel),
       vehicleType: mapVehicleTypeFromProto(protoData.vehicle_type || protoData.vehicleType),
       hasVehicle: mapHasVehicleFromProto(protoData.has_vehicle || protoData.hasVehicle),
+      vehicleTypeGolf:
+        (protoData.vehicle_type || protoData.vehicleType) === 'GOLF'
+          ? 'ต้องการ'
+          : mapVehicleTypeGolfFromProto(
+              protoData.vehicle_type_golf ?? protoData.vehicleTypeGolf,
+            ),
       returnTrip: mapReturnTripFromProto(protoData.return_trip || protoData.returnTrip),
       transportReason: protoData.transport_reason || protoData.transportReason || '',
       equipment: mapEquipmentFromProto(protoData.equipment || []),

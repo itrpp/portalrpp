@@ -99,7 +99,7 @@ message CreatePorterRequestRequest {
   // ข้อมูลการเคลื่อนย้าย (Transport Information)
   string requested_date_time = 15; // ISO 8601 format
   string urgency_level = 16; // NORMAL, RUSH, EMERGENCY
-  string vehicle_type = 17; // SITTING, LYING, GOLF
+  string vehicle_type = 17; // SITTING, LYING
   string has_vehicle = 18; // YES, NO
   string return_trip = 19; // ONE_WAY, ROUND_TRIP
   string transport_reason = 20;
@@ -112,6 +112,7 @@ message CreatePorterRequestRequest {
   optional string special_notes = 22;
 
   string requester_user_id = 24;
+  string vehicle_type_golf = 25; // YES, NO — ต้องการรถกอล์ฟหรือไม่
 }
 
 message GetPorterRequestRequest {
@@ -147,13 +148,14 @@ message UpdatePorterRequestRequest {
   optional string delivery_room_bed_name = 22;
   optional string requested_date_time = 12;
   optional string urgency_level = 13; // NORMAL, RUSH, EMERGENCY
-  optional string vehicle_type = 14; // SITTING, LYING, GOLF
+  optional string vehicle_type = 14; // SITTING, LYING
   optional string has_vehicle = 15; // YES, NO
   optional string return_trip = 16; // ONE_WAY, ROUND_TRIP
   optional string transport_reason = 17;
   repeated string equipment = 18; // OXYGEN, SALINE_POLE, ICD_BOX, CLOTH_TIED, OTHER
   optional string equipment_other = 20; // ระบุอุปกรณ์อื่นๆ เมื่อเลือก "OTHER"
   optional string special_notes = 19;
+  optional string vehicle_type_golf = 23; // YES, NO — ต้องการรถกอล์ฟหรือไม่
 }
 
 message UpdatePorterRequestStatusRequest {
@@ -253,10 +255,11 @@ message PorterRequest {
   // ข้อมูลการเคลื่อนย้าย
   string requested_date_time = 18;
   string urgency_level = 19; // NORMAL, RUSH, EMERGENCY
-  string vehicle_type = 20; // SITTING, LYING, GOLF
+  string vehicle_type = 20; // SITTING, LYING
   string has_vehicle = 21; // YES, NO
   string return_trip = 22; // ONE_WAY, ROUND_TRIP
   string transport_reason = 23;
+  string vehicle_type_golf = 45; // YES, NO — ต้องการรถกอล์ฟหรือไม่
 
   // อุปกรณ์
   repeated string equipment = 24; // OXYGEN, SALINE_POLE, ICD_BOX, CLOTH_TIED, OTHER

@@ -16,7 +16,7 @@ import { getISODatePart } from '@/lib/utils';
 
 const DEFAULT_PAGE_SIZE = 5;
 const IN_PROGRESS_FETCH_SIZE = 500;
-/** เมื่อมี filter ช่วงวันที่/ชื่อเจ้าหน้าที่ ใช้โหลดข้อมูลมาก enough เพื่อ filter จากทั้งหมด */
+/** เมื่อมี filter ช่วงวันที่/ชื่อเจ้าหน้าที่/ประเภทรถ ใช้โหลดข้อมูลมาก enough เพื่อ filter จากทั้งหมด */
 const FETCH_ALL_SIZE = 2000;
 
 function toDateOnly(value: CalendarDate | null): Date | null {
@@ -112,6 +112,8 @@ export interface UseJobListDataParams {
   search?: string | null;
   /** ความเร่งด่วน — ส่งไป API (filter จากข้อมูลทั้งหมด) */
   urgencyLevel?: string | null;
+  /** ประเภทรถ — กรอง client-side ต้องโหลดชุดใหญ่ */
+  vehicleType?: string | null;
   /** ช่วงวันที่ (createdAt) — กรอง client-side ต้องโหลดชุดใหญ่ */
   dateRange?: RangeValue<CalendarDate> | null;
   /** ชื่อเจ้าหน้าที่เปล — กรอง client-side ต้องโหลดชุดใหญ่ */
@@ -122,11 +124,12 @@ export interface UseJobListDataParams {
  * Hook สำหรับโหลดข้อมูลรายการคำขอแบบศูนย์เปล (จัดรูปแบบเดียวกับหน้า request)
  * ใช้ React Query + server-side pagination ตาม tab (ยกเว้น in-progress ที่ merge 2 status)
  */
-/** กรองตามช่วงวันที่ (createdAt) และชื่อเจ้าหน้าที่เปล */
-function filterByDateRangeAndStaff(
+/** กรองตามช่วงวันที่ (createdAt), ชื่อเจ้าหน้าที่เปล และประเภทรถ */
+function filterByClientSideFilters(
   items: PorterJobItem[],
   dateRange: RangeValue<CalendarDate> | null | undefined,
   staffNameFilter: string | null | undefined,
+  vehicleType: string | null | undefined,
 ): PorterJobItem[] {
   let filtered = items;
 
@@ -152,6 +155,12 @@ function filterByDateRangeAndStaff(
     );
   }
 
+  if (vehicleType?.trim()) {
+    filtered = filtered.filter(
+      (job) => job.form.vehicleType === vehicleType,
+    );
+  }
+
   return filtered;
 }
 
@@ -163,6 +172,7 @@ export function useJobListData({
   cancelledEndDate,
   search,
   urgencyLevel,
+  vehicleType,
   dateRange,
   staffNameFilter,
 }: UseJobListDataParams) {
@@ -178,7 +188,9 @@ export function useJobListData({
 
   /** มี filter ที่ต้องกรอง client-side (ต้องโหลดชุดใหญ่) */
   const hasClientSideFilter =
-    !!(dateRange?.start && dateRange?.end) || !!(staffNameFilter?.trim());
+    !!(dateRange?.start && dateRange?.end) ||
+    !!(staffNameFilter?.trim()) ||
+    !!(vehicleType?.trim());
 
   const fetchSize = hasClientSideFilter ? FETCH_ALL_SIZE : (selectedTab === 'in-progress' ? IN_PROGRESS_FETCH_SIZE : pageSize);
   const fetchPage = hasClientSideFilter ? 1 : (selectedTab === 'in-progress' ? 1 : page);
@@ -228,13 +240,14 @@ export function useJobListData({
     const b = inProgressQuery.data?.data ?? [];
     const merged = sortJobs([...a, ...b], 'in-progress');
 
-    return filterByDateRangeAndStaff(merged, dateRange, staffNameFilter);
+    return filterByClientSideFilters(merged, dateRange, staffNameFilter, vehicleType);
   }, [
     selectedTab,
     waitingAcceptQuery.data?.data,
     inProgressQuery.data?.data,
     dateRange,
     staffNameFilter,
+    vehicleType,
   ]);
 
   const inProgressPaginatedItems = useMemo(() => {
@@ -269,7 +282,7 @@ export function useJobListData({
     const raw = singleQuery.data?.data ?? [];
 
     return hasClientSideFilter
-      ? filterByDateRangeAndStaff(raw, dateRange, staffNameFilter)
+      ? filterByClientSideFilters(raw, dateRange, staffNameFilter, vehicleType)
       : raw;
   }, [
     selectedTab,
@@ -277,6 +290,7 @@ export function useJobListData({
     hasClientSideFilter,
     dateRange,
     staffNameFilter,
+    vehicleType,
   ]);
 
   const items = useMemo(() => {
@@ -479,6 +493,7 @@ export function useJobListData({
     cancelledEndDate,
     search,
     urgencyLevel,
+    vehicleType,
     dateRange,
     staffNameFilter,
   ]);

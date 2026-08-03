@@ -21,8 +21,11 @@ import {
   mapStatusToProto,
   mapUrgencyLevelToPrisma,
   mapUrgencyLevelToProto,
+  mapVehicleTypeGolfToPrisma,
+  mapVehicleTypeGolfToProto,
   mapVehicleTypeToPrisma,
   mapVehicleTypeToProto,
+  isLegacyGolfVehicleType,
 } from '../utils/enumMapper';
 import {
   CreateBuildingInput,
@@ -102,6 +105,7 @@ export const createPorterRequest = async (
     urgency_level,
     vehicle_type,
     has_vehicle,
+    vehicle_type_golf,
     return_trip,
     transport_reason,
     equipment,
@@ -137,6 +141,7 @@ export const createPorterRequest = async (
     urgencyLevel: mapUrgencyLevelToPrisma(urgency_level),
     vehicleType: mapVehicleTypeToPrisma(vehicle_type),
     hasVehicle: mapHasVehicleToPrisma(has_vehicle),
+    vehicleTypeGolf: mapVehicleTypeGolfToPrisma(vehicle_type_golf),
     returnTrip: mapReturnTripToPrisma(return_trip),
     transportReason: transport_reason,
     equipment: mapEquipmentToPrisma(
@@ -326,6 +331,9 @@ export const updatePorterRequest = async (
   }
   if (updateData.has_vehicle !== undefined && updateData.has_vehicle !== null) {
     data.hasVehicle = mapHasVehicleToPrisma(updateData.has_vehicle);
+  }
+  if (updateData.vehicle_type_golf !== undefined && updateData.vehicle_type_golf !== null) {
+    data.vehicleTypeGolf = mapVehicleTypeGolfToPrisma(updateData.vehicle_type_golf);
   }
   if (updateData.return_trip !== undefined && updateData.return_trip !== null) {
     data.returnTrip = mapReturnTripToPrisma(updateData.return_trip);
@@ -956,6 +964,9 @@ const convertToProtoResponse = (
     urgency_level: mapUrgencyLevelToProto(porterRequest.urgencyLevel),
     vehicle_type: mapVehicleTypeToProto(porterRequest.vehicleType),
     has_vehicle: mapHasVehicleToProto(porterRequest.hasVehicle),
+    vehicle_type_golf: isLegacyGolfVehicleType(porterRequest.vehicleType)
+      ? 'YES'
+      : mapVehicleTypeGolfToProto(porterRequest.vehicleTypeGolf),
     return_trip: mapReturnTripToProto(porterRequest.returnTrip),
     transport_reason: porterRequest.transportReason,
     equipment: mapEquipmentToProto(porterRequest.equipment as string | Equipment[] | null),

@@ -5,12 +5,14 @@ import {
   RETURN_TRIP_VALUES,
   URGENCY_LEVELS,
   VEHICLE_TYPES,
+  VEHICLE_TYPE_GOLF_VALUES,
   type Equipment,
   type HasVehicle,
   type PorterStatus,
   type ReturnTrip,
   type UrgencyLevel,
   type VehicleType,
+  type VehicleTypeGolf,
 } from '../types/porter';
 
 const validateValue = <T extends string>(
@@ -36,15 +38,31 @@ export const mapUrgencyLevelToProto = (prismaLevel?: string | null): UrgencyLeve
   return validateValue(prismaLevel ?? undefined, URGENCY_LEVELS, 'NORMAL');
 };
 
+/** ค่าเก่า GOLF ใน DB → map เป็น LYING เพื่อความเข้ากันได้ */
+const legacyVehicleTypeToCurrent = (value: string): VehicleType | null => {
+  if (value === 'GOLF') return 'LYING';
+  return null;
+};
+
+export const isLegacyGolfVehicleType = (value?: string | null): boolean => value === 'GOLF';
+
 export const mapVehicleTypeToPrisma = (protoType?: string | number | null): VehicleType => {
   if (typeof protoType === 'number') {
-    const map: Record<number, VehicleType> = { 0: 'SITTING', 1: 'LYING', 2: 'GOLF' };
+    const map: Record<number, VehicleType> = { 0: 'SITTING', 1: 'LYING' };
     return map[protoType] ?? 'SITTING';
+  }
+  if (typeof protoType === 'string') {
+    const legacy = legacyVehicleTypeToCurrent(protoType);
+    if (legacy) return legacy;
   }
   return validateValue(protoType ?? undefined, VEHICLE_TYPES, 'SITTING');
 };
 
 export const mapVehicleTypeToProto = (prismaType?: string | null): VehicleType => {
+  if (typeof prismaType === 'string') {
+    const legacy = legacyVehicleTypeToCurrent(prismaType);
+    if (legacy) return legacy;
+  }
   return validateValue(prismaType ?? undefined, VEHICLE_TYPES, 'SITTING');
 };
 
@@ -58,6 +76,20 @@ export const mapHasVehicleToPrisma = (protoValue?: string | number | null): HasV
 
 export const mapHasVehicleToProto = (prismaValue?: string | null): HasVehicle => {
   return validateValue(prismaValue ?? undefined, HAS_VEHICLE_VALUES, 'NO');
+};
+
+export const mapVehicleTypeGolfToPrisma = (
+  protoValue?: string | number | null,
+): VehicleTypeGolf => {
+  if (typeof protoValue === 'number') {
+    const map: Record<number, VehicleTypeGolf> = { 0: 'YES', 1: 'NO' };
+    return map[protoValue] ?? 'NO';
+  }
+  return validateValue(protoValue ?? undefined, VEHICLE_TYPE_GOLF_VALUES, 'NO');
+};
+
+export const mapVehicleTypeGolfToProto = (prismaValue?: string | null): VehicleTypeGolf => {
+  return validateValue(prismaValue ?? undefined, VEHICLE_TYPE_GOLF_VALUES, 'NO');
 };
 
 export const mapReturnTripToPrisma = (protoValue?: string | number | null): ReturnTrip => {

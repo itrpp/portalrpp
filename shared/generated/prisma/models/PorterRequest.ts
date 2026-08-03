@@ -50,6 +50,7 @@ export type PorterRequestMinAggregateOutputType = {
   urgencyLevel: string | null
   vehicleType: string | null
   hasVehicle: string | null
+  vehicleTypeGolf: string | null
   returnTrip: string | null
   transportReason: string | null
   equipmentOther: string | null
@@ -88,6 +89,7 @@ export type PorterRequestMaxAggregateOutputType = {
   urgencyLevel: string | null
   vehicleType: string | null
   hasVehicle: string | null
+  vehicleTypeGolf: string | null
   returnTrip: string | null
   transportReason: string | null
   equipmentOther: string | null
@@ -127,6 +129,7 @@ export type PorterRequestCountAggregateOutputType = {
   urgencyLevel: number
   vehicleType: number
   hasVehicle: number
+  vehicleTypeGolf: number
   returnTrip: number
   transportReason: number
   equipment: number
@@ -176,6 +179,7 @@ export type PorterRequestMinAggregateInputType = {
   urgencyLevel?: true
   vehicleType?: true
   hasVehicle?: true
+  vehicleTypeGolf?: true
   returnTrip?: true
   transportReason?: true
   equipmentOther?: true
@@ -214,6 +218,7 @@ export type PorterRequestMaxAggregateInputType = {
   urgencyLevel?: true
   vehicleType?: true
   hasVehicle?: true
+  vehicleTypeGolf?: true
   returnTrip?: true
   transportReason?: true
   equipmentOther?: true
@@ -253,6 +258,7 @@ export type PorterRequestCountAggregateInputType = {
   urgencyLevel?: true
   vehicleType?: true
   hasVehicle?: true
+  vehicleTypeGolf?: true
   returnTrip?: true
   transportReason?: true
   equipment?: true
@@ -380,6 +386,7 @@ export type PorterRequestGroupByOutputType = {
   urgencyLevel: string
   vehicleType: string
   hasVehicle: string
+  vehicleTypeGolf: string
   returnTrip: string
   transportReason: string
   equipment: runtime.JsonValue
@@ -443,6 +450,7 @@ export type PorterRequestWhereInput = {
   urgencyLevel?: Prisma.StringFilter<"PorterRequest"> | string
   vehicleType?: Prisma.StringFilter<"PorterRequest"> | string
   hasVehicle?: Prisma.StringFilter<"PorterRequest"> | string
+  vehicleTypeGolf?: Prisma.StringFilter<"PorterRequest"> | string
   returnTrip?: Prisma.StringFilter<"PorterRequest"> | string
   transportReason?: Prisma.StringFilter<"PorterRequest"> | string
   equipment?: Prisma.JsonFilter<"PorterRequest">
@@ -483,6 +491,7 @@ export type PorterRequestOrderByWithRelationInput = {
   urgencyLevel?: Prisma.SortOrder
   vehicleType?: Prisma.SortOrder
   hasVehicle?: Prisma.SortOrder
+  vehicleTypeGolf?: Prisma.SortOrder
   returnTrip?: Prisma.SortOrder
   transportReason?: Prisma.SortOrder
   equipment?: Prisma.SortOrder
@@ -527,6 +536,7 @@ export type PorterRequestWhereUniqueInput = Prisma.AtLeast<{
   urgencyLevel?: Prisma.StringFilter<"PorterRequest"> | string
   vehicleType?: Prisma.StringFilter<"PorterRequest"> | string
   hasVehicle?: Prisma.StringFilter<"PorterRequest"> | string
+  vehicleTypeGolf?: Prisma.StringFilter<"PorterRequest"> | string
   returnTrip?: Prisma.StringFilter<"PorterRequest"> | string
   transportReason?: Prisma.StringFilter<"PorterRequest"> | string
   equipment?: Prisma.JsonFilter<"PorterRequest">
@@ -567,6 +577,7 @@ export type PorterRequestOrderByWithAggregationInput = {
   urgencyLevel?: Prisma.SortOrder
   vehicleType?: Prisma.SortOrder
   hasVehicle?: Prisma.SortOrder
+  vehicleTypeGolf?: Prisma.SortOrder
   returnTrip?: Prisma.SortOrder
   transportReason?: Prisma.SortOrder
   equipment?: Prisma.SortOrder
@@ -615,6 +626,7 @@ export type PorterRequestScalarWhereWithAggregatesInput = {
   urgencyLevel?: Prisma.StringWithAggregatesFilter<"PorterRequest"> | string
   vehicleType?: Prisma.StringWithAggregatesFilter<"PorterRequest"> | string
   hasVehicle?: Prisma.StringWithAggregatesFilter<"PorterRequest"> | string
+  vehicleTypeGolf?: Prisma.StringWithAggregatesFilter<"PorterRequest"> | string
   returnTrip?: Prisma.StringWithAggregatesFilter<"PorterRequest"> | string
   transportReason?: Prisma.StringWithAggregatesFilter<"PorterRequest"> | string
   equipment?: Prisma.JsonWithAggregatesFilter<"PorterRequest">
@@ -655,6 +667,7 @@ export type PorterRequestCreateInput = {
   urgencyLevel: string
   vehicleType: string
   hasVehicle: string
+  vehicleTypeGolf?: string
   returnTrip: string
   transportReason: string
   equipment: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -695,6 +708,7 @@ export type PorterRequestUncheckedCreateInput = {
   urgencyLevel: string
   vehicleType: string
   hasVehicle: string
+  vehicleTypeGolf?: string
   returnTrip: string
   transportReason: string
   equipment: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -735,6 +749,7 @@ export type PorterRequestUpdateInput = {
   urgencyLevel?: Prisma.StringFieldUpdateOperationsInput | string
   vehicleType?: Prisma.StringFieldUpdateOperationsInput | string
   hasVehicle?: Prisma.StringFieldUpdateOperationsInput | string
+  vehicleTypeGolf?: Prisma.StringFieldUpdateOperationsInput | string
   returnTrip?: Prisma.StringFieldUpdateOperationsInput | string
   transportReason?: Prisma.StringFieldUpdateOperationsInput | string
   equipment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -775,6 +790,7 @@ export type PorterRequestUncheckedUpdateInput = {
   urgencyLevel?: Prisma.StringFieldUpdateOperationsInput | string
   vehicleType?: Prisma.StringFieldUpdateOperationsInput | string
   hasVehicle?: Prisma.StringFieldUpdateOperationsInput | string
+  vehicleTypeGolf?: Prisma.StringFieldUpdateOperationsInput | string
   returnTrip?: Prisma.StringFieldUpdateOperationsInput | string
   transportReason?: Prisma.StringFieldUpdateOperationsInput | string
   equipment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -815,6 +831,7 @@ export type PorterRequestCreateManyInput = {
   urgencyLevel: string
   vehicleType: string
   hasVehicle: string
+  vehicleTypeGolf?: string
   returnTrip: string
   transportReason: string
   equipment: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -855,6 +872,7 @@ export type PorterRequestUpdateManyMutationInput = {
   urgencyLevel?: Prisma.StringFieldUpdateOperationsInput | string
   vehicleType?: Prisma.StringFieldUpdateOperationsInput | string
   hasVehicle?: Prisma.StringFieldUpdateOperationsInput | string
+  vehicleTypeGolf?: Prisma.StringFieldUpdateOperationsInput | string
   returnTrip?: Prisma.StringFieldUpdateOperationsInput | string
   transportReason?: Prisma.StringFieldUpdateOperationsInput | string
   equipment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -895,6 +913,7 @@ export type PorterRequestUncheckedUpdateManyInput = {
   urgencyLevel?: Prisma.StringFieldUpdateOperationsInput | string
   vehicleType?: Prisma.StringFieldUpdateOperationsInput | string
   hasVehicle?: Prisma.StringFieldUpdateOperationsInput | string
+  vehicleTypeGolf?: Prisma.StringFieldUpdateOperationsInput | string
   returnTrip?: Prisma.StringFieldUpdateOperationsInput | string
   transportReason?: Prisma.StringFieldUpdateOperationsInput | string
   equipment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -941,6 +960,7 @@ export type PorterRequestCountOrderByAggregateInput = {
   urgencyLevel?: Prisma.SortOrder
   vehicleType?: Prisma.SortOrder
   hasVehicle?: Prisma.SortOrder
+  vehicleTypeGolf?: Prisma.SortOrder
   returnTrip?: Prisma.SortOrder
   transportReason?: Prisma.SortOrder
   equipment?: Prisma.SortOrder
@@ -984,6 +1004,7 @@ export type PorterRequestMaxOrderByAggregateInput = {
   urgencyLevel?: Prisma.SortOrder
   vehicleType?: Prisma.SortOrder
   hasVehicle?: Prisma.SortOrder
+  vehicleTypeGolf?: Prisma.SortOrder
   returnTrip?: Prisma.SortOrder
   transportReason?: Prisma.SortOrder
   equipmentOther?: Prisma.SortOrder
@@ -1022,6 +1043,7 @@ export type PorterRequestMinOrderByAggregateInput = {
   urgencyLevel?: Prisma.SortOrder
   vehicleType?: Prisma.SortOrder
   hasVehicle?: Prisma.SortOrder
+  vehicleTypeGolf?: Prisma.SortOrder
   returnTrip?: Prisma.SortOrder
   transportReason?: Prisma.SortOrder
   equipmentOther?: Prisma.SortOrder
@@ -1067,6 +1089,7 @@ export type PorterRequestSelect<ExtArgs extends runtime.Types.Extensions.Interna
   urgencyLevel?: boolean
   vehicleType?: boolean
   hasVehicle?: boolean
+  vehicleTypeGolf?: boolean
   returnTrip?: boolean
   transportReason?: boolean
   equipment?: boolean
@@ -1109,6 +1132,7 @@ export type PorterRequestSelectScalar = {
   urgencyLevel?: boolean
   vehicleType?: boolean
   hasVehicle?: boolean
+  vehicleTypeGolf?: boolean
   returnTrip?: boolean
   transportReason?: boolean
   equipment?: boolean
@@ -1132,7 +1156,7 @@ export type PorterRequestSelectScalar = {
   cancelledById?: boolean
 }
 
-export type PorterRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "status" | "specialNotes" | "requestedDateTime" | "requesterDepartment" | "requesterUserID" | "requesterName" | "requesterPhone" | "patientName" | "patientHN" | "patientCondition" | "urgencyLevel" | "vehicleType" | "hasVehicle" | "returnTrip" | "transportReason" | "equipment" | "equipmentOther" | "pickupBuildingId" | "pickupFloorDepartmentId" | "pickupRoomBedName" | "deliveryBuildingId" | "deliveryFloorDepartmentId" | "deliveryRoomBedName" | "acceptedById" | "acceptedAt" | "assignedToId" | "assignedAt" | "pickupAt" | "deliveryAt" | "returnAt" | "completedAt" | "cancelledAt" | "cancelledReason" | "cancelledById", ExtArgs["result"]["porterRequest"]>
+export type PorterRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "status" | "specialNotes" | "requestedDateTime" | "requesterDepartment" | "requesterUserID" | "requesterName" | "requesterPhone" | "patientName" | "patientHN" | "patientCondition" | "urgencyLevel" | "vehicleType" | "hasVehicle" | "vehicleTypeGolf" | "returnTrip" | "transportReason" | "equipment" | "equipmentOther" | "pickupBuildingId" | "pickupFloorDepartmentId" | "pickupRoomBedName" | "deliveryBuildingId" | "deliveryFloorDepartmentId" | "deliveryRoomBedName" | "acceptedById" | "acceptedAt" | "assignedToId" | "assignedAt" | "pickupAt" | "deliveryAt" | "returnAt" | "completedAt" | "cancelledAt" | "cancelledReason" | "cancelledById", ExtArgs["result"]["porterRequest"]>
 
 export type $PorterRequestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "PorterRequest"
@@ -1163,6 +1187,7 @@ export type $PorterRequestPayload<ExtArgs extends runtime.Types.Extensions.Inter
     urgencyLevel: string
     vehicleType: string
     hasVehicle: string
+    vehicleTypeGolf: string
     returnTrip: string
     transportReason: string
     equipment: runtime.JsonValue
@@ -1575,6 +1600,7 @@ export interface PorterRequestFieldRefs {
   readonly urgencyLevel: Prisma.FieldRef<"PorterRequest", 'String'>
   readonly vehicleType: Prisma.FieldRef<"PorterRequest", 'String'>
   readonly hasVehicle: Prisma.FieldRef<"PorterRequest", 'String'>
+  readonly vehicleTypeGolf: Prisma.FieldRef<"PorterRequest", 'String'>
   readonly returnTrip: Prisma.FieldRef<"PorterRequest", 'String'>
   readonly transportReason: Prisma.FieldRef<"PorterRequest", 'String'>
   readonly equipment: Prisma.FieldRef<"PorterRequest", 'Json'>
