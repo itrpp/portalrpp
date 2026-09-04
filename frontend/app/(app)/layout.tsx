@@ -41,6 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const userId = session?.user?.id;
   const [isNavigating, setIsNavigating] = useState(false);
   const [isProfileOrgModalOpen, setIsProfileOrgModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -104,41 +105,82 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, pathname]);
 
-  // อัปเดต user activity เมื่อผู้ใช้ authenticated (เก็บสถานะด้วย session/cookie, เรียกทุก 30 วินาที)
+  // อัปเดต user activity เมื่อผู้ใช้ authenticated (เรียกทุก 30 วินาที เฉพาะแท็บที่มองเห็น)
   useEffect(() => {
-    if (status !== 'authenticated' || !session?.user?.id) {
+    if (status !== 'authenticated' || !userId) {
       return;
     }
 
-    const ACTIVITY_INTERVAL_MS = 30000; // 30 วินาที
+    const ACTIVITY_INTERVAL_MS = 30000;
+    let cancelled = false;
+    let unauthorized = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const stop = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
 
     const updateActivity = async () => {
+      if (cancelled || unauthorized || document.visibilityState === 'hidden') {
+        return;
+      }
+
       try {
         const res = await fetch('/api/auth/update-activity', {
           method: 'POST',
           credentials: 'same-origin',
         });
 
-        if (res.status === 401) {
-          const body = await res.json().catch(() => ({}));
+        if (cancelled) {
+          return;
+        }
 
-          if (body?.error === 'SESSION_EXPIRED') {
-            await signOut({ redirect: true, callbackUrl: '/login' });
-          }
+        if (res.status === 401) {
+          unauthorized = true;
+          stop();
+          await signOut({ redirect: true, callbackUrl: '/login' });
         }
       } catch {
         // Ignore network errors
       }
     };
 
-    updateActivity();
+    const start = () => {
+      if (cancelled || unauthorized || interval) {
+        return;
+      }
 
-    const interval = setInterval(updateActivity, ACTIVITY_INTERVAL_MS);
+      void updateActivity();
+      interval = setInterval(updateActivity, ACTIVITY_INTERVAL_MS);
+    };
+
+    const onVisibility = () => {
+      if (unauthorized) {
+        return;
+      }
+
+      if (document.visibilityState === 'hidden') {
+        stop();
+      } else {
+        start();
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      start();
+    }
+
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [status, session, pathname]);
+  }, [status, userId]);
 
   const handleLogout = async () => {
     // เคลียร์ session/cookie เท่านั้น — ไม่ลบ record ใน user_activity เพื่อเก็บประวัติ

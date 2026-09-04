@@ -16,36 +16,86 @@ export default function HomeClient() {
   const [onlineUsersCount, setOnlineUsersCount] = useState<number | null>(null);
   const [isLoadingOnlineUsers, setIsLoadingOnlineUsers] = useState(false);
 
-  // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้ Online
-  const fetchOnlineUsers = async () => {
-    try {
-      setIsLoadingOnlineUsers(true);
-      const response = await fetch('/api/auth/online-users?countOnly=true');
-      const data: OnlineUsersCountResponse = await response.json();
-
-      if (data.success) {
-        setOnlineUsersCount(data.count);
-      }
-    } catch (error) {
-      console.error('Failed to fetch online users:', error);
-    } finally {
-      setIsLoadingOnlineUsers(false);
-    }
-  };
-
-  // Polling ทุก 30 วินาที
+  // Polling จำนวนผู้ใช้ Online ทุก 30 วินาที (เฉพาะแท็บที่มองเห็น — หยุดเมื่อ 401)
   useEffect(() => {
-    // ดึงข้อมูลทันทีเมื่อ component mount
-    fetchOnlineUsers();
+    const POLL_INTERVAL_MS = 30000;
+    let cancelled = false;
+    let unauthorized = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
-    // ตั้งค่า interval สำหรับ polling
-    const interval = setInterval(() => {
-      fetchOnlineUsers();
-    }, 30000); // 30 วินาที
+    const stop = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
 
-    // Cleanup interval เมื่อ component unmount
+    const fetchOnlineUsers = async () => {
+      if (cancelled || unauthorized || document.visibilityState === 'hidden') {
+        return;
+      }
+
+      try {
+        setIsLoadingOnlineUsers(true);
+        const response = await fetch('/api/auth/online-users?countOnly=true', {
+          credentials: 'same-origin',
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        if (response.status === 401) {
+          unauthorized = true;
+          stop();
+          return;
+        }
+
+        const data: OnlineUsersCountResponse = await response.json();
+
+        if (data.success) {
+          setOnlineUsersCount(data.count);
+        }
+      } catch (error) {
+        console.error('Failed to fetch online users:', error);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingOnlineUsers(false);
+        }
+      }
+    };
+
+    const start = () => {
+      if (cancelled || unauthorized || interval) {
+        return;
+      }
+
+      void fetchOnlineUsers();
+      interval = setInterval(fetchOnlineUsers, POLL_INTERVAL_MS);
+    };
+
+    const onVisibility = () => {
+      if (unauthorized) {
+        return;
+      }
+
+      if (document.visibilityState === 'hidden') {
+        stop();
+      } else {
+        start();
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      start();
+    }
+
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
