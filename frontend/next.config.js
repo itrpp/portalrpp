@@ -3,17 +3,44 @@ const path = require('path');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // สำหรับ self-host: ได้ .next/standalone (next start ยังใช้ได้ตามเดิม)
+  output: 'standalone',
   // Keep Prisma's WASM query compiler and driver adapter out of the webpack bundle.
   // Bundling them causes: TypeError: Cannot read properties of undefined (reading 'graph')
-  serverExternalPackages: ['@prisma/client', '@prisma/adapter-mariadb', 'mariadb'],
+  serverExternalPackages: [
+    '@prisma/client',
+    '@prisma/adapter-mariadb',
+    'mariadb',
+    '@grpc/grpc-js',
+    '@grpc/proto-loader',
+    'ldapts',
+  ],
+  // เครื่อง 4GB: อย่าให้ Next แตก worker ตามจำนวน core
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+    optimizePackageImports: [
+      '@heroui/react',
+      '@heroui/theme',
+      '@iconify/react',
+      '@heroicons/react',
+      'recharts',
+    ],
+  },
   eslint: {
-    // ไม่ให้ ESLint ทำให้ build ล้ม เพื่อให้ปล่อยผ่าน production build ได้
-    ignoreDuringBuilds: false,
+    // lint แยกด้วย `npm run lint` — ไม่รันซ้ำตอน next build เพื่อประหยัด RAM
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // typecheck แยกด้วย `npm run typecheck` บนเครื่องที่มี RAM พอ
+    ignoreBuildErrors: true,
   },
   // อนุญาต dev origins สำหรับ asset ของ Next.js ในโหมดพัฒนา
   allowedDevOrigins: ['portal.rpphosp.go.th', 'localhost:3000', '127.0.0.1:3000'],
-  // แก้ไขปัญหา @iconify/react บน Linux
   webpack: (config) => {
+    // เครื่อง 4GB: webpack ใช้ 1 compiler เท่านั้น กัน swap
+    config.parallelism = 1;
+
     // แก้ไขปัญหา ES modules สำหรับ @iconify/react
     config.resolve.fallback = {
       ...config.resolve.fallback,
