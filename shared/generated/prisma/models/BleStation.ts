@@ -253,7 +253,7 @@ export type BleStationGroupByOutputType = {
   _max: BleStationMaxAggregateOutputType | null
 }
 
-type GetBleStationGroupByPayload<T extends BleStationGroupByArgs> = Prisma.PrismaPromise<
+export type GetBleStationGroupByPayload<T extends BleStationGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<BleStationGroupByOutputType, T['by']> &
       {
@@ -1354,6 +1354,11 @@ export type BleStationFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Skip the first `n` BleStations.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of BleStations.
+   */
   distinct?: Prisma.BleStationScalarFieldEnum | Prisma.BleStationScalarFieldEnum[]
 }
 

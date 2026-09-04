@@ -234,7 +234,7 @@ export type Hrd_department_sub_subGroupByOutputType = {
   _max: Hrd_department_sub_subMaxAggregateOutputType | null
 }
 
-type GetHrd_department_sub_subGroupByPayload<T extends hrd_department_sub_subGroupByArgs> = Prisma.PrismaPromise<
+export type GetHrd_department_sub_subGroupByPayload<T extends hrd_department_sub_subGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<Hrd_department_sub_subGroupByOutputType, T['by']> &
       {
@@ -1094,6 +1094,11 @@ export type hrd_department_sub_subFindManyArgs<ExtArgs extends runtime.Types.Ext
    * Skip the first `n` hrd_department_sub_subs.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of hrd_department_sub_subs.
+   */
   distinct?: Prisma.Hrd_department_sub_subScalarFieldEnum | Prisma.Hrd_department_sub_subScalarFieldEnum[]
 }
 

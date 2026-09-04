@@ -415,7 +415,7 @@ export type PorterRequestGroupByOutputType = {
   _max: PorterRequestMaxAggregateOutputType | null
 }
 
-type GetPorterRequestGroupByPayload<T extends PorterRequestGroupByArgs> = Prisma.PrismaPromise<
+export type GetPorterRequestGroupByPayload<T extends PorterRequestGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<PorterRequestGroupByOutputType, T['by']> &
       {
@@ -1798,6 +1798,11 @@ export type PorterRequestFindManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Skip the first `n` PorterRequests.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of PorterRequests.
+   */
   distinct?: Prisma.PorterRequestScalarFieldEnum | Prisma.PorterRequestScalarFieldEnum[]
 }
 

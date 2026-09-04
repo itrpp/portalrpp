@@ -201,7 +201,7 @@ export type BuildingGroupByOutputType = {
   _max: BuildingMaxAggregateOutputType | null
 }
 
-type GetBuildingGroupByPayload<T extends BuildingGroupByArgs> = Prisma.PrismaPromise<
+export type GetBuildingGroupByPayload<T extends BuildingGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<BuildingGroupByOutputType, T['by']> &
       {
@@ -1199,6 +1199,11 @@ export type BuildingFindManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Skip the first `n` Buildings.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Buildings.
+   */
   distinct?: Prisma.BuildingScalarFieldEnum | Prisma.BuildingScalarFieldEnum[]
 }
 

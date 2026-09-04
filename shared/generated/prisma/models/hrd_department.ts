@@ -220,7 +220,7 @@ export type Hrd_departmentGroupByOutputType = {
   _max: Hrd_departmentMaxAggregateOutputType | null
 }
 
-type GetHrd_departmentGroupByPayload<T extends hrd_departmentGroupByArgs> = Prisma.PrismaPromise<
+export type GetHrd_departmentGroupByPayload<T extends hrd_departmentGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<Hrd_departmentGroupByOutputType, T['by']> &
       {
@@ -1054,6 +1054,11 @@ export type hrd_departmentFindManyArgs<ExtArgs extends runtime.Types.Extensions.
    * Skip the first `n` hrd_departments.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of hrd_departments.
+   */
   distinct?: Prisma.Hrd_departmentScalarFieldEnum | Prisma.Hrd_departmentScalarFieldEnum[]
 }
 

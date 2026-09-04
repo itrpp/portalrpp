@@ -221,7 +221,7 @@ export type Hrd_person_typeGroupByOutputType = {
   _max: Hrd_person_typeMaxAggregateOutputType | null
 }
 
-type GetHrd_person_typeGroupByPayload<T extends hrd_person_typeGroupByArgs> = Prisma.PrismaPromise<
+export type GetHrd_person_typeGroupByPayload<T extends hrd_person_typeGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<Hrd_person_typeGroupByOutputType, T['by']> &
       {
@@ -1024,6 +1024,11 @@ export type hrd_person_typeFindManyArgs<ExtArgs extends runtime.Types.Extensions
    * Skip the first `n` hrd_person_types.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of hrd_person_types.
+   */
   distinct?: Prisma.Hrd_person_typeScalarFieldEnum | Prisma.Hrd_person_typeScalarFieldEnum[]
 }
 

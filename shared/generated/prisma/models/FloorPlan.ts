@@ -199,7 +199,7 @@ export type FloorPlanGroupByOutputType = {
   _max: FloorPlanMaxAggregateOutputType | null
 }
 
-type GetFloorPlanGroupByPayload<T extends FloorPlanGroupByArgs> = Prisma.PrismaPromise<
+export type GetFloorPlanGroupByPayload<T extends FloorPlanGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<FloorPlanGroupByOutputType, T['by']> &
       {
@@ -1253,6 +1253,11 @@ export type FloorPlanFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Skip the first `n` FloorPlans.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of FloorPlans.
+   */
   distinct?: Prisma.FloorPlanScalarFieldEnum | Prisma.FloorPlanScalarFieldEnum[]
 }
 

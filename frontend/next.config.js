@@ -3,6 +3,9 @@ const path = require('path');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // Keep Prisma's WASM query compiler and driver adapter out of the webpack bundle.
+  // Bundling them causes: TypeError: Cannot read properties of undefined (reading 'graph')
+  serverExternalPackages: ['@prisma/client', '@prisma/adapter-mariadb', 'mariadb'],
   eslint: {
     // ไม่ให้ ESLint ทำให้ build ล้ม เพื่อให้ปล่อยผ่าน production build ได้
     ignoreDuringBuilds: false,

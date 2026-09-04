@@ -247,7 +247,7 @@ export type PorterEmployeeGroupByOutputType = {
   _max: PorterEmployeeMaxAggregateOutputType | null
 }
 
-type GetPorterEmployeeGroupByPayload<T extends PorterEmployeeGroupByArgs> = Prisma.PrismaPromise<
+export type GetPorterEmployeeGroupByPayload<T extends PorterEmployeeGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<PorterEmployeeGroupByOutputType, T['by']> &
       {
@@ -1127,6 +1127,11 @@ export type PorterEmployeeFindManyArgs<ExtArgs extends runtime.Types.Extensions.
    * Skip the first `n` PorterEmployees.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of PorterEmployees.
+   */
   distinct?: Prisma.PorterEmployeeScalarFieldEnum | Prisma.PorterEmployeeScalarFieldEnum[]
 }
 

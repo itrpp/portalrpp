@@ -151,7 +151,7 @@ export type SessionGroupByOutputType = {
   _max: SessionMaxAggregateOutputType | null
 }
 
-type GetSessionGroupByPayload<T extends sessionGroupByArgs> = Prisma.PrismaPromise<
+export type GetSessionGroupByPayload<T extends sessionGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<SessionGroupByOutputType, T['by']> &
       {
@@ -1024,6 +1024,11 @@ export type sessionFindManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Skip the first `n` sessions.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of sessions.
+   */
   distinct?: Prisma.SessionScalarFieldEnum | Prisma.SessionScalarFieldEnum[]
 }
 

@@ -199,7 +199,7 @@ export type Hrd_positionGroupByOutputType = {
   _max: Hrd_positionMaxAggregateOutputType | null
 }
 
-type GetHrd_positionGroupByPayload<T extends hrd_positionGroupByArgs> = Prisma.PrismaPromise<
+export type GetHrd_positionGroupByPayload<T extends hrd_positionGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<Hrd_positionGroupByOutputType, T['by']> &
       {
@@ -967,6 +967,11 @@ export type hrd_positionFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Skip the first `n` hrd_positions.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of hrd_positions.
+   */
   distinct?: Prisma.Hrd_positionScalarFieldEnum | Prisma.Hrd_positionScalarFieldEnum[]
 }
 
