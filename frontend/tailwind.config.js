@@ -1,4 +1,4 @@
-import { heroui } from '@heroui/theme';
+const { heroui } = require('@heroui/theme');
 
 /** @type {import('tailwindcss').Config} */
 const config = {
@@ -11,10 +11,10 @@ const config = {
     extend: {
       // มาตรฐาน responsive ของโปรเจกต์ (ดู frontend/lib/breakpoints.ts)
       screens: {
-        sm: '640px',   // มือถือแนวนอน / Tablet ขนาดเล็ก
-        md: '768px',   // Tablet แนวตั้ง (เช่น iPad)
-        lg: '1024px',  // Notebook / Tablet แนวนอน
-        xl: '1280px',  // PC (Desktop จอมาตรฐาน)
+        sm: '640px', // มือถือแนวนอน / Tablet ขนาดเล็ก
+        md: '768px', // Tablet แนวตั้ง (เช่น iPad)
+        lg: '1024px', // Notebook / Tablet แนวนอน
+        xl: '1280px', // PC (Desktop จอมาตรฐาน)
         '2xl': '1536px', // PC จอใหญ่ / Ultrawide
       },
       fontFamily: {
@@ -26,4 +26,4 @@ const config = {
   plugins: [heroui()],
 };
 
-export default config;
+module.exports = config;
