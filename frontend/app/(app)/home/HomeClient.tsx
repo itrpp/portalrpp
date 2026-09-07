@@ -16,9 +16,9 @@ export default function HomeClient() {
   const [onlineUsersCount, setOnlineUsersCount] = useState<number | null>(null);
   const [isLoadingOnlineUsers, setIsLoadingOnlineUsers] = useState(false);
 
-  // Polling จำนวนผู้ใช้ Online ทุก 30 วินาที (เฉพาะแท็บที่มองเห็น — หยุดเมื่อ 401)
+  // Polling จำนวนผู้ใช้ Online ทุก 5 นาที (เฉพาะแท็บที่มองเห็น — หยุดเมื่อ 401)
   useEffect(() => {
-    const POLL_INTERVAL_MS = 30000;
+    const POLL_INTERVAL_MS = 5 * 60 * 1000;
     let cancelled = false;
     let unauthorized = false;
     let interval: ReturnType<typeof setInterval> | null = null;

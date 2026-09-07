@@ -29,12 +29,58 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
   onJobDeletedRef.current = onJobDeleted;
 
   useEffect(() => {
+    const SSE_RECONNECT_MIN_MS = 3000;
+    const SSE_RECONNECT_MAX_MS = 60000;
+
     let abortController: AbortController | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let reconnectDelayMs = SSE_RECONNECT_MIN_MS;
     let isMounted = true;
+    let awaitingVisible = false;
 
     const invalidateJobLists = () => {
       void queryClient.invalidateQueries({ queryKey: porterQueryKeys.jobs.all });
+    };
+
+    const clearReconnectTimeout = () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
+    };
+
+    const resetBackoff = () => {
+      reconnectDelayMs = SSE_RECONNECT_MIN_MS;
+    };
+
+    const startConnection = () => {
+      if (!isMounted) return;
+      clearReconnectTimeout();
+      abortController?.abort();
+      abortController = new AbortController();
+      void connectSSE();
+    };
+
+    const scheduleReconnect = () => {
+      if (!isMounted) return;
+
+      if (document.visibilityState === 'hidden') {
+        awaitingVisible = true;
+        clearReconnectTimeout();
+
+        return;
+      }
+
+      awaitingVisible = false;
+      clearReconnectTimeout();
+
+      const delayMs = reconnectDelayMs;
+
+      reconnectDelayMs = Math.min(reconnectDelayMs * 2, SSE_RECONNECT_MAX_MS);
+      reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null;
+        startConnection();
+      }, delayMs);
     };
 
     const connectSSE = async () => {
@@ -77,6 +123,8 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
         const decoder = new TextDecoder();
 
         if (!reader) throw new Error('No reader available');
+
+        resetBackoff();
 
         let buffer = '';
 
@@ -192,28 +240,45 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
           }
         }
 
-        if (isMounted) {
-          reconnectTimeout = setTimeout(() => {
-            if (isMounted) connectSSE();
-          }, 3000);
-        }
+        scheduleReconnect();
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        if (isMounted) {
-          reconnectTimeout = setTimeout(() => {
-            if (isMounted) connectSSE();
-          }, 3000);
-        }
+        scheduleReconnect();
       }
     };
 
-    abortController = new AbortController();
-    connectSSE();
+    const onVisibility = () => {
+      if (!isMounted) return;
+
+      if (document.visibilityState === 'hidden') {
+        awaitingVisible = true;
+        clearReconnectTimeout();
+        abortController?.abort();
+        abortController = null;
+
+        return;
+      }
+
+      if (awaitingVisible) {
+        awaitingVisible = false;
+        resetBackoff();
+        startConnection();
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      startConnection();
+    } else {
+      awaitingVisible = true;
+    }
+
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       isMounted = false;
+      clearReconnectTimeout();
       abortController?.abort();
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [queryClient]);
 }
