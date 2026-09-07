@@ -46,7 +46,7 @@ const INACTIVITY_MAX_MS = 60 * 60 * 1000; // 60 นาที
 /**
  * POST /api/auth/update-activity
  * อัปเดต lastActivityAt ของผู้ใช้ที่กำลังใช้งาน
- * - เรียกจาก client-side ทุก 30 วินาที (เก็บสถานะด้วย NextAuth session/cookie)
+ * - เรียกจาก client-side ทุก 5 นาที (เก็บสถานะด้วย NextAuth session/cookie)
  * - ถ้าไม่ใช้งานเกิน 60 นาที จะคืน 401 SESSION_EXPIRED (ไม่ลบ record — เก็บประวัติ)
  */
 export async function POST(request: NextRequest) {

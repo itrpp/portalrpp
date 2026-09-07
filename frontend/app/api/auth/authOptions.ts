@@ -4,10 +4,10 @@ import type { ExtendedUser, ExtendedToken, ExtendedSession, LDAPErrorCode } from
 import CredentialsProvider from 'next-auth/providers/credentials';
 import LineProvider from 'next-auth/providers/line';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { decode } from 'next-auth/jwt';
 import { cookies } from 'next/headers';
 
 import { createLDAPService } from '@/lib/ldap';
+import { decodeSessionToken, encodeSessionToken } from '@/lib/nextAuthJwt';
 import { prisma } from '@/lib/prisma';
 import { callPorterService } from '@/lib/grpcClient';
 import { upsertUserActivityOnLogin } from '@/lib/userActivity';
@@ -96,7 +96,7 @@ async function getSessionUser(): Promise<MinimalUserRecord | null> {
     return null;
   }
 
-  const decoded = await decode({
+  const decoded = await decodeSessionToken({
     token: sessionToken,
     secret,
   });
@@ -246,6 +246,11 @@ export const authOptions: any = {
   session: {
     strategy: 'jwt', // ใช้ JWT strategy เพื่อรองรับ LDAP authentication
     maxAge: 1 * 60 * 60, // 1 hours
+  },
+  // Hex-wrap session JWT so cookie values cannot trigger WAF "Line Comments" on `--`
+  jwt: {
+    encode: encodeSessionToken,
+    decode: decodeSessionToken,
   },
   callbacks: {
     async signIn({ user, account, profile: _profile }: { user: any; account: any; profile: any }) {

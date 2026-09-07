@@ -105,13 +105,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, pathname]);
 
-  // อัปเดต user activity เมื่อผู้ใช้ authenticated (เรียกทุก 30 วินาที เฉพาะแท็บที่มองเห็น)
+  // อัปเดต user activity เมื่อผู้ใช้ authenticated (เรียกทุก 5 นาที เฉพาะแท็บที่มองเห็น)
   useEffect(() => {
     if (status !== 'authenticated' || !userId) {
       return;
     }
 
-    const ACTIVITY_INTERVAL_MS = 30000;
+    const ACTIVITY_INTERVAL_MS = 5 * 60 * 1000;
     let cancelled = false;
     let unauthorized = false;
     let interval: ReturnType<typeof setInterval> | null = null;
