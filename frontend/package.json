@@ -10,7 +10,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && node --max-old-space-size=1536 ./node_modules/next/dist/bin/next build",
+    "build": "prisma generate && node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
+    "build:lowmem": "prisma generate && node --max-old-space-size=1536 ./scripts/build-lowmem.js",
     "typecheck": "tsc --noEmit",
     "start": "next start",
     "lint": "eslint .",

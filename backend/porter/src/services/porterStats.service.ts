@@ -1,5 +1,3 @@
-import { Prisma } from '@shared/prisma/client';
-
 import prisma from '../config/database';
 import * as buildingRepo from '../repositories/building.repository';
 import * as floorDepartmentRepo from '../repositories/floorDepartment.repository';
@@ -97,7 +95,9 @@ function formatLocationLabel(
 }
 
 /**
- * สรุปสถิติ PorterRequest ตามช่วงวันที่ — ไม่คืนรายการงานเต็ม
+ * สรุปสถิติ PorterRequest
+ * - KPI (total/waiting/...) = COUNT ทั้งฐาน ผ่าน groupBy status (ไม่ดึงแถว)
+ * - กราฟ/heatmap/location/employee = aggregate ตาม created_after/before
  */
 export async function getPorterRequestStats(
   input: GetPorterRequestStatsInput,
@@ -111,10 +111,6 @@ export async function getPorterRequestStats(
   if (after.getTime() > before.getTime()) {
     throw new InvalidArgumentError('created_after must be <= created_before');
   }
-
-  const where: Prisma.PorterRequestWhereInput = {
-    createdAt: { gte: after, lte: before },
-  };
 
   type DailyRow = { d: Date | string; urgencyLevel: string; c: bigint | number };
   type ReasonRow = { transportReason: string; c: bigint | number };
@@ -139,9 +135,9 @@ export async function getPorterRequestStats(
     empRows,
     heatRows,
   ] = await Promise.all([
+    // KPI ทั้งระบบ — SQL COUNT/GROUP BY ไม่มี WHERE วันที่ (ไม่ SELECT *)
     prisma.porterRequest.groupBy({
       by: ['status'],
-      where,
       _count: { _all: true },
     }),
     prisma.$queryRaw<DailyRow[]>`

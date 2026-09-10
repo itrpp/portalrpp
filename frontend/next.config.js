@@ -1,10 +1,27 @@
 const path = require('path');
 
+/**
+ * โหมดประหยัด RAM (เครื่อง ~4GB): ตั้ง NEXT_LOW_MEMORY=1
+ * ค่าเริ่มต้นไม่บังคับ cpus:1 — ให้ Next ใช้หลาย core ตามเครื่อง
+ *
+ * NEXT_BUILD_CPUS — จำกัดจำนวน worker (ถ้าตั้ง)
+ */
+const lowMemory = process.env.NEXT_LOW_MEMORY === '1';
+const buildCpusEnv = process.env.NEXT_BUILD_CPUS
+  ? Number(process.env.NEXT_BUILD_CPUS)
+  : undefined;
+const hasBuildCpus = Number.isFinite(buildCpusEnv) && buildCpusEnv > 0;
+
+const prismaClientPath = path.resolve(__dirname, 'node_modules/@prisma/client');
+const repoRoot = path.join(__dirname, '..');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
   // สำหรับ self-host: ได้ .next/standalone (next start ยังใช้ได้ตามเดิม)
   output: 'standalone',
+  // monorepo: กัน warning multiple lockfiles + ให้ file tracing ถูก root
+  outputFileTracingRoot: repoRoot,
   // Keep Prisma's WASM query compiler and driver adapter out of the webpack bundle.
   // Bundling them causes: TypeError: Cannot read properties of undefined (reading 'graph')
   serverExternalPackages: [
@@ -15,10 +32,12 @@ const nextConfig = {
     '@grpc/proto-loader',
     'ldapts',
   ],
-  // เครื่อง 4GB: อย่าให้ Next แตก worker ตามจำนวน core
   experimental: {
-    cpus: 1,
-    workerThreads: false,
+    ...(lowMemory
+      ? { cpus: 1, workerThreads: false }
+      : hasBuildCpus
+        ? { cpus: buildCpusEnv }
+        : {}),
     optimizePackageImports: [
       '@heroui/react',
       '@heroui/theme',
@@ -26,6 +45,13 @@ const nextConfig = {
       '@heroicons/react',
       'recharts',
     ],
+  },
+  // Turbopack (`next build --turbopack`) ไม่ใช้ webpack() — ต้องใส่ alias ที่นี่ด้วย
+  turbopack: {
+    resolveAlias: {
+      '@': __dirname,
+      '@prisma/client': prismaClientPath,
+    },
   },
   eslint: {
     // lint แยกด้วย `npm run lint` — ไม่รันซ้ำตอน next build เพื่อประหยัด RAM
@@ -38,8 +64,10 @@ const nextConfig = {
   // อนุญาต dev origins สำหรับ asset ของ Next.js ในโหมดพัฒนา
   allowedDevOrigins: ['portal.rpphosp.go.th', 'localhost:3000', '127.0.0.1:3000'],
   webpack: (config) => {
-    // เครื่อง 4GB: webpack ใช้ 1 compiler เท่านั้น กัน swap
-    config.parallelism = 1;
+    // low-memory: 1 compiler กัน swap — นอกนั้นให้ webpack ใช้ parallelism ตามปกติ
+    if (lowMemory) {
+      config.parallelism = 1;
+    }
 
     // แก้ไขปัญหา ES modules สำหรับ @iconify/react
     config.resolve.fallback = {
@@ -55,7 +83,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       '@': path.resolve(__dirname),
-      '@prisma/client': path.resolve(__dirname, 'node_modules/@prisma/client'),
+      '@prisma/client': prismaClientPath,
     };
 
     // เผื่อกรณี environment ไม่ได้ตั้งค่าชนิดไฟล์ครบ

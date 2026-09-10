@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 
 import * as grpc from '@grpc/grpc-js';
@@ -9,8 +10,35 @@ import * as porterHandlers from './handlers/porter.handler';
 import { logger } from './utils/logger';
 import { withGrpcLog, withGrpcStreamLog } from './utils/withGrpcLog';
 
-// Resolve จาก project cwd (backend/porter) เพื่อให้ทำงานได้ทั้ง tsx/dev และ build/dist ที่โครงสร้าง __dirname ต่างกัน
-const PROTO_PATH = path.resolve(process.cwd(), '../../shared/proto/porter.proto');
+/**
+ * หา porter.proto ให้ชัวร์ทั้งโหมด tsx (src/) และ dist/ — กันโหลดไฟล์ผิดแล้ว RPC ใหม่กลายเป็น UNIMPLEMENTED
+ */
+function resolvePorterProtoPath(): string {
+  const candidates = [
+    path.resolve(process.cwd(), '../../shared/proto/porter.proto'),
+    path.resolve(process.cwd(), 'shared/proto/porter.proto'),
+    path.resolve(__dirname, '../../shared/proto/porter.proto'),
+    path.resolve(__dirname, '../../../../../../shared/proto/porter.proto'),
+  ];
+
+  let dir = process.cwd();
+  for (let i = 0; i < 8; i++) {
+    candidates.push(path.join(dir, 'shared/proto/porter.proto'));
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
+  throw new Error(
+    `porter.proto not found (cwd=${process.cwd()}, __dirname=${__dirname})`,
+  );
+}
+
+const PROTO_PATH = resolvePorterProtoPath();
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
@@ -28,6 +56,18 @@ const porterProto = grpc.loadPackageDefinition(packageDefinition) as unknown as 
   };
 };
 
+const porterServiceDef = porterProto.porter.PorterService.service;
+if (!porterServiceDef.GetPorterRequestStats) {
+  throw new Error(
+    `GetPorterRequestStats missing from loaded proto at ${PROTO_PATH}`,
+  );
+}
+if (typeof porterHandlers.getPorterRequestStats !== 'function') {
+  throw new Error(
+    'porterHandlers.getPorterRequestStats is not a function — rebuild dist after adding porterStats.service',
+  );
+}
+
 const startServer = async () => {
   try {
     await prisma.$connect();
@@ -40,7 +80,9 @@ const startServer = async () => {
       'grpc.max_send_message_length': 10 * 1024 * 1024, // 10MB
     });
 
-    server.addService(porterProto.porter.PorterService.service, {
+    // keepCase:true → key ใน service เป็น PascalCase (GetPorterRequestStats)
+    // register ทั้ง PascalCase + camelCase กัน UNIMPLEMENTED จาก key mismatch
+    const handlers: Record<string, unknown> = {
       createPorterRequest: withGrpcLog('createPorterRequest', porterHandlers.createPorterRequest),
       getPorterRequest: withGrpcLog('getPorterRequest', porterHandlers.getPorterRequest),
       listPorterRequests: withGrpcLog('listPorterRequests', porterHandlers.listPorterRequests),
@@ -100,7 +142,19 @@ const startServer = async () => {
       listEmployees: withGrpcLog('listEmployees', porterHandlers.listEmployees),
       updateEmployee: withGrpcLog('updateEmployee', porterHandlers.updateEmployee),
       deleteEmployee: withGrpcLog('deleteEmployee', porterHandlers.deleteEmployee),
-    });
+    };
+
+    const implementation: Record<string, unknown> = { ...handlers };
+    for (const [name, methodDef] of Object.entries(porterServiceDef)) {
+      const originalName = (methodDef as { originalName?: string }).originalName;
+      const fn = handlers[name] ?? (originalName ? handlers[originalName] : undefined);
+      if (typeof fn === 'function') {
+        implementation[name] = fn;
+        if (originalName) implementation[originalName] = fn;
+      }
+    }
+
+    server.addService(porterServiceDef, implementation as never);
 
     const port = config.port || 50051;
     server.bindAsync(
@@ -112,7 +166,15 @@ const startServer = async () => {
           process.exit(1);
         }
 
-        logger.info({ port: boundPort, nodeEnv: config.nodeEnv }, 'gRPC Server is running');
+        logger.info(
+          {
+            port: boundPort,
+            nodeEnv: config.nodeEnv,
+            protoPath: PROTO_PATH,
+            hasGetPorterRequestStats: true,
+          },
+          'gRPC Server is running',
+        );
       },
     );
   } catch (error) {

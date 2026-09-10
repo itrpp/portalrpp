@@ -107,6 +107,9 @@ export function EmployeePerformanceChart({
     return '';
   }, [filterState]);
 
+  // ให้ความสูงพอสำหรับชื่อทุกคน (Recharts จะข้าม label ถ้าแน่นเกิน)
+  const chartHeight = Math.max(400, chartData.length * 28);
+
   return (
     <Card className="shadow-md border border-default-200 hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="pb-0">
@@ -135,11 +138,11 @@ export function EmployeePerformanceChart({
               <h4 className="text-sm font-medium text-default-700 mb-2">
                 จำนวนงานที่ได้รับมอบหมาย
               </h4>
-              <ResponsiveContainer height={400} width="100%">
+              <ResponsiveContainer height={chartHeight} width="100%">
                 <BarChart
                   data={chartData}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 30, bottom: 5 }}
+                  margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
                   syncId="employeePerformance"
                 >
                   <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
@@ -156,10 +159,11 @@ export function EmployeePerformanceChart({
                   />
                   <YAxis
                     dataKey="name"
+                    interval={0}
                     stroke="#888"
                     style={{ fontSize: '11px' }}
                     type="category"
-                    width={120}
+                    width={140}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
@@ -215,11 +219,11 @@ export function EmployeePerformanceChart({
 
             <div>
               <h4 className="text-sm font-medium text-default-700 mb-2">เวลาเฉลี่ยในการทำงาน</h4>
-              <ResponsiveContainer height={400} width="100%">
+              <ResponsiveContainer height={chartHeight} width="100%">
                 <BarChart
                   data={chartData}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 30, bottom: 5 }}
+                  margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
                   syncId="employeePerformance"
                 >
                   <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
@@ -236,10 +240,11 @@ export function EmployeePerformanceChart({
                   />
                   <YAxis
                     dataKey="name"
+                    interval={0}
                     stroke="#888"
                     style={{ fontSize: '11px' }}
                     type="category"
-                    width={120}
+                    width={140}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
