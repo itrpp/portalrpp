@@ -262,6 +262,8 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
       if (awaitingVisible) {
         awaitingVisible = false;
         resetBackoff();
+        // Sync data missed while SSE was paused (refetchOnWindowFocus is false)
+        invalidateJobLists();
         startConnection();
       }
     };
