@@ -3,32 +3,13 @@
 import React, { useMemo } from 'react';
 import { Card, CardBody, CardHeader } from '@heroui/react';
 
-import { useFilteredJobs } from '../hooks/useFilteredJobs';
-
-import { FilterState } from './StatFilter';
-
-import { PorterJobItem } from '@/types/porter';
+import type { PorterStatsHeatmapCell } from '../hooks/usePorterStats';
 
 interface TimeHeatmapProps {
-  jobs: PorterJobItem[];
-  filterState?: FilterState | null;
-}
-
-interface HeatmapCell {
-  dayOfWeek: number;
-  hour: number;
-  count: number;
+  cells: PorterStatsHeatmapCell[];
 }
 
 const DAYS_OF_WEEK = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-
-function getDayOfWeek(date: Date): number {
-  return date.getDay();
-}
-
-function getHour(date: Date): number {
-  return date.getHours();
-}
 
 function getColorForValue(value: number, maxValue: number): string {
   if (maxValue === 0) return '#f5f5f5';
@@ -45,46 +26,40 @@ function getColorForValue(value: number, maxValue: number): string {
   return '#1976d2';
 }
 
-export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
-  const filteredJobs = useFilteredJobs(jobs, filterState);
-
+export function TimeHeatmap({ cells }: TimeHeatmapProps) {
   const heatmapData = useMemo(() => {
     const cellMap = new Map<string, number>();
+    let maxValue = 0;
 
-    for (const job of filteredJobs) {
-      if (!job.createdAt) continue;
+    for (const cell of cells) {
+      const key = `${cell.dayOfWeek}-${cell.hour}`;
 
-      const date = new Date(job.createdAt);
-      const dayOfWeek = getDayOfWeek(date);
-      const hour = getHour(date);
-      const key = `${dayOfWeek}-${hour}`;
-
-      cellMap.set(key, (cellMap.get(key) || 0) + 1);
+      cellMap.set(key, cell.count);
+      maxValue = Math.max(maxValue, cell.count);
     }
 
-    const cells: HeatmapCell[] = [];
-    let maxValue = 0;
+    const fullCells: PorterStatsHeatmapCell[] = [];
 
     for (let day = 0; day < 7; day++) {
       for (let hour = 0; hour < 24; hour++) {
         const key = `${day}-${hour}`;
-        const count = cellMap.get(key) || 0;
 
-        cells.push({ dayOfWeek: day, hour, count });
-        maxValue = Math.max(maxValue, count);
+        fullCells.push({
+          dayOfWeek: day,
+          hour,
+          count: cellMap.get(key) || 0,
+        });
       }
     }
 
-    return { cells, maxValue };
-  }, [filteredJobs]);
+    return { cells: fullCells, maxValue };
+  }, [cells]);
 
   const cellLookupMap = useMemo(() => {
-    const map = new Map<string, HeatmapCell>();
+    const map = new Map<string, PorterStatsHeatmapCell>();
 
     for (const cell of heatmapData.cells) {
-      const key = `${cell.dayOfWeek}-${cell.hour}`;
-
-      map.set(key, cell);
+      map.set(`${cell.dayOfWeek}-${cell.hour}`, cell);
     }
 
     return map;
@@ -124,7 +99,7 @@ export function TimeHeatmap({ jobs, filterState }: TimeHeatmapProps) {
         </div>
       </CardHeader>
       <CardBody className="pt-4">
-        {heatmapData.cells.length === 0 || heatmapData.maxValue === 0 ? (
+        {heatmapData.maxValue === 0 ? (
           <div className="text-center py-8 text-default-500">
             ยังไม่มีข้อมูลในช่วงวันที่ที่เลือก
           </div>

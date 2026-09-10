@@ -16,6 +16,8 @@ export const porterQueryKeys = {
       urgency_level?: string;
       dateFrom?: string;
       dateTo?: string;
+      assigned_to_id?: string;
+      count_only?: boolean;
     }) => [...porterQueryKeys.jobs.lists(), params] as const,
     details: () => [...porterQueryKeys.jobs.all, 'detail'] as const,
     detail: (id: string) => [...porterQueryKeys.jobs.details(), id] as const,

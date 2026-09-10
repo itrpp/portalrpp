@@ -22,8 +22,16 @@ import { prisma } from '@/lib/prisma';
 export function buildListProtoRequest(params: ListPorterRequestsParams): Record<string, unknown> {
   const protoRequest: Record<string, unknown> = {};
 
-  if (params.status !== undefined && params.status !== null) {
-    protoRequest.status = mapStatusToProto(params.status);
+  if (params.status !== undefined && params.status !== null && params.status !== '') {
+    const rawStatus = params.status.trim();
+    if (rawStatus.includes(',')) {
+      protoRequest.status = rawStatus
+        .split(',')
+        .map((part) => mapStatusToProto(part.trim()))
+        .join(',');
+    } else {
+      protoRequest.status = mapStatusToProto(rawStatus);
+    }
   }
   if (params.urgency_level !== undefined && params.urgency_level !== null) {
     protoRequest.urgency_level = mapUrgencyLevelToProto(params.urgency_level);
@@ -40,10 +48,13 @@ export function buildListProtoRequest(params: ListPorterRequestsParams): Record<
   if (params.created_after && params.created_after.trim() !== '') {
     protoRequest.created_after = params.created_after.trim();
   }
+  if (params.created_before && params.created_before.trim() !== '') {
+    protoRequest.created_before = params.created_before.trim();
+  }
   if (params.page) {
     protoRequest.page = parseInt(params.page, 10);
   }
-  protoRequest.page_size = params.page_size ? parseInt(params.page_size, 10) : 1000;
+  protoRequest.page_size = params.page_size ? parseInt(params.page_size, 10) : 20;
 
   return protoRequest;
 }
@@ -95,6 +106,15 @@ export async function listPorterRequestsWithEnrichment(
   params: ListPorterRequestsParams,
 ): Promise<ListPorterRequestsResult | ListPorterRequestsError> {
   const protoRequest = buildListProtoRequest(params);
+  const countOnly =
+    params.count_only === 'true' ||
+    params.count_only === '1' ||
+    params.count_only === 'yes';
+
+  // Count-only: ขอแค่ 1 แถวจาก gRPC เพื่อได้ total — ไม่ serialize payload เต็ม
+  if (countOnly && !params.page_size) {
+    protoRequest.page_size = 1;
+  }
 
   const response = await callPorterService<{
     success: boolean;
@@ -113,6 +133,16 @@ export async function listPorterRequestsWithEnrichment(
     };
   }
 
+  if (countOnly) {
+    return {
+      success: true,
+      data: [],
+      total: response.total ?? 0,
+      page: response.page ?? 1,
+      page_size: response.page_size ?? 1,
+    };
+  }
+
   const rawData = response.data ?? [];
   let frontendData: PorterJobItem[] = Array.isArray(rawData)
     ? rawData.map((item: unknown) => convertProtoToFrontend(item))
@@ -125,6 +155,6 @@ export async function listPorterRequestsWithEnrichment(
     data: frontendData,
     total: response.total ?? frontendData.length,
     page: response.page ?? 1,
-    page_size: response.page_size ?? 1000,
+    page_size: response.page_size ?? 20,
   };
 }

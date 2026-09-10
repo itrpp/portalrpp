@@ -114,7 +114,8 @@ export interface CreatePorterRequestInput {
 }
 
 export interface ListPorterRequestsFilters {
-  status?: PorterStatus | number | null;
+  /** ค่าเดียว หรือ comma-separated เช่น WAITING_ACCEPT,IN_PROGRESS */
+  status?: PorterStatus | string | number | null;
   urgency_level?: UrgencyLevel | number | null;
   requester_user_id?: string | null;
   assigned_to_id?: string | null;
@@ -123,6 +124,8 @@ export interface ListPorterRequestsFilters {
   page_size?: number;
   /** ISO 8601 date string — กรองเฉพาะรายการที่ createdAt >= ค่านี้ */
   created_after?: string | null;
+  /** ISO 8601 date string — กรองเฉพาะรายการที่ createdAt <= ค่านี้ */
+  created_before?: string | null;
 }
 
 export interface UpdatePorterRequestInput {

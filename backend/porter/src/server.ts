@@ -44,6 +44,10 @@ const startServer = async () => {
       createPorterRequest: withGrpcLog('createPorterRequest', porterHandlers.createPorterRequest),
       getPorterRequest: withGrpcLog('getPorterRequest', porterHandlers.getPorterRequest),
       listPorterRequests: withGrpcLog('listPorterRequests', porterHandlers.listPorterRequests),
+      getPorterRequestStats: withGrpcLog(
+        'getPorterRequestStats',
+        porterHandlers.getPorterRequestStats,
+      ),
       updatePorterRequest: withGrpcLog('updatePorterRequest', porterHandlers.updatePorterRequest),
       updatePorterRequestStatus: withGrpcLog(
         'updatePorterRequestStatus',

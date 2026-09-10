@@ -170,6 +170,20 @@ export const getPorterRequestById = async (id: string): Promise<PorterRequestMes
   return convertToProtoResponse(enrichedRequest);
 };
 
+const LIST_PORTER_REQUESTS_MAX_PAGE_SIZE = 100;
+
+function parseCreatedAtBound(raw: string, endOfDay: boolean): Date | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+  const value = dateOnly
+    ? new Date(`${trimmed}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}`)
+    : new Date(trimmed);
+
+  return Number.isNaN(value.getTime()) ? null : value;
+}
+
 export const listPorterRequests = async (
   filters: ListPorterRequestsFilters,
 ): Promise<PaginationResult<PorterRequestMessage>> => {
@@ -180,23 +194,46 @@ export const listPorterRequests = async (
     assigned_to_id,
     search,
     created_after,
+    created_before,
     page = 1,
     page_size = 20,
   } = filters;
 
+  const effectivePageSize = Math.min(
+    Math.max(1, page_size || 20),
+    LIST_PORTER_REQUESTS_MAX_PAGE_SIZE,
+  );
+  const effectivePage = Math.max(1, page || 1);
+
   const where: Prisma.PorterRequestWhereInput = {};
 
+  const createdAtFilter: Prisma.DateTimeFilter = {};
   if (created_after && created_after.trim() !== '') {
-    const afterDate = new Date(created_after.trim());
-
-    if (!Number.isNaN(afterDate.getTime())) {
-      where.createdAt = { gte: afterDate };
+    const afterDate = parseCreatedAtBound(created_after, false);
+    if (afterDate) {
+      createdAtFilter.gte = afterDate;
     }
   }
+  if (created_before && created_before.trim() !== '') {
+    const beforeDate = parseCreatedAtBound(created_before, true);
+    if (beforeDate) {
+      createdAtFilter.lte = beforeDate;
+    }
+  }
+  if (Object.keys(createdAtFilter).length > 0) {
+    where.createdAt = createdAtFilter;
+  }
+
   if (status !== undefined && status !== null) {
     const s = String(status).trim();
     if (s === 'WAITING') {
       where.status = { in: PORTER_STATUS_WAIT_GROUP };
+    } else if (s.includes(',')) {
+      const parts = s
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+      where.status = { in: parts.map((part) => mapStatusToPrisma(part)) };
     } else {
       where.status = mapStatusToPrisma(status);
     }
@@ -217,13 +254,13 @@ export const listPorterRequests = async (
     where.OR = [{ patientName: { contains: searchTerm } }, { patientHN: { contains: searchTerm } }];
   }
 
-  const skip = (page - 1) * page_size;
+  const skip = (effectivePage - 1) * effectivePageSize;
 
   const [porterRequests, total] = await Promise.all([
     porterRequestRepo.findManyPorterRequests({
       where,
       skip,
-      take: page_size,
+      take: effectivePageSize,
       orderBy: { createdAt: 'desc' },
     }),
     porterRequestRepo.countPorterRequests(where),
@@ -261,8 +298,8 @@ export const listPorterRequests = async (
   return {
     data: requestsWithNames.map(convertToProtoResponse),
     total,
-    page,
-    page_size,
+    page: effectivePage,
+    page_size: effectivePageSize,
   };
 };
 

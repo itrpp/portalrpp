@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardBody, CardHeader } from '@heroui/react';
 import {
   BarChart,
@@ -12,79 +12,45 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
-import { RangeValue } from '@react-types/shared';
-
-import { calculateEmployeePerformance } from '../utils/employeePerformance';
 
 import { FilterState } from './StatFilter';
 
-import { PorterJobItem } from '@/types/porter';
 import {
-  getDateRangeFromFilter,
   formatDateRangeThai,
   formatDurationMinutes,
+  getDateRangeFromFilter,
   getFiscalYearRange,
   getMonthRange,
 } from '@/lib/utils';
 
+export interface EmployeePerformanceItem {
+  employeeName: string;
+  firstName: string;
+  lastName: string;
+  assignedJobCount: number;
+  averageDuration: number;
+}
+
 interface EmployeePerformanceChartProps {
-  jobs: PorterJobItem[];
+  data: EmployeePerformanceItem[];
   filterState?: FilterState | null;
 }
 
-type DateRange = RangeValue<CalendarDate> | null;
+export function EmployeePerformanceChart({
+  data,
+  filterState,
+}: EmployeePerformanceChartProps) {
+  const chartData = useMemo(
+    () =>
+      data.map((employee) => ({
+        name: `${employee.firstName} ${employee.lastName}`,
+        fullName: `${employee.firstName} ${employee.lastName}`,
+        assignedJobCount: employee.assignedJobCount,
+        averageDuration: employee.averageDuration,
+      })),
+    [data],
+  );
 
-export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerformanceChartProps) {
-  // คำนวณวันที่เริ่มต้นและสิ้นสุดสำหรับ default (30 วันย้อนหลัง)
-  const getDefaultDateRange = (): RangeValue<CalendarDate> => {
-    const todayDate = today(getLocalTimeZone());
-    const startDate = todayDate.subtract({ days: 30 });
-
-    return {
-      start: startDate,
-      end: todayDate,
-    };
-  };
-
-  const [dateRange] = useState<DateRange>(getDefaultDateRange());
-
-  // คำนวณประสิทธิผลรายบุคคลตาม date range ที่เลือก (Memoized)
-  const employeePerformance = useMemo(() => {
-    // ถ้าไม่มี jobs ให้ return array ว่าง
-    if (!jobs || jobs.length === 0) {
-      return [];
-    }
-
-    // ถ้ามี filter state จาก parent ให้ใช้แทน
-    if (filterState) {
-      const dateRangeFromFilter = getDateRangeFromFilter(filterState);
-
-      return calculateEmployeePerformance(
-        jobs,
-        dateRangeFromFilter.startDate,
-        dateRangeFromFilter.endDate,
-      );
-    }
-
-    // ใช้ internal date range ถ้าไม่มี filter state จาก parent
-    const startDateStr = dateRange?.start?.toString();
-    const endDateStr = dateRange?.end?.toString();
-
-    return calculateEmployeePerformance(jobs, startDateStr, endDateStr);
-  }, [jobs, filterState, dateRange]);
-
-  // เตรียมข้อมูลสำหรับ chart (แสดงทุกคน)
-  const chartData = useMemo(() => {
-    return employeePerformance.map((employee) => ({
-      name: `${employee.firstName} ${employee.lastName}`,
-      fullName: `${employee.firstName} ${employee.lastName}`,
-      assignedJobCount: employee.assignedJobCount,
-      averageDuration: employee.averageDuration,
-    }));
-  }, [employeePerformance]);
-
-  // สีสำหรับแต่ละ bar (ไล่เฉดสี) - ใช้สีซ้ำถ้ามีพนักงานมากกว่า 10 คน
   const colors = [
     '#0088FE',
     '#00C49F',
@@ -103,23 +69,8 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
     '#f0e68c',
   ];
 
-  // แปลง filter state เป็น string สำหรับแสดงช่วงเวลา
   const dateRangeSubtitle = useMemo(() => {
-    if (!filterState) {
-      // ถ้าไม่มี filter state ให้ใช้ internal date range
-      if (dateRange?.start && dateRange?.end) {
-        const startDate = new Date(
-          dateRange.start.year,
-          dateRange.start.month - 1,
-          dateRange.start.day,
-        );
-        const endDate = new Date(dateRange.end.year, dateRange.end.month - 1, dateRange.end.day);
-
-        return formatDateRangeThai(startDate, endDate);
-      }
-
-      return '';
-    }
+    if (!filterState) return '';
 
     if (filterState.mode === 'date-range' && filterState.dateRange) {
       const { start, end } = filterState.dateRange;
@@ -144,8 +95,17 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
       return formatDateRangeThai(start, end);
     }
 
+    const range = getDateRangeFromFilter(filterState);
+
+    if (range.startDate && range.endDate) {
+      return formatDateRangeThai(
+        new Date(`${range.startDate}T00:00:00`),
+        new Date(`${range.endDate}T00:00:00`),
+      );
+    }
+
     return '';
-  }, [filterState, dateRange]);
+  }, [filterState]);
 
   return (
     <Card className="shadow-md border border-default-200 hover:shadow-lg transition-shadow duration-300">
@@ -156,22 +116,21 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
               <div className="w-1 h-6 bg-primary rounded-full" />
               จำนวนงานรายบุคคล
             </h3>
-            {dateRangeSubtitle && (
+            {dateRangeSubtitle ? (
               <p className="text-sm text-default-600 whitespace-nowrap">
                 ข้อมูลจากช่วงวันที่ : {dateRangeSubtitle}
               </p>
-            )}
+            ) : null}
           </div>
         </div>
       </CardHeader>
       <CardBody className="pt-4">
-        {employeePerformance.length === 0 ? (
+        {data.length === 0 ? (
           <div className="text-center py-8 text-default-500">
             ยังไม่มีข้อมูลประสิทธิผลรายบุคคลในช่วงวันที่ที่เลือก
           </div>
         ) : (
           <>
-            {/* Chart ด้านบน: แสดงจำนวนงาน */}
             <div className="mb-4">
               <h4 className="text-sm font-medium text-default-700 mb-2">
                 จำนวนงานที่ได้รับมอบหมาย
@@ -205,7 +164,7 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
-                        const data = payload[0].payload;
+                        const row = payload[0].payload;
 
                         return (
                           <div
@@ -223,14 +182,14 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
                                 marginBottom: '8px',
                               }}
                             >
-                              {data.fullName}
+                              {row.fullName}
                             </p>
                             <div>
                               <span style={{ fontWeight: '600', fontSize: '12px' }}>
                                 จำนวนงานที่ได้รับมอบหมาย:{' '}
                               </span>
                               <span style={{ fontWeight: '600', fontSize: '12px' }}>
-                                {data.assignedJobCount.toLocaleString('th-TH')}
+                                {row.assignedJobCount.toLocaleString('th-TH')}
                               </span>
                             </div>
                           </div>
@@ -246,7 +205,7 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
                     name="จำนวนงานที่ได้รับมอบหมาย"
                     radius={[0, 4, 4, 0]}
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.map((_, index) => (
                       <Cell key={`cell-count-${index}`} fill={colors[index % colors.length]} />
                     ))}
                   </Bar>
@@ -254,7 +213,6 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
               </ResponsiveContainer>
             </div>
 
-            {/* Chart ด้านล่าง: แสดงเวลาเฉลี่ย */}
             <div>
               <h4 className="text-sm font-medium text-default-700 mb-2">เวลาเฉลี่ยในการทำงาน</h4>
               <ResponsiveContainer height={400} width="100%">
@@ -286,7 +244,7 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
-                        const data = payload[0].payload;
+                        const row = payload[0].payload;
 
                         return (
                           <div
@@ -304,14 +262,14 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
                                 marginBottom: '8px',
                               }}
                             >
-                              {data.fullName}
+                              {row.fullName}
                             </p>
                             <div>
                               <span style={{ fontWeight: '600', fontSize: '12px' }}>
                                 ระยะเวลาเฉลี่ย:{' '}
                               </span>
                               <span style={{ fontWeight: '600', fontSize: '12px' }}>
-                                {formatDurationMinutes(data.averageDuration)}
+                                {formatDurationMinutes(row.averageDuration)}
                               </span>
                             </div>
                           </div>
@@ -327,19 +285,20 @@ export function EmployeePerformanceChart({ jobs, filterState }: EmployeePerforma
                     name="เวลาเฉลี่ย"
                     radius={[0, 4, 4, 0]}
                   >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-duration-${index}`} fill={colors[index % colors.length]} />
+                    {chartData.map((_, index) => (
+                      <Cell
+                        key={`cell-duration-${index}`}
+                        fill={colors[index % colors.length]}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            {employeePerformance.length > 0 && (
-              <div className="text-center mt-4 text-sm text-default-600">
-                เจ้าหน้าที่ทั้งหมด {employeePerformance.length} คน
-              </div>
-            )}
+            <div className="text-center mt-4 text-sm text-default-600">
+              เจ้าหน้าที่ทั้งหมด {data.length} คน
+            </div>
           </>
         )}
       </CardBody>

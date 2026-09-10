@@ -87,6 +87,9 @@ export const ListPorterRequestsQuerySchema = z.object({
   page: z.string().optional().nullable(),
   page_size: z.string().optional().nullable(),
   created_after: z.string().optional().nullable(),
+  created_before: z.string().optional().nullable(),
+  /** เมื่อ true — คืนแค่ total ไม่ serialize แถวเต็ม (ใช้กับ badge counts) */
+  count_only: z.string().optional().nullable(),
 });
 export type ListPorterRequestsQueryInput = z.infer<typeof ListPorterRequestsQuerySchema>;
 

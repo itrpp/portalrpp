@@ -2,6 +2,7 @@ import type { sendUnaryData, ServerUnaryCall, ServerWritableStream } from '@grpc
 import { status } from '@grpc/grpc-js';
 
 import * as porterService from '../services/porter.service';
+import * as porterStatsService from '../services/porterStats.service';
 import porterEventEmitter from '../utils/eventEmitter';
 import { logger } from '../utils/logger';
 import {
@@ -116,6 +117,26 @@ export const listPorterRequests = async (
     });
   } catch (error: unknown) {
     handleGrpcError(callback, error, 'Failed to list porter requests');
+  }
+};
+
+/** สรุปสถิติตามช่วงวันที่ (ไม่คืนรายการงานเต็ม) */
+export const getPorterRequestStats = async (
+  call: UnaryCall<
+    { created_after?: string; created_before?: string },
+    Record<string, unknown>
+  >,
+  callback: UnaryCallback<Record<string, unknown>>,
+) => {
+  try {
+    const result = await porterStatsService.getPorterRequestStats(call.request);
+
+    callback(null, {
+      success: true,
+      ...result,
+    });
+  } catch (error: unknown) {
+    handleGrpcError(callback, error, 'Failed to get porter request stats');
   }
 };
 

@@ -4,20 +4,10 @@ import React, { useMemo } from 'react';
 import { Card, CardBody, CardHeader } from '@heroui/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-import { useFilteredJobs } from '../hooks/useFilteredJobs';
-
-import { FilterState } from './StatFilter';
-
-import { PorterJobItem } from '@/types/porter';
-import { formatLocationString } from '@/lib/porter';
-
 interface PopularLocationChartProps {
   title: string;
   data: Array<{ location: string; count: number }>;
   color?: string;
-  jobs?: PorterJobItem[];
-  filterState?: FilterState | null;
-  locationType: 'pickup' | 'delivery';
 }
 
 interface CustomTooltipProps {
@@ -73,71 +63,21 @@ export function PopularLocationChart({
   title,
   data,
   color = '#0070f3',
-  jobs,
-  filterState,
-  locationType,
 }: PopularLocationChartProps) {
-  // ใช้ shared filtered jobs hook เพื่อลดการ filter ซ้ำซ้อน
-  const filteredJobs = useFilteredJobs(jobs, filterState);
-
-  // ถ้ามี jobs และ filterState ให้คำนวณข้อมูลใหม่ (Optimized)
-  const filteredData = useMemo(() => {
-    // ถ้าไม่มี filterState ให้แสดงข้อมูลทั้งหมด
-    if (!filterState) {
-      return data;
-    }
-
-    // ถ้ามี filterState แต่ไม่มี filteredJobs ให้ return array ว่าง
-    if (!filteredJobs || filteredJobs.length === 0) {
-      return [];
-    }
-
-    // Cache สำหรับ location strings
-    const locationStringCache = new Map<string, string>();
-    const locationMap = new Map<string, number>();
-
-    // Single pass: คำนวณ popular locations จาก filtered jobs
-    for (const job of filteredJobs) {
-      const locationDetail =
-        locationType === 'pickup' ? job.form.pickupLocationDetail : job.form.deliveryLocationDetail;
-
-      // ใช้ cache สำหรับ location string
-      const locationKey = JSON.stringify(locationDetail);
-      let locationStr = locationStringCache.get(locationKey);
-
-      if (!locationStr) {
-        locationStr = formatLocationString(locationDetail);
-        locationStringCache.set(locationKey, locationStr);
-      }
-
-      if (locationStr) {
-        locationMap.set(locationStr, (locationMap.get(locationStr) || 0) + 1);
-      }
-    }
-
-    return Array.from(locationMap.entries())
-      .map(([location, count]) => ({
-        location,
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-  }, [filteredJobs, filterState, locationType, data]);
-
   const totalCount = useMemo(
-    () => filteredData.reduce((sum, item) => sum + item.count, 0),
-    [filteredData],
+    () => data.reduce((sum, item) => sum + item.count, 0),
+    [data],
   );
 
   const chartData = useMemo(
     () =>
-      filteredData.map((item) => ({
+      data.map((item) => ({
         location:
           item.location.length > 40 ? `${item.location.substring(0, 40)}...` : item.location,
         locationFull: item.location,
         count: item.count,
       })),
-    [filteredData],
+    [data],
   );
 
   return (
@@ -149,30 +89,36 @@ export function PopularLocationChart({
         </h3>
       </CardHeader>
       <CardBody className="pt-4">
-        <ResponsiveContainer height={400} width="100%">
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
-          >
-            <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
-            <XAxis stroke="#888" style={{ fontSize: '12px' }} type="number" />
-            <YAxis
-              dataKey="location"
-              stroke="#888"
-              style={{ fontSize: '11px' }}
-              type="category"
-              width={100}
-            />
-            <Tooltip content={<CustomTooltip totalCount={totalCount} />} />
-            <Bar
-              dataKey="count"
-              fill={color}
-              label={{ position: 'right', style: { fontSize: '10px' } }}
-              name="จำนวนงาน"
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        {chartData.length === 0 ? (
+          <div className="text-center py-8 text-default-500">
+            ยังไม่มีข้อมูลในช่วงวันที่ที่เลือก
+          </div>
+        ) : (
+          <ResponsiveContainer height={400} width="100%">
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
+            >
+              <CartesianGrid stroke="#e0e0e0" strokeDasharray="3 3" />
+              <XAxis stroke="#888" style={{ fontSize: '12px' }} type="number" />
+              <YAxis
+                dataKey="location"
+                stroke="#888"
+                style={{ fontSize: '11px' }}
+                type="category"
+                width={100}
+              />
+              <Tooltip content={<CustomTooltip totalCount={totalCount} />} />
+              <Bar
+                dataKey="count"
+                fill={color}
+                label={{ position: 'right', style: { fontSize: '10px' } }}
+                name="จำนวนงาน"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </CardBody>
     </Card>
   );

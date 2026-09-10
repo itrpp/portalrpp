@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardBody, CardHeader, Spinner } from '@heroui/react';
-import { getLocalTimeZone, today } from '@internationalized/date';
 
 import { StatCard } from './components/StatCard';
 import { TimeHeatmap } from './components/TimeHeatmap';
 import { StatFilter, FilterState } from './components/StatFilter';
+import { getDefaultStatFilterState } from './dateBounds';
 import { usePorterStats } from './hooks/usePorterStats';
 
 function ChartPlaceholder() {
@@ -23,17 +23,21 @@ function ChartPlaceholder() {
 
 const DailyJobChart = dynamic(
   () => import('./components/DailyJobChart').then((m) => m.DailyJobChart),
-  { ssr: false, loading: ChartPlaceholder }
+  { ssr: false, loading: ChartPlaceholder },
 );
 
 const PopularLocationChart = dynamic(
-  () => import('./components/PopularLocationChart').then((m) => m.PopularLocationChart),
-  { ssr: false, loading: ChartPlaceholder }
+  () =>
+    import('./components/PopularLocationChart').then((m) => m.PopularLocationChart),
+  { ssr: false, loading: ChartPlaceholder },
 );
 
 const EmployeePerformanceChart = dynamic(
-  () => import('./components/EmployeePerformanceChart').then((m) => m.EmployeePerformanceChart),
-  { ssr: false, loading: ChartPlaceholder }
+  () =>
+    import('./components/EmployeePerformanceChart').then(
+      (m) => m.EmployeePerformanceChart,
+    ),
+  { ssr: false, loading: ChartPlaceholder },
 );
 
 import {
@@ -46,23 +50,15 @@ import {
 import { LOADING_MESSAGES } from '@/lib/constants';
 
 export default function PorterStatPage() {
-  const { stats, jobs, isLoading, error } = usePorterStats();
+  const [filterState, setFilterState] = useState<FilterState | null>(() =>
+    getDefaultStatFilterState(),
+  );
 
-  // Default filter: ย้อนหลัง 30 วันจากปัจจุบัน
-  const defaultFilterState = useMemo<FilterState>(() => {
-    const todayDate = today(getLocalTimeZone());
-    const startDate = todayDate.subtract({ days: 30 });
-
-    return {
-      mode: 'date-range',
-      dateRange: {
-        start: startDate,
-        end: todayDate,
-      },
-    };
+  const handleFilterChange = useCallback((filter: FilterState) => {
+    setFilterState(filter);
   }, []);
 
-  const [filterState, setFilterState] = useState<FilterState | null>(defaultFilterState);
+  const { stats, isLoading, error } = usePorterStats(filterState);
 
   if (isLoading) {
     return (
@@ -94,7 +90,6 @@ export default function PorterStatPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6 max-w-7xl">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-default-200">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
@@ -104,12 +99,11 @@ export default function PorterStatPage() {
             สถิติการดำเนินงาน
           </h1>
           <p className="text-default-600 mt-2 text-sm">
-            สถิติการดำเนินงานของศูนย์เคลื่อนย้ายผู้ป่วย
+            สถิติการดำเนินงานของศูนย์เคลื่อนย้ายผู้ป่วย (ตามช่วงวันที่ที่เลือก)
           </p>
         </div>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           color="default"
@@ -143,52 +137,37 @@ export default function PorterStatPage() {
         />
       </div>
 
-      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ปริมาณงานรายวัน */}
         <div className="lg:col-span-2">
           <DailyJobChart data={stats.dailyJobs} />
         </div>
 
-        {/* Filter Component */}
         <div className="lg:col-span-2">
-          <StatFilter onFilterChange={setFilterState} />
+          <StatFilter onFilterChange={handleFilterChange} />
         </div>
 
-        {/* Time Heatmap */}
         <div className="lg:col-span-2">
-          <TimeHeatmap filterState={filterState} jobs={jobs} />
+          <TimeHeatmap cells={stats.heatmapCells} />
         </div>
 
-        {/* จุดรับยอดนิยม */}
         <PopularLocationChart
           color="#0088FE"
           data={stats.popularPickupLocations}
-          filterState={filterState}
-          jobs={jobs}
-          locationType="pickup"
           title="จุดรับ (Top 10)"
         />
 
-        {/* จุดส่งยอดนิยม */}
         <PopularLocationChart
           color="#00C49F"
           data={stats.popularDeliveryLocations}
-          filterState={filterState}
-          jobs={jobs}
-          locationType="delivery"
           title="จุดส่ง (Top 10)"
         />
       </div>
 
-      {/* เหตุผลการเคลื่อนย้าย */}
-      {/* <div className="grid grid-cols-2 gap-4">
-        <TransportReasonChart data={stats.transportReasons} />
-      </div> */}
-
-      {/* จำนวนงานรายบุคคล */}
       <div className="grid grid-cols-1">
-        <EmployeePerformanceChart filterState={filterState} jobs={jobs} />
+        <EmployeePerformanceChart
+          data={stats.employeePerformance}
+          filterState={filterState}
+        />
       </div>
     </div>
   );

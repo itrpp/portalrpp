@@ -272,6 +272,10 @@ export interface ListPorterRequestsParams {
   page_size?: string | null;
   /** ISO 8601 date string — กรองเฉพาะรายการที่สร้างหลังวันที่นี้ */
   created_after?: string | null;
+  /** ISO 8601 date string — กรองเฉพาะรายการที่สร้างก่อน/ถึงวันที่นี้ */
+  created_before?: string | null;
+  /** คืนเฉพาะ total ไม่ส่งแถวเต็ม — สำหรับ badge counts */
+  count_only?: string | null;
 }
 
 /**

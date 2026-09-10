@@ -14,6 +14,9 @@ service PorterService {
   // List porter requests with optional filters
   rpc ListPorterRequests(ListPorterRequestsRequest) returns (ListPorterRequestsResponse);
 
+  // Aggregated stats for porter dashboard (no full row payload)
+  rpc GetPorterRequestStats(GetPorterRequestStatsRequest) returns (GetPorterRequestStatsResponse);
+
   // Update porter request fields
   rpc UpdatePorterRequest(UpdatePorterRequestRequest) returns (PorterRequestResponse);
 
@@ -120,14 +123,15 @@ message GetPorterRequestRequest {
 }
 
 message ListPorterRequestsRequest {
-  optional string status = 1; // WAITING_CENTER, WAITING_ACCEPT, IN_PROGRESS, COMPLETED, CANCELLED
+  optional string status = 1; // single status หรือ comma-separated เช่น WAITING_ACCEPT,IN_PROGRESS
   optional string urgency_level = 2; // NORMAL, RUSH, EMERGENCY
   optional string assigned_to_id = 3;
   optional int32 page = 4;
-  optional int32 page_size = 5;
+  optional int32 page_size = 5; // เพดานสูงสุด 100 ฝั่ง service
   optional string requester_user_id = 6;
   optional string search = 7; // ค้นหาจาก patientName หรือ patientHN
-  optional string created_after = 8; // ISO 8601 date string — กรองเฉพาะรายการที่สร้างหลังวันที่นี้ (ลดโหลดสำหรับสถิติ)
+  optional string created_after = 8; // ISO 8601 — createdAt >= (ลดโหลด)
+  optional string created_before = 9; // ISO 8601 — createdAt <= (date-only = จบวันนั้น)
 }
 
 message UpdatePorterRequestRequest {
@@ -205,6 +209,55 @@ message ListPorterRequestsResponse {
   int32 page = 4;
   int32 page_size = 5;
   optional string error_message = 6;
+}
+
+message GetPorterRequestStatsRequest {
+  string created_after = 1; // YYYY-MM-DD or ISO
+  string created_before = 2;
+}
+
+message PorterStatsDailyJob {
+  string date = 1; // YYYY-MM-DD
+  int32 normal = 2;
+  int32 rush = 3;
+  int32 emergency = 4;
+  int32 total = 5;
+}
+
+message PorterStatsCountItem {
+  string label = 1;
+  int32 count = 2;
+}
+
+message PorterStatsEmployeePerformance {
+  string employee_id = 1;
+  string employee_name = 2;
+  string first_name = 3;
+  string last_name = 4;
+  int32 assigned_job_count = 5;
+  double average_duration = 6; // minutes
+}
+
+message PorterStatsHeatmapCell {
+  int32 day_of_week = 1; // 0=Sunday .. 6=Saturday
+  int32 hour = 2; // 0-23
+  int32 count = 3;
+}
+
+message GetPorterRequestStatsResponse {
+  bool success = 1;
+  optional string error_message = 2;
+  int32 total_jobs = 3;
+  int32 waiting_jobs = 4;
+  int32 in_progress_jobs = 5;
+  int32 completed_jobs = 6;
+  int32 cancelled_jobs = 7;
+  repeated PorterStatsDailyJob daily_jobs = 8;
+  repeated PorterStatsCountItem transport_reasons = 9;
+  repeated PorterStatsCountItem popular_pickup_locations = 10;
+  repeated PorterStatsCountItem popular_delivery_locations = 11;
+  repeated PorterStatsEmployeePerformance employee_performance = 12;
+  repeated PorterStatsHeatmapCell heatmap_cells = 13;
 }
 
 message DeletePorterRequestResponse {

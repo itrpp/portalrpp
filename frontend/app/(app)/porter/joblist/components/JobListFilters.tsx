@@ -15,7 +15,13 @@ import {
   Select,
   SelectItem,
   DateRangePicker,
+  addToast,
 } from '@heroui/react';
+
+import {
+  JOB_LIST_MAX_RANGE_DAYS,
+  clampJobListDateRange,
+} from '../dateRange';
 
 import { CARD_STYLES } from '@/lib/cardStyles';
 import { cn } from '@/lib/utils';
@@ -26,34 +32,38 @@ export interface JobListFiltersProps {
   urgencyFilter: string;
   dateRange: RangeValue<CalendarDate> | null;
   staffNameFilter: string;
+  assignedToId: string | null;
   onSearchChange: (value: string) => void;
   onUrgencyChange: (value: string) => void;
   onDateRangeChange: (value: RangeValue<CalendarDate> | null) => void;
   onStaffNameChange: (value: string) => void;
+  onAssignedToIdChange: (value: string | null) => void;
   onClearFilters: () => void;
   onPageReset: () => void;
 }
 
 /**
- * บล็อก filter รายการคำขอ (ค้นหาชื่อผู้ป่วย/HN, ความเร่งด่วน, ช่วงวันที่, ชื่อเจ้าหน้าที่เปล)
- * ใช้ร่วมกับ useJobListData ที่ส่ง search/urgency ไป API และโหลดชุดใหญ่เมื่อมี date/staff เพื่อ filter จากข้อมูลทั้งหมด
+ * บล็อก filter รายการคำขอ — ช่วงวันที่บังคับ (default 7 วัน, สูงสุด 90 วัน)
+ * search/urgency/staff/date ส่งไป API ทั้งหมด
  */
 export function JobListFilters({
   searchQuery,
   urgencyFilter,
   dateRange,
   staffNameFilter,
+  assignedToId,
   onSearchChange,
   onUrgencyChange,
   onDateRangeChange,
   onStaffNameChange,
+  onAssignedToIdChange,
   onClearFilters,
   onPageReset,
 }: JobListFiltersProps) {
-  const hasAnyFilter =
+  const hasClearableFilter =
     !!searchQuery.trim() ||
     !!urgencyFilter ||
-    !!(dateRange?.start && dateRange?.end) ||
+    !!assignedToId ||
     !!staffNameFilter.trim();
 
   const [employees, setEmployees] = React.useState<PorterEmployee[]>([]);
@@ -135,7 +145,6 @@ export function JobListFilters({
           </div>
           <div className="flex flex-col gap-1 min-w-0">
             <Autocomplete
-              allowsCustomValue
               isClearable
               aria-label="ค้นหาชื่อเจ้าหน้าที่เปล"
               className="w-full min-w-0"
@@ -151,14 +160,31 @@ export function JobListFilters({
                     ? 'ค้นหาชื่อเจ้าหน้าที่...'
                     : 'ไม่พบรายชื่อเจ้าหน้าที่'
               }
+              selectedKey={assignedToId}
               size="md"
               variant="bordered"
               onClear={() => {
                 onStaffNameChange('');
+                onAssignedToIdChange(null);
                 onPageReset();
               }}
               onInputChange={(value) => {
                 onStaffNameChange(value);
+              }}
+              onSelectionChange={(key) => {
+                if (key == null) {
+                  onAssignedToIdChange(null);
+                  onPageReset();
+
+                  return;
+                }
+                const id = String(key);
+                const employee = employees.find((emp) => emp.id === id);
+
+                onAssignedToIdChange(id);
+                if (employee) {
+                  onStaffNameChange(`${employee.firstName} ${employee.lastName}`);
+                }
                 onPageReset();
               }}
             >
@@ -175,15 +201,31 @@ export function JobListFilters({
           </div>
           <div className="flex flex-col gap-1 min-w-0 md:col-span-2 2xl:col-span-1">
             <DateRangePicker
-              aria-label="ช่วงวันที่"
+              aria-label="ช่วงวันที่ (สูงสุด 90 วัน)"
               className="w-full"
+              description={`จำกัดชุดข้อมูลที่โหลด (สูงสุด ${JOB_LIST_MAX_RANGE_DAYS} วัน)`}
               label="ช่วงวันที่"
               labelPlacement="outside"
               size="md"
               value={dateRange}
               variant="bordered"
               onChange={(range) => {
-                onDateRangeChange(range ?? null);
+                if (!range?.start || !range?.end) {
+                  return;
+                }
+
+                const clamped = clampJobListDateRange(range);
+                if (
+                  clamped &&
+                  range.start.compare(clamped.start) !== 0
+                ) {
+                  addToast({
+                    title: 'จำกัดช่วงวันที่',
+                    description: `เลือกได้สูงสุด ${JOB_LIST_MAX_RANGE_DAYS} วัน — ปรับวันเริ่มให้อัตโนมัติ`,
+                    color: 'warning',
+                  });
+                }
+                onDateRangeChange(clamped);
                 onPageReset();
               }}
             />
@@ -192,7 +234,7 @@ export function JobListFilters({
             <Button
               className="w-full"
               color="default"
-              isDisabled={!hasAnyFilter}
+              isDisabled={!hasClearableFilter}
               size="md"
               variant="flat"
               onPress={onClearFilters}

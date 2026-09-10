@@ -34,6 +34,7 @@ const EditableJobDetailDrawer = dynamic(
 
 import { JobListFilters, JobListTableCard } from './components';
 import { isValidJobListTab } from './constants';
+import { getDefaultJobListDateRange } from './dateRange';
 import { useJobListCounts } from './hooks/useJobListCounts';
 import { useJobListData } from './hooks/useJobListData';
 import { useJobListStream } from './hooks/useJobListStream';
@@ -54,30 +55,41 @@ export default function JobListClient() {
 
   const [selectedTab, setSelectedTab] = useState<JobListTab>(initialTab);
 
-  // Filter states
+  // Filter states — ช่วงวันที่ default 7 วัน (บังคับมีเสมอ)
+  const [searchInput, setSearchInput] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [urgencyFilter, setUrgencyFilter] = useState<string>('');
   const [dateRange, setDateRange] = useState<RangeValue<CalendarDate> | null>(
-    null,
+    () => getDefaultJobListDateRange(),
   );
   const [staffNameFilter, setStaffNameFilter] = useState<string>('');
+  const [assignedToId, setAssignedToId] = useState<string | null>(null);
 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<PorterJobItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Debounce ค้นหา — กันยิง API ทุก keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const counts = useJobListCounts({
-    search: searchQuery.trim() || null,
+    search: searchQuery || null,
     urgencyLevel: urgencyFilter || null,
     dateRange,
-    staffNameFilter: staffNameFilter.trim() || null,
+    assignedToId,
   });
   const jobListData = useJobListData({
     selectedTab,
-    search: searchQuery.trim() || null,
+    search: searchQuery || null,
     urgencyLevel: urgencyFilter || null,
     dateRange,
-    staffNameFilter: staffNameFilter.trim() || null,
+    assignedToId,
   });
 
   const handleJobDeleted = useCallback((jobId: string) => {
@@ -128,10 +140,12 @@ export default function JobListClient() {
   }, []);
 
   const handleClearFilters = useCallback(() => {
+    setSearchInput('');
     setSearchQuery('');
     setUrgencyFilter('');
-    setDateRange(null);
+    setDateRange(getDefaultJobListDateRange());
     setStaffNameFilter('');
+    setAssignedToId(null);
     onPageChange(1);
   }, [onPageChange]);
 
@@ -359,14 +373,16 @@ export default function JobListClient() {
 
       <div className="min-w-0 overflow-x-auto">
         <JobListFilters
+          assignedToId={assignedToId}
           dateRange={dateRange}
-          searchQuery={searchQuery}
+          searchQuery={searchInput}
           staffNameFilter={staffNameFilter}
           urgencyFilter={urgencyFilter}
+          onAssignedToIdChange={setAssignedToId}
           onClearFilters={handleClearFilters}
           onDateRangeChange={setDateRange}
           onPageReset={() => onPageChange(1)}
-          onSearchChange={setSearchQuery}
+          onSearchChange={setSearchInput}
           onStaffNameChange={setStaffNameFilter}
           onUrgencyChange={setUrgencyFilter}
         />

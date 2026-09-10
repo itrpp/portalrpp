@@ -18,8 +18,8 @@ export interface UseJobListStreamOptions {
 
 /**
  * เชื่อมต่อ SSE stream (gRPC) เพื่อรับ real-time updates
- * เมื่อมี CREATED/UPDATED/STATUS_CHANGED/DELETED จะ invalidate React Query
- * ให้ useJobListData และ useJobListCounts โหลดข้อมูลใหม่ และแสดง toast/เสียงแจ้งเตือน
+ * เมื่อมี CREATED/UPDATED/STATUS_CHANGED/DELETED จะ debounce invalidate React Query
+ * (ลดพายุ GET /api/porter/requests เมื่อมี event ถี่) แล้วให้ list/counts โหลดใหม่ + toast/เสียง
  */
 export function useJobListStream(options: UseJobListStreamOptions = {}) {
   const { onJobDeleted } = options;
@@ -34,12 +34,33 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
 
     let abortController: AbortController | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let invalidateTimeout: ReturnType<typeof setTimeout> | null = null;
     let reconnectDelayMs = SSE_RECONNECT_MIN_MS;
     let isMounted = true;
     let awaitingVisible = false;
 
-    const invalidateJobLists = () => {
+    /** รวม SSE events ที่ถี่ — ลดพายุ refetch GET /api/porter/requests */
+    const INVALIDATE_DEBOUNCE_MS = 2000;
+
+    const clearInvalidateTimeout = () => {
+      if (invalidateTimeout) {
+        clearTimeout(invalidateTimeout);
+        invalidateTimeout = null;
+      }
+    };
+
+    const flushInvalidateJobLists = () => {
+      clearInvalidateTimeout();
       void queryClient.invalidateQueries({ queryKey: porterQueryKeys.jobs.all });
+    };
+
+    const scheduleInvalidateJobLists = () => {
+      clearInvalidateTimeout();
+      invalidateTimeout = setTimeout(() => {
+        invalidateTimeout = null;
+        if (!isMounted) return;
+        void queryClient.invalidateQueries({ queryKey: porterQueryKeys.jobs.all });
+      }, INVALIDATE_DEBOUNCE_MS);
     };
 
     const clearReconnectTimeout = () => {
@@ -154,7 +175,7 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
                 const { type, data } = updateData;
 
                 if (type === 'CREATED') {
-                  invalidateJobLists();
+                  scheduleInvalidateJobLists();
 
                   const urgencyLevel = data.form?.urgencyLevel as
                     | UrgencyLevel
@@ -189,7 +210,7 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
                     });
                   }
                 } else if (type === 'UPDATED' || type === 'STATUS_CHANGED') {
-                  invalidateJobLists();
+                  scheduleInvalidateJobLists();
 
                   if (type === 'STATUS_CHANGED') {
                     const statusText =
@@ -230,7 +251,7 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
                     }
                   }
                 } else if (type === 'DELETED') {
-                  invalidateJobLists();
+                  scheduleInvalidateJobLists();
                   onJobDeletedRef.current?.(data.id);
                 }
               } catch {
@@ -263,7 +284,7 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
         awaitingVisible = false;
         resetBackoff();
         // Sync data missed while SSE was paused (refetchOnWindowFocus is false)
-        invalidateJobLists();
+        flushInvalidateJobLists();
         startConnection();
       }
     };
@@ -279,6 +300,7 @@ export function useJobListStream(options: UseJobListStreamOptions = {}) {
     return () => {
       isMounted = false;
       clearReconnectTimeout();
+      clearInvalidateTimeout();
       abortController?.abort();
       document.removeEventListener('visibilitychange', onVisibility);
     };
